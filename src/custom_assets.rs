@@ -60,6 +60,7 @@ pub mod custom_asset_ids {
     def_asset_ids! {
         // Item Assets
         PHAZON_SUIT_TXTR1: TXTR = 0xDEAF0000,
+        POWER_BEAM_PART_TXTR: TXTR = 0xDEAF0001, // we cheat and hard-code this in a PART that is loaded as an external asset, do not change
         PHAZON_SUIT_TXTR2: TXTR,
         PHAZON_SUIT_CMDL: CMDL,
         PHAZON_SUIT_ANCS: ANCS,
@@ -88,6 +89,13 @@ pub mod custom_asset_ids {
         FLAMETHROWER_PICKUP_TXTR1: TXTR,
         FLAMETHROWER_PICKUP_TXTR2: TXTR,
         FLAMETHROWER_PICKUP_TXTR3: TXTR,
+        POWER_BEAM_PICKUP_CMDL: CMDL,
+        POWER_BEAM_PICKUP_ANCS: ANCS,
+        POWER_BEAM_PICKUP_TXTR1: TXTR,
+        POWER_BEAM_PICKUP_TXTR2: TXTR,
+        POWER_BEAM_PART: PART,
+        POWER_BEAM_ANIM: ANIM,
+        POWER_BEAM_EVNT: EVNT,
 
         // Custom Scans
         SHORELINES_POI_SCAN: SCAN,
@@ -336,7 +344,6 @@ pub mod custom_asset_ids {
 pub fn custom_asset_filename(resource_info: structs::ResourceInfo) -> String
 {
     let base_name = match resource_info.file_id {
-        // id if custom_asset_ids::PHAZON_SUIT_TXTR1.to_u32()                   == id => "phazon_suit_txtr1".to_string()                  ,
         _ => format!("{:X}", resource_info.file_id),
     };
 
@@ -417,6 +424,9 @@ fn extern_assets_compile_time<'r>() -> Vec<Resource<'r>>
         extern_asset!(FLAMETHROWER_PICKUP_TXTR1 , "flamethrower_vertice_color.TXTR" ),
         extern_asset!(FLAMETHROWER_PICKUP_TXTR2 , "flamethrower_cap_glow.TXTR"      ),
         extern_asset!(FLAMETHROWER_PICKUP_TXTR3 , "flamethrower_color_body.TXTR"    ),
+        extern_asset!(POWER_BEAM_PICKUP_TXTR1   , "power_beam_capsule.TXTR"         ),
+        extern_asset!(POWER_BEAM_PICKUP_TXTR2   , "power_beam_accent.TXTR"          ),
+        extern_asset!(POWER_BEAM_PART_TXTR      , "power_beam_part.TXTR"            ),
         extern_asset!(RANDOVANIA_GAMECUBE0_TXTR , "randovania_gamecube.TXTR"        ),
         extern_asset!(RANDOVANIA_GAMECUBE1_TXTR , "randovania_gamecube_text.TXTR"   ),
 
@@ -608,6 +618,7 @@ pub fn custom_assets<'r>(
     
     assets.extend_from_slice(&create_shiny_missile_assets(resources));
     assets.extend_from_slice(&create_flamethrower_assets(resources));
+    assets.extend_from_slice(&create_power_beam_assets(resources));
 
     assets.extend_from_slice(&create_ice_trap_icon_ancs(
         resources,
@@ -1697,6 +1708,97 @@ fn create_flamethrower_assets<'r>(
     };
 
     [cmdl, ancs]
+}
+
+fn create_power_beam_assets<'r>(
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+) -> [structs::Resource<'r>; 5]
+{
+    let cmdl = {
+        let cmdl = ResourceData::new(
+            &resources[&resource_info!("Node1_18.CMDL").into()]
+        );
+        let cmdl_bytes = cmdl.decompress().into_owned();
+        let mut cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
+
+        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = custom_asset_ids::POWER_BEAM_PICKUP_TXTR1;
+        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[1] = custom_asset_ids::POWER_BEAM_PICKUP_TXTR2;
+
+        let mut new_cmdl_bytes = vec![];
+        cmdl.write_to(&mut new_cmdl_bytes).unwrap();
+
+        build_resource(
+            custom_asset_ids::POWER_BEAM_PICKUP_CMDL,
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+        )
+    };
+
+    let ancs = {
+        let ancs = ResourceData::new(
+            &resources[&resource_info!("Node1_18.ANCS").into()]
+        );
+        let ancs_bytes = ancs.decompress().into_owned();
+        let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
+
+        ancs.char_set.char_info.as_mut_vec()[0].cmdl = custom_asset_ids::POWER_BEAM_PICKUP_CMDL;
+        ancs.char_set.char_info.as_mut_vec()[0].particles.part_assets.as_mut_vec()[0] = custom_asset_ids::POWER_BEAM_PART.to_u32(); // 0x9884086
+
+        match &mut ancs.anim_set.animations.as_mut_vec()[0].meta {
+            structs::MetaAnimation::Play(play) => {
+                play.get_mut().anim = custom_asset_ids::POWER_BEAM_ANIM;
+            }
+            _ => {panic!("ANIM wasn't PLAY")}
+        }
+
+        ancs.anim_set.animation_resources.as_mut().unwrap().as_mut_vec()[0].anim = custom_asset_ids::POWER_BEAM_ANIM;
+        ancs.anim_set.animation_resources.as_mut().unwrap().as_mut_vec()[0].evnt = custom_asset_ids::POWER_BEAM_EVNT;
+
+        let mut new_ancs_bytes = vec![];
+        ancs.write_to(&mut new_ancs_bytes).unwrap();
+
+        build_resource(
+            custom_asset_ids::POWER_BEAM_PICKUP_ANCS,
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+        )
+    };
+
+    let part = {
+        let bytes = include_bytes!("../extra_assets/power_beam.PART");
+        build_resource(
+            custom_asset_ids::POWER_BEAM_PART,
+            structs::ResourceKind::External(bytes.to_vec(), b"PART".into())
+        )
+    };
+
+    let evnt = {
+        let mut evnt = resources[&resource_info!("IceBeam_ready.EVNT").into()]
+            .kind.as_evnt()
+            .unwrap().into_owned();
+
+        evnt.effect_events.as_mut_vec()[0].effect_file_id = custom_asset_ids::POWER_BEAM_PART.to_u32();
+    
+        build_resource(
+            custom_asset_ids::POWER_BEAM_EVNT,
+            structs::ResourceKind::Evnt(evnt)
+        )
+    };
+
+    let anim = {
+        let anim = ResourceData::new(
+            &resources[&resource_info!("IceBeam_ready.ANIM").into()]
+        );
+
+        let mut bytes = anim.decompress().into_owned();
+
+        custom_asset_ids::POWER_BEAM_EVNT.write_to(&mut std::io::Cursor::new(&mut bytes[8..])).unwrap();
+
+        build_resource(
+            custom_asset_ids::POWER_BEAM_ANIM,
+            structs::ResourceKind::External(bytes, b"ANIM".into())
+        )
+    };
+
+    [cmdl, ancs, part, evnt, anim]
 }
 
 fn create_ice_trap_icon_ancs<'r>(

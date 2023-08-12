@@ -344,6 +344,7 @@ pub enum PickupModel
     IceSpreader,
     Flamethrower,
     FlamethrowerNew,
+    PowerBeam,
     WaveBeam,
     IceBeam,
     PlasmaBeam,
@@ -396,6 +397,7 @@ impl PickupModel
             PickupModel::IceSpreader =>         "Ice Spreader",
             PickupModel::Flamethrower =>        "FlamethrowerOld",
             PickupModel::FlamethrowerNew =>     "Flamethrower",
+            PickupModel::PowerBeam =>           "Power Beam",
             PickupModel::WaveBeam =>            "Wave Beam",
             PickupModel::IceBeam =>             "Ice Beam",
             PickupModel::PlasmaBeam =>          "Plasma Beam",
@@ -464,6 +466,7 @@ impl PickupModel
             PickupModel::IceSpreader,
             PickupModel::Flamethrower,
             PickupModel::FlamethrowerNew,
+            PickupModel::PowerBeam,
             PickupModel::WaveBeam,
             PickupModel::IceBeam,
             PickupModel::PlasmaBeam,
@@ -538,7 +541,7 @@ impl PickupModel
      */
     pub fn from_type(pickup_type: PickupType) -> Self {
         match pickup_type {
-            PickupType::PowerBeam           => PickupModel::RandovaniaGamecube,
+            PickupType::PowerBeam           => PickupModel::PowerBeam,
             PickupType::IceBeam             => PickupModel::IceBeam,
             PickupType::WaveBeam            => PickupModel::WaveBeam,
             PickupType::PlasmaBeam          => PickupModel::PlasmaBeam,
