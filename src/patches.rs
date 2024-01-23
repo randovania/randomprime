@@ -11547,11 +11547,10 @@ fn patch_final_boss_permadeath<'r>(
     if mrea_id == 0x749DF46 { // subchamber two already has a layer #1 that we can use
         disable_bosses_layer_num = 1;
     } else {
-        if layer_count != 1 {
-            panic!("Unexpected layer count ({}) when patching final boss permadeath in room 0x{:X}", layer_count, mrea_id);
+        if layer_count == 1 {
+            area.add_layer(b"Disable Bosses Layer\0".as_cstr());
         }
-        area.add_layer(b"Disable Bosses Layer\0".as_cstr());
-        disable_bosses_layer_num = layer_count;
+        disable_bosses_layer_num = 1;
     }
 
     area.layer_flags.flags |= 1 << disable_bosses_layer_num; // layer enabled by default
@@ -15590,7 +15589,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                                         0xA2C2A,
                                         [0.0, 0.0, -1000.0],
                                         None,
-                                        512.0,
+                                        7.0,
                                         [
                                             0,
                                             0,
