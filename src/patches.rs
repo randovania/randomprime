@@ -234,7 +234,7 @@ fn build_artifact_temple_totem_scan_strings<R>(
             1  => 11, // ArtifactOfStrength
             2  => 4 , // ArtifactOfElder
             3  => 1 , // ArtifactOfWild
-            4  => 0 , // ArtifactOfLifegive
+            4  => 0 , // ArtifactOfLifegiver
             5  => 8 , // ArtifactOfWarrior
             6  => 7 , // ArtifactOfChozo
             7  => 10, // ArtifactOfNature
@@ -287,6 +287,7 @@ fn build_artifact_temple_totem_scan_strings<R>(
                 "strength"  => 11,
                 _ => panic!("Error - Unknown artifact - '{}'", artifact_name)
             };
+
             scan_text[idx] = format!("{}\0",hint.to_owned());
         }
     }
@@ -11786,7 +11787,7 @@ fn patch_final_boss_permadeath<'r>(
                 instance_id: unload_subchamber_five_trigger_id,
                 connections: vec![
                     structs::Connection {
-                        state: structs::ConnectionState::INSIDE,
+                        state: structs::ConnectionState::ENTERED,
                         message: structs::ConnectionMsg::SET_TO_ZERO,
                         target_object_id: 0x000B0173, // dock
                     },
@@ -11805,7 +11806,7 @@ fn patch_final_boss_permadeath<'r>(
                         force: [0.0, 0.0, 0.0].into(),
                         flags: 1,
                         active: 1,
-                        deactivate_on_enter: 0,
+                        deactivate_on_enter: 1,
                         deactivate_on_exit: 0,
                     })
                 ),
@@ -11912,7 +11913,7 @@ fn patch_final_boss_permadeath<'r>(
                 message,
                 target_object_id: special_function_ids[i],
             });
-        }
+        } 
         layers[0].objects.as_mut_vec().push(
             structs::SclyObject {
                 instance_id: change_layer_timer_id,
@@ -11928,16 +11929,6 @@ fn patch_final_boss_permadeath<'r>(
             }
         );
     }
-
-    // make a list of docks
-    // let mut docks: Vec<(u32, [f32;3], [f32;3])> = Vec::new();
-    // for obj in layers[0].objects.as_mut_vec() {
-    //     if obj.property_data.is_dock() {
-    //         let dock = obj.property_data.as_dock();
-    //     }
-    // }
-
-    // // for each dock, make a loading trigger
 
     Ok(())
 }
@@ -12176,6 +12167,7 @@ fn patch_add_dock_teleport<'r>(
     dest_position: Option<[f32;3]>,
     spawn_rotation: Option<f32>,
     mrea_idx: Option<u32>,
+    trigger_id: Option<u32>,
 )
 -> Result<(), String>
 {
@@ -12191,7 +12183,10 @@ fn patch_add_dock_teleport<'r>(
 
     let spawn_point_id = area.new_object_id_from_layer_name("Default");
     let timer_id = area.new_object_id_from_layer_name("Default");
-    let dock_teleport_trigger_id = area.new_object_id_from_layer_name("Default");
+    let dock_teleport_trigger_id = match trigger_id {
+        Some(trigger_id) => trigger_id,
+        None => area.new_object_id_from_layer_name("Default"),
+    };
     let camera_hint_id = area.new_object_id_from_layer_name("Default");
     let camera_hint_trigger_id = area.new_object_id_from_layer_name("Default");
     let layer = &mut area.mrea().scly_section_mut().layers.as_mut_vec()[0];
@@ -15169,6 +15164,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                     Some([41.5365,-287.8581,-284.6025]),
                     None,
                     None,
+                    Some(720915),
                 )
             );
         }
@@ -15709,6 +15705,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                                         Some(repo.destination_position),
                                         Some(repo.destination_rotation),
                                         None,
+                                        None,
                                     ),
                                 );
                             }
@@ -15870,7 +15867,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
             while idx < pickups_config_len {
                 let pickup = pickups[idx].clone(); // TODO: cloning is suboptimal
                 let show_icon = pickup.show_icon.unwrap_or(false);
-                let position = pickup.position.unwrap().clone();
+                let position = pickup.position.expect(format!("Additional pickup in room 0x{} is missing required \"position\" property", room_info.room_id.to_u32()).as_str()).clone();
 
                 // doesn't count the original pickups in the indexing
                 let custom_pickup_idx = idx - room_info.pickup_locations.len();
@@ -16204,6 +16201,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                             None, // If Some, override destination spawn point
                             None,
                             Some(source_room.mrea_idx),
+                            None,
                         ),
                     );
                 }
