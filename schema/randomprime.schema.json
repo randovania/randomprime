@@ -3162,11 +3162,11 @@
                     }
                 },
                 "fog": {
-                    "description": "Edit the ambient fog settings for this room.",
+                    "description": "Edit the ambient fog settings for this room. Use \"distanceFogs\" if you need a more specific use case.",
                     "type": "object",
                     "properties": {
                         "mode": {
-                            "description": "[Deprecated]",
+                            "description": "[Deprecated] Fog is always mode=1",
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 15,
@@ -3174,8 +3174,9 @@
                             "deprecated": true
                         },
                         "explicit": {
+                            "description": "[Deprecated] There is no need to set this",
                             "type": "boolean",
-                            "default": true
+                            "deprecated": true
                         },
                         "color": {
                             "description": "RGBA fog color for this room.",
@@ -4260,6 +4261,87 @@
                         "required": [
                             "id"
                         ],
+                        "additionalProperties": false
+                    }
+                },
+                "distanceFogs": {
+                    "description": "Add/modify distanceFog objects to this room. If you just want to set the global ambient fog level for this room, see \"fog\".",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the distanceFog object.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "mode": {
+                                "description": "[Deprecated] Fog is always mode=1",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 15,
+                                "default": 1,
+                                "deprecated": true
+                            },
+                            "explicit": {
+                                "description": "If true, this fog is applied as ambient fog without the need to send it an ACTION message.",
+                                "type": "boolean"
+                            },
+                            "color": {
+                                "description": "RGBA fog color for this room.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    0.8,
+                                    0.8,
+                                    0.9,
+                                    0.0
+                                ]
+                            },
+                            "range": {
+                                "description": "X and Y axis ranges for the fog of this room.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "exclusiveMinimum": 0.0
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "default": [
+                                    30.0,
+                                    40.0
+                                ]
+                            },
+                            "colorDelta": {
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "rangeDelta": {
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "default": [
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        },
+                        "required": [],
                         "additionalProperties": false
                     }
                 }

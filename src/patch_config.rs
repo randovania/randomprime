@@ -559,6 +559,9 @@ pub struct EditObjConfig
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FogConfig
 {
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
     pub mode: Option<u32>,
     pub explicit: Option<bool>,
     pub color: Option<[f32;4]>, // RGBA
@@ -867,6 +870,7 @@ pub struct RoomConfig
     pub counters: Option<Vec<CounterConfig>>,
     pub switches: Option<Vec<SwitchConfig>>,
     pub player_hints: Option<Vec<PlayerHintConfig>>,
+    pub distance_fogs: Option<Vec<FogConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1698,6 +1702,7 @@ impl PatchConfigPrivate
                 extend_option_vec!(counters          , self_room_config, other_room_config);
                 extend_option_vec!(switches          , self_room_config, other_room_config);
                 extend_option_vec!(player_hints      , self_room_config, other_room_config);
+                extend_option_vec!(distance_fogs     , self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {

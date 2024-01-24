@@ -32,6 +32,7 @@ use crate::{
         CounterConfig,
         SwitchConfig,
         PlayerHintConfig,
+        FogConfig,
     },
     pickup_meta::PickupType,
     door_meta::DoorType,
@@ -799,6 +800,45 @@ pub fn patch_add_player_hint<'r>(
     }
 
     add_edit_obj_helper!(area, Some(config.id), config.layer, PlayerHint, new, update);
+}
+
+
+pub fn patch_add_distance_fogs<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: FogConfig,
+)
+    -> Result<(), String>
+{
+    macro_rules! new {
+        () => {
+            structs::DistanceFog {
+                name: b"my fog\0".as_cstr(),
+                mode: config.mode.unwrap_or(1),
+                color: config.color.unwrap_or([0.8, 0.8, 0.9, 0.0]).into(),
+                range: config.range.unwrap_or([30.0, 40.0]).into(),
+                color_delta: config.color_delta.unwrap_or(0.0),
+                range_delta: config.range_delta.unwrap_or([0.0, 0.0]).into(),
+                explicit: config.explicit.unwrap_or(true) as u8,
+                active: config.active.unwrap_or(true) as u8,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_distance_fog_mut().unwrap();
+            if let Some(mode        ) = config.mode        {property_data.mode        = mode               }
+            if let Some(color       ) = config.color       {property_data.color       = color      .into() }
+            if let Some(range       ) = config.range       {property_data.range       = range      .into() }
+            if let Some(color_delta ) = config.color_delta {property_data.color_delta = color_delta        }
+            if let Some(range_delta ) = config.range_delta {property_data.range_delta = range_delta.into() }
+            if let Some(explicit    ) = config.explicit    {property_data.explicit    = explicit    as u8  }
+            if let Some(active      ) = config.active      {property_data.active      = active      as u8  }
+        };
+    }
+
+    add_edit_obj_helper!(area, config.id, config.layer, DistanceFog, new, update);
 }
 
 pub fn patch_add_platform<'r>(

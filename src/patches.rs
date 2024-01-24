@@ -5615,18 +5615,22 @@ fn patch_edit_fog<'r>(
         if distance_fog.is_none() {
             continue;
         }
+
         let distance_fog = distance_fog.unwrap();
+        if distance_fog.explicit == 0 || distance_fog.active == 0 {
+            continue; // This isn't generic ambient fog, it's specific fog
+        }
 
         distance_fog.mode = fog.mode.unwrap_or(1);
 
         let color = fog.color.unwrap_or([0.8, 0.8, 0.9, 0.0]);
         distance_fog.color = color.into();
+
         let range = fog.range.unwrap_or([30.0, 40.0]);
         distance_fog.range = range.into();
+
         distance_fog.color_delta = fog.color_delta.unwrap_or(0.0);
         distance_fog.range_delta = range_delta.into();
-        distance_fog.explicit = fog.explicit.unwrap_or(true) as u8;
-        distance_fog.active = 1;
 
         found = true;
     }
@@ -5645,7 +5649,7 @@ fn patch_edit_fog<'r>(
                 range: fog.range.unwrap_or([30.0, 40.0]).into(),
                 color_delta: fog.color_delta.unwrap_or(0.0),
                 range_delta: range_delta.into(),
-                explicit: fog.explicit.unwrap_or(true) as u8,
+                explicit: 1, // explicit means it's "ambient" (i.e. it doesn't require an ACTION message)
                 active: 1,
             }.into(),
             connections: vec![].into(),
@@ -15431,6 +15435,20 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                             }
                         }
 
+
+                        if let Some(distance_fogs) = room.distance_fogs.as_ref() {
+                            for config in distance_fogs {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| patch_add_distance_fogs(
+                                        ps,
+                                        area,
+                                        config.clone(),
+                                    ),
+                                );
+                            }
+                        }
+                        
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
                                 patcher.add_scly_patch(
