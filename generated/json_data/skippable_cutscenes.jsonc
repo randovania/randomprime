@@ -5664,9 +5664,9 @@
                             "id1": 1000000000,
                             "active1": false,
                             "position": [
-                                -66.307533,
-                                -4.487834,
-                                0.578049
+                                -64.614143,
+                                -7.720279,
+                                0
                             ],
                             "id2": 1000000001,
                             "active2": false
@@ -8411,6 +8411,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 1572892, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 1572882, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 1572882, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 1572969, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
@@ -8641,6 +8647,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 4063265, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 4063244, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 4063244, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 4063320, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
@@ -8829,6 +8841,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 114, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 11, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 11, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 159, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
@@ -9015,6 +9033,12 @@
                             "targetId": 4128797, // [Camera] Cinematic Camera - Arriving Cinematic 2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 4128797, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 4128779, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 4128779, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
@@ -13203,6 +13227,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 1900623, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 1900551, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 1900551, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 1900653, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
@@ -13383,6 +13413,12 @@
                             "targetId": 34, // [Camera] Cinematic Camera - Arriving Cinematic 2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 34, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
@@ -15630,6 +15666,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 1441864, // [Camera] camera3
+                            "targetId": 1441796, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 1441796, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 1441878, // [CameraFilterKeyframe] cinema bars
                             "state": "ZERO",
@@ -15824,6 +15866,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 2687028, // [Camera] camera3
+                            "targetId": 2686978, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 2686978, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 2687042, // [CameraFilterKeyframe] cinema bars
                             "state": "ZERO",
@@ -15929,30 +15977,30 @@
                     "addConnections": [
                         {
                             "senderId": 917526, // [Relay] Faulty Relay - Start Arriving Cinematic
-                            "targetId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "targetId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 917527, // [Relay] Faulty Relay - End Arriving Cinematic
-                            "targetId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "targetId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917527, // [Relay] Faulty Relay - End Arriving Cinematic
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 666666, // [Camera] Cinematic Camera Hold
                             "state": "ZERO",
                             "message": "ACTIVATE"
@@ -15988,37 +16036,43 @@
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917525, // [Platform] Platform - Arrival Platform
                             "state": "ZERO",
                             "message": "NEXT"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917535, // [PlayerActor] PlayerActor - Arriving
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917537, // [Camera] Cinematic Camera 1- Arriving Cinematic
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917556, // [Camera] camera2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917565, // [Camera] camera3
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 917565, // [Camera] camera3
+                            "targetId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917536, // [CameraFilterKeyframe] cinema bars
                             "state": "ZERO",
                             "message": "DECREMENT"
@@ -16030,7 +16084,7 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 917601, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -16110,7 +16164,7 @@
                     ],
                     "specialFunctions": [
                         {
-                            "id": 917567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "id": 959567, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
@@ -16248,6 +16302,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 1507367, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 1507343, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 1507343, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 1507432, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
@@ -16347,7 +16407,7 @@
                         },
                         {
                             "senderId": 2818110, // [SpecialFunction] SpecialFunction Departure Cinematic Skip
-                            "targetId": 2818097, // [Camera] Cinematic Camera - Leaving Cinematic 2
+                            "targetId": 2818072, // [Camera] Cinematic Camera - Leaving Cinematic 2
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
@@ -16434,6 +16494,12 @@
                             "targetId": 2818072, // [Camera] Cinematic Camera - Arriving Cinematic 2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2818072, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 2818117, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 2818117, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
@@ -20272,6 +20338,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 1638433, // [Camera] camera3
+                            "targetId": 1638479, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 1638479, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 1638447, // [CameraFilterKeyframe] cinema bars
                             "state": "ZERO",
@@ -20466,6 +20538,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 44, // [Camera] camera3
+                            "targetId": 1, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 1, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 58, // [CameraFilterKeyframe] cinema bars
                             "state": "ZERO",
@@ -20606,58 +20684,10 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 1179653, // [SpecialFunction] SpecialFunction Cinematic Skip 
-                            "targetId": 666666, // [Camera] Cinematic Camera Hold
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 666666, // [Camera] Cinematic Camera Hold
-                            "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
-                            "state": "ACTIVE",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 666666, // [Camera] Cinematic Camera Hold
-                            "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
-                            "state": "INACTIVE",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 666666, // [Camera] Cinematic Camera Hold
+                            "senderId": 1179653, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 1179842, // [Trigger] Trigger - Area Gas Damage
-                            "state": "INACTIVE",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 666555, // [Timer] Load Timer
-                            "targetId": 666666, // [Camera] Cinematic Camera Hold
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1179650, // [Dock] Dock - 05_mines_forcefields
-                            "targetId": 666555, // [Timer] Load Timer
-                            "state": "MAX_REACHED",
                             "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1179650, // [Dock] Dock - 05_mines_forcefields
-                            "targetId": 666555, // [Timer] Load Timer
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1179649, // [Dock] Dock - 06_mines_elitebustout
-                            "targetId": 666555, // [Timer] Load Timer
-                            "state": "MAX_REACHED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1179649, // [Dock] Dock - 06_mines_elitebustout
-                            "targetId": 666555, // [Timer] Load Timer
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 1179653, // [SpecialFunction] SpecialFunction Cinematic Skip
@@ -20876,15 +20906,6 @@
                             "targetId": 1179936, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "ACTIVATE"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 666555, // [Timer] Load Timer
-                            "time": 0.001,
-                            "startImmediately": true,
-                            "looping": true,
-                            "active": true
                         }
                     ],
                     "relays": [
@@ -21227,30 +21248,30 @@
                     "addConnections": [
                         {
                             "senderId": 35, // [Relay] Faulty Relay - Start Arriving Cinematic
-                            "targetId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "targetId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 36, // [Relay] Faulty Relay - End Arriving Cinematic
-                            "targetId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "targetId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 36, // [Relay] Faulty Relay - End Arriving Cinematic
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 666666, // [Camera] Cinematic Camera Hold
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
@@ -21286,37 +21307,43 @@
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 54, // [Platform] Platform - Arrival Platform
                             "state": "ZERO",
                             "message": "NEXT"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 37, // [PlayerActor] PlayerActor - Arriving
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 38, // [Camera] Cinematic Camera 1- Arriving Cinematic
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 42, // [Camera] camera2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 47, // [Camera] camera3
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 47, // [Camera] camera3
+                            "targetId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 61, // [CameraFilterKeyframe] cinema bars
                             "state": "ZERO",
                             "message": "DECREMENT"
@@ -21328,7 +21355,7 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "senderId": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 92, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -21408,7 +21435,7 @@
                     ],
                     "specialFunctions": [
                         {
-                            "id": 3, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "id": 333, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
@@ -21508,6 +21535,12 @@
                             "targetId": 1703961, // [Camera] Cinematic Camera - Arriving Cinematic 2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1703961, // [Camera] Cinematic Camera - Arriving Cinematic 2
+                            "targetId": 1703999, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 1703999, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
@@ -21642,6 +21675,12 @@
                             "targetId": 852018, // [Camera] camera3
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 852018, // [Camera] camera3
+                            "targetId": 851971, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 851971, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
@@ -21838,6 +21877,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 1769528, // [Camera] camera3
+                            "targetId": 1769478, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
                             "senderId": 1769478, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
                             "targetId": 1769542, // [CameraFilterKeyframe] cinema bars
                             "state": "ZERO",
@@ -22030,6 +22075,12 @@
                             "targetId": 1048624, // [Camera] camera3
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048624, // [Camera] camera3
+                            "targetId": 1048593, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 1048593, // [SpecialFunction] SpecialFunction Arrival Cinematic Skip

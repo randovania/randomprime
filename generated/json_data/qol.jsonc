@@ -3842,9 +3842,9 @@
                         },
                         {
                             "senderId": 600482, // [Relay] Relay
-                            "targetId": 779889, // [Relay] SENDER - Change Music
+                            "targetId": 779889, // [Switch] SENDER - Active Music
                             "state": "ZERO",
-                            "message": "SET_TO_ZERO"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 600482, // [Relay] Relay
@@ -4192,6 +4192,11 @@
                             "startImmediately": true
                         }
                     ],
+                    "switches": [
+                        {
+                            "id": 779889 // [Switch] SENDER - Active Music
+                        }
+                    ],
                     "relays": [
                         {
                             "id": 689878 // [Relay] Chozo Music
@@ -4207,9 +4212,6 @@
                         {
                             "id": 779878, // [Relay] Ghosts Music
                             "active": false
-                        },
-                        {
-                            "id": 779889 // [Relay] SENDER - Change Music
                         }
                     ]
                 },
@@ -4226,15 +4228,21 @@
                         },
                         {
                             "senderId": 262174, // [SpecialFunction] Music Player For Area
-                            "targetId": 262185, // [StreamedAudio] StreamedAudio - Ruins Soto B SW
+                            "targetId": 779889, // [Switch] RECEIVER - Active Music
                             "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 779889, // [Switch] RECEIVER - Active Music
+                            "targetId": 262185, // [StreamedAudio] StreamedAudio - Ruins Soto B SW
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 779889, // [Relay] RECEIVER - Change Music
-                            "targetId": 262174, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "senderId": 779889, // [Switch] RECEIVER - Active Music
+                            "targetId": 592594, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "OPEN",
+                            "message": "PLAY"
                         }
                     ],
                     "specialFunctions": [
@@ -4243,10 +4251,9 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 779889, // [Relay] RECEIVER - Change
-                            "layer": 1
+                            "id": 779889 // [Switch] RECEIVER - Change Music
                         }
                     ],
                     "streamedAudios": [
@@ -4257,6 +4264,14 @@
                             "isMusic": true,
                             "fadeInTime": 0.01,
                             "audioFileName": "/audio/Ruins-soto-BL.dsp|/audio/Ruins-soto-BR.dsp"
+                        },
+                        {
+                            "id": 592594, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "layer": 1,
+                            "volume": 70,
+                            "isMusic": true,
+                            "fadeInTime": 0.01,
+                            "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
                         },
                         {
                             "id": 262184, // [StreamedAudio] StreamedAudio - Ruins Samus SW
@@ -7752,6 +7767,54 @@
                             "targetId": 1310735, // [Relay] Pirate Ambiance Music
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1310728, // [Timer] 1st Pass Check
+                            "targetId": 1311451, // [SpacePirate] SpacePirate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1310728, // [Timer] 1st Pass Check
+                            "targetId": 1311288, // [SpacePirate] SpacePirate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1310728, // [Timer] 1st Pass Check
+                            "targetId": 1310773, // [SpacePirate] SpacePirate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1310728, // [Timer] 1st Pass Check
+                            "targetId": 1311061, // [SpacePirate] SpacePirate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1311451, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1311288, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1310773, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1311061, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 1310728, // [Timer] 1st Pass Check
