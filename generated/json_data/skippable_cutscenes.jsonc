@@ -16160,11 +16160,6 @@
                             "startImmediately": true,
                             "looping": true,
                             "active": false
-                        },
-                        {
-                            "id": 11111111, // [Timer] Violence
-                            "time": 0.001,
-                            "looping": true
                         }
                     ],
                     "specialFunctions": [
