@@ -6929,22 +6929,6 @@
                             "active": true,
                             "startImmediately": true
                         }
-                    ],
-                    // Better save station load trigger
-                    "triggers": [
-                        {
-                            "id": 131556, // [Trigger] Trigger - To savestation_ice_b
-                            "position": [
-                                -39.643776,
-                                -194.210098,
-                                1.414379
-                            ],
-                            "scale": [
-                                60.0,
-                                20.0,
-                                18.0
-                            ]
-                        }
                     ]
                 },
                 "Phendrana's Edge": {
