@@ -15661,6 +15661,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                                         camera_hint.camera_pos,
                                         camera_hint.camera_rot,
                                         camera_hint.behavior,
+                                        camera_hint.layer.unwrap_or(0),
                                     ),
                                 );
                             }

@@ -2724,7 +2724,7 @@
                                 "type": "string"
                             },
                             "hudmemoText": {
-                                "description": "The text displayed to the user when the pickup is obtained. Defaults to `type acquired!`.",
+                                "description": "The text displayed to the user when the pickup is obtained. Defaults to `<type> Acquired!`.",
                                 "type": "string"
                             },
                             "maxIncrease": {
@@ -3030,6 +3030,13 @@
                     "items": {
                         "type": "object",
                         "properties": {
+                            "layer": {
+                                "description": "Layer of the pair of objects",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0,
+                                "maximum": 63
+                            },
                             "triggerPos": {
                                 "description": "Position of the trigger.",
                                 "$ref": "#/$defs/vector3"

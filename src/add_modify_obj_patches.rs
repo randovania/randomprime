@@ -1206,7 +1206,7 @@ pub fn patch_lock_on_point<'r>(
     let mut add_scan_point = false;
 
     if is_grapple {
-        grapple_point_id = area.new_object_id_from_layer_name("Default");
+        grapple_point_id = config.id2.unwrap_or(area.new_object_id_from_layer_name("Default"));
         add_scan_point = true; // We don't actually need the scan points, just their assets. Could save on objects by making this false via config
         if add_scan_point {
             special_function_id = area.new_object_id_from_layer_name("Default");
@@ -1465,11 +1465,13 @@ pub fn patch_add_camera_hint<'r>(
     camera_pos: [f32;3],
     camera_rot: [f32;3],
     behavior: u32,
+    layer: u32,
 )
 -> Result<(), String>
 {
-    let camear_hint_id = area.new_object_id_from_layer_name("Default");
-    let camera_hint_trigger_id = area.new_object_id_from_layer_name("Default");
+    let layer = layer as usize;
+    let camear_hint_id = area.new_object_id_from_layer_id(layer);
+    let camera_hint_trigger_id = area.new_object_id_from_layer_id(layer);
 
     let camera_objs = add_camera_hint(
         camear_hint_id,
@@ -1483,7 +1485,7 @@ pub fn patch_add_camera_hint<'r>(
 
     area.mrea()
         .scly_section_mut()
-        .layers.as_mut_vec()[0]
+        .layers.as_mut_vec()[layer]
         .objects
         .as_mut_vec()
         .extend_from_slice(&camera_objs);
