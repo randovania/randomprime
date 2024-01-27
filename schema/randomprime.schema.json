@@ -271,6 +271,11 @@
                     "type": "boolean",
                     "default": false
                 },
+                "doorDestinationScans": {
+                    "description": "If true, the patcher will automatically place a scan point on doors when modifying which room that door connects to.",
+                    "type": "boolean",
+                    "default": true
+                },
                 "trilogyDiscPath": {
                     "description": "The filepath to a Trilogy ISO to restore the intended Flaahgra music.",
                     "type": "string"

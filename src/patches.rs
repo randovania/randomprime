@@ -12517,21 +12517,24 @@ fn patch_modify_dock<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
-    scan_id: ResId<res_id::SCAN>,
-    strg_id: ResId<res_id::STRG>,
+    scan: Option<(ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     dock_num: u32,
     new_mrea_idx: u32,
 )
 -> Result<(), String>
 {
     // Add dependencies for scan point
-    let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
-    let scan_dep: structs::Dependency = scan_id.into();
-    area.add_dependencies(game_resources, 0, iter::once(scan_dep));
-    let strg_dep: structs::Dependency = strg_id.into();
-    area.add_dependencies(game_resources, 0, iter::once(strg_dep));
-    let frme_dep: structs::Dependency = frme_id.into();
-    area.add_dependencies(game_resources, 0, iter::once(frme_dep));
+    if scan.is_some() {
+        let (scan_id, strg_id) = scan.unwrap();
+
+        let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
+        let scan_dep: structs::Dependency = scan_id.into();
+        area.add_dependencies(game_resources, 0, iter::once(scan_dep));
+        let strg_dep: structs::Dependency = strg_id.into();
+        area.add_dependencies(game_resources, 0, iter::once(strg_dep));
+        let frme_dep: structs::Dependency = frme_id.into();
+        area.add_dependencies(game_resources, 0, iter::once(frme_dep));    
+    }
 
     let trigger_id = area.new_object_id_from_layer_name("Default");
 
@@ -12600,7 +12603,10 @@ fn patch_modify_dock<'r>(
                     door.scan_offset[2] = 1.0;
                 }
 
-                door.actor_params.scan_params.scan = scan_id;
+                if scan.is_some() {
+                    let (scan_id, _) = scan.unwrap();
+                    door.actor_params.scan_params.scan = scan_id;
+                }
                 break;
             }
         }
@@ -16163,9 +16169,15 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                     // };
 
                     // Patch the current room to lead to the new destination room
+                    
+                    let scan = match config.door_destination_scans {
+                        false => None,
+                        true => Some((dest_scan_id.clone(), dest_strg_id.clone()))
+                    };
+
                     patcher.add_scly_patch(
                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                        move |ps, area| patch_modify_dock(ps, area, game_resources, dest_scan_id.clone(), dest_strg_id.clone(), dock_num, destination_room.mrea_idx),
+                        move |ps, area| patch_modify_dock(ps, area, game_resources, scan, dock_num, destination_room.mrea_idx),
                     );
 
                     // Patch the destination room to "catch" the player with a teleporter at the same location as this room's dock
