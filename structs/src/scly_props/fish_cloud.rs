@@ -23,7 +23,7 @@ pub struct FishCloud<'r>
     pub cmdl: u32,
     pub animation_params: AnimationParameters,
     pub num_boids: u32,
-    pub speed: f32, // TODO: speed
+    pub speed: f32,
 
     pub dont_cares1: GenericArray<f32, U17>,
     pub done_care1: u8,

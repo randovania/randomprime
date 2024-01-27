@@ -2,6 +2,7 @@ use crate::{
     door_meta::DoorType,
     patcher::PatcherState,
     mlvl_wrapper,
+    structs::SclyPropertyData,
 };
 
 use reader_writer::CStrConversionExtension;
@@ -138,7 +139,33 @@ pub fn patch_edit_objects<'r>
         }
 
         if let Some(value) = config.speed {
-            set_patterned_speed(obj, value, None);
+            match obj.property_data.object_type() {
+                structs::Platform::OBJECT_TYPE => {
+                    obj.property_data.as_platform_mut().unwrap().speed *= value;
+                },
+                structs::Waypoint::OBJECT_TYPE => {
+                    obj.property_data.as_waypoint_mut().unwrap().speed *= value;
+                },
+                structs::FishCloud::OBJECT_TYPE => {
+                    obj.property_data.as_fish_cloud_mut().unwrap().speed *= value;
+                },
+                structs::GunTurret::OBJECT_TYPE => {
+                    obj.property_data.as_gun_turret_mut().unwrap().reload_time *= 1.0/value;
+                },
+                structs::Water::OBJECT_TYPE => {
+                    let water = obj.property_data.as_water_mut().unwrap();
+
+                    water.morph_in_time *= value;
+                    water.morph_out_time *= value;
+                    water.alpha_in_time *= value;
+                    water.alpha_out_time *= value;
+                },
+                _ => {},
+            }
+
+            if obj.property_data.supports_patterned_infos() {
+                set_patterned_speed(obj, value, None);
+            }
         }
 
         if let Some(value) = config.damage {

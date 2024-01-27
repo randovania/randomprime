@@ -27,7 +27,7 @@ pub struct Platform<'r>
     pub ancs: AncsProp,
     pub actor_params: ActorParameters,
 
-    pub unknown1: f32,
+    pub speed: f32,
     pub active: u8,
 
     pub dcln: ResId<DCLN>,

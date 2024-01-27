@@ -3006,8 +3006,8 @@ impl WaterType
                         txtr6: 1899158552,
                         unknown5: [3.0, 3.0, -4.0].into(),
                         unknown6:  8.0,
-                        unknown7: 15.0,
-                        unknown8: 15.0,
+                        morph_in_time: 5.0,
+                        morph_out_time: 5.0,
                         active: 1,
                         fluid_type: 0,
                         unknown11: 0,
@@ -3078,8 +3078,8 @@ impl WaterType
                         heat_wave_color: [0.596078, 0.752941, 0.819608, 1.0].into(),
                         lightmap_txtr: 4294967295,
                         unknown51: 0.3,
-                        unknown52: 0.0,
-                        unknown53: 0.0,
+                        alpha_in_time: 5.0,
+                        alpha_out_time: 5.0,
                         unknown54: 4294967295,
                         unknown55: 4294967295,
                         crash_the_game: 0
@@ -3112,8 +3112,8 @@ impl WaterType
                 txtr6: 1899158552,
                 unknown5: [3.0, 3.0, -4.0].into(),
                 unknown6: 48.0,
-                unknown7: 5.0,
-                unknown8: 5.0,
+                morph_in_time: 5.0,
+                morph_out_time: 5.0,
                 active: 1,
                 fluid_type: 1,
                 unknown11: 0,
@@ -3179,8 +3179,8 @@ impl WaterType
                  1.0].into(),
                 lightmap_txtr: 4294967295,
                 unknown51: 0.3,
-                unknown52: 0.0,
-                unknown53: 0.0,
+                alpha_in_time: 5.0,
+                alpha_out_time: 5.0,
                 unknown54: 4294967295,
                 unknown55: 4294967295,
                 crash_the_game: 0
@@ -3217,8 +3217,8 @@ impl WaterType
                 3.0,
                 -4.0].into(),
                 unknown6: 70.0,
-                unknown7: 15.0,
-                unknown8: 15.0,
+                morph_in_time: 5.0,
+                morph_out_time: 5.0,
                 active: 1,
                 fluid_type: 2,
                 unknown11: 0,
@@ -3282,8 +3282,8 @@ impl WaterType
                 1.0].into(),
                 lightmap_txtr: 4294967295,
                 unknown51: 0.3,
-                unknown52: 0.0,
-                unknown53: 0.0,
+                alpha_in_time: 5.0,
+                alpha_out_time: 5.0,
                 unknown54: 4294967295,
                 unknown55: 4294967295,
                 crash_the_game: 0
@@ -5199,8 +5199,8 @@ fn patch_edit_water<'r>(
         }
 
         let water = obj.unwrap().property_data.as_water_mut().unwrap();
-        water.unknown7 = morph_in_time;
-        water.unknown53 = alpha_out_time;
+        water.morph_in_time = morph_in_time;
+        water.alpha_out_time = alpha_out_time;
     }
 
     Ok(())

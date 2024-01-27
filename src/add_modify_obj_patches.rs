@@ -959,7 +959,7 @@ pub fn patch_add_platform<'r>(
                     unknown5: 1.0
                 },
 
-                unknown1: 5.0,
+                speed: 5.0,
                 active: 1,
 
                 dcln: dcln,

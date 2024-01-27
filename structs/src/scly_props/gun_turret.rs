@@ -31,7 +31,7 @@ pub struct GunTurret<'r>
     pub damage_vulnerability: DamageVulnerability,
 
     pub into_deactivate_delay: f32,
-    pub reload_time: f32, // TODO: speed
+    pub reload_time: f32,
     pub reload_time_variance: f32,
 
     pub dont_care: GenericArray<u8, U146>,
