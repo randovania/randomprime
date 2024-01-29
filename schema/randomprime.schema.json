@@ -3012,7 +3012,8 @@
                                 "type": "string",
                                 "enum": [
                                     "Metal",
-                                    "Snow"
+                                    "Snow",
+                                    "BombBox"
                                 ],
                                 "default": "Metal"
                             },

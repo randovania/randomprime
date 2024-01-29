@@ -205,6 +205,7 @@ pub enum PlatformType
 {
     Metal,
     Snow,
+    BombBox,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -220,7 +221,6 @@ pub struct PlatformConfig
     pub platform_type: Option<PlatformType>,
     pub xray_only: Option<bool>,
     pub thermal_only: Option<bool>,
-    // pub scale: [f32;3],
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
@@ -282,6 +282,16 @@ impl GenericTexture
             GenericTexture::Sandstone,
         ].iter().map(|i| *i)
     }
+}
+
+
+#[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
+#[serde(deny_unknown_fields)]
+pub enum BlockType
+{
+    Generic,
+    Bomb,
+    TwoBomb,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -26,6 +26,7 @@ use crate::{
         StreamedAudioConfig,
         PlatformConfig,
         PlatformType,
+        BlockType,
         BlockConfig,
         HudmemoConfig,
         WaypointConfig,
@@ -861,6 +862,57 @@ pub fn patch_add_platform<'r>(
         }
     };
 
+    let ids = match platform_type {
+        PlatformType::BombBox => {
+            let mut ids = vec![];
+            let layer = config.layer.unwrap_or(0) as usize;
+            for _ in 0..8 {
+                ids.push(area.new_object_id_from_layer_id(layer));
+            }
+            Some(ids)
+        },
+        _ => None,
+    };
+
+    let undamaged_block_id = match config.id {
+        Some(id) => id,
+        None => area.new_object_id_from_layer_id(config.layer.unwrap_or(0) as usize),
+    };
+
+    let vulnerability = match platform_type {
+        PlatformType::BombBox => DoorType::Bomb.vulnerability(),
+        _ => DoorType::Disabled.vulnerability(),
+    };
+
+    let connections = match platform_type {
+        PlatformType::BombBox => {
+            let ids = ids.as_ref().unwrap();
+
+            let relay_block_switch_id = ids[3];
+            let relay_kill_block_id = ids[4];
+            let sound_id = ids[5];
+
+            vec![
+                structs::Connection {
+                    state: structs::ConnectionState::DEAD,
+                    message: structs::ConnectionMsg::ACTIVATE,
+                    target_object_id: sound_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::DEAD,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: relay_block_switch_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::DEAD,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: relay_kill_block_id,
+                },
+            ]
+        }
+        _ => vec![],
+    };
+
     let (deps, cmdl, dcln) = {
         match platform_type {
             PlatformType::Snow => {
@@ -890,7 +942,21 @@ pub fn patch_add_platform<'r>(
                     ResId::<res_id::CMDL>::new(0x48DF38A3),
                     ResId::<res_id::DCLN>::new(0xB2D50628),
                 )
-            }
+            },
+            PlatformType::BombBox => {
+                (
+                    vec![
+                        (0x09D55763, b"CMDL"),
+                        (0x133336F4, b"CMDL"),
+                        (0x00F75174, b"TXTR"),
+                        (0x123A70A6, b"TXTR"),
+                        (0xB3A153C0, b"TXTR"),
+                        (0x57fe7e67, b"AGSC"), // Misc.AGSC
+                    ],
+                    ResId::<res_id::CMDL>::new(0x09D55763),
+                    ResId::invalid(),
+                )
+            },
         }
     };
 
@@ -968,7 +1034,7 @@ pub fn patch_add_platform<'r>(
                     health: 1.0,
                     knockback_resistance: 1.0,
                 },
-                damage_vulnerability: DoorType::Disabled.vulnerability(),
+                damage_vulnerability: vulnerability.clone(),
 
                 detect_collision: 1,
                 unknown4: 1.0,
@@ -996,7 +1062,410 @@ pub fn patch_add_platform<'r>(
         };
     }
 
-    add_edit_obj_helper!(area, config.id, config.layer, Platform, new, update);
+    if platform_type == PlatformType::BombBox {
+        let layer_id = config.layer.unwrap_or(0) as usize;
+        while area.layer_flags.layer_count <= layer_id as u32 {
+            area.add_layer(b"New Layer\0".as_cstr());
+        }
+
+        let scly = area.mrea().scly_section_mut();
+        let objects = scly.layers.as_mut_vec()[layer_id].objects.as_mut_vec();
+
+        let ids = ids.unwrap();
+
+        let damaged_block_id = ids[0];
+        let timer_fade_in_id = ids[1];
+        let timer_restore_block_id = ids[2];
+        let relay_block_switch_id = ids[3];
+        let relay_kill_block_id = ids[4];
+        let sound_id = ids[5];
+        let relay_restore_block_id = ids[6];
+        let trigger_id = ids[7];
+
+        objects.extend_from_slice(&[
+            structs::SclyObject {
+                instance_id: damaged_block_id,
+                property_data: structs::Platform {
+                    name: b"myplatform\0".as_cstr(),
+    
+                    position: config.position.into(),
+                    rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                    scale: [1.0, 1.0, 1.0].into(),
+                    extent: [0.0, 0.0, 0.0].into(),
+                    scan_offset: [0.0, 0.0, 0.0].into(),
+    
+                    cmdl: ResId::<res_id::CMDL>::new(0x133336F4),
+
+                    ancs: structs::scly_structs::AncsProp {
+                        file_id: ResId::invalid(),
+                        node_index: 0,
+                        default_animation: 0xFFFFFFFF,
+                    },
+                    actor_params: structs::scly_structs::ActorParameters {
+                        light_params: structs::scly_structs::LightParameters {
+                            unknown0: 1,
+                            unknown1: 1.0,
+                            shadow_tessellation: 0,
+                            unknown2: 1.0,
+                            unknown3: 20.0,
+                            color: [1.0, 1.0, 1.0, 1.0].into(),
+                            unknown4: 1,
+                            world_lighting: 1,
+                            light_recalculation: 1,
+                            unknown5: [0.0, 0.0, 0.0].into(),
+                            unknown6: 4,
+                            unknown7: 4,
+                            unknown8: 0,
+                            light_layer_id: 0
+                        },
+                        scan_params: structs::scly_structs::ScannableParameters {
+                            scan: ResId::invalid(), // None
+                        },
+                        xray_cmdl: ResId::invalid(), // None
+                        xray_cskr: ResId::invalid(), // None
+                        thermal_cmdl: ResId::invalid(), // None
+                        thermal_cskr: ResId::invalid(), // None
+    
+                        unknown0: 1,
+                        unknown1: 1.0,
+                        unknown2: 1.0,
+    
+                        visor_params: structs::scly_structs::VisorParameters {
+                            unknown0: 0,
+                            target_passthrough: 0,
+                            visor_mask: 15 // Combat|Scan|Thermal|XRay
+                        },
+                        enable_thermal_heat: 1,
+                        unknown3: 0,
+                        unknown4: 0,
+                        unknown5: 1.0
+                    },
+    
+                    speed: 5.0,
+                    active: 0,
+    
+                    dcln: dcln,
+    
+                    health_info: structs::scly_structs::HealthInfo {
+                        health: 1.0,
+                        knockback_resistance: 1.0,
+                    },
+                    damage_vulnerability: vulnerability.clone(),
+    
+                    detect_collision: 1,
+                    unknown4: 1.0,
+                    unknown5: 0,
+                    unknown6: 200,
+                    unknown7: 20,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::DEAD,
+                        message: structs::ConnectionMsg::PLAY,
+                        target_object_id: sound_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::DEAD,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: relay_kill_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::INACTIVE,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: relay_kill_block_id,
+                    },
+                ].into(),
+            },
+            structs::SclyObject {
+                instance_id: timer_fade_in_id,
+                property_data: structs::Timer {
+                    name: b"timer fade in\0".as_cstr(),
+                    start_time: 4.0,
+                    max_random_add: 0.0,
+                    looping: 1,
+                    start_immediately: 0,
+                    active: 1,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::RESET,
+                        target_object_id: damaged_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::RESET,
+                        target_object_id: undamaged_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: timer_restore_block_id,
+                    },
+                ].into(),
+            },
+            structs::SclyObject {
+                instance_id: timer_restore_block_id,
+                property_data: structs::Timer {
+                    name: b"my timer\0".as_cstr(),
+                    start_time: 0.02,
+                    max_random_add: 0.0,
+                    looping: 1,
+                    start_immediately: 1,
+                    active: 0,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: relay_restore_block_id,
+                    },
+                ].into(),
+            },
+            structs::SclyObject {
+                instance_id: relay_block_switch_id,
+                property_data: structs::Relay {
+                    name: b"relay block switch relay\0".as_cstr(),
+                    active: 1,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: undamaged_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: damaged_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: relay_kill_block_id,
+                    },
+                ].into(),
+            },
+            structs::SclyObject {
+                instance_id: relay_kill_block_id,
+                property_data: structs::Relay {
+                    name: b"relay kill block\0".as_cstr(),
+                    active: 0,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: damaged_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: undamaged_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::RESET_AND_START,
+                        target_object_id: timer_fade_in_id,
+                    },
+                ].into(),
+            },
+            structs::SclyObject {
+                instance_id: relay_restore_block_id,
+                property_data: structs::Relay {
+                    name: b"relay restore block\0".as_cstr(),
+                    active: 1,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: timer_restore_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::INCREMENT,
+                        target_object_id: undamaged_block_id,
+                    },
+                ].into(),
+            },
+            structs::SclyObject {
+                instance_id: sound_id,
+                property_data: structs::Sound {
+                    name: b"mysound\0".as_cstr(),
+                    position: config.position.into(),
+                    rotation: [0.0, 0.0, 0.0].into(),
+                    sound_id: 3510,
+                    active: 1,
+                    max_dist: 150.0,
+                    dist_comp: 0.2,
+                    start_delay: 0.0,
+                    min_volume: 20,
+                    volume: 127,
+                    priority: 127,
+                    pan: 64,
+                    loops: 0,
+                    non_emitter: 0,
+                    auto_start: 0,
+                    occlusion_test: 0,
+                    acoustics: 1,
+                    world_sfx: 0,
+                    allow_duplicates: 0,
+                    pitch: 0,
+                }.into(),
+                connections: vec![
+                    
+                ].into(),
+            },
+            structs::SclyObject {
+                instance_id: trigger_id,
+                property_data: structs::Trigger {
+                    name: b"camerahinttrigger\0".as_cstr(),
+                    position: config.position.into(),
+                    scale: [1.899002, 1.898987, 1.299].into(),
+                    damage_info: structs::scly_structs::DamageInfo {
+                        weapon_type: 0,
+                        damage: 0.0,
+                        radius: 0.0,
+                        knockback_power: 0.0
+                    },
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 1,
+                    active: 1,
+                    deactivate_on_enter: 0,
+                    deactivate_on_exit: 0,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ENTERED,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: relay_restore_block_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::EXITED,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: relay_restore_block_id,
+                    },
+                ].into(),
+            },
+        ]);
+    }
+
+    let id = config.id;
+    let requested_layer_id = config.layer;
+    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+
+    // add more layers as needed
+    if let Some(requested_layer_id) = requested_layer_id {
+        while area.layer_flags.layer_count <= requested_layer_id {
+            area.add_layer(b"New Layer\0".as_cstr());
+        }
+    }
+
+    if let Some(id) = id {
+        let scly = area.mrea().scly_section_mut();
+
+        // try to find existing object
+        let info = {
+            let mut info = None;
+
+            let layer_count = scly.layers.as_mut_vec().len();
+            for _layer_id in 0..layer_count {
+                let layer = scly.layers
+                    .iter()
+                    .nth(_layer_id)
+                    .unwrap();
+
+                let obj = layer.objects
+                    .iter()
+                    .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF);
+
+                if let Some(obj) = obj {
+                    if obj.property_data.object_type() != structs::Platform::OBJECT_TYPE {
+                        panic!("Failed to edit existing object 0x{:X} in room 0x{:X}: Unexpected object type 0x{:X} (expected 0x{:X})", id, mrea_id, obj.property_data.object_type(), structs::Platform::OBJECT_TYPE);
+                    }
+
+                    info = Some((_layer_id as u32, obj.instance_id));
+                    break;
+                }
+            }
+
+            info
+        };
+
+        if let Some(info) = info {
+            let (layer_id, _) = info;
+
+            // move and update
+            if requested_layer_id.is_some() && requested_layer_id.unwrap() != layer_id {
+                let requested_layer_id = requested_layer_id.unwrap();
+
+                // clone existing object
+                let mut obj = scly.layers
+                    .as_mut_vec()[layer_id as usize]
+                    .objects
+                    .as_mut_vec()
+                    .iter_mut()
+                    .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF)
+                    .unwrap()
+                    .clone();
+
+                // modify it
+                update!(obj);
+
+                // remove original
+                scly.layers
+                    .as_mut_vec()[layer_id as usize]
+                    .objects
+                    .as_mut_vec()
+                    .retain(|obj| obj.instance_id & 0x00FFFFFF != id & 0x00FFFFFF);
+
+                // re-add to target layer
+                scly.layers
+                    .as_mut_vec()[requested_layer_id as usize]
+                    .objects
+                    .as_mut_vec()
+                    .push(obj);
+
+                return Ok(());
+            }
+
+            // get mutable reference to existing object
+            let obj = scly.layers
+                .as_mut_vec()[layer_id as usize]
+                .objects
+                .as_mut_vec()
+                .iter_mut()
+                .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF)
+                .unwrap();
+
+            // update it
+            update!(obj);
+
+            return Ok(());
+        }
+    }
+
+    // add new object
+    let id = id.unwrap_or(undamaged_block_id);
+
+    let scly = area.mrea().scly_section_mut();
+    let layers = &mut scly.layers.as_mut_vec();
+    let objects = layers[requested_layer_id.unwrap_or(0) as usize].objects.as_mut_vec();
+    let property_data = new!();
+    let property_data: structs::SclyProperty = property_data.into();
+
+    assert!(property_data.object_type() == structs::Platform::OBJECT_TYPE);
+
+    objects.push(
+        structs::SclyObject {
+            instance_id: id,
+            property_data,
+            connections: connections.into(),
+        }
+    );
+
+    Ok(())
 }
 
 pub fn patch_add_block<'r>(
