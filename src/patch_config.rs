@@ -284,16 +284,6 @@ impl GenericTexture
     }
 }
 
-
-#[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
-#[serde(deny_unknown_fields)]
-pub enum BlockType
-{
-    Generic,
-    Bomb,
-    TwoBomb,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BlockConfig
@@ -579,6 +569,20 @@ pub struct FogConfig
     pub range: Option<[f32;2]>, // X, Y
     pub color_delta: Option<f32>,
     pub range_delta: Option<[f32;2]>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BombSlotConfig
+{
+    pub damageable_trigger_id: u32,
+    pub activate_slot_id: Option<u32>,
+    pub deactivate_slot_id: Option<u32>,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
+    pub position: [f32; 3],
+    pub rotation: [f32; 3],
+    pub release_ball_delay_s: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -882,6 +886,7 @@ pub struct RoomConfig
     pub switches: Option<Vec<SwitchConfig>>,
     pub player_hints: Option<Vec<PlayerHintConfig>>,
     pub distance_fogs: Option<Vec<FogConfig>>,
+    pub bomb_slots: Option<Vec<BombSlotConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1716,6 +1721,7 @@ impl PatchConfigPrivate
                 extend_option_vec!(switches          , self_room_config, other_room_config);
                 extend_option_vec!(player_hints      , self_room_config, other_room_config);
                 extend_option_vec!(distance_fogs     , self_room_config, other_room_config);
+                extend_option_vec!(bomb_slots        , self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {

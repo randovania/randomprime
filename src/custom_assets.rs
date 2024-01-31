@@ -1175,6 +1175,16 @@ pub fn collect_game_resources<'r>(
     ];
     looking_for.extend(platform_deps);
 
+    let bomb_slot_deps: Vec<(u32,FourCC)> = vec![
+        (0x82A1E868, FourCC::from_bytes(b"CMDL")),
+        (0xD64787E8, FourCC::from_bytes(b"TXTR")),
+        (0x53A74797, FourCC::from_bytes(b"CMDL")),
+        (0x5B4D184E, FourCC::from_bytes(b"TXTR")),
+        (0x563799A1, FourCC::from_bytes(b"TXTR")),
+        (0xC11B62AF, FourCC::from_bytes(b"DCLN")),
+    ];
+    looking_for.extend(bomb_slot_deps);
+
     let glow_ring: Vec<(u32,FourCC)> = vec![ // mapstation_beams.CMDL
         (0x12771AF0, FourCC::from_bytes(b"CMDL")),
         (0xA6114429, FourCC::from_bytes(b"TXTR")),

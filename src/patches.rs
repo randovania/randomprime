@@ -15454,6 +15454,20 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                                 );
                             }
                         }
+
+                        if let Some(bomb_slots) = room.bomb_slots.as_ref() {
+                            for config in bomb_slots {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| patch_add_bomb_slot(
+                                        ps,
+                                        area,
+                                        game_resources,
+                                        config.clone(),
+                                    ),
+                                );
+                            }
+                        }
                         
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {

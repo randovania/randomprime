@@ -21,7 +21,7 @@ ssmarshal = "1"
 rand = "0.7"
 winapi = "0.3"
 lazy_static = "1.4"
-
+nalgebra = "0.32"
 
 auto_struct_macros = { path = "auto_struct_macros" }
 dol_linker = { path = "dol_linker" }

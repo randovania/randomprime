@@ -4357,6 +4357,61 @@
                         "required": [],
                         "additionalProperties": false
                     }
+                },
+                "bombSlots": {
+                    "description": "Add one or more bomb slots to this room. By default they allow the player to use them once before releasing the player and deactivating.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "damageableTriggerId": {
+                                "description": "The instance ID to use for the bomb slot's damageable trigger. Add a connection from this object with `\"state\":\"DEAD\"` to make something happen when the bomb slot is activated.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "activateSlotId": {
+                                "description": "If provided, the patcher will add a relay with this ID which, if sent `\"message\"`: \"SET_TO_ZERO\", will *activate* the bomb slot.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "deactivateSlotId": {
+                                "description": "If provided, the patcher will add a relay with this ID which, if sent `\"message\"`: \"SET_TO_ZERO\", will *deactivate* the bomb slot.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "The default enabled/disabled state of the bomb slot.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "The `[X, Y, Z]` coordinates of the bomb slot",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "rotation": {
+                                "description": "The `[pitch, roll, yaw]` of the bomb slot",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "releaseBallDelayS": {
+                                "description": "Number of seconds after bomb slot activation until the ball is released.",
+                                "type": "number",
+                                "default": 2,
+                                "exclusiveMinimum": 0
+                            }
+                        },
+                        "required": [
+                            "damageableTriggerId",
+                            "position",
+                            "rotation"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false

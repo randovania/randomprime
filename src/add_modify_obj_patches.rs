@@ -26,7 +26,6 @@ use crate::{
         StreamedAudioConfig,
         PlatformConfig,
         PlatformType,
-        BlockType,
         BlockConfig,
         HudmemoConfig,
         WaypointConfig,
@@ -34,6 +33,7 @@ use crate::{
         SwitchConfig,
         PlayerHintConfig,
         FogConfig,
+        BombSlotConfig,
     },
     pickup_meta::PickupType,
     door_meta::DoorType,
@@ -840,6 +840,476 @@ pub fn patch_add_distance_fogs<'r>(
     }
 
     add_edit_obj_helper!(area, config.id, config.layer, DistanceFog, new, update);
+}
+
+use nalgebra::{Matrix3, Vector3};
+
+enum Rotation {
+    Pitch(f32),
+    Roll(f32),
+    Yaw(f32),
+}
+
+use Rotation::*;
+
+fn rotation_matrix(rotations: [Rotation; 3]) -> Matrix3<f32> {
+    let mut matrix = Matrix3::identity();
+
+    for rotation in rotations {
+        matrix = matrix * match rotation {
+            Pitch(angle) => {
+                let rad = angle.to_radians();
+                Matrix3::new(
+                    1.0, 0.0, 0.0,
+                    0.0, rad.cos(), -rad.sin(),
+                    0.0, rad.sin(), rad.cos(),
+                )
+            }
+            Roll(angle) => {
+                let rad = angle.to_radians();
+                Matrix3::new(
+                    rad.cos(), 0.0, rad.sin(),
+                    0.0, 1.0, 0.0,
+                    -rad.sin(), 0.0, rad.cos(),
+                )
+            }
+            Yaw(angle) => {
+                let rad = angle.to_radians();
+                Matrix3::new(
+                    rad.cos(), -rad.sin(), 0.0,
+                    rad.sin(), rad.cos(), 0.0,
+                    0.0, 0.0, 1.0,
+                )
+            }
+        };
+    }
+
+    matrix
+}
+
+fn apply_rotation(matrix: &Matrix3<f32>, vector: Vector3<f32>) -> Vector3<f32> {
+    matrix * vector
+}
+
+pub fn relative_offset(position: [f32; 3], rotation: [f32; 3], offset: [f32; 3]) -> [f32; 3] {
+    let rotations = [
+            Yaw(rotation[2]),
+            Roll(rotation[1]),
+            Pitch(rotation[0]),
+        ];
+    let rotation_matrix = rotation_matrix(rotations);
+    let position = Vector3::from_column_slice(&position);
+    let offset = Vector3::from_column_slice(&offset);
+
+    let rotated_offset = apply_rotation(&rotation_matrix, offset);
+    let adjusted_position = position + rotated_offset;
+
+    adjusted_position.into()
+}
+
+pub fn patch_add_bomb_slot<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    config: BombSlotConfig,
+)
+    -> Result<(), String>
+{
+    let layer = match config.layer {
+        Some(layer) => {
+            while area.layer_flags.layer_count <= layer {
+                area.add_layer(b"New Layer\0".as_cstr());
+            }
+            layer
+        },
+        None => 0,
+    } as usize;
+
+    let deps = vec![
+        (0x82A1E868, b"CMDL"),
+        (0xD64787E8, b"TXTR"),
+        (0x53A74797, b"CMDL"),
+        (0x5B4D184E, b"TXTR"),
+        (0x563799A1, b"TXTR"),
+        (0xC11B62AF, b"DCLN"),
+    ];
+    let deps_iter = deps.iter()
+        .map(|&(file_id, fourcc)| structs::Dependency {
+            asset_id: file_id,
+            asset_type: FourCC::from_bytes(fourcc),
+        }
+    );
+    area.add_dependencies(game_resources, 0, deps_iter);
+
+    let bomb_slot_id = area.new_object_id_from_layer_id(layer);
+    let glow_ring_id = area.new_object_id_from_layer_id(layer);
+    let ball_trigger_id = area.new_object_id_from_layer_id(layer);
+    let player_hint_id = area.new_object_id_from_layer_id(layer);
+    let streamed_audio_id = area.new_object_id_from_layer_id(layer);
+    let timer_id = area.new_object_id_from_layer_id(layer);
+    let damageable_trigger_id = config.damageable_trigger_id;
+
+    let offset = [0.0, -1.05, 0.0];
+    let ball_trigger_position = relative_offset(config.position, config.rotation, offset);
+    let ball_release_delay_s = config.release_ball_delay_s.unwrap_or(2.0);
+    let active = config.active.unwrap_or(true) as u8;
+
+    let scly = area.mrea().scly_section_mut();
+    let objects = scly.layers.as_mut_vec()[layer].objects.as_mut_vec();
+
+    objects.extend_from_slice(&[
+        // Energy core used as reference
+        structs::SclyObject {
+            instance_id: bomb_slot_id,
+            property_data: structs::Platform {
+                name: b"bombslotplatform\0".as_cstr(),
+
+                position: config.position.into(),
+                rotation: config.rotation.into(),
+                scale: [1.034, 1.0, 1.034].into(),
+                extent: [0.0, 0.0, 0.0].into(),
+                scan_offset: [0.0, 0.0, 0.0].into(),
+
+                cmdl: ResId::<res_id::CMDL>::new(0x3F802F32),
+
+                ancs: structs::scly_structs::AncsProp {
+                    file_id: ResId::invalid(),
+                    node_index: 0,
+                    default_animation: 0xFFFFFFFF,
+                },
+                actor_params: structs::scly_structs::ActorParameters {
+                    light_params: structs::scly_structs::LightParameters {
+                        unknown0: 1,
+                        unknown1: 1.0,
+                        shadow_tessellation: 0,
+                        unknown2: 1.0,
+                        unknown3: 20.0,
+                        color: [1.0, 1.0, 1.0, 1.0].into(),
+                        unknown4: 1,
+                        world_lighting: 3,
+                        light_recalculation: 1,
+                        unknown5: [0.0, 0.0, 0.0].into(),
+                        unknown6: 4,
+                        unknown7: 4,
+                        unknown8: 0,
+                        light_layer_id: 0
+                    },
+                    scan_params: structs::scly_structs::ScannableParameters {
+                        scan: ResId::invalid(), // None
+                    },
+                    xray_cmdl: ResId::invalid(), // None
+                    xray_cskr: ResId::invalid(), // None
+                    thermal_cmdl: ResId::invalid(), // None
+                    thermal_cskr: ResId::invalid(), // None
+
+                    unknown0: 1,
+                    unknown1: 1.0,
+                    unknown2: 1.0,
+
+                    visor_params: structs::scly_structs::VisorParameters {
+                        unknown0: 0,
+                        target_passthrough: 0,
+                        visor_mask: 15 // Combat|Scan|Thermal|XRay
+                    },
+                    enable_thermal_heat: 0,
+                    unknown3: 0,
+                    unknown4: 0,
+                    unknown5: 1.0
+                },
+
+                speed: 1.0,
+                active: 1,
+
+                dcln: ResId::<res_id::DCLN>::new(0xC11B62AF),
+
+                health_info: structs::scly_structs::HealthInfo {
+                    health: 1.0,
+                    knockback_resistance: 1.0,
+                },
+                damage_vulnerability: DoorType::Disabled.vulnerability(),
+
+                detect_collision: 0,
+                unknown4: 1.0,
+                unknown5: 0,
+                unknown6: 200,
+                unknown7: 20,
+            }.into(),
+            connections: vec![].into(),
+        },
+        structs::SclyObject {
+            instance_id: glow_ring_id,
+            property_data: structs::Actor {
+                name: b"myactor\0".as_cstr(),
+                position: relative_offset(config.position, config.rotation, [0.0125, 0.0, 0.0]).into(),
+                rotation: config.rotation.into(),
+                scale: [1.034, 1.0, 1.034].into(),
+                hitbox: [0.0, 0.0, 0.0].into(),
+                scan_offset: [0.0, 0.0, 0.0].into(),
+                unknown1: 1.0,
+                unknown2: 0.0,
+                health_info: structs::scly_structs::HealthInfo {
+                    health: 5.0,
+                    knockback_resistance: 1.0
+                },
+                damage_vulnerability: DoorType::Disabled.vulnerability(),
+                cmdl: ResId::<res_id::CMDL>::new(0x9BC5E7C6),
+                ancs: structs::scly_structs::AncsProp {
+                    file_id: ResId::invalid(), // None
+                    node_index: 0,
+                    default_animation: 0xFFFFFFFF, // -1
+                },
+                actor_params: structs::scly_structs::ActorParameters {
+                    light_params: structs::scly_structs::LightParameters {
+                        unknown0: 1,
+                        unknown1: 1.0,
+                        shadow_tessellation: 0,
+                        unknown2: 1.0,
+                        unknown3: 20.0,
+                        color: [1.0, 1.0, 1.0, 1.0].into(),
+                        unknown4: 1,
+                        world_lighting: 3,
+                        light_recalculation: 1,
+                        unknown5: [0.0, 0.0, 0.0].into(),
+                        unknown6: 4,
+                        unknown7: 4,
+                        unknown8: 0,
+                        light_layer_id: 0
+                    },
+                    scan_params: structs::scly_structs::ScannableParameters {
+                        scan: ResId::invalid(), // None
+                    },
+                    xray_cmdl: ResId::invalid(), // None
+                    xray_cskr: ResId::invalid(), // None
+                    thermal_cmdl: ResId::invalid(), // None
+                    thermal_cskr: ResId::invalid(), // None
+
+                    unknown0: 1,
+                    unknown1: 1.0,
+                    unknown2: 1.0,
+
+                    visor_params: structs::scly_structs::VisorParameters {
+                        unknown0: 0,
+                        target_passthrough: 0,
+                        visor_mask: 15 // Combat|Scan|Thermal|XRay
+                    },
+                    enable_thermal_heat: 1,
+                    unknown3: 0,
+                    unknown4: 0,
+                    unknown5: 1.0
+                },
+                looping: 1,
+                snow: 1,
+                solid: 0,
+                camera_passthrough: 0,
+                active,
+                unknown8: 0,
+                unknown9: 1.0,
+                unknown10: 0,
+                unknown11: 0,
+                unknown12: 0,
+                unknown13: 0
+            }.into(),
+            connections: vec![].into()
+        },
+        structs::SclyObject {
+            instance_id: ball_trigger_id,
+            property_data: structs::BallTrigger {
+                name: b"myballtrigger\0".as_cstr(),
+                position: ball_trigger_position.into(),
+                scale: [1.0, 1.0, 1.0].into(),
+                active,
+                force: 40.0,
+                min_angle: 180.0,
+                max_distance: 1.5,
+                force_angle: [1.0, 1.0, 1.0].into(),
+                stop_player: 1,
+            }.into(),
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::ACTIVATE,
+                    target_object_id: damageable_trigger_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::EXITED,
+                    message: structs::ConnectionMsg::DEACTIVATE,
+                    target_object_id: damageable_trigger_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::INACTIVE,
+                    message: structs::ConnectionMsg::DECREMENT,
+                    target_object_id: player_hint_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::INCREMENT,
+                    target_object_id: player_hint_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::EXITED,
+                    message: structs::ConnectionMsg::DECREMENT,
+                    target_object_id: player_hint_id,
+                },
+            ].into()
+        },
+        structs::SclyObject {
+            instance_id: player_hint_id,
+            property_data: structs::PlayerHint {
+             name: b"disableboost\0".as_cstr(), 
+             position: [0.0, 0.0, 0.0].into(),
+             rotation: [0.0, 0.0, 0.0].into(),
+             active: 1,
+             data: structs::PlayerHintStruct {
+                 unknown1: 1,
+                 unknown2: 0,
+                 extend_target_distance: 0,
+                 unknown4: 0,
+                 unknown5: 0,
+                 disable_unmorph: 1,
+                 disable_morph: 0,
+                 disable_controls: 0,
+                 disable_boost: 1,
+                 activate_visor_combat: 0,
+                 activate_visor_scan: 0,
+                 activate_visor_thermal: 0,
+                 activate_visor_xray: 0,
+                 unknown6: 0,
+                 face_object_on_unmorph: 0,
+             }.into(),
+             priority: 10,
+            }.into(),
+            connections: vec![].into(),
+        },
+        structs::SclyObject {
+            instance_id: streamed_audio_id,
+            property_data: structs::StreamedAudio {
+                    name: b"mystreamedaudio\0".as_cstr(),
+                    active: 1,
+                    audio_file_name: b"/audio/evt_x_event_00.dsp\0".as_cstr(),
+                    no_stop_on_deactivate: 0,
+                    fade_in_time: 0.0,
+                    fade_out_time: 0.0,
+                    volume: 92,
+                    oneshot: 1,
+                    is_music: 1,
+                }.into(),
+            connections: vec![].into(),
+        },
+        structs::SclyObject {
+            instance_id: damageable_trigger_id,
+            property_data: structs::DamageableTrigger {
+                name: b"my dtrigger\0".as_cstr(),
+                position: ball_trigger_position.into(),
+                scale: [0.1, 0.1, 0.1].into(),
+                health_info: structs::scly_structs::HealthInfo {
+                    health: 1.0,
+                    knockback_resistance: 1.0
+                },
+                damage_vulnerability: DoorType::Bomb.vulnerability(),
+                unknown0: 0,
+                pattern_txtr0: ResId::invalid(),
+                pattern_txtr1: ResId::invalid(),
+                color_txtr: ResId::invalid(),
+                lock_on: 0,
+                active: 0,
+                visor_params: structs::scly_structs::VisorParameters {
+                    unknown0: 0,
+                    target_passthrough: 0,
+                    visor_mask: 15 // Combat|Scan|Thermal|XRay
+                }
+            }.into(),
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::DEAD,
+                    message: structs::ConnectionMsg::DECREMENT,
+                    target_object_id: glow_ring_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::DEAD,
+                    message: structs::ConnectionMsg::RESET_AND_START,
+                    target_object_id: timer_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::DEAD,
+                    message: structs::ConnectionMsg::PLAY,
+                    target_object_id: streamed_audio_id,
+                },
+            ].into(),
+        },
+        structs::SclyObject {
+            instance_id: timer_id,
+            property_data: structs::Timer {
+                name: b"timer fade in\0".as_cstr(),
+                start_time: ball_release_delay_s,
+                max_random_add: 0.0,
+                looping: 0,
+                start_immediately: 0,
+                active: 1,
+            }.into(),
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ZERO,
+                    message: structs::ConnectionMsg::DEACTIVATE,
+                    target_object_id: ball_trigger_id,
+                },
+            ].into(),
+        },
+    ]);
+
+    if let Some(activate_slot_id) = config.activate_slot_id {
+        objects.push(
+            structs::SclyObject {
+                instance_id: activate_slot_id,
+                property_data: structs::Relay {
+                    name: b"muh relay\0".as_cstr(),
+                    active: 1,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: ball_trigger_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::INCREMENT,
+                        target_object_id: glow_ring_id,
+                    },
+                ].into(),
+            }
+        );
+    }
+
+    if let Some(deactivate_slot_id) = config.deactivate_slot_id {
+        objects.push(
+            structs::SclyObject {
+                instance_id: deactivate_slot_id,
+                property_data: structs::Relay {
+                    name: b"muh relay\0".as_cstr(),
+                    active: 1,
+                }.into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: ball_trigger_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: damageable_trigger_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DECREMENT,
+                        target_object_id: glow_ring_id,
+                    },
+                ].into(),
+            }
+        );
+    }
+
+    Ok(())
 }
 
 pub fn patch_add_platform<'r>(
