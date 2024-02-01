@@ -1427,6 +1427,39 @@ pub fn patch_add_platform<'r>(
                     ResId::invalid(),
                 )
             },
+            PlatformType::Block => {
+                (
+                    vec![
+                        (0x27D0663B, b"CMDL"),
+                        (0x19AD934F, b"TXTR"),
+                        (0xFF6F41A6, b"TXTR"),
+                    ],
+                    ResId::<res_id::CMDL>::new(0x27D0663B),
+                    ResId::<res_id::DCLN>::new(0x964E98AC),
+                )
+            },
+            PlatformType::HalfBlock => {
+                (
+                    vec![
+                        (0x27D0663B, b"CMDL"),
+                        (0x19AD934F, b"TXTR"),
+                        (0xFF6F41A6, b"TXTR"),
+                    ],
+                    ResId::<res_id::CMDL>::new(0x27D0663B),
+                    ResId::<res_id::DCLN>::new(0x910FF59C),
+                )
+            },
+            PlatformType::LongBlock => {
+                (
+                    vec![
+                        (0x27D0663B, b"CMDL"),
+                        (0x19AD934F, b"TXTR"),
+                        (0xFF6F41A6, b"TXTR"),
+                    ],
+                    ResId::<res_id::CMDL>::new(0x27D0663B),
+                    ResId::<res_id::DCLN>::new(0xA87758DC),
+                )
+            },
             PlatformType::Empty => {
                 (
                     vec![
@@ -1439,8 +1472,14 @@ pub fn patch_add_platform<'r>(
                     ResId::<res_id::CMDL>::new(0x3801DE98),
                     ResId::<res_id::DCLN>::new(0xF4BEE243),
                 )
-            },
+            }
         }
+    };
+
+    let scale = match platform_type {
+        PlatformType::HalfBlock => [1.0, 1.0, 0.5],
+        PlatformType::LongBlock => [2.0, 1.0, 0.5],
+        _ => [1.0, 1.0, 1.0],
     };
 
     let deps_iter = deps.iter()
@@ -1458,7 +1497,7 @@ pub fn patch_add_platform<'r>(
 
                 position: config.position.into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
-                scale: [1.0, 1.0, 1.0].into(),
+                scale: scale.into(),
                 extent: [0.0, 0.0, 0.0].into(),
                 scan_offset: [0.0, 0.0, 0.0].into(),
 

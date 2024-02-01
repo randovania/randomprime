@@ -1161,6 +1161,11 @@ pub fn collect_game_resources<'r>(
 
     let platform_deps: Vec<(u32,FourCC)> = vec![
         (0x27D0663B, FourCC::from_bytes(b"CMDL")), // actually the block model but I'm lazy
+        (0x964E98AC, FourCC::from_bytes(b"DCLN")), // Perfect cube collision which goes with above CMDL
+        (0x910FF59C, FourCC::from_bytes(b"DCLN")), // Same as above, but scale=[1, 1, 0.5]
+        (0xA87758DC, FourCC::from_bytes(b"DCLN")), // Same as above, but scale=[2, 1, 0.5]
+        (0x19AD934F, FourCC::from_bytes(b"TXTR")),
+        (0xFF6F41A6, FourCC::from_bytes(b"TXTR")),
         (0xDCDFD386, FourCC::from_bytes(b"CMDL")),
         (0x6D412D11, FourCC::from_bytes(b"DCLN")),
         (0xEED972E7, FourCC::from_bytes(b"TXTR")),

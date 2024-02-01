@@ -3008,11 +3008,14 @@
                                 ]
                             },
                             "type": {
-                                "description": "Pick what type of platform. Note that `\"Empty\"` is provided for creative scripting purposes such as moving around a pickup along a waypoint path.",
+                                "description": "Pick what type of platform.\n- `Metal`: Circular floating platform found in Phazon Processing Center.\n- `Snow`: Coarse circular floating platform found in Phendrana Canyon.\n- `Block`: A perfect cube, close to 1x1x1 game units\n- `HalfBlock`: Same as `Block`, but half as tall\n- `LongBlock`: Same as `HalfBlock`, but twice as long\n- `BombBox`: Multi-stage destructible box found in Magmoor Caverns - Transport Tunnel A. It's collision does not rotate\n- `Empty`: A platform without any textures or collision. This is useful for making non-platform objects follow a path of waypoints.",
                                 "type": "string",
                                 "enum": [
                                     "Metal",
                                     "Snow",
+                                    "Block",
+                                    "HalfBlock",
+                                    "LongBlock",
                                     "BombBox",
                                     "Empty"
                                 ],

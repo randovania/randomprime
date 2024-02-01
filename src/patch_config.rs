@@ -205,6 +205,9 @@ pub enum PlatformType
 {
     Metal,
     Snow,
+    Block,
+    HalfBlock,
+    LongBlock,
     BombBox,
     Empty,
 }
