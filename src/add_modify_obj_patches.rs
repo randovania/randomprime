@@ -1427,6 +1427,19 @@ pub fn patch_add_platform<'r>(
                     ResId::invalid(),
                 )
             },
+            PlatformType::Empty => {
+                (
+                    vec![
+                        // Magma Pool Jump Blocker (invis)
+                        (0x3801DE98, b"CMDL"),
+                        (0xB3048E27, b"TXTR"),
+                        // Empty DCLN
+                        (0xF4BEE243, b"DCLN"),
+                    ],
+                    ResId::<res_id::CMDL>::new(0x3801DE98),
+                    ResId::<res_id::DCLN>::new(0xF4BEE243),
+                )
+            },
         }
     };
 

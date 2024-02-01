@@ -3008,12 +3008,13 @@
                                 ]
                             },
                             "type": {
-                                "description": "Pick what type of platform.",
+                                "description": "Pick what type of platform. Note that `\"Empty\"` is provided for creative scripting purposes such as moving around a pickup along a waypoint path.",
                                 "type": "string",
                                 "enum": [
                                     "Metal",
                                     "Snow",
-                                    "BombBox"
+                                    "BombBox",
+                                    "Empty"
                                 ],
                                 "default": "Metal"
                             },

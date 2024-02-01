@@ -1203,8 +1203,11 @@ pub fn collect_game_resources<'r>(
 
     let ghost_ball: Vec<(u32,FourCC)> = vec![ // used for lock on point model
         (0xBFE4DAA0, FourCC::from_bytes(b"CMDL")),
+        (0x3801DE98, FourCC::from_bytes(b"CMDL")),
+        (0xF4BEE243, FourCC::from_bytes(b"DCLN")),
         (0x57C7107D, FourCC::from_bytes(b"TXTR")),
         (0xE580D665, FourCC::from_bytes(b"TXTR")),
+        (0xB3048E27, FourCC::from_bytes(b"TXTR")),
     ];
     looking_for.extend(ghost_ball);
 

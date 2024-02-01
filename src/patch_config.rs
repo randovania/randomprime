@@ -206,6 +206,7 @@ pub enum PlatformType
     Metal,
     Snow,
     BombBox,
+    Empty,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
