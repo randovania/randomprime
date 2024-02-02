@@ -35,7 +35,11 @@ pub struct Platform<'r>
     pub health_info: HealthInfo,
     pub damage_vulnerability: DamageVulnerability,
 
+    // Consider a platform on a waypoint path with the player obstructing that path:
+    // - if this is set to 0, then the platform will halt
+    // - if this is set to 1, then the platform will slide around the player and fall off of the waypoint path (and it will wander aimlessly)
     pub detect_collision: u8,
+
     pub unknown4: f32,
     pub unknown5: u8,
     pub unknown6: u32,

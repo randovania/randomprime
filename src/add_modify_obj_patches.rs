@@ -1558,7 +1558,7 @@ pub fn patch_add_platform<'r>(
                 },
                 damage_vulnerability: vulnerability.clone(),
 
-                detect_collision: 1,
+                detect_collision: 0,
                 unknown4: 1.0,
                 unknown5: 0,
                 unknown6: 200,
@@ -1674,7 +1674,7 @@ pub fn patch_add_platform<'r>(
                     },
                     damage_vulnerability: vulnerability.clone(),
     
-                    detect_collision: 1,
+                    detect_collision: 0,
                     unknown4: 1.0,
                     unknown5: 0,
                     unknown6: 200,
