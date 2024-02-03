@@ -4374,6 +4374,24 @@
                                 "minimum": 0,
                                 "maximum": 16777215
                             },
+                            "platformId": {
+                                "description": "ID to use for the slot platform",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "actorId": {
+                                "description": "ID to use for the glow ring actor",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "ballTriggerId": {
+                                "description": "ID to use for the ball trigger object",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
                             "activateSlotId": {
                                 "description": "If provided, the patcher will add a relay with this ID which, if sent `\"message\"`: \"SET_TO_ZERO\", will *activate* the bomb slot.",
                                 "type": "integer",

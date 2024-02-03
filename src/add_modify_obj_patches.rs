@@ -941,9 +941,9 @@ pub fn patch_add_bomb_slot<'r>(
     );
     area.add_dependencies(game_resources, 0, deps_iter);
 
-    let bomb_slot_id = area.new_object_id_from_layer_id(layer);
-    let glow_ring_id = area.new_object_id_from_layer_id(layer);
-    let ball_trigger_id = area.new_object_id_from_layer_id(layer);
+    let bomb_slot_id = config.platform_id.unwrap_or(area.new_object_id_from_layer_id(layer));
+    let glow_ring_id = config.actor_id.unwrap_or(area.new_object_id_from_layer_id(layer));
+    let ball_trigger_id = config.ball_trigger_id.unwrap_or(area.new_object_id_from_layer_id(layer));
     let player_hint_id = area.new_object_id_from_layer_id(layer);
     let streamed_audio_id = area.new_object_id_from_layer_id(layer);
     let timer_id = area.new_object_id_from_layer_id(layer);
@@ -1666,7 +1666,7 @@ pub fn patch_add_platform<'r>(
                     speed: 5.0,
                     active: 0,
     
-                    dcln: dcln,
+                    dcln,
     
                     health_info: structs::scly_structs::HealthInfo {
                         health: 1.0,

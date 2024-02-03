@@ -15496,17 +15496,33 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                         }
 
                         let do_cutscene_skip_patches = {
-                            if room.cutscene_skip_fns.is_some() {
-                                true
-                            } else if room.special_functions.is_some() {
-                                room.special_functions
-                                    .as_ref()
-                                    .unwrap()
-                                    .iter()
-                                    .any(|config| config.type_ == SpecialFunctionType::CinematicSkip)
-                            } else {
-                                false
+                            let mut skipper_ids: Vec<u32> = Vec::new();
+
+                            if let Some(cutscene_skips) = room.cutscene_skip_fns.as_ref() {
+                                for id in cutscene_skips.iter() {
+                                    skipper_ids.push(*id);
+                                }
                             }
+
+                            if let Some(special_functions) = room.special_functions.as_ref() {
+                                for config in special_functions.iter() {
+                                    if config.type_ != SpecialFunctionType::CinematicSkip {
+                                        continue;
+                                    }
+                                    
+                                    if let Some(id) = config.id.as_ref() {
+                                        skipper_ids.push(*id);
+                                    }
+                                }
+                            }
+
+                            if let Some(delete_ids) = room.delete_ids.as_ref() {
+                                for remove_id in delete_ids.iter() {
+                                    skipper_ids.retain(|id| id != remove_id);
+                                }
+                            }
+
+                            skipper_ids.len() > 0
                         };
 
                         if do_cutscene_skip_patches {

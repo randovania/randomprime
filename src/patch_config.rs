@@ -580,6 +580,9 @@ pub struct FogConfig
 pub struct BombSlotConfig
 {
     pub damageable_trigger_id: u32,
+    pub platform_id: Option<u32>,
+    pub actor_id: Option<u32>,
+    pub ball_trigger_id: Option<u32>,
     pub activate_slot_id: Option<u32>,
     pub deactivate_slot_id: Option<u32>,
     pub layer: Option<u32>,
