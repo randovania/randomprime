@@ -131,6 +131,7 @@ pub struct PickupConfig
 pub struct ScanConfig
 {
     pub id: Option<u32>,
+    pub layer: Option<u32>,
     pub position: [f32;3],
     pub combat_visible: Option<bool>,
     pub rotation: Option<f32>,

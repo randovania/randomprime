@@ -3366,16 +3366,19 @@ fn patch_add_poi<'r>(
     strg_id: ResId<res_id::STRG>,
     position: [f32;3],
     id: Option<u32>,
+    layer: Option<u32>,
 ) -> Result<(), String>
 {
+    let layer = layer.unwrap_or(0) as usize;
+
     let instance_id = match id {
         Some(id) => id,
-        None => area.new_object_id_from_layer_id(0),
+        None => area.new_object_id_from_layer_id(layer),
     };
 
     let scly = area.mrea().scly_section_mut();
     let layers = scly.layers.as_mut_vec();
-    layers[0].objects.as_mut_vec().push(
+    layers[layer].objects.as_mut_vec().push(
         structs::SclyObject {
             instance_id: instance_id,
             connections: vec![].into(),
@@ -15067,6 +15070,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                 custom_asset_ids::SHORELINES_POI_STRG,
                 [-98.0624, -162.3933, 28.5371],
                 None,
+                None,
             ),
         );
     }
@@ -15078,6 +15082,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
             custom_asset_ids::CFLDG_POI_SCAN,
             custom_asset_ids::CFLDG_POI_STRG,
             [-44.0, 361.0, -120.0],
+            None,
             None,
         ),
     );
@@ -15997,7 +16002,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
 
                 patcher.add_scly_patch(
                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                    move |ps, area| patch_add_poi(ps, area, game_resources, scan_id.clone(), strg_id.clone(), scan.position, scan.id),
+                    move |ps, area| patch_add_poi(ps, area, game_resources, scan_id.clone(), strg_id.clone(), scan.position, scan.id, scan.layer),
                 );
 
                 if scan.combat_visible.unwrap_or(false) {
