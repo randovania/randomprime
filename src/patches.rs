@@ -3417,12 +3417,14 @@ fn patch_add_scan_actor<'r>(
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     position: [f32;3],
     rotation: f32,
+    layer: Option<u32>,
 )
 -> Result<(), String>
 {
-    let instance_id = area.new_object_id_from_layer_name("Default");
+    let layer = layer.unwrap_or(0) as usize;
+    let instance_id = area.new_object_id_from_layer_id(layer);
     let scly = area.mrea().scly_section_mut();
-    scly.layers.as_mut_vec()[0].objects.as_mut_vec().push(
+    scly.layers.as_mut_vec()[layer].objects.as_mut_vec().push(
         structs::SclyObject {
             instance_id: instance_id,
             connections: vec![].into(),
@@ -16008,7 +16010,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                 if scan.combat_visible.unwrap_or(false) {
                     patcher.add_scly_patch(
                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                        move |ps, area| patch_add_scan_actor(ps, area, game_resources, scan.position, scan.rotation.unwrap_or(0.0)),
+                        move |ps, area| patch_add_scan_actor(ps, area, game_resources, scan.position, scan.rotation.unwrap_or(0.0), scan.layer),
                     );
                 }
 

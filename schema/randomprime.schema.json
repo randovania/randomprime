@@ -2910,6 +2910,13 @@
                                 "minimum": 0,
                                 "maximum": 16777215
                             },
+                            "layer": {
+                                "description": "Layer",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0,
+                                "maximum": 63
+                            },
                             "position": {
                                 "description": "Position of the scan point.",
                                 "$ref": "#/$defs/vector3"
