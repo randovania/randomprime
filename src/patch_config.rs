@@ -1186,6 +1186,7 @@ pub struct PatchConfig
     pub shoot_in_grapple: bool,
     pub difficulty_behavior: DifficultyBehavior,
     pub legacy_block_size: bool,
+    pub patch_wallcrawling: bool,
     pub ctwk_config: CtwkConfig,
 }
 
@@ -1285,6 +1286,7 @@ struct GameConfig
     shoot_in_grapple: Option<bool>,
     difficulty_behavior: Option<DifficultyBehavior>,
     legacy_block_size: Option<bool>,
+    patch_wallcrawling: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -2234,6 +2236,7 @@ impl PatchConfigPrivate
             shoot_in_grapple: self.game_config.shoot_in_grapple.unwrap_or(false),
             difficulty_behavior: self.game_config.difficulty_behavior.unwrap_or(DifficultyBehavior::Either),
             legacy_block_size: self.game_config.legacy_block_size.unwrap_or(false),
+            patch_wallcrawling: self.game_config.patch_wallcrawling.unwrap_or(false),
             map_default_state,
 
             starting_items,

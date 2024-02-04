@@ -1102,6 +1102,11 @@
                     "type": "boolean",
                     "default": false,
                     "deprecated": true
+                },
+                "patchWallcrawling": {
+                    "description": "If true, it becomes nearly impossible to transition most doors while oob.",
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "required": [],

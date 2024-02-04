@@ -12141,6 +12141,43 @@ fn patch_remove_blast_shields<'r>(
     Ok(())
 }
 
+fn patch_anti_oob<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+)
+-> Result<(), String>
+{
+    let scly = area.mrea().scly_section_mut();
+    let layer_count = scly.layers.len();
+    for i in 0..layer_count {
+        let layer = &mut scly.layers.as_mut_vec()[i];
+        for obj in layer.objects.as_mut_vec() {
+            if let Some(dock) = obj.property_data.as_dock_mut() {
+                let scale: [f32; 3] = dock.scale.into();
+                let volume = scale[0] * scale[1] * scale[2];
+                if volume < 49.9 || volume > 50.1 {
+                    continue; // This dock is weird don't touch it
+                }
+
+                if scale[0] > 4.9 {
+                    dock.scale[0] = 2.6;
+                }
+
+                if scale[1] > 4.9 {
+                    dock.scale[1] = 2.6;
+                }
+
+                dock.scale[2] = 2.0;
+
+                // Center with the door
+                dock.position[2] = dock.position[2] - 0.6;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn patch_remove_control_disabler<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -15199,6 +15236,14 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                 patcher.add_scly_patch(
                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
                     patch_remove_control_disabler,
+                );
+            }
+
+            if config.patch_wallcrawling
+            {
+                patcher.add_scly_patch(
+                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                    patch_anti_oob,
                 );
             }
 
