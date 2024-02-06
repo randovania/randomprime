@@ -4000,7 +4000,7 @@
                     }
                 },
                 "actorRotates": {
-                    "description": "",
+                    "description": "Add/modify actor rotates in this room. These objects are used to script the rotation of platforms, actors, etc...",
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -4012,18 +4012,23 @@
                                 "$ref": "#/$defs/addModifyLayer"
                             },
                             "rotation": {
+                                "description": "The amount to rotate relative to the object's rotation",
                                 "$ref": "#/$defs/vector3"
                             },
                             "timeScale": {
+                                "description": "The amount of time it takes to rotate the distances specified by `\"rotation\"`",
                                 "type": "number"
                             },
                             "updateActors": {
+                                "description": "If true, the rotation is applied repeatedly",
                                 "type": "boolean"
                             },
                             "updateOnCreation": {
+                                "description": "If true, start applying rotation immediately. Otherwise, apply rotation when `\"ACTION\"` message is received",
                                 "type": "boolean"
                             },
                             "updateActive": {
+                                "description": "The default active state of this object",
                                 "type": "boolean"
                             }
                         },
@@ -4073,12 +4078,12 @@
                                 ]
                             },
                             "speed": {
-                                "description": "",
+                                "description": "Speed at which objects travel towards this waypoint, measured in units/sec.",
                                 "type": "number",
                                 "exclusiveMinimum": 0.0
                             },
                             "pause": {
-                                "description": "",
+                                "description": "Time in seconds which a following object will pause after it has `ARRIVED` at this waypoint before proceeding to the `NEXT`.",
                                 "type": "number",
                                 "exclusiveMinimum": 0.0
                             },
