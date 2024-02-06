@@ -1431,6 +1431,7 @@ pub fn patch_add_platform<'r>(
                 (
                     vec![
                         (0x27D0663B, b"CMDL"),
+                        (0x964E98AC, b"DCLN"),
                         (0x19AD934F, b"TXTR"),
                         (0xFF6F41A6, b"TXTR"),
                     ],
@@ -1442,6 +1443,7 @@ pub fn patch_add_platform<'r>(
                 (
                     vec![
                         (0x27D0663B, b"CMDL"),
+                        (0x910FF59C, b"DCLN"),
                         (0x19AD934F, b"TXTR"),
                         (0xFF6F41A6, b"TXTR"),
                     ],
@@ -1453,6 +1455,7 @@ pub fn patch_add_platform<'r>(
                 (
                     vec![
                         (0x27D0663B, b"CMDL"),
+                        (0xA87758DC, b"DCLN"),
                         (0x19AD934F, b"TXTR"),
                         (0xFF6F41A6, b"TXTR"),
                     ],

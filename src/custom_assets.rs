@@ -502,6 +502,16 @@ fn extern_assets_compile_time<'r>() -> Vec<Resource<'r>>
         extern_asset!(SCAN_VISOR_METAL_TRIM_TXTR          , "scan_visor_metal_trim.TXTR"          ),
     ];
 
+    /* If you ever needed more than just TXTR you would chain like so:
+
+    extern_assets_txtr.iter().map(|&(res, ref fourcc, bytes)| {
+        build_resource(res, ResourceKind::Unknown(Reader::new(bytes), fourcc.into()))
+    }).chain(extern_assets_dcln.iter().map(|&(res, ref fourcc, bytes)| {
+        build_resource(res, ResourceKind::Unknown(Reader::new(bytes), fourcc.into()))
+    })).collect()
+
+     */
+
     extern_assets.iter().map(|&(res, ref fourcc, bytes)| {
         build_resource(res, ResourceKind::Unknown(Reader::new(bytes), fourcc.into()))
     }).collect()
