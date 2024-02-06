@@ -1491,7 +1491,7 @@ pub fn patch_add_platform<'r>(
             asset_type: FourCC::from_bytes(fourcc),
         }
     );
-    area.add_dependencies(game_resources,0,deps_iter);
+    area.add_dependencies(game_resources,0, deps_iter);
 
     macro_rules! new {
         () => {
@@ -1551,7 +1551,7 @@ pub fn patch_add_platform<'r>(
                 },
 
                 speed: 5.0,
-                active: 1,
+                active: config.active.unwrap_or(true) as u8,
 
                 dcln: dcln,
 
@@ -1583,6 +1583,10 @@ pub fn patch_add_platform<'r>(
 
             if let Some(rotation) = config.rotation {
                 property_data.rotation = rotation.into();
+            }
+
+            if let Some(active) = config.active {
+                property_data.active = active as u8;
             }
         };
     }

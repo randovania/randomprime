@@ -16850,6 +16850,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                         xray_only: None,
                         thermal_only: None,
                         layer: None,
+                        active: None,
                     },
                 ),
             );
@@ -16868,6 +16869,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                         xray_only: None,
                         thermal_only: None,
                         layer: None,
+                        active: None,
                     },
                 ),
             );
@@ -16886,6 +16888,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                         xray_only: None,
                         thermal_only: None,
                         layer: None,
+                        active: None,
                     },
                 ),
             );
@@ -16904,6 +16907,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                         xray_only: None,
                         thermal_only: None,
                         layer: None,
+                        active: None,
                     },
                 ),
             );

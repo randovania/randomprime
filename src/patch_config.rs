@@ -219,6 +219,7 @@ pub struct PlatformConfig
 {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub active: Option<bool>,
     pub position: [f32;3],
     pub rotation: Option<[f32;3]>,
     pub alt_platform: Option<bool>, // deprecated

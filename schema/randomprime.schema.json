@@ -3006,6 +3006,11 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "active": {
+                                "description": "Default active state of the platform.",
+                                "type": "boolean",
+                                "default": true
+                            },
                             "position": {
                                 "description": "The position of the platform.",
                                 "$ref": "#/$defs/vector3"
