@@ -1,7 +1,6 @@
 use auto_struct_macros::auto_struct;
 
 use reader_writer::CStr;
-use reader_writer::typenum::*;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
