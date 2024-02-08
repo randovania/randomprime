@@ -4448,7 +4448,7 @@
                     }
                 },
                 "controllerActions": {
-                    "description": "Add ControllerAction objects in this room. Whenever a designated action is done, it will enter the `OPEN` state and send a signal.",
+                    "description": "Add ControllerAction objects in this room. It will send a signal upon press and release, entering the `OPEN` and `CLOSED` state respectively.",
                     "type": "array",
                     "items": {
                         "type": "object",
