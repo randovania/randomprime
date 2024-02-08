@@ -4456,6 +4456,111 @@
                         ],
                         "additionalProperties": false
                     }
+                },
+                "controllerActions": {
+                    "description": "Add ControllerAction objects in this room. It will send a signal upon press and release, entering the `OPEN` and `CLOSED` state respectively.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the ControllerAction object.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "action": {
+                                "description": "Select an action that matches the desired button on the controller. Example: `Morph` is the X button. (Note that the majority of these are unused or share the same button)",
+                                "type": "string",
+                                "enum": [
+                                    "Forward",
+                                    "Backward",
+                                    "TurnLeft",
+                                    "TurnRight",
+                                    "StrafeLeft",
+                                    "StrafeRight",
+                                    "LookLeft",
+                                    "LookRight",
+                                    "LookUp",
+                                    "LookDown",
+                                    "JumpOrBoost",
+                                    "FireOrBomb",
+                                    "MissileOrPowerBomb",
+                                    "Morph",
+                                    "AimUp",
+                                    "AimDown",
+                                    "CycleBeamUp",
+                                    "CycleBeamDown",
+                                    "CycleItem",
+                                    "PowerBeam",
+                                    "IceBeam",
+                                    "WaveBeam",
+                                    "PlasmaBeam",
+                                    "ToggleHolster",
+                                    "OrbitClose",
+                                    "OrbitFar",
+                                    "OrbitObject",
+                                    "OrbitSelect",
+                                    "OrbitConfirm",
+                                    "OrbitLeft",
+                                    "OrbitRight",
+                                    "OrbitUp",
+                                    "OrbitDown",
+                                    "LookHold1",
+                                    "LookHold2",
+                                    "LookZoomIn",
+                                    "LookZoomOut",
+                                    "AimHold",
+                                    "MapCircleUp",
+                                    "MapCircleDown",
+                                    "MapCircleLeft",
+                                    "MapCircleRight",
+                                    "MapMoveForward",
+                                    "MapMoveBack",
+                                    "MapMoveLeft",
+                                    "MapMoveRight",
+                                    "MapZoomIn",
+                                    "MapZoomOut",
+                                    "SpiderBall",
+                                    "ChaseCamera",
+                                    "XRayVisor",
+                                    "ThermoVisor",
+                                    "EnviroVisor",
+                                    "NoVisor",
+                                    "VisorMenu",
+                                    "VisorUp",
+                                    "VisorDown",
+                                    "Unknown1",
+                                    "Unknown2",
+                                    "UseShield",
+                                    "ScanItem",
+                                    "Unknown3",
+                                    "Unknown4",
+                                    "Unknown5",
+                                    "Unknown6",
+                                    "PreviousPauseScreen",
+                                    "NextPauseScreen",
+                                    "Unknown7",
+                                    "None"
+                                ]
+                            },
+                            "oneShot": {
+                                "description": "Specify if the object will deactivate after being used",
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "action"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false

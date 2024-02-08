@@ -37,6 +37,7 @@ pub mod scly_props
     pub mod camera_filter_keyframe;
     pub mod camera_hint_trigger;
     pub mod camera_hint;
+    pub mod controller_action;
     pub mod counter;
     pub mod damageable_trigger;
     pub mod distance_fog;
@@ -134,6 +135,7 @@ pub mod scly_props
     pub use self::camera_filter_keyframe::*;
     pub use self::camera_hint_trigger::*;
     pub use self::camera_hint::*;
+    pub use self::controller_action::*;
     pub use self::counter::*;
     pub use self::damageable_trigger::*;
     pub use self::distance_fog::*;
@@ -231,6 +233,7 @@ pub use scly_props::camera_blur_keyframe::*;
 pub use scly_props::camera_filter_keyframe::*;
 pub use scly_props::camera_hint_trigger::*;
 pub use scly_props::camera_hint::*;
+pub use scly_props::controller_action::*;
 pub use scly_props::counter::*;
 pub use scly_props::damageable_trigger::*;
 pub use scly_props::distance_fog::*;

@@ -693,6 +693,93 @@ pub enum EnviornmentalEffect {
     Bubbles,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum ControllerActionType {
+    Forward = 0,
+    Backward,
+    TurnLeft,
+    TurnRight,
+    StrafeLeft,
+    StrafeRight,
+    LookLeft,
+    LookRight,
+    LookUp,
+    LookDown,
+    JumpOrBoost,
+    FireOrBomb,
+    MissileOrPowerBomb,
+    Morph,
+    AimUp,
+    AimDown,
+    CycleBeamUp,
+    CycleBeamDown,
+    CycleItem,
+    PowerBeam,
+    IceBeam,
+    WaveBeam,
+    PlasmaBeam,
+    ToggleHolster,
+    OrbitClose,
+    OrbitFar,
+    OrbitObject,
+    OrbitSelect,
+    OrbitConfirm,
+    OrbitLeft,
+    OrbitRight,
+    OrbitUp,
+    OrbitDown,
+    LookHold1,
+    LookHold2,
+    LookZoomIn,
+    LookZoomOut,
+    AimHold,
+    MapCircleUp,
+    MapCircleDown,
+    MapCircleLeft,
+    MapCircleRight,
+    MapMoveForward,
+    MapMoveBack,
+    MapMoveLeft,
+    MapMoveRight,
+    MapZoomIn,
+    MapZoomOut,
+    SpiderBall,
+    ChaseCamera,
+    XRayVisor,
+    ThermoVisor,
+    EnviroVisor,
+    NoVisor,
+    VisorMenu,
+    VisorUp,
+    VisorDown,
+    Unknown1,
+    Unknown2,
+    UseShield,
+    ScanItem,
+    Unknown3,
+    Unknown4,
+    Unknown5,
+    Unknown6,
+    PreviousPauseScreen,
+    NextPauseScreen,
+    Unknown7,
+    None,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ControllerActionConfig
+{
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
+    
+    pub action: ControllerActionType,
+
+    pub one_shot: Option<bool>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum ConnectionState {
@@ -896,6 +983,7 @@ pub struct RoomConfig
     pub player_hints: Option<Vec<PlayerHintConfig>>,
     pub distance_fogs: Option<Vec<FogConfig>>,
     pub bomb_slots: Option<Vec<BombSlotConfig>>,
+    pub controller_actions: Option<Vec<ControllerActionConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1733,6 +1821,7 @@ impl PatchConfigPrivate
                 extend_option_vec!(player_hints      , self_room_config, other_room_config);
                 extend_option_vec!(distance_fogs     , self_room_config, other_room_config);
                 extend_option_vec!(bomb_slots        , self_room_config, other_room_config);
+                extend_option_vec!(controller_actions, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
