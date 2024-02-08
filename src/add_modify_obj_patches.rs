@@ -34,6 +34,7 @@ use crate::{
         PlayerHintConfig,
         FogConfig,
         BombSlotConfig,
+        ControllerActionConfig,
     },
     pickup_meta::PickupType,
     door_meta::DoorType,
@@ -1310,6 +1311,36 @@ pub fn patch_add_bomb_slot<'r>(
     }
 
     Ok(())
+}
+
+pub fn patch_add_controller_action<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: ControllerActionConfig,
+)
+    -> Result<(), String>
+{
+
+    macro_rules! new {
+        () => {
+            structs::ControllerAction {
+                name: b"my ctrlaction\0".as_cstr(),
+                active: config.active.unwrap_or(true) as u8,
+                action_: config.action_ as u32,
+                one_shot: config.one_shot.unwrap_or(false) as u8,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_controller_action_mut().unwrap();
+            if let Some(active         ) = config.active          {property_data.active          = active    as u8 }
+            if let Some(one_shot       ) = config.one_shot        {property_data.one_shot        = one_shot  as u8 }
+        };
+    }
+
+    add_edit_obj_helper!(area, Some(config.id), config.layer, ControllerAction, new, update);
 }
 
 pub fn patch_add_platform<'r>(

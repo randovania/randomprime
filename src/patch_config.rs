@@ -692,6 +692,162 @@ pub enum EnviornmentalEffect {
     Bubbles,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum ControllerActionType {
+    Forward = 0,
+    #[serde(alias="backward", alias="BACKWARD")]
+    Backward,
+    #[serde(alias="turnLeft", alias="TURNLEFT")]
+    TurnLeft,
+    #[serde(alias="turnRight", alias="TURNRIGHT")]
+    TurnRight,
+    #[serde(alias="strafeLeft", alias="STRAFELEFT")]
+    StrafeLeft,
+    #[serde(alias="strafeRight", alias="STRAFERIGHT")]
+    StrafeRight,
+    #[serde(alias="lookLeft", alias="LOOKLEFT")]
+    LookLeft,
+    #[serde(alias="lookRight", alias="LOOKRIGHT")]
+    LookRight,
+    #[serde(alias="lookUp", alias="LOOKUP")]
+    LookUp,
+    #[serde(alias="lookDown", alias="LOOKDOWN")]
+    LookDown,
+    #[serde(alias="jumpOrBoost", alias="JUMPORBOOST")]
+    JumpOrBoost,
+    #[serde(alias="fireOrBomb", alias="FIREORBOMB")]
+    FireOrBomb,
+    #[serde(alias="missileOrPowerBomb", alias="MISSILEORPOWERBOMB")]
+    MissileOrPowerBomb,
+    #[serde(alias="morph", alias="MORPH")]
+    Morph,
+    #[serde(alias="aimUp", alias="AIMUP")]
+    AimUp,
+    #[serde(alias="aimDown", alias="AIMDOWN")]
+    AimDown,
+    #[serde(alias="cycleBeamUp", alias="CYCLEBEAMUP")]
+    CycleBeamUp,
+    #[serde(alias="cycleBeamDown", alias="CYCLEBEAMDOWN")]
+    CycleBeamDown,
+    #[serde(alias="cycleItem", alias="CYCLEITEM")]
+    CycleItem,
+    #[serde(alias="powerBeam", alias="POWERBEAM")]
+    PowerBeam,
+    #[serde(alias="iceBeam", alias="ICEBEAM")]
+    IceBeam,
+    #[serde(alias="waveBeam", alias="WAVEBEAM")]
+    WaveBeam,
+    #[serde(alias="plasmaBeam", alias="PLASMABEAM")]
+    PlasmaBeam,
+    #[serde(alias="toggleHoster", alias="TOGGLEHOLSTER")]
+    ToggleHolster,
+    #[serde(alias="orbitClose", alias="ORBITCLOSE")]
+    OrbitClose,
+    #[serde(alias="orbitFar", alias="ORBITFAR")]
+    OrbitFar,
+    #[serde(alias="orbitObject", alias="ORBITOBJECT")]
+    OrbitObject,
+    #[serde(alias="orbitSelect", alias="ORBITSELECT")]
+    OrbitSelect,
+    #[serde(alias="orbitConfirm", alias="ORBITCONFIRM")]
+    OrbitConfirm,
+    #[serde(alias="orbitLEFT", alias="ORBITLEFT")]
+    OrbitLeft,
+    #[serde(alias="orbitRight", alias="ORBITRIGHT")]
+    OrbitRight,
+    #[serde(alias="orbitUp", alias="ORBITUP")]
+    OrbitUp,
+    #[serde(alias="orbitDown", alias="ORBITDOWN")]
+    OrbitDown,
+    #[serde(alias="lookHold1", alias="LOOKHOLD1")]
+    LookHold1,
+    #[serde(alias="lookHold2", alias="LOOKHOLD2")]
+    LookHold2,
+    #[serde(alias="lookZoomIn", alias="LOOKZOOMIN")]
+    LookZoomIn,
+    #[serde(alias="lookZoomOut", alias="LOOKZOOMOUT")]
+    LookZoomOut,
+    #[serde(alias="aimHold", alias="AIMHOLD")]
+    AimHold,
+    #[serde(alias="mapCircleUp", alias="MAPCIRCLEUP")]
+    MapCircleUp,
+    #[serde(alias="mapCircleDown", alias="MAPCIRCLEDOWN")]
+    MapCircleDown,
+    #[serde(alias="mapCircleLeft", alias="MAPCIRCLELEFT")]
+    MapCircleLeft,
+    #[serde(alias="mapCircleRIGHT", alias="MAPCIRCLERIGHT")]
+    MapCircleRight,
+    #[serde(alias="mapCircleForward", alias="MAPCIRCLEFORWARD")]
+    MapMoveForward,
+    #[serde(alias="mapMoveBack", alias="MAPMOVEBACK")]
+    MapMoveBack,
+    #[serde(alias="mapMoveLeft", alias="MAPMOVELEFT")]
+    MapMoveLeft,
+    #[serde(alias="mapMoveRight", alias="MAPMOVERIGHT")]
+    MapMoveRight,
+    #[serde(alias="mapZoomIn", alias="MAPZOOMIN")]
+    MapZoomIn,
+    #[serde(alias="mapZoomOut", alias="MAPZOOMOUT")]
+    MapZoomOut,
+    #[serde(alias="spiderBall", alias="SPIDERBALL")]
+    SpiderBall,
+    #[serde(alias="chaseCamera", alias="CHASECAMERA")]
+    ChaseCamera,
+    #[serde(alias="xrayVisor", alias="XRAYVISOR")]
+    XRayVisor,
+    #[serde(alias="thermoVisor", alias="THERMOVISOR")]
+    ThermoVisor,
+    #[serde(alias="enviroVisor", alias="ENVIROVISOR")]
+    EnviroVisor,
+    #[serde(alias="noVisor", alias="NOVISOR")]
+    NoVisor,
+    #[serde(alias="visorMenu", alias="VISORMENU")]
+    VisorMenu,
+    #[serde(alias="visorUp", alias="VISORUP")]
+    VisorUp,
+    #[serde(alias="visorDown", alias="VISORDOWN")]
+    VisorDown,
+    #[serde(alias="unknown1", alias="UNKNOWN1")]
+    Unknown1,
+    #[serde(alias="unknown1", alias="UNKNOWN2")]
+    Unknown2,
+    #[serde(alias="useShield", alias="USESHIELD")]
+    UseShield,
+    #[serde(alias="scanItem", alias="SCANITEM")]
+    ScanItem,
+    #[serde(alias="unknown3", alias="UNKNOWN3")]
+    Unknown3,
+    #[serde(alias="unknown3", alias="UNKNOWN4")]
+    Unknown4,
+    #[serde(alias="unknown4", alias="UNKNOWN5")]
+    Unknown5,
+    #[serde(alias="unknown5", alias="UNKNOWN6")]
+    Unknown6,
+    #[serde(alias="previousPauseScreen", alias="PREVIOUSPAUSESCREEN")]
+    PreviousPauseScreen,
+    #[serde(alias="nextPauseScreen", alias="NEXTPAUSESCREEN")]
+    NextPauseScreen,
+    #[serde(alias="unknown7", alias="UNKNOWN7")]
+    Unknown7,
+    #[serde(alias="none", alias="NONE")]
+    None,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ControllerActionConfig
+{
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
+    
+    #[serde(alias  = "action")]
+    pub action_: ControllerActionType,
+
+    pub one_shot: Option<bool>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum ConnectionState {
@@ -895,6 +1051,7 @@ pub struct RoomConfig
     pub player_hints: Option<Vec<PlayerHintConfig>>,
     pub distance_fogs: Option<Vec<FogConfig>>,
     pub bomb_slots: Option<Vec<BombSlotConfig>>,
+    pub controller_actions: Option<Vec<ControllerActionConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1732,6 +1889,7 @@ impl PatchConfigPrivate
                 extend_option_vec!(player_hints      , self_room_config, other_room_config);
                 extend_option_vec!(distance_fogs     , self_room_config, other_room_config);
                 extend_option_vec!(bomb_slots        , self_room_config, other_room_config);
+                extend_option_vec!(controller_actions, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
