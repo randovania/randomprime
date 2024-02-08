@@ -1335,6 +1335,9 @@ pub fn patch_add_controller_action<'r>(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_controller_action_mut().unwrap();
+
+            property_data.action = config.action as u32;
+            
             if let Some(active         ) = config.active          {property_data.active          = active    as u8 }
             if let Some(one_shot       ) = config.one_shot        {property_data.one_shot        = one_shot  as u8 }
         };

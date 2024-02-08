@@ -693,6 +693,7 @@ pub enum EnviornmentalEffect {
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub enum ControllerActionType {
     Forward = 0,
     Backward,
@@ -766,6 +767,7 @@ pub enum ControllerActionType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ControllerActionConfig
 {
     pub id: u32,
