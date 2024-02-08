@@ -4546,6 +4546,7 @@
                             }
                         },
                         "required": [
+                            "id",
                             "action"
                         ],
                         "additionalProperties": false

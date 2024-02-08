@@ -13,7 +13,7 @@ pub struct ControllerAction<'r>
     pub name: CStr<'r>,
 
     pub active: u8,
-    pub action_: u32,
+    pub action: u32,
     pub one_shot: u8,
 }
 

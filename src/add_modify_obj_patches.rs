@@ -1326,7 +1326,7 @@ pub fn patch_add_controller_action<'r>(
             structs::ControllerAction {
                 name: b"my ctrlaction\0".as_cstr(),
                 active: config.active.unwrap_or(true) as u8,
-                action_: config.action_ as u32,
+                action: config.action as u32,
                 one_shot: config.one_shot.unwrap_or(false) as u8,
             }
         };
