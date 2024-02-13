@@ -10459,6 +10459,21 @@
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/over-worldL.dsp|/audio/over-worldR.dsp"
                         }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 983113, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                -659.227417,
+                                310.424774,
+                                -42.451237
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                10.0
+                            ]
+                        }
                     ]
                 },
                 "Root Tunnel": {
@@ -12130,7 +12145,63 @@
                         460356, // [Trigger] Trigger - Play Music 00c Isogi
                         460357 // [Trigger] Trigger - Play Music 00c Mines Main
                     ],
+                    "removeConnections": [
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        }
+                    ],
                     "addConnections": [
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459954, // [Trigger] Trigger -activate trooper
+                            "targetId": 460064, // [Relay] Relay
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
                         {
                             "senderId": 458760, // [SpecialFunction] Music Player For Area
                             "targetId": 458762, // [Relay] Mines Music
@@ -12205,6 +12276,21 @@
                             "id": 458763, // [Relay] Pirates Music
                             "layer": 1,
                             "active": false
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 459954, // [Trigger] Trigger -activate trooper
+                            "position": [
+                                -15.26812,
+                                20.186085,
+                                15.073245
+                            ],
+                            "scale": [
+                                16.041,
+                                4.464,
+                                11.5
+                            ]
                         }
                     ]
                 },
