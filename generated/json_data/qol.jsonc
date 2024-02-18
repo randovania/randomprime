@@ -10473,6 +10473,19 @@
                                 20.0,
                                 10.0
                             ]
+                        },
+                        {
+                            "id": 983113, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                -694.973267,
+                                339.468536,
+                                37.531601
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                8.0
+                            ]
                         }
                     ]
                 },
@@ -12195,12 +12208,6 @@
                             "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
                             "state": "DEATH_RATTLE",
                             "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 459954, // [Trigger] Trigger -activate trooper
-                            "targetId": 460064, // [Relay] Relay
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 458760, // [SpecialFunction] Music Player For Area
