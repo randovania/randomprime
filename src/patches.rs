@@ -2900,8 +2900,15 @@ fn is_water_related<'r>(
     }
 
     if obj.property_data.is_effect() {
-        let name = obj.property_data.as_effect().unwrap().name.to_str().ok().unwrap().to_string().to_lowercase();
-        return name.contains("bubbles") || name.contains("waterfall");
+        let effect = obj.property_data.as_effect().unwrap();
+        let name = effect.name.to_str().ok().unwrap().to_string().to_lowercase();
+        return name.contains("bubbles") || name.contains("waterfall") || vec![
+            0x5E2C7756,
+            0xEEF504D4,
+            0xC7CE1157,
+            0x0640CE97,
+            0x9FA2A896,
+        ].contains(&effect.part.to_u32());
     }
 
     return false;
@@ -15520,7 +15527,21 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                                 );
                             }
                         }
-                        
+
+                        if let Some(player_actors) = room.player_actors.as_ref() {
+                            for config in player_actors {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| patch_add_player_actor(
+                                        ps,
+                                        area,
+                                        game_resources,
+                                        config.clone(),
+                                    ),
+                                );
+                            }
+                        }
+
                         if let Some(controller_actions) = room.controller_actions.as_ref() {
                             for config in controller_actions {
                                 patcher.add_scly_patch(
@@ -15533,7 +15554,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                                 );
                             }
                         }
-                        
+
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
                                 patcher.add_scly_patch(

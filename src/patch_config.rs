@@ -501,7 +501,6 @@ pub struct SpecialFunctionConfig
     pub spinner3: Option<u32>,
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ActorRotateConfig
@@ -592,6 +591,17 @@ pub struct BombSlotConfig
     pub position: [f32; 3],
     pub rotation: [f32; 3],
     pub release_ball_delay_s: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlayerActorConfig
+{
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -984,6 +994,7 @@ pub struct RoomConfig
     pub distance_fogs: Option<Vec<FogConfig>>,
     pub bomb_slots: Option<Vec<BombSlotConfig>>,
     pub controller_actions: Option<Vec<ControllerActionConfig>>,
+    pub player_actors: Option<Vec<PlayerActorConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1822,6 +1833,7 @@ impl PatchConfigPrivate
                 extend_option_vec!(distance_fogs     , self_room_config, other_room_config);
                 extend_option_vec!(bomb_slots        , self_room_config, other_room_config);
                 extend_option_vec!(controller_actions, self_room_config, other_room_config);
+                extend_option_vec!(player_actors     , self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {

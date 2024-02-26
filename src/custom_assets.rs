@@ -1187,6 +1187,7 @@ pub fn collect_game_resources<'r>(
         (0x123A70A6, FourCC::from_bytes(b"TXTR")),
         (0xB3A153C0, FourCC::from_bytes(b"TXTR")),
         (0x57fe7e67, FourCC::from_bytes(b"AGSC")), // Misc.AGSC
+        (0x836c33b3, FourCC::from_bytes(b"ANCS")),
     ];
     looking_for.extend(platform_deps);
 
@@ -1272,6 +1273,7 @@ pub fn collect_game_resources<'r>(
     paks.push("AudioGrp.pak");
     paks.push("NoARAM.pak");
     paks.push("MiscData.pak");
+    paks.push("TestAnim.Pak");
     for pak_name in paks {
         let file_entry = gc_disc.find_file(pak_name).unwrap();
         let pak = match *file_entry.file().unwrap() {

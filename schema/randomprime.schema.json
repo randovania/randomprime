@@ -4083,7 +4083,7 @@
                                 "exclusiveMinimum": 0.0
                             },
                             "pause": {
-                                "description": "Time in seconds which a following object will pause after it has `ARRIVED` at this waypoint before proceeding to the `NEXT`.",
+                                "description": "Time in seconds which a following object will pause after it has `ARRIVED` at this waypoint before proceeding to the `NEXT`. Does not apply to platforms unfortunately.",
                                 "type": "number",
                                 "exclusiveMinimum": 0.0
                             },
@@ -4558,6 +4558,48 @@
                         "required": [
                             "id",
                             "action"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "playerActors": {
+                    "description": "Add playerActors to this room. The animation used is the one of Samus riding an elevator. I was too lazy to add all the dependencies to the room, so the game may stutter substantially when loading a room with one of these.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the player actor.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "The position of the platform.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "The rotation of the platform.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id"
                         ],
                         "additionalProperties": false
                     }
