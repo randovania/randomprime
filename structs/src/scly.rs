@@ -648,6 +648,7 @@ build_scly_property!(
     Sound,                is_sound,                  as_sound,                  as_sound_mut,
     SpawnPoint,           is_spawn_point,            as_spawn_point,            as_spawn_point_mut,
     SpecialFunction,      is_special_function,       as_special_function,       as_special_function_mut,
+    SpiderBallWaypoint,   is_spider_ball_waypoint,   as_spider_ball_waypoint,   as_spider_ball_waypoint_mut,
     StreamedAudio,        is_streamed_audio,         as_streamed_audio,         as_streamed_audio_mut,
     Switch,               is_switch,                 as_switch,                 as_switch_mut,
     Timer,                is_timer,                  as_timer,                  as_timer_mut,

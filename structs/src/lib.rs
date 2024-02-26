@@ -59,6 +59,7 @@ pub mod scly_props
     pub mod sound;
     pub mod spawn_point;
     pub mod special_function;
+    pub mod spider_ball_waypoint;
     pub mod streamed_audio;
     pub mod switch;
     pub mod timer;
@@ -157,6 +158,7 @@ pub mod scly_props
     pub use self::sound::*;
     pub use self::spawn_point::*;
     pub use self::special_function::*;
+    pub use self::spider_ball_waypoint::*;
     pub use self::streamed_audio::*;
     pub use self::switch::*;
     pub use self::timer::*;
@@ -255,6 +257,7 @@ pub use scly_props::snake_weed_swarm::*;
 pub use scly_props::sound::*;
 pub use scly_props::spawn_point::*;
 pub use scly_props::special_function::*;
+pub use scly_props::spider_ball_waypoint::*;
 pub use scly_props::streamed_audio::*;
 pub use scly_props::switch::*;
 pub use scly_props::timer::*;
