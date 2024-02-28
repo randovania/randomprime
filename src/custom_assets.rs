@@ -1198,6 +1198,9 @@ pub fn collect_game_resources<'r>(
         (0x5B4D184E, FourCC::from_bytes(b"TXTR")),
         (0x563799A1, FourCC::from_bytes(b"TXTR")),
         (0xC11B62AF, FourCC::from_bytes(b"DCLN")),
+        (0x3852C9CF, FourCC::from_bytes(b"CMDL")),
+        (0x89CC3758, FourCC::from_bytes(b"DCLN")),
+        (0xA88267E6, FourCC::from_bytes(b"CMDL")),
     ];
     looking_for.extend(bomb_slot_deps);
 

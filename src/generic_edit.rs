@@ -160,6 +160,10 @@ pub fn patch_edit_objects<'r>
                     water.alpha_in_time *= value;
                     water.alpha_out_time *= value;
                 },
+                structs::Thardus::OBJECT_TYPE => {
+                    let thardus = obj.property_data.as_thardus_mut().unwrap();
+                    thardus.values[0] *= value;
+                },
                 _ => {},
             }
 
@@ -193,7 +197,18 @@ pub fn patch_edit_objects<'r>
         }
 
         if let Some(value) = config.health {
-            set_health(obj, value, None);
+            match obj.property_data.object_type() {
+                structs::Thardus::OBJECT_TYPE => {
+                    let thardus = obj.property_data.as_thardus_mut().unwrap();
+                    thardus.values[3] *= value;
+                    thardus.values[4] *= value;
+                },
+                _ => {},
+            }
+
+            if obj.property_data.supports_health_infos() {
+                set_health(obj, value, None);
+            }
         }
 
         if let Some(values) = &config.healths {

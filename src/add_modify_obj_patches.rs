@@ -929,12 +929,14 @@ pub fn patch_add_bomb_slot<'r>(
     } as usize;
 
     let deps = vec![
-        (0x82A1E868, b"CMDL"),
-        (0xD64787E8, b"TXTR"),
-        (0x53A74797, b"CMDL"),
+        // platform
+        (0x3852C9CF, b"CMDL"),
         (0x5B4D184E, b"TXTR"),
-        (0x563799A1, b"TXTR"),
-        (0xC11B62AF, b"DCLN"),
+        (0x89CC3758, b"DCLN"),
+
+        // glow actor
+        (0xA88267E6, b"CMDL"),
+        (0xD64787E8, b"TXTR"),
     ];
     let deps_iter = deps.iter()
         .map(|&(file_id, fourcc)| structs::Dependency {
@@ -942,7 +944,7 @@ pub fn patch_add_bomb_slot<'r>(
             asset_type: FourCC::from_bytes(fourcc),
         }
     );
-    area.add_dependencies(game_resources, 0, deps_iter);
+    area.add_dependencies(game_resources, layer, deps_iter);
 
     let bomb_slot_id = config.platform_id.unwrap_or(area.new_object_id_from_layer_id(layer));
     let glow_ring_id = config.actor_id.unwrap_or(area.new_object_id_from_layer_id(layer));
@@ -973,7 +975,7 @@ pub fn patch_add_bomb_slot<'r>(
                 extent: [0.0, 0.0, 0.0].into(),
                 scan_offset: [0.0, 0.0, 0.0].into(),
 
-                cmdl: ResId::<res_id::CMDL>::new(0x3F802F32),
+                cmdl: ResId::<res_id::CMDL>::new(0x3852C9CF),
 
                 ancs: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(),
@@ -1023,7 +1025,7 @@ pub fn patch_add_bomb_slot<'r>(
                 speed: 1.0,
                 active: 1,
 
-                dcln: ResId::<res_id::DCLN>::new(0xC11B62AF),
+                dcln: ResId::<res_id::DCLN>::new(0x89CC3758),
 
                 health_info: structs::scly_structs::HealthInfo {
                     health: 1.0,
@@ -1055,7 +1057,7 @@ pub fn patch_add_bomb_slot<'r>(
                     knockback_resistance: 1.0
                 },
                 damage_vulnerability: DoorType::Disabled.vulnerability(),
-                cmdl: ResId::<res_id::CMDL>::new(0x9BC5E7C6),
+                cmdl: ResId::<res_id::CMDL>::new(0xA88267E6),
                 ancs: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(), // None
                     node_index: 0,
