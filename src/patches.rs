@@ -8605,17 +8605,8 @@ fn patch_gravity_chamber_stalactite_grapple_point<'r>(_ps: &mut PatcherState, ar
     let scly = area.mrea().scly_section_mut();
     let layer = &mut scly.layers.as_mut_vec()[0];
 
-    // Enable grapple point when detecting grapple beam
-    layer.objects.as_mut_vec().iter_mut()
-        .find(|obj| obj.instance_id & 0x00FFFFFF == 0x00350127)
-        .unwrap().connections.as_mut_vec()
-        .push(
-            structs::Connection {
-                target_object_id: 0x00350123,
-                state: structs::ConnectionState::ZERO,
-                message: structs::ConnectionMsg::ACTIVATE,
-            }
-        );
+    // Remove the object that turns off the stalactites layer
+    layer.objects.as_mut_vec().retain(|obj| obj.instance_id != 3473722);
 
     Ok(())
 }
