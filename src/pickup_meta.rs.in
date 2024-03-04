@@ -10342,7 +10342,7 @@ impl PickupType
             PickupType::PhazonSuit => "audio/jin_itemattain.dsp\0",
             PickupType::EnergyTank => "/audio/itm_x_short_02.dsp\0",
             PickupType::UnknownItem1 => "/audio/itm_x_short_02.dsp\0",
-            PickupType::HealthRefill => "audio/jin_itemattain.dsp\0",
+            PickupType::HealthRefill => "audio/itm_x_short_02.dsp\0",
             PickupType::UnknownItem2 => "/audio/itm_x_short_02.dsp\0",
             PickupType::Wavebuster => "audio/jin_itemattain.dsp\0",
             PickupType::ArtifactOfTruth => "audio/jin_artifact.dsp\0",
@@ -12701,7 +12701,7 @@ PickupModel::IceTrap => {
            PickupModel::IceTrap => &[
                 0x00, 0x00, 0x00, 0x12, 0x49, 0x63, 0x65, 0x20,
                 0x54, 0x72, 0x61, 0x70, 0x00, 0xC3, 0x18, 0x19,
-                0x25, 0x41, 0xCB, 0xC3, 0x2E, 0xC3, 0x0C, 0xB0, 
+                0x25, 0x41, 0xCB, 0xC3, 0x2E, 0xC3, 0x0C, 0xB0,
                 0x2F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x3F, 0xA0, 0x00,
                 0x00, 0x3F, 0xA0, 0x00, 0x00, 0x3F, 0xA0, 0x00,

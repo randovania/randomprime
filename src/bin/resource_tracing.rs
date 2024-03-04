@@ -367,7 +367,11 @@ fn extract_pickup_data<'r>(
         // The Phazon Suit is weird: the audio object isn't directly connected to the
         // Pickup. So, hardcode its location.
         // assert_eq!(pickup.kind, 23);
-        b"audio/jin_itemattain.dsp\0".to_vec()
+        if pickup.kind == 23 {
+            b"audio/jin_itemattain.dsp\0".to_vec()
+        } else {
+            b"audio/itm_x_short_02.dsp\0".to_vec()
+        }
     };
 
     if pickup.kind == 23 {
@@ -1068,14 +1072,14 @@ fn main()
 
                     let mut door_force_locations: Vec<ScriptObjectLocation> = Vec::new();
                     let mut door_shield_locations: Vec<ScriptObjectLocation> = Vec::new();
-                    
+
                     let mut door_loc: Option<ScriptObjectLocation> = None;
                     let mut door_rotation: Option<[f32;3]> = None;
 
                     for obj in scly_layer.objects.iter() {
                         if obj.property_data.is_actor() {
                             let actor = obj.property_data.as_actor().unwrap();
-                            
+
                             if  f32::abs(actor.position[0] - dock.position[0]) > 4.0 ||
                                 f32::abs(actor.position[1] - dock.position[1]) > 4.0 ||
                                 f32::abs(actor.position[2] - dock.position[2]) > 4.0
@@ -1263,7 +1267,7 @@ fn main()
                 // let mut consolidated_door_locations: Vec<DoorLocation> = Vec::new();
                 // for door_location in door_locations {
                 //     let existing_location = consolidated_door_locations.iter().find(|dl| dl.dock_number == door_location.dock_number);
-                    
+
                 //     // This dock number has no data yet, put what we have
                 //     if existing_location.is_none() {
                 //         consolidated_door_locations.push(door_location);
@@ -1305,7 +1309,7 @@ fn main()
                 //         .string_tables.iter().next().unwrap()
                 //         .strings.iter().next().unwrap()
                 //         .into_owned().into_string();
-                    
+
                 //     if text.contains("acquired!") {
                 //         continue;;
                 //     }
@@ -1439,7 +1443,7 @@ fn main()
     println!("];");
 
     let mut cmdl_aabbs: Vec<_> = cmdl_aabbs.iter().collect();
-    
+
     let ice_trab_cmdl = ResId::<res_id::CMDL>::new(0xA3108E43);
     let ice_trap_aabb =
         [
@@ -1490,7 +1494,7 @@ fn main()
     for pm in PickupModel::iter() {
         if pm == PickupModel::IceTrap {
 
-            let string = 
+            let string =
             "PickupModel::IceTrap => {
                 const DATA: &[(u32, FourCC)] = &[
                     (0x1544D478, FourCC::from_bytes(b\"TXTR\")),
@@ -1539,11 +1543,11 @@ fn main()
     println!("        match self {{");
     for pm in PickupModel::iter() {
         if pm == PickupModel::IceTrap {
-            let string = 
+            let string =
 "           PickupModel::IceTrap => &[
                 0x00, 0x00, 0x00, 0x12, 0x49, 0x63, 0x65, 0x20,
                 0x54, 0x72, 0x61, 0x70, 0x00, 0xC3, 0x18, 0x19,
-                0x25, 0x41, 0xCB, 0xC3, 0x2E, 0xC3, 0x0C, 0xB0, 
+                0x25, 0x41, 0xCB, 0xC3, 0x2E, 0xC3, 0x0C, 0xB0,
                 0x2F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x3F, 0xA0, 0x00,
                 0x00, 0x3F, 0xA0, 0x00, 0x00, 0x3F, 0xA0, 0x00,
