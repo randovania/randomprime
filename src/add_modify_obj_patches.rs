@@ -36,6 +36,7 @@ use crate::{
         BombSlotConfig,
         ControllerActionConfig,
         PlayerActorConfig,
+        WorldLightFaderConfig,
     },
     pickup_meta::PickupType,
     door_meta::DoorType,
@@ -115,7 +116,7 @@ macro_rules! add_edit_obj_helper {
 
                     // modify it
                     $update_property_data!(obj);
-                    
+
                     // remove original
                     scly.layers
                         .as_mut_vec()[layer_id as usize]
@@ -192,14 +193,14 @@ pub fn patch_add_streamed_audio<'r>(
             }
         };
     }
-    
+
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_streamed_audio_mut().unwrap();
-    
+
             property_data.audio_file_name = string_to_cstr(config.audio_file_name);
             property_data.is_music = config.is_music as u8;
-    
+
             if let Some(active                ) = config.active                { property_data.active                = active                as u8 }
             if let Some(no_stop_on_deactivate ) = config.no_stop_on_deactivate { property_data.no_stop_on_deactivate = no_stop_on_deactivate as u8 }
             if let Some(fade_in_time          ) = config.fade_in_time          { property_data.fade_in_time          = fade_in_time                }
@@ -230,12 +231,12 @@ pub fn patch_add_liquid<'r>(
                     asset_id: file_id,
                     asset_type: fourcc,
             });
-    
+
         area.add_dependencies(resources, 0, deps_iter);
     }
 
     let mut water_obj = water_type.to_obj();
-    {        
+    {
         let water = water_obj.property_data.as_water_mut().unwrap();
         water.position[0] = config.position[0];
         water.position[1] = config.position[1];
@@ -525,7 +526,7 @@ pub fn patch_add_special_fn<'r>(
             let property_data = $obj.property_data.as_special_function_mut().unwrap();
 
             property_data.type_ = config.type_ as u32;
-            
+
             if let Some(position             ) = config.position                       { property_data.position              = position             .into() }
             if let Some(rotation             ) = config.rotation                       { property_data.rotation              = rotation             .into() }
             if let Some(_                    ) = config.unknown1             .as_ref() { property_data.unknown0              = unknown0                     }
@@ -751,10 +752,10 @@ pub fn patch_add_player_hint<'r>(
         () => {
             structs::PlayerHint {
                 name: b"my playerhint\0".as_cstr(),
-                
+
                 position: [0.0, 0.0, 0.0].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
-                
+
                 active: config.active.unwrap_or(true) as u8,
 
                 data: structs::PlayerHintStruct {
@@ -1160,7 +1161,7 @@ pub fn patch_add_bomb_slot<'r>(
         structs::SclyObject {
             instance_id: player_hint_id,
             property_data: structs::PlayerHint {
-             name: b"disableboost\0".as_cstr(), 
+             name: b"disableboost\0".as_cstr(),
              position: [0.0, 0.0, 0.0].into(),
              rotation: [0.0, 0.0, 0.0].into(),
              active: 1,
@@ -1416,6 +1417,35 @@ pub fn patch_add_player_actor<'r>(
     add_edit_obj_helper!(area, config.id, config.layer, PlayerActor, new, update);
 }
 
+pub fn patch_add_world_light_fader<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: WorldLightFaderConfig,
+) -> Result<(), String>
+{
+    macro_rules! new {
+        () => {
+            structs::WorldLightFader {
+                name: b"my world light fader\0".as_cstr(),
+                active: config.active.unwrap_or(true) as u8,
+                faded_light_level: config.faded_light_level.unwrap_or(0.2),
+                fade_speed: config.fade_speed.unwrap_or(0.25),
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_world_light_fader_mut().unwrap();
+            if let Some(active           ) = config.active            { property_data.active            = active            as u8 }
+            if let Some(faded_light_level) = config.faded_light_level { property_data.faded_light_level = faded_light_level       }
+            if let Some(fade_speed       ) = config.fade_speed        { property_data.fade_speed        = fade_speed              }
+        };
+    }
+
+    add_edit_obj_helper!(area, Some(config.id), config.layer, WorldLightFader, new, update);
+}
+
 pub fn patch_add_controller_action<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -1440,7 +1470,7 @@ pub fn patch_add_controller_action<'r>(
             let property_data = $obj.property_data.as_controller_action_mut().unwrap();
 
             property_data.action = config.action as u32;
-            
+
             if let Some(active         ) = config.active          {property_data.active          = active    as u8 }
             if let Some(one_shot       ) = config.one_shot        {property_data.one_shot        = one_shot  as u8 }
         };
@@ -1753,13 +1783,13 @@ pub fn patch_add_platform<'r>(
                 instance_id: damaged_block_id,
                 property_data: structs::Platform {
                     name: b"myplatform\0".as_cstr(),
-    
+
                     position: config.position.into(),
                     rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                     scale: [1.0, 1.0, 1.0].into(),
                     extent: [0.0, 0.0, 0.0].into(),
                     scan_offset: [0.0, 0.0, 0.0].into(),
-    
+
                     cmdl: ResId::<res_id::CMDL>::new(0x133336F4),
 
                     ancs: structs::scly_structs::AncsProp {
@@ -1791,11 +1821,11 @@ pub fn patch_add_platform<'r>(
                         xray_cskr: ResId::invalid(), // None
                         thermal_cmdl: ResId::invalid(), // None
                         thermal_cskr: ResId::invalid(), // None
-    
+
                         unknown0: 1,
                         unknown1: 1.0,
                         unknown2: 1.0,
-    
+
                         visor_params: structs::scly_structs::VisorParameters {
                             unknown0: 0,
                             target_passthrough: 0,
@@ -1806,18 +1836,18 @@ pub fn patch_add_platform<'r>(
                         unknown4: 0,
                         unknown5: 1.0
                     },
-    
+
                     speed: 5.0,
                     active: 0,
-    
+
                     dcln,
-    
+
                     health_info: structs::scly_structs::HealthInfo {
                         health: 1.0,
                         knockback_resistance: 1.0,
                     },
                     damage_vulnerability: vulnerability.clone(),
-    
+
                     detect_collision: 0,
                     unknown4: 1.0,
                     unknown5: 0,
@@ -1980,7 +2010,7 @@ pub fn patch_add_platform<'r>(
                     pitch: 0,
                 }.into(),
                 connections: vec![
-                    
+
                 ].into(),
             },
             structs::SclyObject {

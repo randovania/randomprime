@@ -784,7 +784,7 @@ pub struct ControllerActionConfig
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
-    
+
     pub action: ControllerActionType,
 
     pub one_shot: Option<bool>,
@@ -943,6 +943,17 @@ pub struct SpawnPointConfig
     pub items: Option<StartingItems>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorldLightFaderConfig
+{
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
+    pub faded_light_level: Option<f32>,
+    pub fade_speed: Option<f32>,
+}
+
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RoomConfig
@@ -995,6 +1006,7 @@ pub struct RoomConfig
     pub bomb_slots: Option<Vec<BombSlotConfig>>,
     pub controller_actions: Option<Vec<ControllerActionConfig>>,
     pub player_actors: Option<Vec<PlayerActorConfig>>,
+    pub world_light_faders: Option<Vec<WorldLightFaderConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1417,7 +1429,7 @@ struct PatchConfigPrivate
 
     #[serde(default)]
     level_data: HashMap<String, LevelConfig>,
-    
+
     #[serde(default)]
     strg: HashMap<String, Vec<String>>, // "<decimal asset ID>": <non-null terminated table of strings>
 }
@@ -1709,7 +1721,7 @@ fn merge_json(config: &mut PatchConfigPrivate, text: &'static str) -> Result<(),
 {
     let data = serde_json::from_str(text);
     let data: PatchConfigPrivate = data.map_err(|e| format!("JSON parse failed: {}", e))?;
-    config.merge(data); 
+    config.merge(data);
 
     Ok(())
 }
@@ -1727,7 +1739,7 @@ impl PatchConfigPrivate
             if level_config.is_none() {
                 continue;
             }
-            let rooms = &level_config.unwrap().rooms; 
+            let rooms = &level_config.unwrap().rooms;
 
             for (_, room_config) in rooms {
                 if room_config.special_functions.is_none() {
@@ -1760,7 +1772,7 @@ impl PatchConfigPrivate
         }
 
         layers
-    } 
+    }
 
     /* Extends the "stuff" added/edited in each room */
     pub fn merge(self: &mut Self, other: Self)
@@ -1958,7 +1970,7 @@ impl PatchConfigPrivate
 
             let mut reader = Reader::new(&input_iso[..]);
             let gc_disc: structs::GcDisc = reader.read(());
-        
+
             match (&gc_disc.header.game_identifier(), gc_disc.header.disc_id, gc_disc.header.version) {
                 (b"GM8E01", 0, 0)  => Version::NtscU0_00,
                 (b"GM8E01", 0, 1)  => Version::NtscU0_01,

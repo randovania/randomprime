@@ -18,7 +18,7 @@ macro_rules! impl_position {
         fn impl_get_position(&self) -> GenericArray<f32, U3> {
             self.position
         }
-    
+
         fn impl_set_position(&mut self, x: GenericArray<f32, U3>) {
             self.position = x;
         }
@@ -33,7 +33,7 @@ macro_rules! impl_rotation {
         fn impl_get_rotation(&self) -> GenericArray<f32, U3> {
             self.rotation
         }
-    
+
         fn impl_set_rotation(&mut self, x: GenericArray<f32, U3>) {
             self.rotation = x;
         }
@@ -48,7 +48,7 @@ macro_rules! impl_scale {
         fn impl_get_scale(&self) -> GenericArray<f32, U3> {
             self.scale
         }
-    
+
         fn impl_set_scale(&mut self, x: GenericArray<f32, U3>) {
             self.scale = x;
         }
@@ -65,7 +65,7 @@ macro_rules! impl_patterned_info {
                 self.patterned_info.clone()
             ]
         }
-    
+
         fn impl_set_patterned_infos(&mut self, x: Vec<PatternedInfo>) {
             self.patterned_info = x[0].clone();
         }
@@ -82,7 +82,7 @@ macro_rules! impl_patterned_info_with_auxillary {
                 self.patterned_info.clone()
             ]
         }
-    
+
         fn impl_set_patterned_infos(&mut self, x: Vec<PatternedInfo>) {
             self.patterned_info = x[0].clone();
         }
@@ -94,31 +94,31 @@ macro_rules! impl_patterned_info_with_auxillary {
                 self.patterned_info.contact_damage.clone(),
             ]
         }
-    
+
         fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
             self.patterned_info.contact_damage = x[0].clone();
         }
-    
+
         const SUPPORTS_VULNERABILITIES: bool = true;
-    
+
         fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
             vec![
                 self.patterned_info.damage_vulnerability.clone(),
             ]
         }
-    
+
         fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
             self.patterned_info.damage_vulnerability = x[0].clone();
         }
-    
+
         const SUPPORTS_HEALTH_INFOS: bool = true;
-    
+
         fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
             vec![
                 self.patterned_info.health_info.clone()
             ]
         }
-    
+
         fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {
             self.patterned_info.health_info = x[0].clone();
         }
@@ -262,7 +262,7 @@ macro_rules! build_scly_property {
             }
 
             /* Rotation */
-    
+
             pub fn supports_rotation(&self) -> bool {
                 let object_type = self.object_type();
                 #[allow(unreachable_patterns)] // ridley throws a warning because we have both PAL and NTSC ridley definitions
@@ -655,6 +655,7 @@ build_scly_property!(
     Trigger,              is_trigger,                as_trigger,                as_trigger_mut,
     Waypoint,             is_waypoint,               as_waypoint,               as_waypoint_mut,
     Water,                is_water,                  as_water,                  as_water_mut,
+    WorldLightFader,      is_world_light_fader,      as_world_light_fader,      as_world_light_fader_mut,
     WorldTransporter,     is_world_transporter,      as_world_transporter,      as_world_transporter_mut,
 
     // bosses
@@ -853,7 +854,7 @@ macro_rules! build_scly_conn_field {
         }
     };
 }
-  
+
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct ConnectionState(pub u32);

@@ -11919,7 +11919,7 @@ fn patch_final_boss_permadeath<'r>(
                 message,
                 target_object_id: special_function_ids[i],
             });
-        } 
+        }
         layers[0].objects.as_mut_vec().push(
             structs::SclyObject {
                 instance_id: change_layer_timer_id,
@@ -12573,7 +12573,7 @@ fn patch_modify_dock<'r>(
         let strg_dep: structs::Dependency = strg_id.into();
         area.add_dependencies(game_resources, 0, iter::once(strg_dep));
         let frme_dep: structs::Dependency = frme_id.into();
-        area.add_dependencies(game_resources, 0, iter::once(frme_dep));    
+        area.add_dependencies(game_resources, 0, iter::once(frme_dep));
     }
 
     let trigger_id = area.new_object_id_from_layer_name("Default");
@@ -15533,6 +15533,19 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                             }
                         }
 
+                        if let Some(world_light_faders) = room.world_light_faders.as_ref() {
+                            for config in world_light_faders {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| patch_add_world_light_fader(
+                                        ps,
+                                        area,
+                                        config.clone(),
+                                    ),
+                                );
+                            }
+                        }
+
                         if let Some(controller_actions) = room.controller_actions.as_ref() {
                             for config in controller_actions {
                                 patcher.add_scly_patch(
@@ -15586,7 +15599,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                                     if config.type_ != SpecialFunctionType::CinematicSkip {
                                         continue;
                                     }
-                                    
+
                                     if let Some(id) = config.id.as_ref() {
                                         skipper_ids.push(*id);
                                     }
@@ -16276,7 +16289,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                     // };
 
                     // Patch the current room to lead to the new destination room
-                    
+
                     let scan = match config.door_destination_scans {
                         false => None,
                         true => Some((dest_scan_id.clone(), dest_strg_id.clone()))

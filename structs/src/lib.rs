@@ -66,6 +66,7 @@ pub mod scly_props
     pub mod trigger;
     pub mod water;
     pub mod waypoint;
+    pub mod world_light_fader;
     pub mod world_transporter;
 
     // "Generic" edit update
@@ -165,6 +166,7 @@ pub mod scly_props
     pub use self::trigger::*;
     pub use self::water::*;
     pub use self::waypoint::*;
+    pub use self::world_light_fader::*;
     pub use self::world_transporter::*;
 
     // "Generic" edit update
@@ -265,6 +267,7 @@ pub use scly_props::trigger::*;
 pub use scly_props::water::*;
 pub use scly_props::waypoint::*;
 pub use scly_props::world_transporter::*;
+pub use scly_props::world_light_fader::*;
 
 // bosses
 pub use scly_props::beetle::*;

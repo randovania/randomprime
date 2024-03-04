@@ -4603,6 +4603,40 @@
                         ],
                         "additionalProperties": false
                     }
+                },
+                "worldLightFaders": {
+                    "description": "Add worldLightFaders to this room. These objects dim the room to the specified level when they receive the `ACTION` script message.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the player actor.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "fadedLightLevel": {
+                                "description": "Amount to scale light by where 1.0 is unchanged light level.",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            },
+                            "fadeSpeed": {
+                                "description": "Duration in seconds to execute the fade",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false
