@@ -13,6 +13,7 @@ use std::{
     panic,
     path::Path,
     os::raw::c_char,
+    time::Instant,
 };
 
 use serde::{Serialize};
@@ -119,13 +120,16 @@ impl structs::ProgressNotifier for ProgressNotifier
 fn inner(config_json: *const c_char, cb_data: *const (), cb: extern fn(*const (), *const c_char))
     -> Result<(), String>
 {
+    let start_time = Instant::now();
+
     let config_json = unsafe { CStr::from_ptr(config_json) }.to_str()
         .map_err(|e| format!("JSON parse failed: {}", e))?;
 
     let patch_config = PatchConfig::from_json(config_json)?;
 
     let pn = ProgressNotifier::new(cb_data, cb);
-    patches::patch_iso(patch_config, pn)?;
+    patches::patch_iso(patch_config, pn, start_time)?;
+
     Ok(())
 }
 

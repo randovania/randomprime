@@ -14421,7 +14421,7 @@ fn patch_arboretum_sandstone<'a>(patcher: &mut PrimePatcher<'_, 'a>)
     });
 }
 
-pub fn patch_iso<T>(config: PatchConfig, mut pn: T) -> Result<(), String>
+pub fn patch_iso<T>(config: PatchConfig, mut pn: T, start_time: Instant) -> Result<(), String>
     where T: structs::ProgressNotifier
 {
     let mut audio_override_patches: Vec<AudioOverridePatch> = Vec::new();
@@ -14473,7 +14473,7 @@ pub fn patch_iso<T>(config: PatchConfig, mut pn: T) -> Result<(), String>
     let mut reader = Reader::new(&config.input_iso[..]);
     let mut gc_disc: structs::GcDisc = reader.read(());
 
-    if gc_disc.find_file("randomprime.txt").is_some() {
+    if gc_disc.find_file("randomprime.json").is_some() {
         Err(concat!("The input ISO has already been randomized once before. ",
                     "You must start from an unmodified ISO every time."
         ))?
@@ -14488,6 +14488,8 @@ pub fn patch_iso<T>(config: PatchConfig, mut pn: T) -> Result<(), String>
     }
 
     build_and_run_patches(&mut gc_disc, &config, audio_override_patches)?;
+
+    println!("Created patches in {:?}", start_time.elapsed());
 
     {
         let json_string = serde_json::to_string(&config)
@@ -17572,9 +17574,7 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
         );
     }
 
-    let time = Instant::now();
     patcher.run(gc_disc)?;
-    println!("Created patches in {:?}", time.elapsed());
 
     Ok(())
 }

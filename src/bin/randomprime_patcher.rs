@@ -10,6 +10,7 @@ use clap::Format;
 use std::{
     panic,
     process::Command,
+    time::Instant,
 };
 
 struct ProgressNotifier
@@ -101,9 +102,10 @@ fn maybe_pause_at_exit()
 
 fn main_inner() -> Result<(), String>
 {
+    let start_time = Instant::now();
     let patch_config = PatchConfig::from_cli_options()?;
     let pn = ProgressNotifier::new(patch_config.quiet);
-    patches::patch_iso(patch_config, pn)?;
+    patches::patch_iso(patch_config, pn, start_time)?;
     println!("Done");
     Ok(())
 }

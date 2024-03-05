@@ -3848,7 +3848,7 @@
                         },
                         {
                             "senderId": 600482, // [Relay] Relay
-                            "targetId": 77591, // [SpecialFunction] [DEC] Ruins Entrance 
+                            "targetId": 77591, // [SpecialFunction] [DEC] Ruins Entrance
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
@@ -3997,7 +3997,7 @@
                             "type": "PlayerInAreaRelay"
                         },
                         {
-                            "id": 77591, // [SpecialFunction] [DEC] Ruins Entrance 
+                            "id": 77591, // [SpecialFunction] [DEC] Ruins Entrance
                             "type": "ScriptLayerController",
                             "layerChangeRoomId": 944775450,
                             "layerChangeLayerId": 3
