@@ -4617,7 +4617,7 @@
                                 "$ref": "#/$defs/addModifyLayer"
                             },
                             "active": {
-                                "description": "Default active state of the player actor.",
+                                "description": "Default active state of the worldLightFader.",
                                 "type": "boolean",
                                 "default": true
                             },
