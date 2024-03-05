@@ -1,11 +1,11 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
     "title": "Randomprime API",
-    "description": "Input format for randomprime's JSON API. The JSON schema can be found [here](https://toasterparty.github.io/randomprime/randomprime.schema.json).",
+    "description": "Input format for randomprime's JSON API. The JSON schema can be found [here](https://randovania.org/randomprime/randomprime.schema.json).",
     "type": "object",
     "properties": {
         "$schema": {
-            "description": "The URL of the JSON schema. Typically `https://toasterparty.github.io/randomprime/randomprime.schema.json`.",
+            "description": "The URL of the JSON schema. Typically `https://randovania.org/randomprime/randomprime.schema.json`.",
             "type": "string"
         },
         "runMode": {

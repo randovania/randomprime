@@ -22,7 +22,7 @@ To give you a taste of what's implemented, here are some highlighted features wh
 
 ## Documentation
 
-The API is documented thoroughly at [randovania.github.io/randomprime](https://randovania.github.io/randomprime). Though a bit dated, some auxillary documents which may be useful can be found in the [/doc/](./doc/) folder.
+The API is documented thoroughly at [randovania.org/randomprime](https://randovania.org/randomprime). Though a bit dated, some auxillary documents which may be useful can be found in the [/doc/](./doc/) folder.
 
 ## Changelog
 
