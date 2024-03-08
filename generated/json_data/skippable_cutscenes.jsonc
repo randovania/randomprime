@@ -19726,12 +19726,6 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 459956, // [Timer] Timer - alert Trooper
-                            "targetId": 458757, // [Relay] Relay Alert Trooper
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
                             "senderId": 458757, // [Relay] Relay Alert Trooper
                             "targetId": 459998, // [Actor] Actor_Grating
                             "state": "ZERO",
@@ -19756,12 +19750,6 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 460046, // [Timer] Timer - alert Trooper
-                            "targetId": 458758, // [Relay] Relay Alert Trooper
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
                             "senderId": 458758, // [Relay] Relay Alert Trooper
                             "targetId": 460020, // [Actor] Actor_Grating
                             "state": "ZERO",
@@ -19774,16 +19762,16 @@
                             "message": "ALERT"
                         },
                         {
+                            "senderId": 458758, // [Relay] Relay Alert Trooper
+                            "targetId": 459958, // [Trigger] Trigger
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 458756, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 458759, // [Relay] Relay Alert Trooper
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 460046, // [Timer] Timer - alert Trooper
-                            "targetId": 458759, // [Relay] Relay Alert Trooper
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 458759, // [Relay] Relay Alert Trooper
