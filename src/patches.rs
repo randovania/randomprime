@@ -72,6 +72,7 @@ use crate::{
     },
     GcDiscLookupExtensions,
     extern_assets::ExternPickupModel,
+    structs::LightLayer,
 };
 
 use dol_symbol_table::mp1_symbol;
@@ -5809,13 +5810,43 @@ fn patch_ambient_lighting<'r>(
     scale: f32,
 ) -> Result<(), String>
 {
-    let lights: &mut structs::Lights = area.mrea().lights_section_mut();
-    for light in lights.light_layers.as_mut_vec() {
-        if light.light_type != 0x0 { // local ambient
-            continue;
-        }
+    let any = area
+        .mrea()
+        .lights_section()
+        .light_layers
+        .iter()
+        .any(|light| light.light_type == 0x0);
 
-        light.brightness = scale;
+    if any {
+        let lights = area.mrea().lights_section_mut();
+        let lights = lights.light_layers.as_mut_vec();
+
+        for light in lights {
+            if light.light_type != 0x0 { // local ambient
+                continue;
+            }
+
+            light.brightness = scale;
+        }
+    } else {
+        let lights = area.mrea().lights_section_mut();
+        let lights = lights.light_layers.as_mut_vec();
+
+        lights.push(
+            LightLayer {
+                light_type: 0, // local ambient
+                color: [1.0, 1.0, 1.0].into(),
+                position: [0.0, 0.0, 0.0].into(),
+                direction: [0.0, -1.0, 0.0].into(),
+                brightness: scale,
+                spot_cutoff: 0.0,
+                unknown0: 0.0,
+                unknown1: 0,
+                unknown2: 0.0,
+                falloff_type: 0, // constant
+                unknown3: 0.0,
+            }
+        );
     }
 
     Ok(())
