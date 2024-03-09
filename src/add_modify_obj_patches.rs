@@ -2631,12 +2631,14 @@ pub fn patch_add_camera_hint<'r>(
     camera_rot: [f32;3],
     behavior: u32,
     layer: u32,
+    camera_id: Option<u32>,
+    trigger_id: Option<u32>,
 )
 -> Result<(), String>
 {
     let layer = layer as usize;
-    let camear_hint_id = area.new_object_id_from_layer_id(layer);
-    let camera_hint_trigger_id = area.new_object_id_from_layer_id(layer);
+    let camear_hint_id = camera_id.unwrap_or(area.new_object_id_from_layer_id(layer));
+    let camera_hint_trigger_id = trigger_id.unwrap_or(area.new_object_id_from_layer_id(layer));
 
     let camera_objs = add_camera_hint(
         camear_hint_id,

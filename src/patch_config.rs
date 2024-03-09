@@ -318,8 +318,10 @@ pub struct EscapeSequenceConfig
 pub struct CameraHintConfig
 {
     pub layer: Option<u32>,
+    pub trigger_id: Option<u32>,
     pub trigger_pos: [f32;3],
     pub trigger_scale: [f32;3],
+    pub camera_id: Option<u32>,
     pub camera_pos: [f32;3],
     pub camera_rot: [f32;3],
 

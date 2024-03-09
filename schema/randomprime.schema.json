@@ -3064,6 +3064,12 @@
                                 "minimum": 0,
                                 "maximum": 63
                             },
+                            "triggerId": {
+                                "description": "Instance ID of the trigger used. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
+                            },
                             "triggerPos": {
                                 "description": "Position of the trigger.",
                                 "$ref": "#/$defs/vector3"
@@ -3071,6 +3077,12 @@
                             "triggerScale": {
                                 "description": "Extent of the trigger.",
                                 "$ref": "#/$defs/vector3Positive"
+                            },
+                            "cameraId": {
+                                "description": "Instance ID of the camera object. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
                             },
                             "cameraPos": {
                                 "description": "Position of the Camera Hint.",
