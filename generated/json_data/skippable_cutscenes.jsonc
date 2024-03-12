@@ -2802,12 +2802,6 @@
                             "type": "CinematicSkip"
                         }
                     ],
-                    "timers": [
-                        {
-                            "id": 2883643, // [Timer] DEBUG - Faster Countdown
-                            "time": 10.0
-                        }
-                    ],
                     "triggers": [
                         {
                             "id": 2883976, // [Trigger] Trigger Load Generic_x05
