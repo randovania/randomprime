@@ -245,19 +245,125 @@ pub fn patch_add_liquid<'r>(
         water.scale[1]    = config.scale[1];
         water.scale[2]    = config.scale[2];
     }
-    macro_rules! new {
-        () => {
-            water_obj.property_data
-        };
-    }
 
-    macro_rules! update {
-        ($obj:expr) => {
-            $obj.property_data = water_obj.property_data.clone();
-        };
-    }
+    {
+        let id = config.id;
+        let requested_layer_id = config.layer;
+        let mrea_id = area.mlvl_area.mrea.to_u32().clone();
 
-    add_edit_obj_helper!(area, config.id, config.layer, Water, new, update);
+        // add more layers as needed
+        if let Some(requested_layer_id) = requested_layer_id {
+            while area.layer_flags.layer_count <= requested_layer_id {
+                area.add_layer(b"New Layer\0".as_cstr());
+            }
+        }
+
+        if let Some(id) = id {
+            let scly = area.mrea().scly_section_mut();
+
+            // try to find existing object
+            let info = {
+                let mut info = None;
+
+                let layer_count = scly.layers.as_mut_vec().len();
+                for _layer_id in 0..layer_count {
+                    let layer = scly.layers
+                        .iter()
+                        .nth(_layer_id)
+                        .unwrap();
+
+                    let obj = layer.objects
+                        .iter()
+                        .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF);
+
+                    if let Some(obj) = obj {
+                        if obj.property_data.object_type() != structs::Water::OBJECT_TYPE {
+                            panic!("Failed to edit existing object 0x{:X} in room 0x{:X}: Unexpected object type 0x{:X} (expected 0x{:X})", id, mrea_id, obj.property_data.object_type(), structs::Water::OBJECT_TYPE);
+                        }
+
+                        info = Some((_layer_id as u32, obj.instance_id));
+                        break;
+                    }
+                }
+
+                info
+            };
+
+            if let Some(info) = info {
+                let (layer_id, _) = info;
+
+                // move and update
+                if requested_layer_id.is_some() && requested_layer_id.unwrap() != layer_id {
+                    let requested_layer_id = requested_layer_id.unwrap();
+
+                    // clone existing object
+                    let mut obj = scly.layers
+                        .as_mut_vec()[layer_id as usize]
+                        .objects
+                        .as_mut_vec()
+                        .iter_mut()
+                        .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF)
+                        .unwrap()
+                        .clone();
+
+                    // modify it
+                    water_obj.property_data.as_water_mut().unwrap().active = config.active.unwrap_or(obj.property_data.as_water().unwrap().active != 0) as u8;
+                    obj.property_data = water_obj.property_data;
+
+                    // remove original
+                    scly.layers
+                        .as_mut_vec()[layer_id as usize]
+                        .objects
+                        .as_mut_vec()
+                        .retain(|obj| obj.instance_id & 0x00FFFFFF != id & 0x00FFFFFF);
+
+                    // re-add to target layer
+                    scly.layers
+                        .as_mut_vec()[requested_layer_id as usize]
+                        .objects
+                        .as_mut_vec()
+                        .push(obj);
+
+                    return Ok(());
+                }
+
+                // get mutable reference to existing object
+                let obj = scly.layers
+                    .as_mut_vec()[layer_id as usize]
+                    .objects
+                    .as_mut_vec()
+                    .iter_mut()
+                    .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF)
+                    .unwrap();
+
+                // update it
+                water_obj.property_data.as_water_mut().unwrap().active = config.active.unwrap_or(obj.property_data.as_water().unwrap().active != 0) as u8;
+                obj.property_data = water_obj.property_data;
+
+                return Ok(());
+            }
+        }
+
+        // add new object
+        let id = id.unwrap_or(area.new_object_id_from_layer_id(0));
+        let scly = area.mrea().scly_section_mut();
+        let layers = &mut scly.layers.as_mut_vec();
+        let objects = layers[requested_layer_id.unwrap_or(0) as usize].objects.as_mut_vec();
+        water_obj.property_data.as_water_mut().unwrap().active = config.active.unwrap_or(true) as u8;
+        let property_data: structs::SclyProperty = water_obj.property_data.into();
+
+        assert!(property_data.object_type() == structs::Water::OBJECT_TYPE);
+
+        objects.push(
+            structs::SclyObject {
+                instance_id: id,
+                property_data,
+                connections: vec![].into(),
+            }
+        );
+
+        return Ok(());
+    };
 }
 
 pub fn patch_add_actor_key_frame<'r>(

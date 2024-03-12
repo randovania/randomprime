@@ -194,6 +194,7 @@ pub struct WaterConfig
 {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub active: Option<bool>,
     #[serde(alias = "type")]
     pub liquid_type: String,
     pub position: [f32;3],
