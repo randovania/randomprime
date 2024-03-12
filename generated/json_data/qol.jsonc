@@ -10459,34 +10459,6 @@
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/over-worldL.dsp|/audio/over-worldR.dsp"
                         }
-                    ],
-                    "triggers": [
-                        {
-                            "id": 983113, // [Trigger] Trigger_DoorOpen
-                            "position": [
-                                -659.227417,
-                                310.424774,
-                                -42.451237
-                            ],
-                            "scale": [
-                                10.0,
-                                20.0,
-                                10.0
-                            ]
-                        },
-                        {
-                            "id": 983113, // [Trigger] Trigger_DoorOpen
-                            "position": [
-                                -694.973267,
-                                339.468536,
-                                37.531601
-                            ],
-                            "scale": [
-                                20.0,
-                                10.0,
-                                8.0
-                            ]
-                        }
                     ]
                 },
                 "Root Tunnel": {
