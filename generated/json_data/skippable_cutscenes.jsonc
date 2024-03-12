@@ -2506,6 +2506,12 @@
                             "message": "ACTIVATE"
                         },
                         {
+                            "senderId": 2883704, // [Switch] Switch - Make Water Go Up If Open
+                            "targetId": 2884015, // [Water] Clean MainWater Morph Source
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
                             "senderId": 2883588, // [SpecialFunction] Slot 1 Cutscene Skip
                             "targetId": 2883703, // [Switch] Switch - Make Water Go Down If Open
                             "state": "ZERO",
