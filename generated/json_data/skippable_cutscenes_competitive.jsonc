@@ -151,6 +151,20 @@
                             "targetId": 2556520, // [Relay] Relay Disable Lock (To Trigger_Unlock&Key With Decrement)
                             "state": "MAX_REACHED",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2556289, // [Counter] Counter-Dead Flypirate
+                            "targetId": 2555940, // [HUDMemo] Doors Unlocked
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "hudmemos": [
+                        {
+                            "id": 2555940, // [HUDMemo] Doors Unlocked
+                            "text": "&just=center;The doors have been unlocked.",
+                            "layer": 1,
+                            "messageTime": 6.0
                         }
                     ]
                 },
@@ -181,9 +195,18 @@
                         2621450, // [Relay] Power Loss Cinematic Start
                         2621451, // [Relay] Power Loss Cinematic End
                         2621452, // [SpecialFunction] SpecialFunction Cinematic Skip
-                        2622567, // [Timer] Timer Delay to Cinematic,
+                        2622567, // [Timer] Timer Delay to Cinematic
                         2622627, // [Timer] Timer HUD
-                        2622534 // [PlayerActor] PlayerActor-scan-cine-forward
+                        2622534, // [PlayerActor] PlayerActor-scan-cine-forward
+                        2622702 // [PlayerHint] Player Hint - force combat visor
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 2621724, // [Pickup] P_Thermal_01
+                            "targetId": 2622702, // [PlayerHint] Player Hint - force combat visor
+                            "state": "ARRIVED",
+                            "message": "INCREMENT"
+                        }
                     ],
                     "addConnections": [
                         {

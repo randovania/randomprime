@@ -5189,35 +5189,6 @@ fn patch_post_pq_frigate(
     Ok(())
 }
 
-fn patch_edit_water<'r>(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    id: u32,
-    morph_in_time: f32,
-    alpha_out_time: f32,
-)
-    -> Result<(), String>
-{
-    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    for layer in layers.iter_mut()
-    {
-        let obj = layer.objects
-            .iter_mut()
-            .find(|obj| obj.instance_id&0x00FFFFFF == id&0x00FFFFFF);
-
-        if obj.is_none()
-        {
-            continue;
-        }
-
-        let water = obj.unwrap().property_data.as_water_mut().unwrap();
-        water.morph_in_time = morph_in_time;
-        water.alpha_out_time = alpha_out_time;
-    }
-
-    Ok(())
-}
-
 fn patch_edit_camera_keyframe<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -15620,21 +15591,6 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                         if do_cutscene_skip_patches {
                             /* Some rooms need to be update to play nicely with skippable cutscenes */
                             match room_info.room_id.to_u32() {
-                                0xC9D52BBC => { // energy core
-                                    for id in [2883635, 2884015]
-                                    {
-                                        patcher.add_scly_patch(
-                                            (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                            move |ps, area| patch_edit_water(
-                                                ps,
-                                                area,
-                                                id,
-                                                2.0,
-                                                0.7,
-                                            ),
-                                        );
-                                    }
-                                },
                                 0xB2701146 => { // landing site
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
