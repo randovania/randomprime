@@ -5129,13 +5129,12 @@
                             "message": "SET_TO_ZERO"
                         }
                     ],
+                    "editObjs": {
+                        "2367558": {
+                            "speed": 0.0
+                        }
+                    },
                     "addConnections": [
-                        {
-                            "senderId": 2369466, // [Timer] Auto-Deactivate new water
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
                         {
                             "senderId": 2359758, // [Timer] Timer - Delay Water Go Down
                             "targetId": 2359333, // [Platform] Follow Water 
@@ -5240,12 +5239,6 @@
                         },
                         {
                             "senderId": 2367430, // [Relay] End Intro Cinema
-                            "targetId": 2359300, // [SpecialFunction] Intro Skip
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 2367430, // [Relay] End Intro Cinema
                             "targetId": 2359331, // [CameraFilterKeyframe] Camera Filter - Widescreen
                             "state": "ZERO",
                             "message": "DECREMENT"
@@ -5264,15 +5257,9 @@
                         },
                         {
                             "senderId": 2367430, // [Relay] End Intro Cinema
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2367430, // [Relay] End Intro Cinema
                             "targetId": 2359641, // [Relay] Relay Camera Flash
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 2367430, // [Relay] End Intro Cinema
@@ -5321,12 +5308,6 @@
                             "targetId": 2367558, // [Water] New Poison Water
                             "state": "ZERO",
                             "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359300, // [SpecialFunction] Intro Skip
-                            "targetId": 2359466, // [Timer] Water Timer
-                            "state": "ZERO",
-                            "message": "STOP"
                         },
                         {
                             "senderId": 2359300, // [SpecialFunction] Intro Skip
@@ -5521,6 +5502,12 @@
                             "message": "NEXT"
                         },
                         {
+                            "senderId": 2359639, // [Camera] Cinematic Camera-Third
+                            "targetId": 2367442, // [Relay] Intro - Do Fast Skip
+                            "state": "ACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 2367442, // [Relay] Intro - Do Fast Skip
                             "targetId": 2367448, // [StreamedAudio] Hive Totem - Instant FadeOut
                             "state": "ZERO",
@@ -5531,18 +5518,6 @@
                             "targetId": 2367466, // [Timer] Music Swap Wait
                             "state": "ZERO",
                             "message": "START"
-                        },
-                        {
-                            "senderId": 2367466, // [Timer] Music Swap Wait
-                            "targetId": 2367448, // [StreamedAudio] Hive Totem - Instant FadeOut
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2367448, // [StreamedAudio] Hive Totem - Instant FadeOut
-                            "targetId": 2367451, // [StreamedAudio] Hive Totem - Short Intro
-                            "state": "INACTIVE",
-                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 2367466, // [Timer] Music Swap Wait
@@ -5563,6 +5538,24 @@
                             "message": "INCREMENT"
                         },
                         {
+                            "senderId": 2359357, // [Camera] Camera - Outro
+                            "targetId": 2359330, // [SpecialFunction] Outro Skip
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 2359357, // [Camera] Camera - Outro
+                            "targetId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2359330, // [SpecialFunction] Outro Skip
+                            "targetId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
                             "senderId": 2359405, // [Relay] Relay - Start Outro Stage
                             "targetId": 2369988, // [Relay] Totem 2 - Skip to Next Position
                             "state": "ZERO",
@@ -5579,12 +5572,6 @@
                             "targetId": 2367433, // [Relay] Bridge - Skip to Next Position
                             "state": "ZERO",
                             "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359405, // [Relay] Relay - Start Outro Stage
-                            "targetId": 2359357, // [Camera] Camera - Outro
-                            "state": "INACTIVE",
-                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 2359330, // [SpecialFunction] Outro Skip
@@ -5645,6 +5632,12 @@
                             "targetId": 2359306, // [Relay] Faulty Relay - Lower Bottom Part
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2359306, // [Relay] Faulty Relay - Lower Bottom Part
+                            "targetId": 2359306, // [Relay] Faulty Relay - Lower Bottom Part
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 2359330, // [SpecialFunction] Outro Skip
@@ -5711,6 +5704,24 @@
                             "targetId": 2367451, // [StreamedAudio] Hive Totem - Short Intro
                             "state": "ZERO",
                             "message": "STOP"
+                        },
+                        {
+                            "senderId": 2359466, // [Timer] Water Timer
+                            "targetId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
+                            "state": "ZERO",
+                            "message": "CLOSE"
+                        },
+                        {
+                            "senderId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
+                            "targetId": 2367558, // [Water] New Poison Water
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
+                            "targetId": 2359459, // [Water] Water Morph Source
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "platforms": [
@@ -5723,16 +5734,6 @@
                                 -14.021038
                             ],
                             "type": "Empty"
-                        }
-                    ],
-                    "spawnPoints": [
-                        {
-                            "id": 2359299, // [SpawnPoint] Spawn point - Level Start
-                            "position": [
-                                55.486107,
-                                270.105255,
-                                -0.908091
-                            ]
                         }
                     ],
                     "waypoints": [
@@ -5760,8 +5761,9 @@
                     "liquids": [
                         {
                             "id": 2367558, // [Water] New Poison Water
-                            "layer": 4,
                             "type": "Poison",
+                            "layer": 4,
+                            "active": false,
                             "position": [
                                 85.619514,
                                 282.398071,
@@ -5795,7 +5797,6 @@
                         },
                         {
                             "id": 2367451, // [StreamedAudio] Hive Totem - Short Intro
-                            "active": false,
                             "volume": 90,
                             "isMusic": true,
                             "fadeInTime": 0.5,
@@ -5816,12 +5817,12 @@
                             "id": 2367466, // [Timer] Music Swap Wait
                             "time": 0.03,
                             "looping": true
-                        },
+                        }
+                    ],
+                    "switches": [
                         {
-                            "id": 2369466, // [Timer] Auto-Deactivate new water
-                            "time": 0.001,
-                            "layer": 4,
-                            "startImmediately": true
+                            "id": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
+                            "open": true
                         }
                     ],
                     "relays": [

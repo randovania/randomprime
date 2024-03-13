@@ -2945,156 +2945,52 @@
                         2359420,
                         2359427
                     ],
+                    "editObjs": {
+                        // [PointOfInterest] POI_19_Hive Totem Boss.scan
+                        "2359871": {
+                            "position": [
+                                94.592514,
+                                311.199951,
+                                -0.029288
+                            ]
+                        }
+                    },
                     "addConnections": [
                         {
-                            "senderId": 789983, // [Timer] Music Player For Area
-                            "targetId": 689886, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 689886, // [SpecialFunction] Music Player For Area
-                            "targetId": 359373, // [Relay] Ruins Music
-                            "state": "ZERO",
+                            "targetId": 359373, // [Switch] OPEN: Chozo Music / CLOSED: Hive Totem Music
+                            "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 689886, // [SpecialFunction] Music Player For Area
-                            "targetId": 379373, // [Relay] Chozo Music
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 689886, // [SpecialFunction] Music Player For Area
-                            "targetId": 359375, // [Relay] Hive Totem Music
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 689886, // [SpecialFunction] Music Player For Area
-                            "targetId": 359376, // [Relay] Hive Totem Instant FadeOut Music
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 689886, // [SpecialFunction] Music Player For Area
-                            "targetId": 359400, // [Relay] Hive Totem Short Intro Music
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 359373, // [Relay] Ruins Music
+                            "senderId": 359373, // [Switch] OPEN: Chozo Music / CLOSED: Hive Totem Music
                             "targetId": 2359664, // [StreamedAudio] StreamedAudio - Ruins Naka SW
-                            "state": "ZERO",
+                            "state": "OPEN",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 379373, // [Relay] Chozo Music
+                            "senderId": 359373, // [Switch] OPEN: Chozo Music / CLOSED: Hive Totem Music
                             "targetId": 659986, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
+                            "state": "OPEN",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 359375, // [Relay] Hive Totem Music
-                            "targetId": 2359711, // [StreamedAudio] StreamedAudio - Ruins Hive Totem
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 359376, // [Relay] Hive Totem Instant FadeOut Music
-                            "targetId": 658886, // [StreamedAudio] Hive Totem - Instant FadeOut
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 359400, // [Relay] Hive Totem Short Intro Music
-                            "targetId": 359409, // [StreamedAudio] Hive Totem - Short Intro
-                            "state": "ZERO",
+                            "senderId": 359373, // [Switch] OPEN: Chozo Music / CLOSED: Hive Totem Music
+                            "targetId": 2367451, // [StreamedAudio] Hive Totem - Short Intro
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 2359615, // [Relay] Relay-BeginCinema
-                            "targetId": 359373, // [Relay] Ruins Music
+                            "targetId": 359373, // [Switch] OPEN: Chozo Music / CLOSED: Hive Totem Music
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2359615, // [Relay] Relay-BeginCinema
-                            "targetId": 379373, // [Relay] Chozo Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2359615, // [Relay] Relay-BeginCinema
-                            "targetId": 359375, // [Relay] Hive Totem Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 2359405, // [Relay] Relay - Start Outro Stage
-                            "targetId": 359375, // [Relay] Hive Totem Music
+                            "targetId": 359373, // [Switch] OPEN: Chozo Music / CLOSED: Hive Totem Music
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2359405, // [Relay] Relay - Start Outro Stage
-                            "targetId": 359400, // [Relay] Hive Totem Short Intro Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2359405, // [Relay] Relay - Start Outro Stage
-                            "targetId": 359373, // [Relay] Ruins Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359405, // [Relay] Relay - Start Outro Stage
-                            "targetId": 379373, // [Relay] Chozo Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359300, // [SpecialFunction] SpecialFunction Cinematic Skip (Intro)
-                            "targetId": 689895, // [Relay] Allow Music Swap
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2359639, // [Camera] Cinematic Camera-Third
-                            "targetId": 689895, // [Relay] Allow Music Swap
-                            "state": "ACTIVE",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 689895, // [Relay] Allow Music Swap
-                            "targetId": 359375, // [Relay] Hive Totem Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 689895, // [Relay] Allow Music Swap
-                            "targetId": 359376, // [Relay] Hive Totem Instant FadeOut Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 689895, // [Relay] Allow Music Swap
-                            "targetId": 689883, // [Timer] Music Swap
-                            "state": "ZERO",
-                            "message": "START"
-                        },
-                        {
-                            "senderId": 689883, // [Timer] Music Swap
-                            "targetId": 359376, // [Relay] Hive Totem Instant FadeOut Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 689883, // [Timer] Music Swap
-                            "targetId": 359400, // [Relay] Hive Totem Short Intro Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "OPEN"
                         }
                     ],
                     "specialFunctions": [
@@ -3109,26 +3005,28 @@
                     ],
                     "streamedAudios": [
                         {
-                            "id": 658886, // [StreamedAudio] Hive Totem - Instant FadeOut
-                            "volume": 90,
+                            "id": 2359664, // [StreamedAudio] StreamedAudio - Ruins Naka SW
+                            "layer": 5,
+                            "volume": 75,
                             "isMusic": true,
-                            "fadeOutTime": 0.01,
-                            "audioFileName": "/audio/rui_hivetotemL.dsp|/audio/rui_hivetotemR.dsp"
+                            "fadeInTime": 0.0,
+                            "audioFileName": "/audio/ruins-nakaL.dsp|/audio/ruins-nakaR.dsp"
                         },
                         {
-                            "id": 359409, // [StreamedAudio] Hive Totem - Short Intro
+                            "id": 659986, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "layer": 6,
+                            "volume": 70,
+                            "isMusic": true,
+                            "fadeInTime": 0.01,
+                            "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
+                        },
+                        {
+                            "id": 2367451, // [StreamedAudio] Hive Totem - Short Intro
                             "volume": 90,
                             "isMusic": true,
                             "fadeInTime": 0.5,
                             "fadeOutTime": 4.0,
                             "audioFileName": "/audio/rui_monkeylowerL.dsp|/audio/rui_monkeylowerR.dsp"
-                        },
-                        {
-                            "id": 659986, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "volume": 70,
-                            "isMusic": true,
-                            "fadeInTime": 0.01,
-                            "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
                         }
                     ],
                     "timers": [
@@ -3136,38 +3034,17 @@
                             "id": 689883, // [Timer] Music Swap
                             "time": 0.1,
                             "active": true
-                        },
+                        }
+                    ],
+                    "switches": [
                         {
-                            "id": 789983, // [Timer] Music Player For Area
-                            "time": 0.01,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
+                            "id": 359373, // [Switch] OPEN: Chozo Music / CLOSED: Hive Totem Music
+                            "open": true
                         }
                     ],
                     "relays": [
                         {
-                            "id": 359373, // [Relay] Ruins Music
-                            "layer": 5
-                        },
-                        {
-                            "id": 379373, // [Relay] Chozo Music
-                            "layer": 6
-                        },
-                        {
-                            "id": 359375, // [Relay] Hive Totem Music
-                            "active": false
-                        },
-                        {
-                            "id": 359376, // [Relay] Hive Totem Instant FadeOut Music
-                            "active": false
-                        },
-                        {
-                            "id": 359400, // [Relay] Hive Totem Short Intro Music
-                            "active": false
-                        },
-                        {
-                            "id": 689895 // [Relay] Allow Music Swap
+                            "id": 2367430 // [Relay] End Intro Cinema
                         }
                     ]
                 },
