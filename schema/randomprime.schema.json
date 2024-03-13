@@ -3738,11 +3738,21 @@
                             },
                             "position": {
                                 "description": "Position of the trigger.",
-                                "$ref": "#/$defs/vector3"
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
                             },
                             "scale": {
                                 "description": "Extent of the trigger.",
-                                "$ref": "#/$defs/vector3Positive"
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [
+                                    5,
+                                    5,
+                                    5
+                                ]
                             },
                             "force": {
                                 "description": "If the apply force flag is enabled, this is the force applied.",
@@ -3781,10 +3791,7 @@
                                 "default": false
                             }
                         },
-                        "required": [
-                            "position",
-                            "scale"
-                        ],
+                        "required": [],
                         "additionalProperties": false
                     }
                 },

@@ -556,8 +556,8 @@ pub fn patch_add_trigger<'r>(
         () => {
             structs::Trigger {
                 name: b"my trigger\0".as_cstr(),
-                position: config.position.into(),
-                scale: config.scale.into(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                scale: config.scale.unwrap_or([5.0, 5.0, 5.0]).into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: config.damage_type.unwrap_or(DamageType::Power) as u32,
                     damage: config.damage_amount.unwrap_or(0.0),
@@ -577,16 +577,16 @@ pub fn patch_add_trigger<'r>(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_trigger_mut().unwrap();
 
-            property_data.position = config.position.into();
-            property_data.scale = config.scale.into();
-
-            if let Some(active             ) = config.active              { property_data.active                          = active              as u8  }
-            if let Some(damage_type        ) = config.damage_type         { property_data.damage_info        .weapon_type = damage_type         as u32 }
-            if let Some(damage_amount      ) = config.damage_amount       { property_data.damage_info        .damage      = damage_amount              }
-            if let Some(force              ) = config.force               { property_data.force                           = force              .into() }
-            if let Some(flags              ) = config.flags               { property_data.flags                           = flags                      }
-            if let Some(deactivate_on_enter) = config.deactivate_on_enter { property_data.deactivate_on_enter             = deactivate_on_enter as u8  }
-            if let Some(deactivate_on_exit ) = config.deactivate_on_exit  { property_data.deactivate_on_exit              = deactivate_on_exit  as u8  }
+            if let Some(active              ) = config.active              { property_data.active                           = active              as u8   }
+            if let Some(position            ) = config.position            { property_data.position                         = position           .into()  }
+            if let Some(scale               ) = config.scale               { property_data.scale                            = scale              .into()  }
+            if let Some(damage_type         ) = config.damage_type         { property_data.damage_info         .weapon_type = damage_type         as u32  }
+            if let Some(damage_type         ) = config.damage_type         { property_data.damage_info         .weapon_type = damage_type         as u32  }
+            if let Some(damage_amount       ) = config.damage_amount       { property_data.damage_info         .damage      = damage_amount               }
+            if let Some(force               ) = config.force               { property_data.force                            = force               .into() }
+            if let Some(flags               ) = config.flags               { property_data.flags                            = flags                       }
+            if let Some(deactivate_on_enter ) = config.deactivate_on_enter { property_data.deactivate_on_enter              = deactivate_on_enter as u8   }
+            if let Some(deactivate_on_exit  ) = config.deactivate_on_exit  { property_data.deactivate_on_exit               = deactivate_on_exit  as u8   }
         };
     }
 
