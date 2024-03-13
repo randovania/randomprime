@@ -2874,6 +2874,11 @@
                                     "Phazon"
                                 ]
                             },
+                            "active": {
+                                "description": "Default active state of the liquid.",
+                                "type": "boolean",
+                                "default": true
+                            },
                             "position": {
                                 "description": "Point at which the liquid is centerd.",
                                 "$ref": "#/$defs/vector3"
@@ -3064,6 +3069,12 @@
                                 "minimum": 0,
                                 "maximum": 63
                             },
+                            "triggerId": {
+                                "description": "Instance ID of the trigger used. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
+                            },
                             "triggerPos": {
                                 "description": "Position of the trigger.",
                                 "$ref": "#/$defs/vector3"
@@ -3071,6 +3082,12 @@
                             "triggerScale": {
                                 "description": "Extent of the trigger.",
                                 "$ref": "#/$defs/vector3Positive"
+                            },
+                            "cameraId": {
+                                "description": "Instance ID of the camera object. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
                             },
                             "cameraPos": {
                                 "description": "Position of the Camera Hint.",
@@ -4627,7 +4644,7 @@
                                 "exclusiveMinimum": 0.0
                             },
                             "fadeSpeed": {
-                                "description": "Duration in seconds to execute the fade",
+                                "description": "Rate at which to execute the fade (higher is faster)",
                                 "type": "number",
                                 "exclusiveMinimum": 0.0
                             }

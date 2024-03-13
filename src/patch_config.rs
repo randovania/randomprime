@@ -194,6 +194,7 @@ pub struct WaterConfig
 {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub active: Option<bool>,
     #[serde(alias = "type")]
     pub liquid_type: String,
     pub position: [f32;3],
@@ -318,8 +319,10 @@ pub struct EscapeSequenceConfig
 pub struct CameraHintConfig
 {
     pub layer: Option<u32>,
+    pub trigger_id: Option<u32>,
     pub trigger_pos: [f32;3],
     pub trigger_scale: [f32;3],
+    pub camera_id: Option<u32>,
     pub camera_pos: [f32;3],
     pub camera_rot: [f32;3],
 
