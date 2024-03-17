@@ -8380,58 +8380,46 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 983062, // [Timer] Music Player For Area
-                            "targetId": 983061, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 983061, // [SpecialFunction] Music Player For Area
+                            "targetId": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },  
+                        {
+                            "senderId": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
                             "targetId": 983485, // [StreamedAudio] StreamedAudio - Ice Main SW
-                            "state": "ZERO",
+                            "state": "OPEN",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 983061, // [SpecialFunction] Music Player For Area
+                            "senderId": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
                             "targetId": 983486, // [StreamedAudio] StreamedAudio Ice Shorelines SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 983317, // [Relay] Faulty Relay 1 - [OUT] Spinner Finished
-                            "targetId": 983485, // [StreamedAudio] StreamedAudio - Ice Main SW
+                            "senderId": 983352, // [Relay] Faulty Relay - [OUT] Spinner 2 Finished
+                            "targetId": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
-                            "senderId": 983317, // [Relay] Faulty Relay 1 - [OUT] Spinner Finished
-                            "targetId": 983486, // [StreamedAudio] StreamedAudio Ice Shorelines SW
+                            "senderId": 983317, // [Relay] Faulty Relay - [OUT] Spinner 1 Finished
+                            "targetId": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 983352, // [Relay] Faulty Relay 2 - [OUT] Spinner Finished
-                            "targetId": 983485, // [StreamedAudio] StreamedAudio - Ice Main SW
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 983352, // [Relay] Faulty Relay 2 - [OUT] Spinner Finished
-                            "targetId": 983486, // [StreamedAudio] StreamedAudio Ice Shorelines SW
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 983369, // [Relay] Relay - [OUT] Water Rising Cinematic Over
-                            "targetId": 983485, // [StreamedAudio] StreamedAudio - Ice Main SW
+                            "targetId": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
                             "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 983369, // [Relay] Relay - [OUT] Water Rising Cinematic Over
-                            "targetId": 983486, // [StreamedAudio] StreamedAudio Ice Shorelines SW
+                            "targetId": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         }
                     ],
                     "specialFunctions": [
@@ -8454,20 +8442,22 @@
                             "id": 983486, // [StreamedAudio] StreamedAudio Ice Shorelines SW
                             "layer": 0,
                             "volume": 50,
-                            "active": false,
                             "isMusic": true,
-                            "fadeInTime": 1.0,
-                            "fadeOutTime": 1.5,
+                            "fadeInTime": 0.01,
+                            "fadeOutTime": 0.5,
                             "audioFileName": "/audio/ice_shorelinesL.dsp|/audio/ice_shorelinesR.dsp"
+                        }
+                    ],
+                    "switches": [
+                        {
+                            "id": 983062, // [Switch] OPEN: Phendrana Music / CLOSED: Puzzle Music
+                            "open": true
                         }
                     ],
                     "timers": [
                         {
-                            "id": 983062, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
+                            "id": 983121, // [Timer] Timer - Water Going Down Time
+                            "time": 15.0
                         }
                     ]
                 },

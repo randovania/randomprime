@@ -5115,6 +5115,9 @@
                     ]
                 },
                 "Hive Totem": {
+                    "deleteIds": [
+                        2359753 // [Water] Water Morph Dest
+                    ],
                     "removeConnections": [
                         {
                             "senderId": 2359639, // [Camera] Cinematic Camera-Third
@@ -5129,11 +5132,6 @@
                             "message": "SET_TO_ZERO"
                         }
                     ],
-                    "editObjs": {
-                        "2367558": {
-                            "speed": 0.0
-                        }
-                    },
                     "addConnections": [
                         {
                             "senderId": 2359758, // [Timer] Timer - Delay Water Go Down
@@ -5142,44 +5140,26 @@
                             "message": "START"
                         },
                         {
-                            "senderId": 2359333, // [Platform] Follow Water
-                            "targetId": 2367558, // [Water] New Poison Water
+                            "senderId": 2359410, // [Relay] Relay - Start Water Sequence
+                            "targetId": 2359333, // [Platform] Follow Water 
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 2359314, // [SpecialFunction] Water Follows Platform
+                            "targetId": 2359459, // [Water] Water Morph Source
+                            "state": "PLAY",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2359314, // [SpecialFunction] Water Follows Platform
+                            "targetId": 2359333, // [Platform] Follow Water
                             "state": "PLAY",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 2359447, // [Effect] DustCloud
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "DEFAULT",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359554, // [Effect] Effect - Water Splash (4) - Left
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "DEFAULT",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359324, // [Effect] Effect_PickUpSteam
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "DEFAULT",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359559, // [Effect] Effect_BigSteam1
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "DEFAULT",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359563, // [Effect] Effect - Water Splash (4) - Right
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "DEFAULT",
-                            "message": "ACTIVATE"
-                        },
-                        {
                             "senderId": 2359333, // [Platform] Follow Water
-                            "targetId": 2369350, // [Waypoint] Water Destination
+                            "targetId": 2359327, // [Waypoint] Water Source
                             "state": "ACTIVE",
                             "message": "FOLLOW"
                         },
@@ -5206,6 +5186,30 @@
                             "targetId": 2359333, // [Platform] Follow Water
                             "state": "ARRIVED",
                             "message": "STOP"
+                        },
+                        {
+                            "senderId": 2369350, // [Waypoint] Water Destination
+                            "targetId": 2333555, // [Relay] Skip Water to Next Position
+                            "state": "ARRIVED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2359327, // [Waypoint] Water Source
+                            "targetId": 2333555, // [Relay] Skip Water to Next Position
+                            "state": "ARRIVED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2359615, // [Relay] Relay-BeginCinema
+                            "targetId": 2333555, // [Relay] Skip Water to Next Position
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2359405, // [Relay] Relay - Start Outro Stage
+                            "targetId": 2333555, // [Relay] Skip Water to Next Position
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 2359615, // [Relay] Relay-BeginCinema
@@ -5245,12 +5249,6 @@
                         },
                         {
                             "senderId": 2367430, // [Relay] End Intro Cinema
-                            "targetId": 2359459, // [Water] Water Morph Source
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2367430, // [Relay] End Intro Cinema
                             "targetId": 2359753, // [Water] Water Morph Dest
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -5262,8 +5260,8 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 2367430, // [Relay] End Intro Cinema
-                            "targetId": 2367439, // [Relay] Swap Waters
+                            "senderId": 2359300, // [SpecialFunction] Intro Skip
+                            "targetId": 2333555, // [Relay] Skip Water to Next Position
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
@@ -5288,30 +5286,6 @@
                         {
                             "senderId": 2359300, // [SpecialFunction] Intro Skip
                             "targetId": 2367442, // [Relay] Intro - Do Fast Skip
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2367439, // [Relay] Swap Waters
-                            "targetId": 2359459, // [Water] Water Morph Source
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2367439, // [Relay] Swap Waters
-                            "targetId": 2359753, // [Water] Water Morph Dest
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2367439, // [Relay] Swap Waters
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2359300, // [SpecialFunction] Intro Skip
-                            "targetId": 2367439, // [Relay] Swap Waters
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
@@ -5448,6 +5422,12 @@
                             "message": "START"
                         },
                         {
+                            "senderId": 2359300, // [SpecialFunction] Intro Skip
+                            "targetId": 2359566, // [Timer] Timer - Hit Bottom Delay
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 2367445, // [Timer] Intro Skip - Start Fight
                             "targetId": 2359366, // [Relay] Relay - Start Wasp Stage
                             "state": "ZERO",
@@ -5476,6 +5456,18 @@
                             "targetId": 2359338, // [Platform] Platform - Lower Totem Part
                             "state": "ZERO",
                             "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2367436, // [Relay] Totem 1 - Skip to Next Position
+                            "targetId": 2359613, // [Platform] Platform - Totem Collision Up
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2367436, // [Relay] Totem 1 - Skip to Next Position
+                            "targetId": 2359612, // [Platform] Platform - Totem Collision Lower
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 2359453, // [Waypoint] Lower Totem top Waypoint
@@ -5544,18 +5536,6 @@
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 2359357, // [Camera] Camera - Outro
-                            "targetId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2359330, // [SpecialFunction] Outro Skip
-                            "targetId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
                             "senderId": 2359405, // [Relay] Relay - Start Outro Stage
                             "targetId": 2369988, // [Relay] Totem 2 - Skip to Next Position
                             "state": "ZERO",
@@ -5581,21 +5561,21 @@
                         },
                         {
                             "senderId": 2359330, // [SpecialFunction] Outro Skip
-                            "targetId": 2333555, // [Relay] Outro - Skip Water to Next Position
+                            "targetId": 2333555, // [Relay] Skip Water to Next Position
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 2333555, // [Relay] Outro - Skip Water to Next Position
+                            "senderId": 2333555, // [Relay] Skip Water to Next Position
                             "targetId": 2359333, // [Platform] Follow Water
                             "state": "ZERO",
                             "message": "NEXT"
                         },
                         {
-                            "senderId": 2359327, // [Waypoint] Water Source
-                            "targetId": 2333555, // [Relay] Outro - Skip Water to Next Position
-                            "state": "ARRIVED",
-                            "message": "DEACTIVATE"
+                            "senderId": 2333555, // [Relay] Skip Water to Next Position
+                            "targetId": 2359459, // [Water] Water Morph Source
+                            "state": "ZERO",
+                            "message": "NEXT"
                         },
                         {
                             "senderId": 2359330, // [SpecialFunction] Outro Skip
@@ -5704,24 +5684,6 @@
                             "targetId": 2367451, // [StreamedAudio] Hive Totem - Short Intro
                             "state": "ZERO",
                             "message": "STOP"
-                        },
-                        {
-                            "senderId": 2359466, // [Timer] Water Timer
-                            "targetId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
-                            "state": "ZERO",
-                            "message": "CLOSE"
-                        },
-                        {
-                            "senderId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
-                            "targetId": 2367558, // [Water] New Poison Water
-                            "state": "OPEN",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
-                            "targetId": 2359459, // [Water] Water Morph Source
-                            "state": "OPEN",
-                            "message": "ACTIVATE"
                         }
                     ],
                     "platforms": [
@@ -5730,8 +5692,8 @@
                             "layer": 4,
                             "position": [
                                 85.619514,
-                                282.398071,
-                                -14.021038
+                                281.325714,
+                                -20.880722
                             ],
                             "type": "Empty"
                         }
@@ -5755,24 +5717,6 @@
                                 85.619514,
                                 282.398071,
                                 -14.021038
-                            ]
-                        }
-                    ],
-                    "liquids": [
-                        {
-                            "id": 2367558, // [Water] New Poison Water
-                            "type": "Poison",
-                            "layer": 4,
-                            "active": false,
-                            "position": [
-                                85.619514,
-                                282.398071,
-                                -14.021038
-                            ],
-                            "scale": [
-                                88.800003,
-                                91.803589,
-                                24.953777
                             ]
                         }
                     ],
@@ -5819,12 +5763,6 @@
                             "looping": true
                         }
                     ],
-                    "switches": [
-                        {
-                            "id": 2359409, // [Switch] OPEN: Keep Normal Water / CLOSED: Swap Waters for good
-                            "open": true
-                        }
-                    ],
                     "relays": [
                         {
                             "id": 2367430 // [Relay] End Intro Cinema
@@ -5842,10 +5780,8 @@
                             "active": false
                         },
                         {
-                            "id": 2367439 // [Relay] Swap Waters
-                        },
-                        {
-                            "id": 2333555 // [Relay] Outro - Skip Water to Next Position
+                            "id": 2333555, // [Relay] Skip Water to Next Position
+                            "active": false
                         },
                         {
                             "id": 2367442 // [Relay] Intro - Do Fast Skip
@@ -5859,6 +5795,15 @@
                         {
                             "id": 2359330, // [SpecialFunction] Outro Skip
                             "type": "CinematicSkip"
+                        },
+                        {
+                            "id": 2359314, // [SpecialFunction] Water Follows Platform
+                            "type": "ObjectFollowObject",
+                            "position": [
+                                86.619514,
+                                281.325714,
+                                -20.880722
+                            ]
                         }
                     ]
                 },
@@ -13363,99 +13308,230 @@
                     ]
                 },
                 "Ruined Courtyard": {
+                    "deleteIds": [
+                        983595, // [Water] ice water - UP position
+                        983045, // [Water] ice water - DOWN position
+                        983402 // [SpecialFunction] SpecialFunction Sound Trigger Follows Water
+                    ],
                     "removeConnections": [
                         {
                             "senderId": 983369, // [Relay] Relay - [OUT] Water Rising Cinematic Over
                             "targetId": 983542, // [Timer] Timer - delay falls stopping
                             "state": "ZERO",
                             "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 983100, // [Waypoint] Waypoint - Platform 1 Down
+                            "targetId": 983101, // [Waypoint] Waypoint - Platform 1 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983103, // [Waypoint] Waypoint - Platform 2 Down
+                            "targetId": 983104, // [Waypoint] Waypoint - Platform 2 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983106, // [Waypoint] Waypoint - Platform 3 Down
+                            "targetId": 983107, // [Waypoint] Waypoint - Platform 3 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983109, // [Waypoint] Waypoint - Platform 4 Down
+                            "targetId": 983110, // [Waypoint] Waypoint - Platform 4 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
                         }
                     ],
                     "addConnections": [
                         {
-                            "senderId": 983101, // [Waypoint] Waypoint - Platform 1 Up
-                            "targetId": 983371, // [Relay] Relay - [IN] Stop Waterfall
-                            "state": "ARRIVED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 983101, // [Waypoint] Waypoint - Platform 1 Up
-                            "targetId": 983059, // [Relay] Cutscene Skip Water Rise
-                            "state": "ARRIVED",
+                            "senderId": 983071, // [SpecialFunction] Water Follows Platform
+                            "targetId": 983068, // [Platform] Water Control
+                            "state": "PLAY",
                             "message": "ACTIVATE"
                         },
                         {
+                            "senderId": 983071, // [SpecialFunction] Water Follows Platform
+                            "targetId": 993473, // [Water] New Water
+                            "state": "PLAY",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 983068, // [Platform] Water Control
+                            "targetId": 983401, // [Trigger] Trigger - Underwater Sound
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 983068, // [Platform] Water Control
+                            "targetId": 983064, // [Waypoint] Position 1
+                            "state": "ACTIVE",
+                            "message": "FOLLOW"
+                        },
+                        {
+                            "senderId": 983064, // [Waypoint] Position 1
+                            "targetId": 983065, // [Waypoint] Position 2
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983065, // [Waypoint] Position 2
+                            "targetId": 983066, // [Waypoint] Position 3
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983066, // [Waypoint] Position 3
+                            "targetId": 983064, // [Waypoint] Position 1
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983064, // [Waypoint] Position 1
+                            "targetId": 983068, // [Platform] Water Control
+                            "state": "ARRIVED",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 983066, // [Waypoint] Position 3
+                            "targetId": 983068, // [Platform] Water Control
+                            "state": "ARRIVED",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 983100, // [Waypoint] Waypoint - Platform 1 Down
+                            "targetId": 983073, // [Waypoint] Position 1 Middle
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983103, // [Waypoint] Waypoint - Platform 2 Down
+                            "targetId": 983074, // [Waypoint] Position 2 Middle
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983106, // [Waypoint] Waypoint - Platform 3 Down
+                            "targetId": 983075, // [Waypoint] Position 3 Middle
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983109, // [Waypoint] Waypoint - Platform 4 Down
+                            "targetId": 983077, // [Waypoint] Position 4 Middle
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983073, // [Waypoint] Position 1 Middle
+                            "targetId": 983101, // [Waypoint] Waypoint - Platform 1 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983074, // [Waypoint] Position 2 Middle
+                            "targetId": 983104, // [Waypoint] Waypoint - Platform 2 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983075, // [Waypoint] Position 3 Middle
+                            "targetId": 983107, // [Waypoint] Waypoint - Platform 3 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983077, // [Waypoint] Position 4 Middle
+                            "targetId": 983110, // [Waypoint] Waypoint - Platform 4 Up
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983111, // [Relay] Relay - Start Water Morph
+                            "targetId": 983068, // [Platform] Water Control
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 983111, // [Relay] Relay - Start Water Morph
+                            "targetId": 993473, // [Water] New Water
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
                             "senderId": 983334, // [Relay] Relay - [IN] Start Spinner One Finished Cinematic
-                            "targetId": 983041, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983041, // [SpecialFunction] Spinner 1 Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 983339, // [Relay] Relay - [OUT] Spinner One Finished Cinematic Done
-                            "targetId": 983041, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983041, // [SpecialFunction] Spinner 1 Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 983041, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983041, // [SpecialFunction] Spinner 1 Cinematic Skip
                             "targetId": 983339, // [Relay] Relay - [OUT] Spinner One Finished Cinematic Done
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 983041, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983041, // [SpecialFunction] Spinner 1 Cinematic Skip
                             "targetId": 983113, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 983041, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983041, // [SpecialFunction] Spinner 1 Cinematic Skip
                             "targetId": 983364, // [Relay] Relay - [IN] Start Ball Slot Activate Cinematic
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 983359, // [Relay] Relay - [IN] Start Spinner Two Finished Cinematic
-                            "targetId": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 983361, // [Relay] Relay - [OUT] Spinner Two Finished Cinematic Done
-                            "targetId": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "targetId": 983361, // [Relay] Relay - [OUT] Spinner Two Finished Cinematic Done
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "targetId": 983113, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "targetId": 983355, // [Camera] Cinematic Camera - Spinner Two Finished
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "targetId": 983364, // [Relay] Relay - [IN] Start Ball Slot Activate Cinematic
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 983364, // [Relay] Relay - [IN] Start Ball Slot Activate Cinematic
-                            "targetId": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
-                        },
+                        }, 
                         {
                             "senderId": 983364, // [Relay] Relay - [IN] Start Ball Slot Activate Cinematic
                             "targetId": 983058, // [Timer] Keep Trying
@@ -13464,7 +13540,7 @@
                         },
                         {
                             "senderId": 983058, // [Timer] Keep Trying
-                            "targetId": 983047, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983047, // [SpecialFunction] Bomb Slot Activation Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
@@ -13476,171 +13552,249 @@
                         },
                         {
                             "senderId": 983364, // [Relay] Relay - [IN] Start Ball Slot Activate Cinematic
-                            "targetId": 983047, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983047, // [SpecialFunction] Bomb Slot Activation Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 983365, // [Relay] Relay - [OUT] Ball Slot Cinematic Over
-                            "targetId": 983047, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983047, // [SpecialFunction] Bomb Slot Activation Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 983047, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983047, // [SpecialFunction] Bomb Slot Activation Cinematic Skip
                             "targetId": 983365, // [Relay] Relay - [OUT] Ball Slot Cinematic Over
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 983047, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983047, // [SpecialFunction] Bomb Slot Activation Cinematic Skip
                             "targetId": 983363, // [Camera] Cinematic Camera - Ball Slot Activate Cinematic
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 983047, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983047, // [SpecialFunction] Bomb Slot Activation Cinematic Skip
                             "targetId": 983113, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
                             "senderId": 983370, // [Relay] Relay - [IN] Start Water Rising Cinematic
-                            "targetId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 983369, // [Relay] Relay - [OUT] Water Rising Cinematic Over
-                            "targetId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 983369, // [Relay] Relay - [OUT] Water Rising Cinematic Over
-                            "targetId": 983276, // [Relay] Faulty Relay - [IN] Deactivate Bombslot
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
                             "targetId": 983369, // [Relay] Relay - [OUT] Water Rising Cinematic Over
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983093, // [Camera] Camera - Water Rising Cinematic
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983541, // [Timer] Timer - delay water rising
-                            "state": "ZERO",
-                            "message": "STOP_AND_RESET"
-                        },
-                        {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983059, // [Relay] Cutscene Skip Water Rise
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 983096, // [Relay] Relay - [IN] Start Moving Water Stage
-                            "targetId": 983059, // [Relay] Cutscene Skip Water Rise
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 983059, // [Relay] Cutscene Skip Water Rise
-                            "targetId": 983096, // [Relay] Relay - [IN] Start Moving Water Stage
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983277, // [Relay] Faulty Relay - [IN] Release Ball
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
                             "targetId": 983113, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983176, // [Timer] Timer
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983068, // [Platform] Water Control
                             "state": "ZERO",
-                            "message": "STOP_AND_RESET"
+                            "message": "NEXT"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983177, // [Timer] Timer
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983050, // [Platform] Platform - Bottom 1
                             "state": "ZERO",
-                            "message": "RESET_AND_START"
+                            "message": "NEXT"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983172, // [Effect] Effect - Water Stream (2)
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983102, // [Platform] Platform - Bottom 2
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983105, // [Platform] Platform - Bottom 3
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983108, // [Platform] Platform - Bottom 4
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983541, // [Timer] Timer - delay water rising
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983094, // [Timer] Timer - Water Going Up Time
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983187, // [Relay] Relay - [IN] Start Waterfall
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983277, // [Relay] Faulty Relay - [IN] Release Ball
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983112, // [Relay] Relay - Change Water Level
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983112, // [Relay] Relay - Change Water Level
+                            "targetId": 983599, // [Timer] Update Water Culling
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983184, // [Timer] Timer
+                            "senderId": 983119, // [Relay] Relay - [OUT] Water Up
+                            "targetId": 983599, // [Timer] Update Water Culling
                             "state": "ZERO",
-                            "message": "STOP_AND_RESET"
+                            "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983185, // [Timer] Timer
+                            "senderId": 983599, // [Timer] Update Water Culling
+                            "targetId": 993473, // [Water] New Water
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983236, // [Relay] Relay - Water Rise/Fall Sound Start
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983683, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983574, // [Timer] Skipped Cutscene Water Timer
                             "state": "ZERO",
                             "message": "RESET_AND_START"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983581, // [Timer] Waterfall Stuff Timer
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983578, // [Timer] Skipped Cutscene Waterfall Stuff Timer
+                            "state": "ZERO",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
                             "targetId": 983180, // [Effect] Effect - Water Stream (2)
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983193, // [Timer] Timer
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983172, // [Effect] Effect - Water Stream (2)
                             "state": "ZERO",
-                            "message": "STOP_AND_RESET"
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983194, // [Timer] Timer
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983197, // [Effect] Effect - Water Stream (2)
                             "state": "ZERO",
-                            "message": "RESET_AND_START"
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
                             "targetId": 983189, // [Effect] Effect - Water Stream (2)
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983230, // [Timer] Timer
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983179, // [Effect] Effect - Water Fall (3)
                             "state": "ZERO",
-                            "message": "STOP_AND_RESET"
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983231, // [Timer] Timer
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983171, // [Effect] Effect - Water Fall (3)
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983196, // [Effect] Effect - Water Fall (3))
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 983043, // [SpecialFunction] Water Rising Cinematic Skip
+                            "targetId": 983188, // [Effect] Effect - Water Fall (3)
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 983574, // [Timer] Skipped Cutscene Water Timer
+                            "targetId": 983119, // [Relay] Relay - [OUT] Water Up
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983574, // [Timer] Skipped Cutscene Water Timer
+                            "targetId": 983090, // [Timer] Timer - Water Go Down Delay
                             "state": "ZERO",
                             "message": "RESET_AND_START"
                         },
                         {
-                            "senderId": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 983197, // [Effect] Effect - Water Stream (2)
+                            "senderId": 983574, // [Timer] Skipped Cutscene Water Timer
+                            "targetId": 983235, // [Relay] Relay - Water Rise/Fall Sound Stop
                             "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983187, // [Relay] Relay - [IN] Start Waterfall
+                            "targetId": 983581, // [Timer] Waterfall Stuff Timer
+                            "state": "ZERO",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 983581, // [Timer] Waterfall Stuff Timer
+                            "targetId": 983371, // [Relay] Relay - [IN] Stop Waterfall
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 983578, // [Timer] Skipped Cutscene Waterfall Stuff Timer
+                            "targetId": 983371, // [Relay] Relay - [IN] Stop Waterfall
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "timers": [
@@ -13650,6 +13804,24 @@
                             "active": false,
                             "looping": true,
                             "startImmediately": true
+                        },
+                        {
+                            "id": 983574, // [Timer] Skipped Cutscene Water Timer
+                            "time": 6.1
+                        },
+                        {
+                            "id": 983578, // [Timer] Skipped Cutscene Waterfall Stuff Timer
+                            "time": 5.1
+                        },
+                        {
+                            "id": 983581, // [Timer] Waterfall Stuff Timer
+                            "time": 17.1
+                        },
+                        {
+                            "id": 983599, // [Timer] Update Water Culling
+                            "time": 2.5,
+                            "looping": true,
+                            "startImmediately": true
                         }
                     ],
                     "relays": [
@@ -13657,22 +13829,120 @@
                             "id": 983059 // [Relay] Cutscene Skip Water Rise
                         }
                     ],
+                    "liquids": [
+                        {
+                            "id": 993473, // [Water] New Water
+                            "type": "Water",
+                            "active": true,
+                            "position": [
+                                2.217131,
+                                -470.724823,
+                                17.693943
+                            ],
+                            "scale": [
+                                90.000008,
+                                65.0,
+                                17.0
+                            ]
+                        }
+                    ],
+                    "platforms": [
+                        {
+                            "id": 983068, // [Platform] Water Control
+                            "type": "Empty",
+                            "position": [
+                                2.217131,
+                                -470.724823,
+                                17.693943
+                            ]
+                        }
+                    ],
+                    "waypoints": [
+                        {
+                            "id": 983064, // [Waypoint] Position 1
+                            "speed": 0.981733,
+                            "position": [
+                                2.217131,
+                                -470.724823,
+                                17.693943
+                            ]
+                        },
+                        {
+                            "id": 983065, // [Waypoint] Position 2
+                            "speed": 0.981733,
+                            // I had to use algebra for this shit
+                            "position": [
+                                -1.566735,
+                                -470.724823,
+                                25.686001
+                            ]
+                        },
+                        {
+                            "id": 983066, // [Waypoint] Position 3
+                            "speed": 0.981733,
+                            "position": [
+                                -4.081318,
+                                -470.724823,
+                                31.001591
+                            ]
+                        },
+                        {
+                            "id": 983073, // [Waypoint] Position 1 Middle
+                            "speed": 0.943733,
+                            "position": [
+                                -27.29693,
+                                -469.193634,
+                                33.945393
+                            ]
+                        },
+                        {
+                            "id": 983074, // [Waypoint] Position 2 Middle
+                            "speed": 0.943733,
+                            "position": [
+                                -3.85896,
+                                -480.171204,
+                                33.805393
+                            ]
+                        },
+                        {
+                            "id": 983075, // [Waypoint] Position 3 Middle
+                            "speed": 0.943733,
+                            "position": [
+                                11.823709,
+                                -483.229279,
+                                34.115391
+                            ]
+                        },
+                        {
+                            "id": 983077, // [Waypoint] Position 4 Middle
+                            "speed": 0.943733,
+                            "position": [
+                                19.928383,
+                                -472.205322,
+                                33.99839
+                            ]
+                        }
+                    ],
                     "specialFunctions": [
                         {
-                            "id": 983041, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 983041, // [SpecialFunction] Spinner 1 Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 983042, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 983042, // [SpecialFunction] Spinner 2 Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 983047, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 983047, // [SpecialFunction] Bomb Slot Activation Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 983043, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 983043, // [SpecialFunction] Water Rising Cinematic Skip
                             "type": "CinematicSkip"
+                        },
+                        {
+                            "id": 983071, // [SpecialFunction] Water Follows Platform
+                            "type": "ObjectFollowObject"
                         }
                     ]
                 },
