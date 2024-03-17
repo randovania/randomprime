@@ -7691,6 +7691,12 @@
                             "targetId": 2621457, // [Relay] Pirate Battle Music
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2622568, // [Relay] Relay Master Layer Switch
+                            "targetId": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
+                            "state": "ZERO",
+                            "message": "DECREMENT"
                         }
                     ],
                     "streamedAudios": [
@@ -7715,6 +7721,12 @@
                         {
                             "id": 2621453, // [SpecialFunction] Music Player For Area
                             "type": "PlayerInAreaRelay"
+                        },
+                        {
+                            "id": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
+                            "type": "ScriptLayerController",
+                            "layerChangeRoomId": 351383175,
+                            "layerChangeLayerId": 7
                         }
                     ],
                     "relays": [
@@ -7763,12 +7775,15 @@
                 },
                 "Research Entrance": {
                     "editObjs": {
+                        // [Actor] Actor
                         "1311208": {
                             "layer": 4
                         },
+                        // [Effect] Effect_spotlight
                         "1311209": {
                             "layer": 4
                         },
+                        // [Timer] Timer - Spot light delay
                         "1311447": {
                             "layer": 4
                         }
@@ -7997,6 +8012,12 @@
                             "type": "ScriptLayerController",
                             "layerChangeRoomId": 1690530837,
                             "layerChangeLayerId": 5
+                        }
+                    ],
+                    "distanceFogs": [
+                        {
+                            "id": 1311344, // [DistanceFog] Distance Fog_firstpass
+                            "layer": 7
                         }
                     ],
                     "streamedAudios": [
