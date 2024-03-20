@@ -2444,6 +2444,7 @@ pub fn patch_lock_on_point<'r>(
     let is_grapple = config.is_grapple.unwrap_or(false);
     let no_lock = config.no_lock.unwrap_or(false);
     let position = config.position;
+    let layer = config.layer.unwrap_or(0) as usize;
 
     if is_grapple {
         let deps = vec![
@@ -2467,7 +2468,7 @@ pub fn patch_lock_on_point<'r>(
         area.add_dependencies(game_resources, 0, deps_iter);
     }
 
-    let actor_id = config.id1.unwrap_or(area.new_object_id_from_layer_name("Default"));
+    let actor_id = config.id1.unwrap_or(area.new_object_id_from_layer_id(layer));
     let mut grapple_point_id = 0;
     let mut special_function_id = 0;
     let mut timer_id = 0;
@@ -2477,20 +2478,20 @@ pub fn patch_lock_on_point<'r>(
     let mut add_scan_point = false;
 
     if is_grapple {
-        grapple_point_id = config.id2.unwrap_or(area.new_object_id_from_layer_name("Default"));
+        grapple_point_id = config.id2.unwrap_or(area.new_object_id_from_layer_id(layer));
         add_scan_point = true; // We don't actually need the scan points, just their assets. Could save on objects by making this false via config
         if add_scan_point {
-            special_function_id = area.new_object_id_from_layer_name("Default");
-            timer_id = area.new_object_id_from_layer_name("Default");
-            poi_pre_id = area.new_object_id_from_layer_name("Default");
-            poi_post_id = area.new_object_id_from_layer_name("Default");
+            special_function_id = area.new_object_id_from_layer_id(layer);
+            timer_id = area.new_object_id_from_layer_id(layer);
+            poi_pre_id = area.new_object_id_from_layer_id(layer);
+            poi_post_id = area.new_object_id_from_layer_id(layer);
         }
     } else if !no_lock {
-        damageable_trigger_id = config.id2.unwrap_or(area.new_object_id_from_layer_name("Default"));
+        damageable_trigger_id = config.id2.unwrap_or(area.new_object_id_from_layer_id(layer));
     }
 
     let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    layers[0].objects.as_mut_vec().push(
+    layers[layer].objects.as_mut_vec().push(
         structs::SclyObject {
             instance_id: actor_id,
             property_data: structs::Actor {
@@ -2569,7 +2570,7 @@ pub fn patch_lock_on_point<'r>(
     );
 
     if is_grapple {
-        layers[0].objects.as_mut_vec().push(
+        layers[layer].objects.as_mut_vec().push(
             structs::SclyObject {
                 instance_id: grapple_point_id,
                 property_data: structs::GrapplePoint {
@@ -2598,7 +2599,7 @@ pub fn patch_lock_on_point<'r>(
         );
 
         if add_scan_point {
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: special_function_id,
                     connections: vec![
@@ -2636,7 +2637,7 @@ pub fn patch_lock_on_point<'r>(
                 }
             );
 
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: timer_id,
                     connections: vec![
@@ -2657,7 +2658,7 @@ pub fn patch_lock_on_point<'r>(
                 }
             );
 
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: poi_pre_id,
                     connections: vec![].into(),
@@ -2676,7 +2677,7 @@ pub fn patch_lock_on_point<'r>(
                 }
             );
 
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: poi_post_id,
                     connections: vec![].into(),
@@ -2696,7 +2697,7 @@ pub fn patch_lock_on_point<'r>(
             );
         }
     } else if !no_lock {
-        layers[0].objects.as_mut_vec().push(
+        layers[layer].objects.as_mut_vec().push(
             structs::SclyObject {
                 instance_id: damageable_trigger_id,
                 property_data: structs::DamageableTrigger {

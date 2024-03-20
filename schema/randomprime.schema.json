@@ -3172,6 +3172,12 @@
                                 "description": "Position of the point",
                                 "$ref": "#/$defs/vector3"
                             },
+                            "layer": {
+                                "description": "Layer # to place the lockOnPoint at",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 63
+                            },
                             "isGrapple": {
                                 "description": "If true, adds grapple functionality to this point.",
                                 "type": "boolean",

@@ -347,6 +347,7 @@ pub struct CameraHintConfig
 pub struct LockOnPoint
 {
     pub id1: Option<u32>,
+    pub layer: Option<u32>,
     pub active1: Option<bool>,
     pub id2: Option<u32>,
     pub active2: Option<bool>,
