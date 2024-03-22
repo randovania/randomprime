@@ -577,9 +577,9 @@ fn patch_remove_blast_shield<'r>(
 
 fn this_near_that(this: [f32;3], that: [f32;3]) -> bool
 {
-    f32::abs(this[0] - that[0]) < 3.0 &&
-    f32::abs(this[1] - that[1]) < 3.0 &&
-    f32::abs(this[2] - that[2]) < 3.0
+    f32::abs(this[0] - that[0]) < 1.0 &&
+    f32::abs(this[1] - that[1]) < 1.0 &&
+    f32::abs(this[2] - that[2]) < 1.0
 }
 
 fn patch_door<'r>(
@@ -697,6 +697,11 @@ fn patch_door<'r>(
     let mut blast_shield_layer_idx: usize = 0;
     if blast_shield_type.is_some() {
         special_function_id = area.new_object_id_from_layer_id(0);
+
+        /* Add a new layer to this room to put all the blast shield objects onto */
+        area.add_layer(b"Custom Shield Layer\0".as_cstr());
+        blast_shield_layer_idx = area.layer_flags.layer_count as usize - 1;
+
         sound_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         streamed_audio_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         shaker_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
@@ -708,10 +713,6 @@ fn patch_door<'r>(
         auto_open_relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         dt_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         poi_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-
-        /* Add a new layer to this room to put all the blast shield objects onto */
-        area.add_layer(b"Custom Shield Layer\0".as_cstr());
-        blast_shield_layer_idx = area.layer_flags.layer_count as usize - 1;
     }
 
     if door_type_after_open.is_some() {
