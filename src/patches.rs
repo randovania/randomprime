@@ -7327,7 +7327,6 @@ fn patch_set_layers<'r>
 -> Result<(), String>
 {
     let mrea_id = area.mlvl_area.mrea.to_u32().clone();
-    let layer_count = area.layer_flags.layer_count;
 
     // add more layers if needed
     let max = {
@@ -7346,7 +7345,7 @@ fn patch_set_layers<'r>
 
     for (layer_id, enabled) in layers.iter() {
         let layer_id = layer_id.clone();
-        if layer_id >= layer_count {
+        if layer_id >= area.layer_flags.layer_count {
             panic!("Unexpected layer #{} in room 0x{:X}", layer_id, mrea_id);
         }
 
