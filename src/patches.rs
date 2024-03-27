@@ -16587,10 +16587,6 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                 move |res| patch_artifact_totem_scan_strg(res, &strg_text, config.version),
             );
         }
-        patcher.add_scly_patch(
-            resource_info!("07_stonehenge.MREA").into(),
-            |_ps, area| patch_tournament_winners(_ps, area, game_resources)
-        );
     }
     patcher.add_resource_patch(
         resource_info!("STRG_Main.STRG").into(),// 0x0552a456
@@ -17353,6 +17349,13 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                 move |res| patch_start_button_strg(res, text)
             );
         }
+    }
+
+    if !config.force_vanilla_layout && !strgs.contains_key("1979224398") {
+        patcher.add_scly_patch(
+            resource_info!("07_stonehenge.MREA").into(),
+            |_ps, area| patch_tournament_winners(_ps, area, game_resources)
+        );
     }
 
     for (strg, replacement_strings) in strgs {
