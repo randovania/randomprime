@@ -16839,6 +16839,25 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
         ),
     );
 
+    patcher.add_resource_patch(
+        resource_info!("!EndCinema_Master.SAVW").into(),
+        move |res| patch_add_scans_to_savw(
+            res,
+            &savw_scans_to_add,
+            &savw_scan_logbook_category,
+            &savw_to_remove_from_logbook,
+        ),
+    );
+    patcher.add_resource_patch(
+        resource_info!("!EndCinema_Master.SAVW").into(),
+        move |res| patch_add_scans_to_savw(
+            res,
+            &local_savw_scans_to_add[World::EndCinema as usize],
+            &savw_scan_logbook_category,
+            &savw_to_remove_from_logbook,
+        ),
+    );
+
     patcher.add_scly_patch(
         (starting_room.pak_name.as_bytes(), starting_room.mrea),
         move |ps, area| patch_starting_pickups(

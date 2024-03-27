@@ -556,6 +556,7 @@ pub fn custom_assets<'r>(
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        Vec::new(),
     ];
 
     /* Mapping of strings and their corresponding scan_id. Use this to avoid
