@@ -577,9 +577,9 @@ fn patch_remove_blast_shield<'r>(
 
 fn this_near_that(this: [f32;3], that: [f32;3]) -> bool
 {
-    f32::abs(this[0] - that[0]) < 1.0 &&
-    f32::abs(this[1] - that[1]) < 1.0 &&
-    f32::abs(this[2] - that[2]) < 1.0
+    f32::abs(this[0] - that[0]) < 2.7 &&
+    f32::abs(this[1] - that[1]) < 2.7 &&
+    f32::abs(this[2] - that[2]) < 2.7
 }
 
 fn patch_door<'r>(
@@ -620,6 +620,9 @@ fn patch_door<'r>(
                 // TODO: optimize
                 // && door_type != &door_type_after_open
             {
+                if mrea_id == 0xFB54A0CB {
+                    println!("{:?} -> {:?}", door_type, door_type_after_open);
+                }
                 Some(door_type_after_open)
             } else {
                 None
