@@ -620,9 +620,6 @@ fn patch_door<'r>(
                 // TODO: optimize
                 // && door_type != &door_type_after_open
             {
-                if mrea_id == 0xFB54A0CB {
-                    println!("{:?} -> {:?}", door_type, door_type_after_open);
-                }
                 Some(door_type_after_open)
             } else {
                 None
