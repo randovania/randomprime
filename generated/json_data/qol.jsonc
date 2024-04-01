@@ -3411,6 +3411,24 @@
                     ]
                 },
                 "Ruined Fountain": {
+                    // Fix Jank SpiderBallWaypoints
+                    "editObjs": {
+                        "524348":{
+                            "position": [233.722382, -54.112278, 32.689095]
+                        },
+                        "524378":{
+                            "position": [234.53627, -52.153915, 32.689095]
+                        },
+                        "524379":{
+                            "position": [235.663055, -51.395695, 32.689095]
+                        },
+                        "524380":{
+                            "position": [236.473007, -50.495583, 32.689095]
+                        },
+                        "524300":{
+                            "position": [236.726593, -48.492104, 32.689095]
+                        }
+                    },
                     "addConnections": [
                         {
                             "senderId": 524292, // [SpecialFunction] Music Player For Area
