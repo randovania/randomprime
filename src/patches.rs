@@ -12189,14 +12189,16 @@ fn patch_anti_oob<'r>(
                 }
 
                 if scale[0] > 4.9 {
-                    dock.scale[0] = 2.6;
+                    dock.scale[0] = 2.4;
+                    dock.scale[1] = 1.5;
                 }
 
                 if scale[1] > 4.9 {
-                    dock.scale[1] = 2.6;
+                    dock.scale[0] = 1.5;
+                    dock.scale[1] = 2.4;
                 }
 
-                dock.scale[2] = 2.0;
+                dock.scale[2] = 1.85;
 
                 // Center with the door
                 dock.position[2] = dock.position[2] - 0.6;
