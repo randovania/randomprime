@@ -9201,13 +9201,14 @@ fn patch_starting_pickups<'r>(
     let mut timer_starting_items_popup_id = 0;
     let mut hud_memo_starting_items_popup_id = 0;
     let mut special_function_id = 0;
+
     if show_starting_memo {
         starting_memo_layer_idx = area.layer_flags.layer_count as usize;
         area.add_layer(b"starting items\0".as_cstr());
 
         timer_starting_items_popup_id = area.new_object_id_from_layer_id(starting_memo_layer_idx);
         hud_memo_starting_items_popup_id = area.new_object_id_from_layer_id(starting_memo_layer_idx);
-        special_function_id = area.new_object_id_from_layer_name("Default");
+        special_function_id = area.new_object_id_from_layer_id(starting_memo_layer_idx);
     }
 
     let scly = area.mrea().scly_section_mut();
@@ -9271,27 +9272,24 @@ fn patch_starting_pickups<'r>(
                         active: 1,
                     }.into(),
                 },
+                structs::SclyObject {
+                    instance_id: special_function_id,
+                    property_data: structs::SpecialFunction::layer_change_fn(
+                        b"hudmemo layer change\0".as_cstr(),
+                        area_internal_id,
+                        starting_memo_layer_idx as u32,
+                    ).into(),
+                    connections: vec![].into(),
+                },
             ]
         );
-
-        layers[0].objects.as_mut_vec().push(
-            structs::SclyObject {
-                instance_id: special_function_id,
-                property_data: structs::SpecialFunction::layer_change_fn(
-                    b"hudmemo layer change\0".as_cstr(),
-                    area_internal_id,
-                    starting_memo_layer_idx as u32,
-                ).into(),
-                connections: vec![].into(),
-            }
-        );
-
         area.add_dependencies(
             &game_resources,
-            0,
+            starting_memo_layer_idx,
             iter::once(custom_asset_ids::STARTING_ITEMS_HUDMEMO_STRG.into())
         );
     }
+
     Ok(())
 }
 
