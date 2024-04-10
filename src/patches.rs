@@ -2157,9 +2157,17 @@ fn patch_add_item<'r>(
         pickup_model_data.actor_params.thermal_cskr = ResId::invalid();
     }
 
-    let name = CString::new(format!("Randomizer - Pickup ({:?})", pickup_model_data.name)).unwrap();
-    area.add_layer(Cow::Owned(name));
-    let new_layer_idx = area.layer_flags.layer_count as usize - 1;
+    let respawn = pickup_config.respawn.unwrap_or(false);
+
+    let new_layer_idx = {
+        if !respawn {
+            let name = CString::new(format!("Randomizer - Pickup ({:?})", pickup_model_data.name)).unwrap();
+            area.add_layer(Cow::Owned(name));
+            area.layer_flags.layer_count as usize - 1
+        } else {
+            0
+        }
+    };
 
     // Add hudmemo string as dependency to room //
     let hudmemo_strg: ResId<res_id::STRG> = {
@@ -2614,7 +2622,7 @@ fn patch_add_item<'r>(
         );
     }
 
-    if !pickup_config.respawn.unwrap_or(false) && new_layer_idx != 0 {
+    if !respawn && new_layer_idx != 0 {
         // Create Special Function to disable layer once item is obtained
         // This is needed because otherwise the item would re-appear every
         // time the room is loaded
