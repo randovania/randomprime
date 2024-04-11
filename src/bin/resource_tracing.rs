@@ -1520,6 +1520,25 @@ fn main()
         }
 
         let mut deps: Vec<_> = pickup_table[&pm].deps.iter().collect();
+
+        let res = ResourceKey::new(0x29782CA6, FourCC::from_bytes(b"TXTR"));
+        deps.push(&res);
+
+        let res = ResourceKey::new(0xA0DA476B, FourCC::from_bytes(b"PART"));
+        deps.push(&res);
+
+        let res = ResourceKey::new(0x5E027EA1, FourCC::from_bytes(b"TXTR"));
+        deps.push(&res);
+
+        let res = ResourceKey::new(0x79B5BD15, FourCC::from_bytes(b"TXTR"));
+        deps.push(&res);
+
+        let res = ResourceKey::new(0xE224FF03, FourCC::from_bytes(b"TXTR"));
+        deps.push(&res);
+
+        let res = ResourceKey::new(0x57fe7e67, FourCC::from_bytes(b"AGSC"));
+        deps.push(&res);
+
         deps.sort();
         println!("            PickupModel::{:?} => {{", pm);
         println!("                const DATA: &[(u32, FourCC)] = &[");

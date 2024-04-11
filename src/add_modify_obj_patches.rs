@@ -556,8 +556,8 @@ pub fn patch_add_trigger<'r>(
         () => {
             structs::Trigger {
                 name: b"my trigger\0".as_cstr(),
-                position: config.position.into(),
-                scale: config.scale.into(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                scale: config.scale.unwrap_or([5.0, 5.0, 5.0]).into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: config.damage_type.unwrap_or(DamageType::Power) as u32,
                     damage: config.damage_amount.unwrap_or(0.0),
@@ -577,16 +577,16 @@ pub fn patch_add_trigger<'r>(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_trigger_mut().unwrap();
 
-            property_data.position = config.position.into();
-            property_data.scale = config.scale.into();
-
-            if let Some(active             ) = config.active              { property_data.active                          = active              as u8  }
-            if let Some(damage_type        ) = config.damage_type         { property_data.damage_info        .weapon_type = damage_type         as u32 }
-            if let Some(damage_amount      ) = config.damage_amount       { property_data.damage_info        .damage      = damage_amount              }
-            if let Some(force              ) = config.force               { property_data.force                           = force              .into() }
-            if let Some(flags              ) = config.flags               { property_data.flags                           = flags                      }
-            if let Some(deactivate_on_enter) = config.deactivate_on_enter { property_data.deactivate_on_enter             = deactivate_on_enter as u8  }
-            if let Some(deactivate_on_exit ) = config.deactivate_on_exit  { property_data.deactivate_on_exit              = deactivate_on_exit  as u8  }
+            if let Some(active              ) = config.active              { property_data.active                           = active              as u8   }
+            if let Some(position            ) = config.position            { property_data.position                         = position           .into()  }
+            if let Some(scale               ) = config.scale               { property_data.scale                            = scale              .into()  }
+            if let Some(damage_type         ) = config.damage_type         { property_data.damage_info         .weapon_type = damage_type         as u32  }
+            if let Some(damage_type         ) = config.damage_type         { property_data.damage_info         .weapon_type = damage_type         as u32  }
+            if let Some(damage_amount       ) = config.damage_amount       { property_data.damage_info         .damage      = damage_amount               }
+            if let Some(force               ) = config.force               { property_data.force                            = force               .into() }
+            if let Some(flags               ) = config.flags               { property_data.flags                            = flags                       }
+            if let Some(deactivate_on_enter ) = config.deactivate_on_enter { property_data.deactivate_on_enter              = deactivate_on_enter as u8   }
+            if let Some(deactivate_on_exit  ) = config.deactivate_on_exit  { property_data.deactivate_on_exit               = deactivate_on_exit  as u8   }
         };
     }
 
@@ -2444,6 +2444,7 @@ pub fn patch_lock_on_point<'r>(
     let is_grapple = config.is_grapple.unwrap_or(false);
     let no_lock = config.no_lock.unwrap_or(false);
     let position = config.position;
+    let layer = config.layer.unwrap_or(0) as usize;
 
     if is_grapple {
         let deps = vec![
@@ -2467,7 +2468,7 @@ pub fn patch_lock_on_point<'r>(
         area.add_dependencies(game_resources, 0, deps_iter);
     }
 
-    let actor_id = config.id1.unwrap_or(area.new_object_id_from_layer_name("Default"));
+    let actor_id = config.id1.unwrap_or(area.new_object_id_from_layer_id(layer));
     let mut grapple_point_id = 0;
     let mut special_function_id = 0;
     let mut timer_id = 0;
@@ -2477,20 +2478,20 @@ pub fn patch_lock_on_point<'r>(
     let mut add_scan_point = false;
 
     if is_grapple {
-        grapple_point_id = config.id2.unwrap_or(area.new_object_id_from_layer_name("Default"));
+        grapple_point_id = config.id2.unwrap_or(area.new_object_id_from_layer_id(layer));
         add_scan_point = true; // We don't actually need the scan points, just their assets. Could save on objects by making this false via config
         if add_scan_point {
-            special_function_id = area.new_object_id_from_layer_name("Default");
-            timer_id = area.new_object_id_from_layer_name("Default");
-            poi_pre_id = area.new_object_id_from_layer_name("Default");
-            poi_post_id = area.new_object_id_from_layer_name("Default");
+            special_function_id = area.new_object_id_from_layer_id(layer);
+            timer_id = area.new_object_id_from_layer_id(layer);
+            poi_pre_id = area.new_object_id_from_layer_id(layer);
+            poi_post_id = area.new_object_id_from_layer_id(layer);
         }
     } else if !no_lock {
-        damageable_trigger_id = config.id2.unwrap_or(area.new_object_id_from_layer_name("Default"));
+        damageable_trigger_id = config.id2.unwrap_or(area.new_object_id_from_layer_id(layer));
     }
 
     let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    layers[0].objects.as_mut_vec().push(
+    layers[layer].objects.as_mut_vec().push(
         structs::SclyObject {
             instance_id: actor_id,
             property_data: structs::Actor {
@@ -2569,7 +2570,7 @@ pub fn patch_lock_on_point<'r>(
     );
 
     if is_grapple {
-        layers[0].objects.as_mut_vec().push(
+        layers[layer].objects.as_mut_vec().push(
             structs::SclyObject {
                 instance_id: grapple_point_id,
                 property_data: structs::GrapplePoint {
@@ -2598,7 +2599,7 @@ pub fn patch_lock_on_point<'r>(
         );
 
         if add_scan_point {
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: special_function_id,
                     connections: vec![
@@ -2636,7 +2637,7 @@ pub fn patch_lock_on_point<'r>(
                 }
             );
 
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: timer_id,
                     connections: vec![
@@ -2657,7 +2658,7 @@ pub fn patch_lock_on_point<'r>(
                 }
             );
 
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: poi_pre_id,
                     connections: vec![].into(),
@@ -2676,7 +2677,7 @@ pub fn patch_lock_on_point<'r>(
                 }
             );
 
-            layers[0].objects.as_mut_vec().push(
+            layers[layer].objects.as_mut_vec().push(
                 structs::SclyObject {
                     instance_id: poi_post_id,
                     connections: vec![].into(),
@@ -2696,7 +2697,7 @@ pub fn patch_lock_on_point<'r>(
             );
         }
     } else if !no_lock {
-        layers[0].objects.as_mut_vec().push(
+        layers[layer].objects.as_mut_vec().push(
             structs::SclyObject {
                 instance_id: damageable_trigger_id,
                 property_data: structs::DamageableTrigger {

@@ -577,9 +577,9 @@ fn patch_remove_blast_shield<'r>(
 
 fn this_near_that(this: [f32;3], that: [f32;3]) -> bool
 {
-    f32::abs(this[0] - that[0]) < 3.0 &&
-    f32::abs(this[1] - that[1]) < 3.0 &&
-    f32::abs(this[2] - that[2]) < 3.0
+    f32::abs(this[0] - that[0]) < 2.7 &&
+    f32::abs(this[1] - that[1]) < 2.7 &&
+    f32::abs(this[2] - that[2]) < 2.7
 }
 
 fn patch_door<'r>(
@@ -697,6 +697,11 @@ fn patch_door<'r>(
     let mut blast_shield_layer_idx: usize = 0;
     if blast_shield_type.is_some() {
         special_function_id = area.new_object_id_from_layer_id(0);
+
+        /* Add a new layer to this room to put all the blast shield objects onto */
+        area.add_layer(b"Custom Shield Layer\0".as_cstr());
+        blast_shield_layer_idx = area.layer_flags.layer_count as usize - 1;
+
         sound_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         streamed_audio_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         shaker_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
@@ -708,10 +713,6 @@ fn patch_door<'r>(
         auto_open_relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         dt_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         poi_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-
-        /* Add a new layer to this room to put all the blast shield objects onto */
-        area.add_layer(b"Custom Shield Layer\0".as_cstr());
-        blast_shield_layer_idx = area.layer_flags.layer_count as usize - 1;
     }
 
     if door_type_after_open.is_some() {
@@ -2156,9 +2157,17 @@ fn patch_add_item<'r>(
         pickup_model_data.actor_params.thermal_cskr = ResId::invalid();
     }
 
-    let name = CString::new(format!("Randomizer - Pickup ({:?})", pickup_model_data.name)).unwrap();
-    area.add_layer(Cow::Owned(name));
-    let new_layer_idx = area.layer_flags.layer_count as usize - 1;
+    let respawn = pickup_config.respawn.unwrap_or(false);
+
+    let new_layer_idx = {
+        if !respawn {
+            let name = CString::new(format!("Randomizer - Pickup ({:?})", pickup_model_data.name)).unwrap();
+            area.add_layer(Cow::Owned(name));
+            area.layer_flags.layer_count as usize - 1
+        } else {
+            0
+        }
+    };
 
     // Add hudmemo string as dependency to room //
     let hudmemo_strg: ResId<res_id::STRG> = {
@@ -2613,7 +2622,7 @@ fn patch_add_item<'r>(
         );
     }
 
-    if !pickup_config.respawn.unwrap_or(false) && new_layer_idx != 0 {
+    if !respawn && new_layer_idx != 0 {
         // Create Special Function to disable layer once item is obtained
         // This is needed because otherwise the item would re-appear every
         // time the room is loaded
@@ -6872,7 +6881,7 @@ fn make_main_plaza_locked_door_two_ways(_ps: &mut PatcherState, area: &mut mlvl_
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Blue.vulnerability(),
-                unknown0: 4, // render side
+                unknown0: 8, // render side
                 pattern_txtr0: DoorType::Blue.pattern0_txtr(),
                 pattern_txtr1: DoorType::Blue.pattern1_txtr(),
                 color_txtr: DoorType::Blue.color_txtr(),
@@ -7297,7 +7306,6 @@ fn patch_set_layers<'r>
 -> Result<(), String>
 {
     let mrea_id = area.mlvl_area.mrea.to_u32().clone();
-    let layer_count = area.layer_flags.layer_count;
 
     // add more layers if needed
     let max = {
@@ -7316,7 +7324,7 @@ fn patch_set_layers<'r>
 
     for (layer_id, enabled) in layers.iter() {
         let layer_id = layer_id.clone();
-        if layer_id >= layer_count {
+        if layer_id >= area.layer_flags.layer_count {
             panic!("Unexpected layer #{} in room 0x{:X}", layer_id, mrea_id);
         }
 
@@ -9164,13 +9172,14 @@ fn patch_starting_pickups<'r>(
     let mut timer_starting_items_popup_id = 0;
     let mut hud_memo_starting_items_popup_id = 0;
     let mut special_function_id = 0;
+
     if show_starting_memo {
         starting_memo_layer_idx = area.layer_flags.layer_count as usize;
         area.add_layer(b"starting items\0".as_cstr());
 
         timer_starting_items_popup_id = area.new_object_id_from_layer_id(starting_memo_layer_idx);
         hud_memo_starting_items_popup_id = area.new_object_id_from_layer_id(starting_memo_layer_idx);
-        special_function_id = area.new_object_id_from_layer_name("Default");
+        special_function_id = area.new_object_id_from_layer_id(starting_memo_layer_idx);
     }
 
     let scly = area.mrea().scly_section_mut();
@@ -9234,27 +9243,24 @@ fn patch_starting_pickups<'r>(
                         active: 1,
                     }.into(),
                 },
+                structs::SclyObject {
+                    instance_id: special_function_id,
+                    property_data: structs::SpecialFunction::layer_change_fn(
+                        b"hudmemo layer change\0".as_cstr(),
+                        area_internal_id,
+                        starting_memo_layer_idx as u32,
+                    ).into(),
+                    connections: vec![].into(),
+                },
             ]
         );
-
-        layers[0].objects.as_mut_vec().push(
-            structs::SclyObject {
-                instance_id: special_function_id,
-                property_data: structs::SpecialFunction::layer_change_fn(
-                    b"hudmemo layer change\0".as_cstr(),
-                    area_internal_id,
-                    starting_memo_layer_idx as u32,
-                ).into(),
-                connections: vec![].into(),
-            }
-        );
-
         area.add_dependencies(
             &game_resources,
-            0,
+            starting_memo_layer_idx,
             iter::once(custom_asset_ids::STARTING_ITEMS_HUDMEMO_STRG.into())
         );
     }
+
     Ok(())
 }
 
@@ -12160,14 +12166,16 @@ fn patch_anti_oob<'r>(
                 }
 
                 if scale[0] > 4.9 {
-                    dock.scale[0] = 2.6;
+                    dock.scale[0] = 2.4;
+                    dock.scale[1] = 1.5;
                 }
 
                 if scale[1] > 4.9 {
-                    dock.scale[1] = 2.6;
+                    dock.scale[0] = 1.5;
+                    dock.scale[1] = 2.4;
                 }
 
-                dock.scale[2] = 2.0;
+                dock.scale[2] = 1.85;
 
                 // Center with the door
                 dock.position[2] = dock.position[2] - 0.6;
@@ -16543,10 +16551,6 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                 move |res| patch_artifact_totem_scan_strg(res, &strg_text, config.version),
             );
         }
-        patcher.add_scly_patch(
-            resource_info!("07_stonehenge.MREA").into(),
-            |_ps, area| patch_tournament_winners(_ps, area, game_resources)
-        );
     }
     patcher.add_resource_patch(
         resource_info!("STRG_Main.STRG").into(),// 0x0552a456
@@ -16790,6 +16794,25 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
         move |res| patch_add_scans_to_savw(
             res,
             &local_savw_scans_to_add[World::ImpactCrater as usize],
+            &savw_scan_logbook_category,
+            &savw_to_remove_from_logbook,
+        ),
+    );
+
+    patcher.add_resource_patch(
+        resource_info!("!EndCinema_Master.SAVW").into(),
+        move |res| patch_add_scans_to_savw(
+            res,
+            &savw_scans_to_add,
+            &savw_scan_logbook_category,
+            &savw_to_remove_from_logbook,
+        ),
+    );
+    patcher.add_resource_patch(
+        resource_info!("!EndCinema_Master.SAVW").into(),
+        move |res| patch_add_scans_to_savw(
+            res,
+            &local_savw_scans_to_add[World::EndCinema as usize],
             &savw_scan_logbook_category,
             &savw_to_remove_from_logbook,
         ),
@@ -17290,6 +17313,13 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                 move |res| patch_start_button_strg(res, text)
             );
         }
+    }
+
+    if !config.force_vanilla_layout && !strgs.contains_key("1979224398") {
+        patcher.add_scly_patch(
+            resource_info!("07_stonehenge.MREA").into(),
+            |_ps, area| patch_tournament_winners(_ps, area, game_resources)
+        );
     }
 
     for (strg, replacement_strings) in strgs {

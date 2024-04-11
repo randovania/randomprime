@@ -206,6 +206,9 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list>
         }
 
         self.mrea().scly_section_mut().layers.as_mut_vec().push(SclyLayer::new());
+
+        assert!(self.layer_names.len() as u32 == self.layer_flags.layer_count);
+        assert!(self.layer_flags.layer_count as u32 == self.mrea().scly_section().layers.len() as u32);
     }
 
     pub fn add_dependencies<I>(&mut self, pickup_resources: &HashMap<(u32, FourCC), Resource<'r>>,
@@ -228,4 +231,3 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list>
         self.mrea_cursor.insert_after(iter);
     }
 }
-

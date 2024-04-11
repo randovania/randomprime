@@ -3172,6 +3172,12 @@
                                 "description": "Position of the point",
                                 "$ref": "#/$defs/vector3"
                             },
+                            "layer": {
+                                "description": "Layer # to place the lockOnPoint at",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 63
+                            },
                             "isGrapple": {
                                 "description": "If true, adds grapple functionality to this point.",
                                 "type": "boolean",
@@ -3738,11 +3744,21 @@
                             },
                             "position": {
                                 "description": "Position of the trigger.",
-                                "$ref": "#/$defs/vector3"
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
                             },
                             "scale": {
                                 "description": "Extent of the trigger.",
-                                "$ref": "#/$defs/vector3Positive"
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [
+                                    5,
+                                    5,
+                                    5
+                                ]
                             },
                             "force": {
                                 "description": "If the apply force flag is enabled, this is the force applied.",
@@ -3781,10 +3797,7 @@
                                 "default": false
                             }
                         },
-                        "required": [
-                            "position",
-                            "scale"
-                        ],
+                        "required": [],
                         "additionalProperties": false
                     }
                 },

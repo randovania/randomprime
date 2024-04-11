@@ -556,6 +556,7 @@ pub fn custom_assets<'r>(
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        Vec::new(),
     ];
 
     /* Mapping of strings and their corresponding scan_id. Use this to avoid
@@ -650,7 +651,7 @@ pub fn custom_assets<'r>(
         vec![
             "Chozo script translated.\0".to_string(),
             "Racing\0".to_string(),
-            "As we have done for millennia, we Chozo work constantly on our speed. Our fastest are our sentinels; They are, and have always been, repositories for our most precious secrets and strongest powers.\n\n2024 (CGC) - TheGingerChris + BajaBlood\n2023 - Cosmonawt\n2022 (CGC) - Cosmo + Cestrion\n2021 - Dinopony\n2020 - Interslice\n2019 - TheWeakestLink64\0".to_string(),
+            "As we have done for millennia, we Chozo work constantly on our speed. Our fastest are our sentinels; They are, and have always been, repositories for our most precious secrets and strongest powers.\n\n2023 (CGC) - TheGingerChris + BajaBlood\n2023 - Cosmonawt\n2022 (CGC) - Cosmo + Cestrion\n2021 - Dinopony\n2020 - Interslice\n2019 - TheWeakestLink64\0".to_string(),
         ],
         1,
         0,
