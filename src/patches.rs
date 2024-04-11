@@ -6910,7 +6910,7 @@ fn make_main_plaza_locked_door_two_ways(_ps: &mut PatcherState, area: &mut mlvl_
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Blue.vulnerability(),
-                unknown0: 4, // render side
+                unknown0: 8, // render side
                 pattern_txtr0: DoorType::Blue.pattern0_txtr(),
                 pattern_txtr1: DoorType::Blue.pattern1_txtr(),
                 color_txtr: DoorType::Blue.color_txtr(),
