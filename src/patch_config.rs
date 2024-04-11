@@ -347,6 +347,7 @@ pub struct CameraHintConfig
 pub struct LockOnPoint
 {
     pub id1: Option<u32>,
+    pub layer: Option<u32>,
     pub active1: Option<bool>,
     pub id2: Option<u32>,
     pub active2: Option<bool>,
@@ -393,8 +394,8 @@ pub struct TriggerConfig
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub active: Option<bool>,
-    pub position: [f32;3],
-    pub scale: [f32;3],
+    pub position: Option<[f32;3]>,
+    pub scale: Option<[f32;3]>,
     pub force: Option<[f32;3]>,
     pub damage_type: Option<DamageType>,
     pub damage_amount: Option<f32>,
