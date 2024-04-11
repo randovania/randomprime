@@ -198,6 +198,24 @@ pub struct SclyObject<'r>
     pub property_data: SclyProperty<'r>,
 }
 
+impl<'r> SclyObject<'r>
+{
+    pub fn get_layer_idx(self) -> usize
+    {
+        ((self.instance_id >> 26) & 0x3F) as usize
+    }
+
+    pub fn get_area_idx(self) -> usize
+    {
+        ((self.instance_id >> 16) & 0xFF) as usize
+    }
+
+    pub fn get_object_idx(self) -> usize
+    {
+        (self.instance_id & 0xFFFF) as usize
+    }
+}
+
 macro_rules! build_scly_property {
     ($($name:ident, $is_check:ident, $accessor:ident, $accessor_mut:ident,)*) => {
 

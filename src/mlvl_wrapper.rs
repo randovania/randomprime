@@ -82,6 +82,26 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list>
         layer_id.unwrap()
     }
 
+    pub fn object_id_from_layer_name(&mut self, layer_name: &str, internal_idx: usize) -> u32
+    {
+        let layer_id = self.get_layer_id_from_name(layer_name);
+        return self.object_id_from_layer_id(layer_id, internal_idx);
+    }
+
+    pub fn object_id_from_layer_id(&mut self, layer_id: usize, internal_idx: usize) -> u32
+    {
+        // initialize with the internal id
+        let mut obj_id = internal_idx;
+
+        // add the area id to the object id
+        obj_id |= self.mrea_index << 16;
+
+        // add the layer id to the object id
+        obj_id |= layer_id << 26;
+
+        obj_id as u32
+    }
+
     pub fn new_object_id_from_layer_name(&mut self, layer_name: &str) -> u32
     {
         let layer_id = self.get_layer_id_from_name(layer_name);
