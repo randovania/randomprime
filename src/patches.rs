@@ -3015,51 +3015,51 @@ impl WaterType
                         unknown2: 2047,
                         unknown3: 0,
                         display_fluid_surface: 1,
-                        txtr1: 2003342689,
-                        txtr2: 4059883471,
-                        txtr3:  351283582,
+                        txtr1: 2837040919,
+                        txtr2: 2565985674,
+                        txtr3: 3001645351,
                         txtr4: 4294967295,
                         refl_map_txtr: 4294967295,
                         txtr6: 1899158552,
-                        unknown5: [3.0, 3.0, -4.0].into(),
-                        unknown6:  8.0,
+                        unknown5: [3.0, 3.0, -1.0].into(),
+                        unknown6:  35.0,
                         morph_in_time: 5.0,
                         morph_out_time: 5.0,
                         active: 1,
                         fluid_type: 0,
                         unknown11: 0,
-                        unknown12: 0.7,
+                        unknown12: 0.65,
                         fluid_uv_motion:
                             structs::FluidUVMotion
                             {
                                 fluid_layer_motion1:
                                 structs::FluidLayerMotion
                                     {
-                                        fluid_uv_motion: 2,
-                                        unknown1: 30.0,
-                                        unknown2: 90.0,
-                                        unknown3:  0.0,
-                                        unknown4:  4.0
+                                        fluid_uv_motion: 0,
+                                        unknown1: 20.0,
+                                        unknown2: 0.0,
+                                        unknown3: 0.15,
+                                        unknown4: 20.0
                                     },
                                 fluid_layer_motion2:
                                 structs::FluidLayerMotion
                                     {
                                         fluid_uv_motion: 0,
-                                        unknown1: 40.0,
-                                        unknown2: -180.0,
-                                        unknown3:  0.0,
-                                        unknown4: 20.0
+                                        unknown1: 15.0,
+                                        unknown2: 0.0,
+                                        unknown3: 0.15,
+                                        unknown4: 10.0
                                     },
                                 fluid_layer_motion3:
                                 structs::FluidLayerMotion
                                     {
                                         fluid_uv_motion: 0,
-                                        unknown1: 60.0,
+                                        unknown1: 30.0,
                                         unknown2: 0.0,
-                                        unknown3:  0.0,
-                                        unknown4: 25.0
+                                        unknown3: 0.15,
+                                        unknown4: 20.0
                                     },
-                                unknown1: 1000.0,
+                                unknown1: 70.0,
                                 unknown2: 0.0
                             },
                         unknown30:  0.0,
@@ -3071,7 +3071,7 @@ impl WaterType
                         unknown36: 0.0,
                         unknown37: 0.0,
                         unknown38: [1.0, 1.0, 1.0, 1.0].into(),
-                        unknown39: [0.411765, 0.670588, 0.831373, 1.0].into(),
+                        unknown39: [0.443137, 0.568627, 0.623529, 1.0].into(),
                         small_enter_part: 0xffffffff,
                         med_enter_part: 0xffffffff,
                         large_enter_part: 0xffffffff,
@@ -3092,13 +3092,13 @@ impl WaterType
                         unknown47: 0.0,
                         heat_wave_height: 0.0,
                         heat_wave_speed: 1.0,
-                        heat_wave_color: [0.596078, 0.752941, 0.819608, 1.0].into(),
-                        lightmap_txtr: 4294967295,
+                        heat_wave_color: [1.0, 1.0, 1.0, 1.0].into(),
+                        lightmap_txtr: 231856622,
                         unknown51: 0.3,
                         alpha_in_time: 5.0,
                         alpha_out_time: 5.0,
-                        unknown54: 4294967295,
-                        unknown55: 4294967295,
+                        unknown54: 0,
+                        unknown55: 0,
                         crash_the_game: 0
                     })
                 ),
@@ -3194,12 +3194,12 @@ impl WaterType
                      1.0,
                 0.27451,
                  1.0].into(),
-                lightmap_txtr: 4294967295,
+                lightmap_txtr: 1723170806,
                 unknown51: 0.3,
                 alpha_in_time: 5.0,
                 alpha_out_time: 5.0,
-                unknown54: 4294967295,
-                unknown55: 4294967295,
+                unknown54: 0,
+                unknown55: 0,
                 crash_the_game: 0
             }))},
             WaterType::Lava    => structs::SclyObject {
@@ -5194,35 +5194,6 @@ fn patch_post_pq_frigate(
                 }.into(),
             }
         );
-    }
-
-    Ok(())
-}
-
-fn patch_edit_water<'r>(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    id: u32,
-    morph_in_time: f32,
-    alpha_out_time: f32,
-)
-    -> Result<(), String>
-{
-    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    for layer in layers.iter_mut()
-    {
-        let obj = layer.objects
-            .iter_mut()
-            .find(|obj| obj.instance_id&0x00FFFFFF == id&0x00FFFFFF);
-
-        if obj.is_none()
-        {
-            continue;
-        }
-
-        let water = obj.unwrap().property_data.as_water_mut().unwrap();
-        water.morph_in_time = morph_in_time;
-        water.alpha_out_time = alpha_out_time;
     }
 
     Ok(())
@@ -15659,21 +15630,6 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
                         if do_cutscene_skip_patches {
                             /* Some rooms need to be update to play nicely with skippable cutscenes */
                             match room_info.room_id.to_u32() {
-                                0xC9D52BBC => { // energy core
-                                    for id in [2883635, 2884015]
-                                    {
-                                        patcher.add_scly_patch(
-                                            (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                            move |ps, area| patch_edit_water(
-                                                ps,
-                                                area,
-                                                id,
-                                                2.0,
-                                                0.7,
-                                            ),
-                                        );
-                                    }
-                                },
                                 0xB2701146 => { // landing site
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
