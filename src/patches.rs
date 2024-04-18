@@ -12165,20 +12165,25 @@ fn patch_anti_oob<'r>(
                     continue; // This dock is weird don't touch it
                 }
 
-                if scale[0] > 4.9 {
+                if dock.scale[2] < 2.1 {
+                    dock.scale[0] = 3.5;
+                    dock.scale[1] = 3.5;
+                    dock.scale[2] = 1.85;
+                } else if scale[0] > 4.9 {
                     dock.scale[0] = 2.4;
                     dock.scale[1] = 1.5;
-                }
+                    dock.scale[2] = 1.85;
 
-                if scale[1] > 4.9 {
+                    // Center with the door
+                    dock.position[2] = dock.position[2] - 0.6;
+                } else if scale[1] > 4.9 {
                     dock.scale[0] = 1.5;
                     dock.scale[1] = 2.4;
+                    dock.scale[2] = 1.85;
+                    
+                    // Center with the door
+                    dock.position[2] = dock.position[2] - 0.6;
                 }
-
-                dock.scale[2] = 1.85;
-
-                // Center with the door
-                dock.position[2] = dock.position[2] - 0.6;
             }
         }
     }
