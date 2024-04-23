@@ -73,6 +73,7 @@ use crate::{
     GcDiscLookupExtensions,
     extern_assets::ExternPickupModel,
     structs::LightLayer,
+    room_lookup::ROOM_BY_MREA,
 };
 
 use dol_symbol_table::mp1_symbol;
@@ -7426,23 +7427,55 @@ fn patch_add_connection<'r>(
     mrea_id: u32,
 )
 {
+    let state = structs::ConnectionState(connection.state as u32);
+    let message = structs::ConnectionMsg(connection.message as u32);
+    const VALIDATE_CUTSCENE_SKIP: bool = true;
+    const PANIC_ON_INVALID_CUTSCENE_SKIP: bool = false;
+
     for layer in layers.iter_mut() {
+        if VALIDATE_CUTSCENE_SKIP {
+            let sender = layer.objects
+            .iter()
+            .find(|obj| obj.instance_id&0x00FFFFFF == connection.sender_id&0x00FFFFFF);
+
+            if !sender.is_some() {
+                continue;
+            }
+            let sender = sender.unwrap();
+
+            if !sender.property_data.is_camera() && message == structs::ConnectionMsg::DECREMENT {
+                let target = layer.objects
+                    .iter()
+                    .find(|obj| obj.instance_id&0x00FFFFFF == connection.target_id&0x00FFFFFF);
+
+                if let Some(target) = target {
+                    if let Some(special_fn) = target.property_data.as_special_function() {
+                        if special_fn.type_ == SpecialFunctionType::CinematicSkip as u32 {
+                            if PANIC_ON_INVALID_CUTSCENE_SKIP {
+                                panic!("In '{} - {}', a non-camera object ({}) decrements a cutscene skip special function ({})", ROOM_BY_MREA[&mrea_id].region_name, ROOM_BY_MREA[&mrea_id].room_name, connection.sender_id, connection.target_id);
+                            } else {
+                                println!("In '{} - {}', a non-camera object ({}) decrements a cutscene skip special function ({})", ROOM_BY_MREA[&mrea_id].region_name, ROOM_BY_MREA[&mrea_id].room_name, connection.sender_id, connection.target_id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         let sender = layer.objects
             .as_mut_vec()
             .iter_mut()
-            .find(|obj| obj.instance_id&0x00FFFFFF == connection.sender_id&0x00FFFFFF);
+            .find(|obj| obj.instance_id&0x00FFFFFF == connection.sender_id&0x00FFFFFF)
+            .unwrap();
 
-        if sender.is_some() {
-            let sender = sender.unwrap();
-            sender.connections.as_mut_vec().push(
-                structs::Connection {
-                    state: structs::ConnectionState(connection.state as u32),
-                    message: structs::ConnectionMsg(connection.message as u32),
-                    target_object_id: connection.target_id,
-                },
-            );
-            return;
-        }
+        sender.connections.as_mut_vec().push(
+            structs::Connection {
+                state,
+                message,
+                target_object_id: connection.target_id,
+            },
+        );
+        return;
     }
 
     panic!("Could not find object 0x{:X} when adding a script connection in room 0x{:X}", connection.sender_id, mrea_id);
