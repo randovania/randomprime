@@ -279,7 +279,7 @@ impl DoorType {
 
             // vertical doors need a different CMDL, otherwise it will look like this: https://i.imgur.com/jGjWnmg.png //
             DoorType::VerticalBlue         => ResId           ::new(0x18D0AEE6)               , // vanilla horizontal CMDL (blue)
-            DoorType::VerticalPowerOnly    => ResId           ::new(0x18D0AEE6)               , // vanilla CMDL
+            DoorType::VerticalPowerOnly    => custom_asset_ids::POWER_BEAM_VERTICAL_CMDL      ,
             DoorType::VerticalPurple       => ResId           ::new(0x095B0B93)               , // vanilla CMDL
             DoorType::VerticalWhite        => ResId           ::new(0xB7A8A4C9)               , // vanilla CMDL
             DoorType::VerticalRed          => custom_asset_ids::PLASMA_VERTICAL_CMDL          , // vanilla CMDL
