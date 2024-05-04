@@ -1189,6 +1189,10 @@ pub fn collect_game_resources<'r>(
         (0xB3A153C0, FourCC::from_bytes(b"TXTR")),
         (0x57fe7e67, FourCC::from_bytes(b"AGSC")), // Misc.AGSC
         (0x836c33b3, FourCC::from_bytes(b"ANCS")),
+
+        (0x6E5D6796, FourCC::from_bytes(b"CMDL")),
+        (0x0D36FB59, FourCC::from_bytes(b"TXTR")),
+        (0xACADD83F, FourCC::from_bytes(b"TXTR")),
     ];
     looking_for.extend(platform_deps);
 

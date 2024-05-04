@@ -13508,28 +13508,6 @@ fn patch_qol_game_breaking(
         resource_info!("03_mines.MREA").into(),
         patch_elite_research_platforms
     );
-    // Door Lock
-    patcher.add_scly_patch(
-        resource_info!("03_mines.MREA").into(),
-        patch_elite_research_door_lock
-    );
-}
-
-fn make_elite_research_fight_prereq_patches(patcher: &mut PrimePatcher)
-{
-    patcher.add_scly_patch(resource_info!("03_mines.MREA").into(), |_ps, area| {
-        let flags = &mut area.layer_flags.flags;
-        *flags |= 1 << 1; // Turn on "3rd pass elite bustout"
-        *flags &= !(1 << 5); // Turn off the "dummy elite"
-        Ok(())
-    });
-
-    patcher.add_scly_patch(resource_info!("07_mines_electric.MREA").into(), |_ps, area| {
-        let scly = area.mrea().scly_section_mut();
-        scly.layers.as_mut_vec()[0].objects.as_mut_vec()
-            .retain(|obj| obj.instance_id != 0x1B0525 && obj.instance_id != 0x1B0522);
-        Ok(())
-    });
 }
 
 fn patch_qol_logical(patcher: &mut PrimePatcher, config: &PatchConfig, version: Version)
@@ -13542,8 +13520,19 @@ fn patch_qol_logical(patcher: &mut PrimePatcher, config: &PatchConfig, version: 
     }
 
     if config.phazon_elite_without_dynamo {
-        make_elite_research_fight_prereq_patches(patcher);
-
+        patcher.add_scly_patch(resource_info!("03_mines.MREA").into(), |_ps, area| {
+            let flags = &mut area.layer_flags.flags;
+            *flags |= 1 << 1; // Turn on "3rd pass elite bustout"
+            *flags &= !(1 << 5); // Turn off the "dummy elite"
+            Ok(())
+        });
+    
+        patcher.add_scly_patch(resource_info!("07_mines_electric.MREA").into(), |_ps, area| {
+            let scly = area.mrea().scly_section_mut();
+            scly.layers.as_mut_vec()[0].objects.as_mut_vec()
+                .retain(|obj| obj.instance_id != 0x1B0525 && obj.instance_id != 0x1B0522);
+            Ok(())
+        });
     }
 
     if config.backwards_frigate {
@@ -17086,7 +17075,17 @@ fn build_and_run_patches<'r>(gc_disc: &mut structs::GcDisc<'r>, config: &PatchCo
     }
 
     if config.qol_game_breaking {
-        patch_qol_game_breaking(&mut patcher, config.version, config.force_vanilla_layout, player_size < 0.9);
+        patch_qol_game_breaking(
+            &mut patcher,
+            config.version,
+            config.force_vanilla_layout,
+            player_size < 0.9
+        );
+
+        patcher.add_scly_patch(
+            resource_info!("03_mines.MREA").into(),
+            move |ps, area| patch_elite_research_door_lock(ps, area, game_resources)
+        );
 
         if boss_permadeath {
             patcher.add_scly_patch(
@@ -17885,10 +17884,27 @@ fn patch_elite_research_platforms<'r>(_ps: &mut PatcherState, area: &mut mlvl_wr
     Ok(())
 }
 
-fn patch_elite_research_door_lock<'r>(_ps: &mut PatcherState, area: &mut mlvl_wrapper::MlvlArea) -> Result<(), String>
+fn patch_elite_research_door_lock<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+) -> Result<(), String>
 {
+    let deps = vec![
+        (0x6E5D6796, b"CMDL"),
+        (0x0D36FB59, b"TXTR"),
+        (0xACADD83F, b"TXTR"),
+    ];
+    let deps_iter = deps.iter()
+        .map(|&(file_id, fourcc)| structs::Dependency {
+            asset_id: file_id,
+            asset_type: FourCC::from_bytes(fourcc),
+        }
+    );
+    area.add_dependencies(game_resources, 0, deps_iter);
+
     // Must assign new object id here to keep borrow checker happy
-    let top_door_lock_id: u32 = area.new_object_id_from_layer_id(0);
+    let top_door_lock_id: u32 = area.new_object_id_from_layer_id(1);
     let scly = area.mrea().scly_section_mut();
 
     let elite_pirate_id: u32 = 0x000D01A4;
