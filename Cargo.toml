@@ -14,6 +14,7 @@ image = { version = "0.23", default-features = false, features = ["png"] }
 lazy_static = "1.4"
 memmap.workspace = true
 nalgebra = "0.32"
+nod = "1.1"
 num-bigint = "0.2"
 num-integer = "0.1"
 num-traits = "0.2"
@@ -29,7 +30,6 @@ dol_symbol_table = { path = "generated/dol_symbol_table" }
 json_data = { path = "generated/json_data" }
 json_strip = { path = "generated/json_strip" }
 libsquish_wrapper = { path = "libsquish_wrapper" }
-nod_wrapper = { path = "nod_wrapper" }
 ppcasm = { path = "ppcasm" }
 reader_writer.workspace = true
 rel_files = { path = "generated/rel_files" }
@@ -52,7 +52,6 @@ members = [
     "generated/json_data",
     "generated/json_strip",
     "libsquish_wrapper",
-    "nod_wrapper",
     "ppcasm",
     "ppcasm/ppcasm_macro",
     "reader_writer",
