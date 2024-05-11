@@ -1,6 +1,4 @@
-#[macro_use]
-extern crate auto_struct_macros;
-extern crate reader_writer;
+use auto_struct_macros::auto_struct;
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone)]

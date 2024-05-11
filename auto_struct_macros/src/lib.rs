@@ -1,22 +1,19 @@
 #![recursion_limit = "128"]
 
 extern crate proc_macro;
-extern crate proc_macro2;
-#[macro_use]
-extern crate quote;
-#[macro_use]
-extern crate syn;
 
 use std::fmt::Display;
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::ToTokens;
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{
+    parenthesized,
     parse::{Error, Parse, ParseStream, Parser, Result},
+    parse_macro_input,
     punctuated::Punctuated,
     spanned::Spanned,
-    Expr, Field, Ident, ItemStruct, Pat, Type,
+    Expr, Field, Ident, ItemStruct, Pat, Token, Type,
 };
 
 fn err<A, T: Display>(span: Span, message: T) -> Result<A> {

@@ -1,8 +1,6 @@
-#[macro_use]
-extern crate clap;
-
 use std::{collections::HashMap, convert::TryInto, fs::File, iter, path::Path};
 
+use clap::{clap_app, crate_authors, crate_version};
 use image::{
     codecs::png::{PngDecoder, PngEncoder},
     ColorType, ImageDecoder,
