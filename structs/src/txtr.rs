@@ -61,7 +61,7 @@ pub struct Txtr<'r> {
     // TODO Palettes...
     #[auto_struct(init = if has_palette(hdr_format) { Some(()) } else { None })]
     #[auto_struct(derive = format.palette())]
-    palette: Option<TxtrPalette<'_>>,
+    palette: Option<TxtrPalette>,
 
     #[auto_struct(literal = TxtrFormat::new(hdr_format, &palette))]
     pub format: TxtrFormat,
@@ -130,7 +130,7 @@ impl TxtrFormat {
         }
     }
 
-    fn palette<'a>(&'a self) -> Option<TxtrPalette<'a>> {
+    fn palette(&self) -> Option<TxtrPalette> {
         let (format, bytes, width, height) = match self {
             TxtrFormat::C4(fmt, bytes) => (fmt, &bytes[..], 1, 16),
             TxtrFormat::C8(fmt, bytes) => (fmt, &bytes[..], 256, 1),
@@ -179,10 +179,7 @@ struct TxtrPalette<'r> {
 }
 
 fn has_palette(format: u32) -> bool {
-    match format {
-        0x4 | 0x5 | 0x6 => true,
-        _ => false,
-    }
+    matches!(format, 0x4..=0x6)
 }
 
 fn format_pixel_bytes(format: u32, pixels: usize) -> usize {

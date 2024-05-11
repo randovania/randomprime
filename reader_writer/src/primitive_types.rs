@@ -189,7 +189,7 @@ where
     }
 
     fn size(&self) -> usize {
-        <T as Readable>::size(&self)
+        <T as Readable>::size(self)
     }
 
     fn fixed_size() -> Option<usize> {
@@ -249,11 +249,11 @@ impl<'r> Writable for CStr<'r> {
 }
 
 pub trait CStrConversionExtension {
-    fn as_cstr<'r>(&'r self) -> CStr<'r>;
+    fn as_cstr(&self) -> CStr;
 }
 
 impl CStrConversionExtension for [u8] {
-    fn as_cstr<'r>(&'r self) -> CStr<'r> {
+    fn as_cstr(&self) -> CStr {
         Cow::Borrowed(ffi::CStr::from_bytes_with_nul(self).unwrap())
     }
 }

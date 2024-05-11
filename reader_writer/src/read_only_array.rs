@@ -27,6 +27,10 @@ where
         self.length
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn iter(&self) -> RoArrayIter<'r, T> {
         RoArrayIter {
             t_args: self.t_args.clone(),
@@ -90,14 +94,14 @@ where
         let size = T::fixed_size().map(|i| i * length).unwrap_or_else(|| {
             let iter = RoArrayIter::<T> {
                 t_args: args.clone(),
-                length: length,
+                length,
                 data_start: reader.clone(),
             };
             iter.fold(0, |s, i| s + i.size())
         });
         let array = RoArray {
             t_args: args,
-            length: length,
+            length,
             data_start: reader.truncated(size),
         };
         reader.advance(size);

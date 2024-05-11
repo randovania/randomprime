@@ -29,7 +29,7 @@ impl PickupHashKey {
         let level = World::from_json_key(level_name);
         PickupHashKey {
             level_id: level.mlvl(),
-            room_id: SpawnRoomData::from_str(&format!("{}:{}", level.to_str(), room_name).as_str())
+            room_id: SpawnRoomData::from_str(format!("{}:{}", level.to_str(), room_name).as_str())
                 .mrea, // TODO: this is suboptimal
             pickup_idx,
         }
@@ -329,15 +329,12 @@ pub mod custom_asset_ids {
 }
 
 pub fn custom_asset_filename(resource_info: structs::ResourceInfo) -> String {
-    let base_name = match resource_info.file_id {
-        // id if custom_asset_ids::PHAZON_SUIT_TXTR1.to_u32()                   == id => "phazon_suit_txtr1".to_string()                  ,
-        _ => format!("{:X}", resource_info.file_id),
-    };
+    let base_name = format!("{:X}", resource_info.file_id);
 
-    return format!("{}.{}", base_name, resource_info.fourcc);
+    format!("{}.{}", base_name, resource_info.fourcc)
 }
 
-pub fn build_resource<'r, K>(file_id: ResId<K>, kind: ResourceKind<'r>) -> Resource<'r>
+pub fn build_resource<K>(file_id: ResId<K>, kind: ResourceKind) -> Resource
 where
     K: res_id::ResIdKind,
 {
@@ -346,7 +343,7 @@ where
 }
 
 #[cfg(not(debug_assertions))]
-pub fn build_resource_raw<'r>(file_id: u32, kind: ResourceKind<'r>) -> Resource<'r> {
+pub fn build_resource_raw(file_id: u32, kind: ResourceKind) -> Resource {
     Resource {
         compressed: false,
         file_id,
@@ -355,7 +352,7 @@ pub fn build_resource_raw<'r>(file_id: u32, kind: ResourceKind<'r>) -> Resource<
 }
 
 #[cfg(debug_assertions)]
-pub fn build_resource_raw<'r>(file_id: u32, kind: ResourceKind<'r>) -> Resource<'r> {
+pub fn build_resource_raw(file_id: u32, kind: ResourceKind) -> Resource {
     Resource {
         compressed: false,
         file_id,
@@ -588,6 +585,7 @@ fn extern_assets_compile_time<'r>() -> Vec<Resource<'r>> {
 }
 
 // Assets not found in the base game
+#[allow(clippy::type_complexity)]
 pub fn custom_assets<'r>(
     resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     starting_memo: Option<&str>,
@@ -734,7 +732,7 @@ pub fn custom_assets<'r>(
             custom_asset_ids::STARTING_ITEMS_HUDMEMO_STRG,
             structs::ResourceKind::Strg(structs::Strg::from_strings(vec![format!(
                 "&just=center;{}\0",
-                starting_memo.clone().unwrap()
+                starting_memo.unwrap()
             )])),
         ));
     }
@@ -779,13 +777,13 @@ pub fn custom_assets<'r>(
 
                         // Add this scan_id as a dep of this world if it wasn't already //
                         if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
                         }
 
                         let key =
                             PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (scan_id.clone(), strg_id.clone()));
-                        extra_scans_idx = extra_scans_idx + 1;
+                        extra_scans.insert(key, (*scan_id, *strg_id));
+                        extra_scans_idx += 1;
                         continue;
                     }
 
@@ -793,11 +791,11 @@ pub fn custom_assets<'r>(
                     let scan_id = ResId::<res_id::SCAN>::new(
                         custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                     );
-                    custom_asset_offset = custom_asset_offset + 1;
+                    custom_asset_offset += 1;
                     let strg_id = ResId::<res_id::STRG>::new(
                         custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                     );
-                    custom_asset_offset = custom_asset_offset + 1;
+                    custom_asset_offset += 1;
 
                     let is_red = {
                         if *custom_scan.is_red.as_ref().unwrap_or(&false) {
@@ -813,8 +811,8 @@ pub fn custom_assets<'r>(
 
                     // "The &push;&main-color=#c300ff;Phazon Suit&pop; can be found in &push;&main-color=#89a1ff;Phazon Mines - Processing Center Access&pop;.",
                     // TODO: the game will actually crash if we paginate the color wrong
-                    for x in contents.split("&") {
-                        let semicolon_index = x.find(";").unwrap_or(0);
+                    for x in contents.split('&') {
+                        let semicolon_index = x.find(';').unwrap_or(0);
                         if semicolon_index != 0 {
                             content_len -= semicolon_index + 2;
                         }
@@ -852,16 +850,14 @@ pub fn custom_assets<'r>(
 
                     if custom_scan.logbook_title.is_some() || custom_scan.logbook_category.is_some()
                     {
-                        if !custom_scan.logbook_title.is_some()
-                            || !custom_scan.logbook_category.is_some()
+                        if custom_scan.logbook_title.is_none()
+                            || custom_scan.logbook_category.is_none()
                         {
                             panic!("Both logbook title and logbook category are required.");
                         }
                         strings[1] = custom_scan.logbook_title.clone().unwrap() + "\0";
-                        savw_scan_logbook_category.insert(
-                            scan_id.to_u32(),
-                            custom_scan.logbook_category.clone().unwrap(),
-                        );
+                        savw_scan_logbook_category
+                            .insert(scan_id.to_u32(), custom_scan.logbook_category.unwrap());
                     }
 
                     assets.extend_from_slice(&create_item_scan_strg_pair_2(
@@ -881,7 +877,7 @@ pub fn custom_assets<'r>(
                     // Cache this scan/strg pair for re-use //
                     string_to_scan_strg.insert(contents, (scan_id, strg_id));
 
-                    extra_scans_idx = extra_scans_idx + 1;
+                    extra_scans_idx += 1;
                 }
             }
 
@@ -899,13 +895,13 @@ pub fn custom_assets<'r>(
 
                         // Add this scan_id as a dep of this world if it wasn't already //
                         if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
                         }
 
                         let key =
                             PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (scan_id.clone(), strg_id.clone()));
-                        extra_scans_idx = extra_scans_idx + 1;
+                        extra_scans.insert(key, (*scan_id, *strg_id));
+                        extra_scans_idx += 1;
 
                         continue;
                     }
@@ -914,11 +910,11 @@ pub fn custom_assets<'r>(
                     let scan_id = ResId::<res_id::SCAN>::new(
                         custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                     );
-                    custom_asset_offset = custom_asset_offset + 1;
+                    custom_asset_offset += 1;
                     let strg_id = ResId::<res_id::STRG>::new(
                         custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                     );
-                    custom_asset_offset = custom_asset_offset + 1;
+                    custom_asset_offset += 1;
 
                     // Create scan/strg pair for destination
                     assets.extend_from_slice(&create_item_scan_strg_pair(
@@ -936,7 +932,7 @@ pub fn custom_assets<'r>(
                     // Cache this scan/strg pair for re-use //
                     string_to_scan_strg.insert(string.clone(), (scan_id, strg_id));
 
-                    extra_scans_idx = extra_scans_idx + 1;
+                    extra_scans_idx += 1;
                 }
             }
 
@@ -957,13 +953,13 @@ pub fn custom_assets<'r>(
 
                         // Add this scan_id as a dep of this world if it wasn't already //
                         if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
                         }
 
                         let key =
                             PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (scan_id.clone(), strg_id.clone()));
-                        extra_scans_idx = extra_scans_idx + 1;
+                        extra_scans.insert(key, (*scan_id, *strg_id));
+                        extra_scans_idx += 1;
 
                         continue;
                     }
@@ -972,11 +968,11 @@ pub fn custom_assets<'r>(
                     let scan_id = ResId::<res_id::SCAN>::new(
                         custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                     );
-                    custom_asset_offset = custom_asset_offset + 1;
+                    custom_asset_offset += 1;
                     let strg_id = ResId::<res_id::STRG>::new(
                         custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                     );
-                    custom_asset_offset = custom_asset_offset + 1;
+                    custom_asset_offset += 1;
 
                     // Create scan/strg pair for destination
                     assets.extend_from_slice(&create_item_scan_strg_pair(
@@ -1010,7 +1006,7 @@ pub fn custom_assets<'r>(
                     let strg_id = ResId::<res_id::STRG>::new(
                         custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                     );
-                    custom_asset_offset = custom_asset_offset + 1;
+                    custom_asset_offset += 1;
 
                     // Build resource //
                     let strg = structs::ResourceKind::Strg(structs::Strg {
@@ -1039,7 +1035,7 @@ pub fn custom_assets<'r>(
 
                         // Add this scan_id as a dep of this world if it wasn't already //
                         if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
                         }
 
                         // Map for easy lookup when patching //
@@ -1050,11 +1046,11 @@ pub fn custom_assets<'r>(
                         let scan_id = ResId::<res_id::SCAN>::new(
                             custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                         );
-                        custom_asset_offset = custom_asset_offset + 1;
+                        custom_asset_offset += 1;
                         let strg_id = ResId::<res_id::STRG>::new(
                             custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
                         );
-                        custom_asset_offset = custom_asset_offset + 1;
+                        custom_asset_offset += 1;
 
                         // Build resource //
                         if room_name.trim().to_lowercase() == "research core"
@@ -1087,7 +1083,7 @@ pub fn custom_assets<'r>(
                     }
                 }
 
-                pickup_idx = pickup_idx + 1;
+                pickup_idx += 1;
             }
         }
     }
@@ -1123,10 +1119,9 @@ pub fn custom_assets<'r>(
     ));
     assets.push(build_resource(
         custom_asset_ids::WARPING_TO_OTHER_STRG,
-        structs::ResourceKind::Strg(structs::Strg::from_strings(vec![format!(
-            "&just=center;Warping in 6s...\0"
-        )
-        .to_owned()])),
+        structs::ResourceKind::Strg(structs::Strg::from_strings(vec![
+            "&just=center;Warping in 6s...\0".to_string().to_owned(),
+        ])),
     ));
 
     // Custom block asset
@@ -1195,13 +1190,9 @@ pub fn custom_assets<'r>(
             }
         } else {
             // If vanilla CMDL, then it can't depend on custom textures
-            assert!(blast_shield
-                .dependencies(true)
-                .iter()
-                .find(
-                    |d| d.0 >= 0xDEAF0000 && d.0 <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50
-                )
-                .is_none());
+            assert!(!blast_shield.dependencies(true).iter().any(
+                |d| d.0 >= 0xDEAF0000 && d.0 <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50
+            ));
         }
     }
 
@@ -1235,6 +1226,7 @@ pub fn custom_assets<'r>(
 
 // When modifying resources in an MREA, we need to give the room a copy of the resources/
 // assests used. Create a cache of all the resources needed by any pickup, door, etc...
+#[allow(clippy::type_complexity)]
 pub fn collect_game_resources<'r>(
     gc_disc: &structs::GcDisc<'r>,
     starting_memo: Option<&str>,

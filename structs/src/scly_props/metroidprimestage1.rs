@@ -164,36 +164,36 @@ impl<'r> SclyPropertyData for MetroidPrimeStage1<'r> {
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
         vec![
-            self.exo_struct_b.patterned_info.contact_damage.clone(),
-            self.exo_struct_b.exo_struct_ba.damage_info.clone(),
-            self.exo_struct_b.exo_struct_bb[0].damage_info1.clone(),
-            self.exo_struct_b.exo_struct_bb[0].damage_info2.clone(),
-            self.exo_struct_b.exo_struct_bb[1].damage_info1.clone(),
-            self.exo_struct_b.exo_struct_bb[1].damage_info2.clone(),
-            self.exo_struct_b.exo_struct_bb[2].damage_info1.clone(),
-            self.exo_struct_b.exo_struct_bb[2].damage_info2.clone(),
-            self.exo_struct_b.exo_struct_bb[3].damage_info1.clone(),
-            self.exo_struct_b.exo_struct_bb[3].damage_info2.clone(),
-            self.exo_struct_b.damage_info2.clone(),
-            self.exo_struct_b.damage_info3.clone(),
-            self.exo_struct_b.damage_info4.clone(),
+            self.exo_struct_b.patterned_info.contact_damage,
+            self.exo_struct_b.exo_struct_ba.damage_info,
+            self.exo_struct_b.exo_struct_bb[0].damage_info1,
+            self.exo_struct_b.exo_struct_bb[0].damage_info2,
+            self.exo_struct_b.exo_struct_bb[1].damage_info1,
+            self.exo_struct_b.exo_struct_bb[1].damage_info2,
+            self.exo_struct_b.exo_struct_bb[2].damage_info1,
+            self.exo_struct_b.exo_struct_bb[2].damage_info2,
+            self.exo_struct_b.exo_struct_bb[3].damage_info1,
+            self.exo_struct_b.exo_struct_bb[3].damage_info2,
+            self.exo_struct_b.damage_info2,
+            self.exo_struct_b.damage_info3,
+            self.exo_struct_b.damage_info4,
         ]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.exo_struct_b.patterned_info.contact_damage = x[0].clone();
-        self.exo_struct_b.exo_struct_ba.damage_info = x[1].clone();
-        self.exo_struct_b.exo_struct_bb[0].damage_info1 = x[2].clone();
-        self.exo_struct_b.exo_struct_bb[0].damage_info2 = x[3].clone();
-        self.exo_struct_b.exo_struct_bb[1].damage_info1 = x[4].clone();
-        self.exo_struct_b.exo_struct_bb[1].damage_info2 = x[5].clone();
-        self.exo_struct_b.exo_struct_bb[2].damage_info1 = x[6].clone();
-        self.exo_struct_b.exo_struct_bb[2].damage_info2 = x[7].clone();
-        self.exo_struct_b.exo_struct_bb[3].damage_info1 = x[8].clone();
-        self.exo_struct_b.exo_struct_bb[3].damage_info2 = x[9].clone();
-        self.exo_struct_b.damage_info2 = x[10].clone();
-        self.exo_struct_b.damage_info3 = x[11].clone();
-        self.exo_struct_b.damage_info4 = x[12].clone();
+        self.exo_struct_b.patterned_info.contact_damage = x[0];
+        self.exo_struct_b.exo_struct_ba.damage_info = x[1];
+        self.exo_struct_b.exo_struct_bb[0].damage_info1 = x[2];
+        self.exo_struct_b.exo_struct_bb[0].damage_info2 = x[3];
+        self.exo_struct_b.exo_struct_bb[1].damage_info1 = x[4];
+        self.exo_struct_b.exo_struct_bb[1].damage_info2 = x[5];
+        self.exo_struct_b.exo_struct_bb[2].damage_info1 = x[6];
+        self.exo_struct_b.exo_struct_bb[2].damage_info2 = x[7];
+        self.exo_struct_b.exo_struct_bb[3].damage_info1 = x[8];
+        self.exo_struct_b.exo_struct_bb[3].damage_info2 = x[9];
+        self.exo_struct_b.damage_info2 = x[10];
+        self.exo_struct_b.damage_info3 = x[11];
+        self.exo_struct_b.damage_info4 = x[12];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;

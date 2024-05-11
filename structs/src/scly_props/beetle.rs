@@ -43,14 +43,14 @@ impl<'r> SclyPropertyData for Beetle<'r> {
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
         vec![
-            self.patterned_info.contact_damage.clone(),
-            self.touch_damage.clone(),
+            self.patterned_info.contact_damage,
+            self.touch_damage,
         ]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.patterned_info.contact_damage = x[0].clone();
-        self.touch_damage = x[1].clone();
+        self.patterned_info.contact_damage = x[0];
+        self.touch_damage = x[1];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;

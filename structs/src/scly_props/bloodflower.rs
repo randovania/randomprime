@@ -45,18 +45,18 @@ impl<'r> SclyPropertyData for Bloodflower<'r> {
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
         vec![
-            self.patterned_info.contact_damage.clone(),
-            self.damage_info1.clone(),
-            self.damage_info2.clone(),
-            self.damage_info3.clone(),
+            self.patterned_info.contact_damage,
+            self.damage_info1,
+            self.damage_info2,
+            self.damage_info3,
         ]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.patterned_info.contact_damage = x[0].clone();
-        self.damage_info1 = x[1].clone();
-        self.damage_info2 = x[2].clone();
-        self.damage_info3 = x[3].clone();
+        self.patterned_info.contact_damage = x[0];
+        self.damage_info1 = x[1];
+        self.damage_info2 = x[2];
+        self.damage_info3 = x[3];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;

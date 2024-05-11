@@ -155,7 +155,7 @@ impl PickupType {
             PickupType::IceTrap,
         ]
         .iter()
-        .map(|i| *i)
+        .copied()
     }
 
     pub fn kind(&self) -> u32 {
@@ -166,6 +166,7 @@ impl PickupType {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(string: &str) -> Self {
         let string = string.to_lowercase();
         let string = string.trim();
@@ -176,13 +177,13 @@ impl PickupType {
         }
 
         // Alternate Names
-        if vec!["combat"].contains(&string) {
+        if ["combat"].contains(&string) {
             return PickupType::CombatVisor;
-        } else if vec!["scan"].contains(&string) {
+        } else if ["scan"].contains(&string) {
             return PickupType::ScanVisor;
-        } else if vec!["thermal"].contains(&string) {
+        } else if ["thermal"].contains(&string) {
             return PickupType::ThermalVisor;
-        } else if vec!["x-ray", "xray", "x-ray visor", "xray visor"].contains(&string) {
+        } else if ["x-ray", "xray", "x-ray visor", "xray visor"].contains(&string) {
             return PickupType::XRayVisor;
         }
 
@@ -411,7 +412,7 @@ impl PickupModel {
         }
     }
 
-    pub fn pickup_data<'a>(&self) -> Pickup {
+    pub fn pickup_data(&self) -> Pickup {
         let mut pickup: Pickup = Reader::new(self.raw_pickup_data()).read(());
         if self.name() == PickupModel::Nothing.name() {
             pickup.scale[0] = 1.0;
@@ -476,9 +477,10 @@ impl PickupModel {
             PickupModel::IceTrap,
         ]
         .iter()
-        .map(|i| *i)
+        .copied()
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(string: &str) -> Option<Self> {
         let string = string.to_lowercase();
         let string = string.trim();
@@ -489,22 +491,22 @@ impl PickupModel {
         }
 
         // Alternate Names
-        if vec!["combat"].contains(&string) {
+        if ["combat"].contains(&string) {
             return Some(PickupModel::CombatVisor);
-        } else if vec!["scan", "scan visor"].contains(&string) {
+        } else if ["scan", "scan visor"].contains(&string) {
             return Some(PickupModel::Visor);
-        } else if vec!["thermal"].contains(&string) {
+        } else if ["thermal"].contains(&string) {
             return Some(PickupModel::ThermalVisor);
-        } else if vec!["x-ray", "xray", "x-ray visor", "xray visor"].contains(&string) {
+        } else if ["x-ray", "xray", "x-ray visor", "xray visor"].contains(&string) {
             return Some(PickupModel::XRayVisor);
         }
 
-        if vec!["randovania", "placeholder"].contains(&string) {
+        if ["randovania", "placeholder"].contains(&string) {
             return Some(PickupModel::RandovaniaGamecube);
         }
 
         // Placeholder Mapping
-        if vec!["power suit", "power beam"].contains(&string) {
+        if ["power suit", "power beam"].contains(&string) {
             return Some(PickupModel::RandovaniaGamecube);
         }
 

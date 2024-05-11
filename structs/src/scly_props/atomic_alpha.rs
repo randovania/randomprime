@@ -41,14 +41,14 @@ impl<'r> SclyPropertyData for AtomicAlpha<'r> {
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
         vec![
-            self.patterned_info.contact_damage.clone(),
-            self.damage_info.clone(),
+            self.patterned_info.contact_damage,
+            self.damage_info,
         ]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.patterned_info.contact_damage = x[0].clone();
-        self.damage_info = x[1].clone();
+        self.patterned_info.contact_damage = x[0];
+        self.damage_info = x[1];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;

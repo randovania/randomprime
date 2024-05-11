@@ -102,7 +102,7 @@ impl<'r> ResourceDb<'r> {
         let mut deps = HashSet::with_capacity(0);
 
         let data = {
-            let ref record = self.map[&key];
+            let record = &self.map[&key];
             if let Some(ref deps) = record.deps {
                 return deps.clone();
             };
@@ -116,8 +116,8 @@ impl<'r> ResourceDb<'r> {
 
             if key.fourcc == b"SCAN".into() {
                 let scan: Scan = data.data.clone().read(());
-                extend_deps(scan.frme.to_u32(), b"FRME".into());
-                extend_deps(scan.strg.to_u32(), b"STRG".into());
+                extend_deps(scan.frme.to_u32(), b"FRME");
+                extend_deps(scan.strg.to_u32(), b"STRG");
             } else if key.fourcc == b"EVNT".into() {
                 let evnt: Evnt = data.data.clone().read(());
                 for effect in evnt.effect_events.iter() {
@@ -146,7 +146,7 @@ impl<'r> ResourceDb<'r> {
                         let kssm: structs::Kssm = Reader::new(&buf[(i + 8)..]).read(());
                         for list in kssm.lists.iter() {
                             for item in list.items.iter() {
-                                extend_deps(item.part.to_u32(), b"PART".into());
+                                extend_deps(item.part.to_u32(), b"PART");
                             }
                         }
                     }
@@ -156,7 +156,7 @@ impl<'r> ResourceDb<'r> {
                 let cmdl: Cmdl = Reader::new(&buf).read(());
                 for material in cmdl.material_sets.iter() {
                     for id in material.texture_ids.iter() {
-                        extend_deps((*id).to_u32(), b"TXTR".into());
+                        extend_deps((*id).to_u32(), b"TXTR");
                     }
                 }
             } else if key.fourcc == b"ANCS".into() {
@@ -169,9 +169,9 @@ impl<'r> ResourceDb<'r> {
                         .iter()
                         .nth(ancs_node as usize)
                         .unwrap();
-                    extend_deps(char_info.cmdl.to_u32(), b"CMDL".into());
-                    extend_deps(char_info.cskr.to_u32(), b"CSKR".into());
-                    extend_deps(char_info.cinf.to_u32(), b"CINF".into());
+                    extend_deps(char_info.cmdl.to_u32(), b"CMDL");
+                    extend_deps(char_info.cskr.to_u32(), b"CSKR");
+                    extend_deps(char_info.cinf.to_u32(), b"CINF");
                     // char_info.effects.map(|effects| for effect in effects.iter() {
                     //     for comp in effect.components.iter() {
                     //         extend_deps(ResourceKey::new(comp.file_id, comp.type_));
@@ -180,15 +180,15 @@ impl<'r> ResourceDb<'r> {
                     // char_info.overlay_cmdl.map(|cmdl| extend_deps(cmdl, b"CMDL"));
                     // char_info.overlay_cskr.map(|cmdl| extend_deps(cmdl, b"CSKR"));
                     for part in char_info.particles.part_assets.iter() {
-                        extend_deps(*part, b"PART".into());
+                        extend_deps(*part, b"PART");
                     }
                 };
-                ancs.anim_set.animation_resources.map(|i| {
+                if let Some(i) = ancs.anim_set.animation_resources {
                     for anim_resource in i.iter() {
-                        extend_deps(anim_resource.anim.to_u32(), b"ANIM".into());
-                        extend_deps(anim_resource.evnt.to_u32(), b"EVNT".into());
+                        extend_deps(anim_resource.anim.to_u32(), b"ANIM");
+                        extend_deps(anim_resource.evnt.to_u32(), b"EVNT");
                     }
-                });
+                }
             }
         }
 
@@ -234,14 +234,11 @@ impl<K: res_id::ResIdKind> From<ResId<K>> for ResourceKey {
 
 impl ResourceKey {
     fn new(file_id: u32, fourcc: FourCC) -> ResourceKey {
-        ResourceKey {
-            file_id: file_id,
-            fourcc: fourcc,
-        }
+        ResourceKey { file_id, fourcc }
     }
 }
 
-static CUT_SCENE_PICKUPS: &'static [(u32, u32)] = &[
+static CUT_SCENE_PICKUPS: &[(u32, u32)] = &[
     (0x3C785450, 589860),    // Morph Ball
     (0x0D72F1F7, 1377077),   // Wavebuster
     (0x11BD63B7, 1769497),   // Artifact of Lifegiver
@@ -253,19 +250,19 @@ static CUT_SCENE_PICKUPS: &'static [(u32, u32)] = &[
     (0xE1981EFC, 3735555),   // Artifact of World
     (0xAFEFE677, 3997699),   // Ice Beam
     // XXX Doesn't normally have a cutscene. Skip?
-    (0x6655F51E, 524887), // Artifact of Sun
-    (0x40C548E9, 917592), // Wave Beam
+    (0x6655F51E, 524887),  // Artifact of Sun
+    (0x40C548E9, 917592),  // Wave Beam
     (0xA20A7455, 1048801), // Boost Ball
     (0x70181194, 1573322), // Spider Ball
     (0x3FB4A34E, 1966838), // Super Missile
     // XXX Doesn't normally have a cutscene. Skip?
-    (0xB3C33249, 2557135), // Artifact of Elder
+    (0xB3C33249, 2557135),  // Artifact of Elder
     (0xA49B2544, 69730588), // Thermal Visor
-    (0x49175472, 3473439), // Gravity Suit
-    (0xF7C84340, 3539113), // Artifact of Spirit
-    (0xC44E7A07, 262151),  // Space Jump Boots
+    (0x49175472, 3473439),  // Gravity Suit
+    (0xF7C84340, 3539113),  // Artifact of Spirit
+    (0xC44E7A07, 262151),   // Space Jump Boots
     (0x2398E906, 68157908), // Artifact of Truth
-    (0x86EB2E02, 2752545), // X-Ray Visor
+    (0x86EB2E02, 2752545),  // X-Ray Visor
     // XXX Doesn't normally have a cutscene. Skip?
     (0x86EB2E02, 2753076), // Artifact of Chozo
     (0xE39C342B, 589827),  // Grapple Beam
@@ -276,8 +273,8 @@ static CUT_SCENE_PICKUPS: &'static [(u32, u32)] = &[
     (0xBBFA4AB3, 2556031), // Artifact of Newborn
     (0xA4719C6A, 272508),  // Artifact of Nature
     // XXX Doesn't normally have a cutscene. Skip?
-    (0x89A6CB8D, 720951), // Artifact of Strength
-    (0x901040DF, 786472), // Ice Spreader
+    (0x89A6CB8D, 720951),  // Artifact of Strength
+    (0x901040DF, 786472),  // Ice Spreader
     (0x4CC18E5A, 1376287), // Plasma Beam
 ];
 
@@ -322,7 +319,7 @@ fn find_audio_attainment<'r>(
             .unwrap_or(false)
     })?;
 
-    const ATTAINMENT_AUDIO_FILES: &'static [&'static [u8]] = &[
+    const ATTAINMENT_AUDIO_FILES: &[&[u8]] = &[
         b"/audio/itm_x_short_02.dsp",
         b"audio/jin_artifact.dsp",
         b"audio/jin_itemattain.dsp",
@@ -346,9 +343,9 @@ fn extract_pickup_data<'r>(
     let mut deps = res_db.get_dependencies(&pickup);
     patch_dependencies(pickup.kind, &mut deps);
 
-    let scly_db = build_scly_db(&scly);
+    let scly_db = build_scly_db(scly);
 
-    let attainment_audio_file_name = if let Some(aa) = find_audio_attainment(&obj, &scly_db) {
+    let attainment_audio_file_name = if let Some(aa) = find_audio_attainment(obj, &scly_db) {
         let streamed_audio = aa.property_data.as_streamed_audio().unwrap();
         streamed_audio
             .audio_file_name
@@ -390,7 +387,7 @@ fn extract_pickup_location<'r>(
 
     let scly_db = build_scly_db(scly);
 
-    let attainment_audio_location = if let Some(aa) = find_audio_attainment(&obj, &scly_db) {
+    let attainment_audio_location = if let Some(aa) = find_audio_attainment(obj, &scly_db) {
         ScriptObjectLocation {
             layer: scly_db[&aa.instance_id].0 as u32,
             instance_id: aa.instance_id,
@@ -422,18 +419,16 @@ fn extract_pickup_location<'r>(
             layer: scly_db[&hudmemo.instance_id].0 as u32,
             instance_id: hudmemo.instance_id,
         }
+    } else if pickup.kind == 23 {
+        // phazon suit
+        ScriptObjectLocation {
+            layer: scly_db[&68813640].0 as u32,
+            instance_id: 68813640,
+        }
     } else {
-        if pickup.kind == 23 {
-            // phazon suit
-            ScriptObjectLocation {
-                layer: scly_db[&68813640].0 as u32,
-                instance_id: 68813640,
-            }
-        } else {
-            ScriptObjectLocation {
-                layer: 0,
-                instance_id: 0xFFFFFFFF,
-            }
+        ScriptObjectLocation {
+            layer: 0,
+            instance_id: 0xFFFFFFFF,
         }
     };
 
@@ -492,8 +487,8 @@ fn extract_pickup_location<'r>(
             .unwrap_or(false)
     });
 
-    let memory_relay_id = if memory_relay.is_some() {
-        memory_relay.unwrap().instance_id
+    let memory_relay_id = if let Some(memory_relay) = memory_relay {
+        memory_relay.instance_id
     } else {
         panic!(
             "Couldn't find the memory relay for pickup {:X}",
@@ -516,17 +511,17 @@ fn extract_pickup_location<'r>(
 
     let location = PickupLocation {
         location: ScriptObjectLocation {
-            layer: obj_location.layer as u32,
+            layer: obj_location.layer,
             instance_id: obj.instance_id,
         },
         attainment_audio: attainment_audio_location,
         hudmemo: hudmemo_loc,
-        post_pickup_relay_connections: post_pickup_relay_connections,
+        post_pickup_relay_connections,
         memory_relay: ScriptObjectLocation {
             layer: memory_relay_id >> 26,
             instance_id: memory_relay_id,
         },
-        position: pickup.position.clone().into(),
+        position: pickup.position.into(),
     };
 
     (location, removals)
@@ -552,12 +547,12 @@ where
     }
 
     while let Some(id) = stack.pop() {
-        let obj = if let Some(&(_, ref obj)) = scly_db.get(&id) {
+        let obj = if let Some((_, obj)) = scly_db.get(&id) {
             obj
         } else {
             continue;
         };
-        if f(&obj) {
+        if f(obj) {
             return Some(obj.clone());
         }
         for c in obj.connections.iter() {
@@ -598,7 +593,7 @@ fn build_skip_cutscene_relay_connections<'r>(
             } else if name == b"Timer HUD" {
                 // We want to copy most of Timer HUD's connections, with a few exceptions
                 for conn in connected_object.connections.iter() {
-                    let obj = if let Some(ref obj) = scly_db.get(&conn.target_object_id) {
+                    let obj = if let Some(obj) = scly_db.get(&conn.target_object_id) {
                         &obj.1
                     } else {
                         connections.push(conn.into_owned());
@@ -663,7 +658,7 @@ fn find_cutscene_trigger_relay<'r>(
     // result of the non-cutscene artifacts, for which the relay we're looking for is simply titled
     // "Relay".
     // We need this seperate static in order to get static lifetimes. Its kinda awful.
-    static NAME_CANDIDATES: &'static [&'static [u8]] = &[
+    static NAME_CANDIDATES: &[&[u8]] = &[
         b"!Relay Start Suit Attainment Cinematic",
         b"!Relay Local Start Suit Attainment Cinematic",
         b"Relay-start of cinema",
@@ -672,7 +667,7 @@ fn find_cutscene_trigger_relay<'r>(
     let name_candidates: &[&[u8]] = match pickup_type {
         21 => &NAME_CANDIDATES[0..1],
         22 => &NAME_CANDIDATES[1..2],
-        29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 => &NAME_CANDIDATES[2..4],
+        29..=40 => &NAME_CANDIDATES[2..4],
         _ => &NAME_CANDIDATES[2..3],
     };
     let obj = search_for_scly_object(obj_connections, scly_db, |o| {
@@ -791,8 +786,8 @@ fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         .insert(
             PickupModel::RandovaniaGamecube,
             PickupData {
-                bytes: bytes,
-                deps: deps,
+                bytes,
+                deps,
                 attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
             }
         )
@@ -1096,7 +1091,7 @@ fn main() {
             let mut res = res.into_owned();
             let mrea = res.kind.as_mrea_mut().unwrap();
 
-            let model_count = mrea.world_model_count.clone();
+            let model_count = mrea.world_model_count;
 
             let scly = mrea.scly_section_mut();
 
@@ -1252,7 +1247,7 @@ fn main() {
 
                     door_locations.push(DoorLocation {
                         door_location: door_loc,
-                        door_rotation: door_rotation,
+                        door_rotation,
                         door_force_locations,
                         door_shield_locations,
                         dock_number: dock.dock_index,
@@ -1285,7 +1280,7 @@ fn main() {
                             layer: layer_num as u32,
                         };
                         let (pickup_loc, removals) =
-                            extract_pickup_location(res.file_id, &scly, &obj, obj_loc);
+                            extract_pickup_location(res.file_id, scly, &obj, obj_loc);
 
                         for loc in removals {
                             room_removals
@@ -1309,8 +1304,7 @@ fn main() {
                         continue;
                     }
 
-                    pickup_table
-                        .insert(pickup_model, extract_pickup_data(&scly, &obj, &mut res_db));
+                    pickup_table.insert(pickup_model, extract_pickup_data(scly, &obj, &mut res_db));
 
                     if pickup.cmdl != u32::max_value() {
                         // Add an aabb entry for this pickup's cmdl
@@ -1360,9 +1354,9 @@ fn main() {
                     }
                 };
 
-                if vec![
+                if [
                     0x2398E906, // artifact temple
-                    0x5F2EB7B6, // biotech 1
+                    0x5F2EB7B6,
                 ]
                 .contains(&res.file_id)
                 {
@@ -1499,8 +1493,8 @@ fn main() {
     // create_power_beam(&mut pickup_table);
 
     println!("// This file is generated by bin/resource_tracing.rs");
-    println!("");
-    println!("");
+    println!();
+    println!();
 
     println!("pub const ROOM_INFO: &[(&str, &[RoomInfo]); 8] = &[");
     for (fname, locations) in filenames.iter().zip(locations.into_iter()) {
@@ -1539,7 +1533,7 @@ fn main() {
                     location.memory_relay
                 );
                 println!("                    position: {:?},", location.position);
-                if location.post_pickup_relay_connections.len() == 0 {
+                if location.post_pickup_relay_connections.is_empty() {
                     println!("                    post_pickup_relay_connections: &[]");
                 } else {
                     println!("                    post_pickup_relay_connections: &[");
@@ -1587,7 +1581,7 @@ fn main() {
             }
             println!("            ],");
 
-            if room_info.objects_to_remove.len() == 0 {
+            if room_info.objects_to_remove.is_empty() {
                 println!("            objects_to_remove: &[],");
             } else {
                 println!("            objects_to_remove: &[");
@@ -1780,7 +1774,7 @@ fn main() {
             for x in 0..len {
                 print!(" 0x{:02X},", pickup_bytes[y * BYTES_PER_LINE + x]);
             }
-            println!("");
+            println!();
         }
         println!("            ],");
     }

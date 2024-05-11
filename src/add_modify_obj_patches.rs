@@ -140,7 +140,7 @@ macro_rules! add_edit_obj_helper {
     };
 }
 
-pub fn patch_add_streamed_audio<'r>(
+pub fn patch_add_streamed_audio(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: StreamedAudioConfig,
@@ -225,7 +225,7 @@ pub fn patch_add_liquid<'r>(
     {
         let id = config.id;
         let requested_layer_id = config.layer;
-        let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+        let mrea_id = area.mlvl_area.mrea.to_u32();
 
         // add more layers as needed
         if let Some(requested_layer_id) = requested_layer_id {
@@ -329,7 +329,7 @@ pub fn patch_add_liquid<'r>(
             .as_mut_vec();
         water_obj.property_data.as_water_mut().unwrap().active =
             config.active.unwrap_or(true) as u8;
-        let property_data: structs::SclyProperty = water_obj.property_data.into();
+        let property_data: structs::SclyProperty = water_obj.property_data;
 
         assert!(property_data.object_type() == structs::Water::OBJECT_TYPE);
 
@@ -339,11 +339,11 @@ pub fn patch_add_liquid<'r>(
             connections: vec![].into(),
         });
 
-        return Ok(());
-    };
+        Ok(())
+    }
 }
 
-pub fn patch_add_actor_key_frame<'r>(
+pub fn patch_add_actor_key_frame(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: ActorKeyFrameConfig,
@@ -388,7 +388,7 @@ pub fn patch_add_actor_key_frame<'r>(
     );
 }
 
-pub fn patch_add_timer<'r>(
+pub fn patch_add_timer(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: TimerConfig,
@@ -430,7 +430,7 @@ pub fn patch_add_timer<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, Timer, new, update);
 }
 
-pub fn patch_add_relay<'r>(
+pub fn patch_add_relay(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: RelayConfig,
@@ -456,7 +456,7 @@ pub fn patch_add_relay<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, Relay, new, update);
 }
 
-pub fn patch_add_spawn_point<'r>(
+pub fn patch_add_spawn_point(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: SpawnPointConfig,
@@ -541,7 +541,7 @@ pub fn patch_add_spawn_point<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, SpawnPoint, new, update);
 }
 
-pub fn patch_add_trigger<'r>(
+pub fn patch_add_trigger(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: TriggerConfig,
@@ -607,7 +607,7 @@ pub fn patch_add_trigger<'r>(
     add_edit_obj_helper!(area, config.id, config.layer, Trigger, new, update);
 }
 
-pub fn patch_add_special_fn<'r>(
+pub fn patch_add_special_fn(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: SpecialFunctionConfig,
@@ -623,7 +623,7 @@ pub fn patch_add_special_fn<'r>(
                 position: config.position.unwrap_or_default().into(),
                 rotation: config.rotation.unwrap_or_default().into(),
                 type_: config.type_ as u32,
-                unknown0: unknown0,
+                unknown0,
                 unknown1: config.unknown2.unwrap_or_default(),
                 unknown2: config.unknown3.unwrap_or_default(),
                 unknown3: config.unknown4.unwrap_or_default(),
@@ -743,7 +743,7 @@ pub fn patch_add_hudmemo<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, HudMemo, new, update);
 }
 
-pub fn patch_add_actor_rotate_fn<'r>(
+pub fn patch_add_actor_rotate_fn(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: ActorRotateConfig,
@@ -776,7 +776,7 @@ pub fn patch_add_actor_rotate_fn<'r>(
     add_edit_obj_helper!(area, config.id, config.layer, ActorRotate, new, update);
 }
 
-pub fn patch_add_waypoint<'r>(
+pub fn patch_add_waypoint(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: WaypointConfig,
@@ -846,7 +846,7 @@ pub fn patch_add_waypoint<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, Waypoint, new, update);
 }
 
-pub fn patch_add_counter<'r>(
+pub fn patch_add_counter(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: CounterConfig,
@@ -884,7 +884,7 @@ pub fn patch_add_counter<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, Counter, new, update);
 }
 
-pub fn patch_add_switch<'r>(
+pub fn patch_add_switch(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: SwitchConfig,
@@ -918,7 +918,7 @@ pub fn patch_add_switch<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, Switch, new, update);
 }
 
-pub fn patch_add_player_hint<'r>(
+pub fn patch_add_player_hint(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: PlayerHintConfig,
@@ -1017,7 +1017,7 @@ pub fn patch_add_player_hint<'r>(
     add_edit_obj_helper!(area, Some(config.id), config.layer, PlayerHint, new, update);
 }
 
-pub fn patch_add_distance_fogs<'r>(
+pub fn patch_add_distance_fogs(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: FogConfig,
@@ -1081,51 +1081,50 @@ fn rotation_matrix(rotations: [Rotation; 3]) -> Matrix3<f32> {
     let mut matrix = Matrix3::identity();
 
     for rotation in rotations {
-        matrix = matrix
-            * match rotation {
-                Pitch(angle) => {
-                    let rad = angle.to_radians();
-                    Matrix3::new(
-                        1.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                        rad.cos(),
-                        -rad.sin(),
-                        0.0,
-                        rad.sin(),
-                        rad.cos(),
-                    )
-                }
-                Roll(angle) => {
-                    let rad = angle.to_radians();
-                    Matrix3::new(
-                        rad.cos(),
-                        0.0,
-                        rad.sin(),
-                        0.0,
-                        1.0,
-                        0.0,
-                        -rad.sin(),
-                        0.0,
-                        rad.cos(),
-                    )
-                }
-                Yaw(angle) => {
-                    let rad = angle.to_radians();
-                    Matrix3::new(
-                        rad.cos(),
-                        -rad.sin(),
-                        0.0,
-                        rad.sin(),
-                        rad.cos(),
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0,
-                    )
-                }
-            };
+        matrix *= match rotation {
+            Pitch(angle) => {
+                let rad = angle.to_radians();
+                Matrix3::new(
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    rad.cos(),
+                    -rad.sin(),
+                    0.0,
+                    rad.sin(),
+                    rad.cos(),
+                )
+            }
+            Roll(angle) => {
+                let rad = angle.to_radians();
+                Matrix3::new(
+                    rad.cos(),
+                    0.0,
+                    rad.sin(),
+                    0.0,
+                    1.0,
+                    0.0,
+                    -rad.sin(),
+                    0.0,
+                    rad.cos(),
+                )
+            }
+            Yaw(angle) => {
+                let rad = angle.to_radians();
+                Matrix3::new(
+                    rad.cos(),
+                    -rad.sin(),
+                    0.0,
+                    rad.sin(),
+                    rad.cos(),
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                )
+            }
+        };
     }
 
     matrix
@@ -1163,8 +1162,7 @@ pub fn patch_add_bomb_slot<'r>(
         None => 0,
     } as usize;
 
-    let deps = vec![
-        // platform
+    let deps = [
         (0x3852C9CF, b"CMDL"),
         (0x5B4D184E, b"TXTR"),
         (0x89CC3758, b"DCLN"),
@@ -1423,8 +1421,7 @@ pub fn patch_add_bomb_slot<'r>(
                     activate_visor_xray: 0,
                     unknown6: 0,
                     face_object_on_unmorph: 0,
-                }
-                .into(),
+                },
                 priority: 10,
             }
             .into(),
@@ -1595,7 +1592,7 @@ fn player_actor_data<'r>() -> structs::PlayerActor<'r> {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ];
 
-    Reader::new(&bytes).read(())
+    Reader::new(bytes).read(())
 }
 
 pub fn patch_add_player_actor<'r>(
@@ -1604,7 +1601,7 @@ pub fn patch_add_player_actor<'r>(
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     config: PlayerActorConfig,
 ) -> Result<(), String> {
-    let deps = vec![(0x836c33b3, b"ANCS")];
+    let deps = [(0x836c33b3, b"ANCS")];
     let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
         asset_id: file_id,
         asset_type: FourCC::from_bytes(fourcc),
@@ -1640,7 +1637,7 @@ pub fn patch_add_player_actor<'r>(
     add_edit_obj_helper!(area, config.id, config.layer, PlayerActor, new, update);
 }
 
-pub fn patch_add_world_light_fader<'r>(
+pub fn patch_add_world_light_fader(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: WorldLightFaderConfig,
@@ -1681,7 +1678,7 @@ pub fn patch_add_world_light_fader<'r>(
     );
 }
 
-pub fn patch_add_controller_action<'r>(
+pub fn patch_add_controller_action(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: ControllerActionConfig,
@@ -1901,7 +1898,7 @@ pub fn patch_add_platform<'r>(
                 extent: [0.0, 0.0, 0.0].into(),
                 scan_offset: [0.0, 0.0, 0.0].into(),
 
-                cmdl: cmdl,
+                cmdl,
                 ancs: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(),
                     node_index: 0,
@@ -1950,7 +1947,7 @@ pub fn patch_add_platform<'r>(
                 speed: 5.0,
                 active: config.active.unwrap_or(true) as u8,
 
-                dcln: dcln,
+                dcln,
 
                 health_info: structs::scly_structs::HealthInfo {
                     health: 1.0,
@@ -2290,7 +2287,7 @@ pub fn patch_add_platform<'r>(
 
     let id = config.id;
     let requested_layer_id = config.layer;
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
 
     // add more layers as needed
     if let Some(requested_layer_id) = requested_layer_id {
@@ -2408,7 +2405,7 @@ pub fn patch_add_block<'r>(
 ) -> Result<(), String> {
     let texture = config.texture.unwrap_or(GenericTexture::Grass);
 
-    let deps = vec![
+    let deps = [
         (texture.cmdl().to_u32(), b"CMDL"),
         (texture.txtr().to_u32(), b"TXTR"),
     ];
@@ -2433,8 +2430,9 @@ pub fn patch_add_block<'r>(
     Ok(())
 }
 
-pub fn add_block<'r>(
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+#[allow(clippy::too_many_arguments)]
+pub fn add_block(
+    area: &mut mlvl_wrapper::MlvlArea,
     id: Option<u32>,
     position: [f32; 3],
     scale: [f32; 3],
@@ -2549,7 +2547,7 @@ pub fn patch_lock_on_point<'r>(
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     config: LockOnPoint,
 ) -> Result<(), String> {
-    let deps = vec![
+    let deps = [
         (0xBFE4DAA0, b"CMDL"),
         (0x57C7107D, b"TXTR"),
         (0xE580D665, b"TXTR"),
@@ -2566,7 +2564,7 @@ pub fn patch_lock_on_point<'r>(
     let layer = config.layer.unwrap_or(0) as usize;
 
     if is_grapple {
-        let deps = vec![
+        let deps = [
             (0x3abe45a6, b"SCAN"),
             (0x191a6881, b"STRG"),
             (0x748c37a5, b"SCAN"),
@@ -2863,9 +2861,10 @@ pub fn patch_lock_on_point<'r>(
     Ok(())
 }
 
-pub fn patch_add_camera_hint<'r>(
+#[allow(clippy::too_many_arguments)]
+pub fn patch_add_camera_hint(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea,
     trigger_pos: [f32; 3],
     trigger_scale: [f32; 3],
     camera_pos: [f32; 3],
@@ -2906,159 +2905,156 @@ pub fn add_camera_hint<'r>(
     camera_rot: [f32; 3],
     behavior: u32,
 ) -> Vec<structs::SclyObject<'r>> {
-    let mut objects = Vec::new();
-
-    objects.push(structs::SclyObject {
-        instance_id: camear_hint_id,
-        connections: vec![].into(),
-        property_data: structs::SclyProperty::CameraHint(Box::new(structs::CameraHint {
-            name: b"CameraHint\0".as_cstr(),
-            position: camera_pos.into(),
-            rotation: camera_rot.into(),
-            active: 1,
-            priority: 8,
-            behavior: behavior,
-            camera_hint_params: structs::CameraHintParameters {
-                calculate_cam_pos: 0,
-                chase_allowed: 0,
-                boost_allowed: 0,
-                obscure_avoidance: 0,
-                volume_collider: 0,
-                apply_immediately: 1,
-                look_at_ball: 1,
-                hint_distance_selection: 0,
-                hint_distance_self_pos: 1,
-                control_interpolation: 0,
-                sinusoidal_interpolation: 0,
-                sinusoidal_interpolation_hintless: 0,
-                clamp_velocity: 0,
-                skip_cinematic: 0,
-                no_elevation_interp: 0,
-                direct_elevation: 0,
-                override_look_dir: 1,
-                no_elevation_vel_clamp: 0,
-                calculate_transform_from_prev_cam: 1,
-                no_spline: 1,
-                unknown21: 0,
-                unknown22: 0,
-            },
-            min_dist: structs::BoolFloat {
-                active: 0,
-                value: 8.0,
-            },
-            max_dist: structs::BoolFloat {
-                active: 0,
-                value: 50.0,
-            },
-            backwards_dist: structs::BoolFloat {
-                active: 0,
-                value: 8.0,
-            },
-            look_at_offset: structs::BoolVec3 {
-                active: 0,
-                value: [0.0, 1.0, 1.0].into(),
-            },
-            chase_look_at_offset: structs::BoolVec3 {
-                active: 0,
-                value: [0.0, 1.0, 1.0].into(),
-            },
-            ball_to_cam: [3.0, 3.0, 3.0].into(),
-            fov: structs::BoolFloat {
-                active: 0,
-                value: 55.0,
-            },
-            attitude_range: structs::BoolFloat {
-                active: 0,
-                value: 90.0,
-            },
-            azimuth_range: structs::BoolFloat {
-                active: 0,
-                value: 90.0,
-            },
-            angle_per_second: structs::BoolFloat {
-                active: 0,
-                value: 120.0,
-            },
-            clamp_vel_range: 10.0,
-            clamp_rot_range: 120.0,
-            elevation: structs::BoolFloat {
-                active: 0,
-                value: 2.7,
-            },
-            interpolate_time: 1.0,
-            clamp_vel_time: 1.0,
-            control_interp_dur: 1.0,
-        })),
-    });
-
-    objects.push(structs::SclyObject {
-        instance_id: camera_hint_trigger_id,
-        connections: vec![
-            structs::Connection {
-                state: structs::ConnectionState::ENTERED,
-                message: structs::ConnectionMsg::INCREMENT,
-                target_object_id: camear_hint_id,
-            },
-            structs::Connection {
-                state: structs::ConnectionState::EXITED,
-                message: structs::ConnectionMsg::DECREMENT,
-                target_object_id: camear_hint_id,
-            },
-        ]
-        .into(),
-        property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
-            name: b"camerahinttrigger\0".as_cstr(),
-            position: trigger_pos.into(),
-            scale: trigger_scale.into(),
-            damage_info: structs::scly_structs::DamageInfo {
-                weapon_type: 0,
-                damage: 0.0,
-                radius: 0.0,
-                knockback_power: 0.0,
-            },
-            force: [0.0, 0.0, 0.0].into(),
-            flags: 1,
-            active: 1,
-            deactivate_on_enter: 0,
-            deactivate_on_exit: 0,
-        })),
-    });
-
-    // objects.push(
-    //     structs::SclyObject {
-    //         instance_id: area.new_object_id_from_layer_name("Default"),
-    //         connections: vec![
-    //             structs::Connection {
-    //                 state: structs::ConnectionState::INSIDE,
-    //                 message: structs::ConnectionMsg::INCREMENT,
-    //                 target_object_id: camear_hint_id,
-    //             },
-    //             structs::Connection {
-    //                 state: structs::ConnectionState::EXITED,
-    //                 message: structs::ConnectionMsg::DECREMENT,
-    //                 target_object_id: camear_hint_id,
-    //             }
-    //         ].into(),
-    //         property_data: structs::SclyProperty::CameraHintTrigger(
-    //             Box::new(structs::CameraHintTrigger {
-    //                 name: b"CameraHintTrigger\0".as_cstr(),
-    //                 position: spawn_point_position.into(),
-    //                 rotation: spawn_point_rotation.into(),
-    //                 scale: [10.0, 10.0, 10.0].into(),
-    //                 active: 1,
-    //                 deactivate_on_enter: 0,
-    //                 deactivate_on_exit: 0,
-    //             })
-    //         ),
-    //     }
-    // );
-
+    let objects = vec![
+        structs::SclyObject {
+            instance_id: camear_hint_id,
+            connections: vec![].into(),
+            property_data: structs::SclyProperty::CameraHint(Box::new(structs::CameraHint {
+                name: b"CameraHint\0".as_cstr(),
+                position: camera_pos.into(),
+                rotation: camera_rot.into(),
+                active: 1,
+                priority: 8,
+                behavior,
+                camera_hint_params: structs::CameraHintParameters {
+                    calculate_cam_pos: 0,
+                    chase_allowed: 0,
+                    boost_allowed: 0,
+                    obscure_avoidance: 0,
+                    volume_collider: 0,
+                    apply_immediately: 1,
+                    look_at_ball: 1,
+                    hint_distance_selection: 0,
+                    hint_distance_self_pos: 1,
+                    control_interpolation: 0,
+                    sinusoidal_interpolation: 0,
+                    sinusoidal_interpolation_hintless: 0,
+                    clamp_velocity: 0,
+                    skip_cinematic: 0,
+                    no_elevation_interp: 0,
+                    direct_elevation: 0,
+                    override_look_dir: 1,
+                    no_elevation_vel_clamp: 0,
+                    calculate_transform_from_prev_cam: 1,
+                    no_spline: 1,
+                    unknown21: 0,
+                    unknown22: 0,
+                },
+                min_dist: structs::BoolFloat {
+                    active: 0,
+                    value: 8.0,
+                },
+                max_dist: structs::BoolFloat {
+                    active: 0,
+                    value: 50.0,
+                },
+                backwards_dist: structs::BoolFloat {
+                    active: 0,
+                    value: 8.0,
+                },
+                look_at_offset: structs::BoolVec3 {
+                    active: 0,
+                    value: [0.0, 1.0, 1.0].into(),
+                },
+                chase_look_at_offset: structs::BoolVec3 {
+                    active: 0,
+                    value: [0.0, 1.0, 1.0].into(),
+                },
+                ball_to_cam: [3.0, 3.0, 3.0].into(),
+                fov: structs::BoolFloat {
+                    active: 0,
+                    value: 55.0,
+                },
+                attitude_range: structs::BoolFloat {
+                    active: 0,
+                    value: 90.0,
+                },
+                azimuth_range: structs::BoolFloat {
+                    active: 0,
+                    value: 90.0,
+                },
+                angle_per_second: structs::BoolFloat {
+                    active: 0,
+                    value: 120.0,
+                },
+                clamp_vel_range: 10.0,
+                clamp_rot_range: 120.0,
+                elevation: structs::BoolFloat {
+                    active: 0,
+                    value: 2.7,
+                },
+                interpolate_time: 1.0,
+                clamp_vel_time: 1.0,
+                control_interp_dur: 1.0,
+            })),
+        },
+        structs::SclyObject {
+            instance_id: camera_hint_trigger_id,
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::INCREMENT,
+                    target_object_id: camear_hint_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::EXITED,
+                    message: structs::ConnectionMsg::DECREMENT,
+                    target_object_id: camear_hint_id,
+                },
+            ]
+            .into(),
+            property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
+                name: b"camerahinttrigger\0".as_cstr(),
+                position: trigger_pos.into(),
+                scale: trigger_scale.into(),
+                damage_info: structs::scly_structs::DamageInfo {
+                    weapon_type: 0,
+                    damage: 0.0,
+                    radius: 0.0,
+                    knockback_power: 0.0,
+                },
+                force: [0.0, 0.0, 0.0].into(),
+                flags: 1,
+                active: 1,
+                deactivate_on_enter: 0,
+                deactivate_on_exit: 0,
+            })),
+        },
+        // objects.push(
+        //     structs::SclyObject {
+        //         instance_id: area.new_object_id_from_layer_name("Default"),
+        //         connections: vec![
+        //             structs::Connection {
+        //                 state: structs::ConnectionState::INSIDE,
+        //                 message: structs::ConnectionMsg::INCREMENT,
+        //                 target_object_id: camear_hint_id,
+        //             },
+        //             structs::Connection {
+        //                 state: structs::ConnectionState::EXITED,
+        //                 message: structs::ConnectionMsg::DECREMENT,
+        //                 target_object_id: camear_hint_id,
+        //             }
+        //         ].into(),
+        //         property_data: structs::SclyProperty::CameraHintTrigger(
+        //             Box::new(structs::CameraHintTrigger {
+        //                 name: b"CameraHintTrigger\0".as_cstr(),
+        //                 position: spawn_point_position.into(),
+        //                 rotation: spawn_point_rotation.into(),
+        //                 scale: [10.0, 10.0, 10.0].into(),
+        //                 active: 1,
+        //                 deactivate_on_enter: 0,
+        //                 deactivate_on_exit: 0,
+        //             })
+        //         ),
+        //     }
+        // );
+    ];
     objects
 }
 
-pub fn patch_add_escape_sequence<'r>(
+pub fn patch_add_escape_sequence(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea,
     time: f32,
     start_trigger_pos: [f32; 3],
     start_trigger_scale: [f32; 3],

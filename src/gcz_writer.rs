@@ -94,9 +94,9 @@ impl<W: Write + Seek> Write for GczWriter<W> {
                 self.hashes.push(adler32(&self.input_buf[..])?);
             } else {
                 self.block_offsets.push(self.total_bytes_written);
-                self.file.write_all(&output_buf)?;
-                self.total_bytes_written += compressed_len as u64;
-                self.hashes.push(adler32(&output_buf[..])?);
+                self.file.write_all(output_buf)?;
+                self.total_bytes_written += compressed_len;
+                self.hashes.push(adler32(output_buf)?);
             }
 
             self.input_buf_used = 0;

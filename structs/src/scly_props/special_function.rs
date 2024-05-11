@@ -44,7 +44,7 @@ impl<'r> SclyPropertyData for SpecialFunction<'r> {
 impl<'r> SpecialFunction<'r> {
     pub fn layer_change_fn(name: CStr<'r>, room_id: u32, layer_num: u32) -> Self {
         SpecialFunction {
-            name: name,
+            name,
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 16,
@@ -65,7 +65,7 @@ impl<'r> SpecialFunction<'r> {
 
     pub fn ice_trap_fn(name: CStr<'r>) -> Self {
         SpecialFunction {
-            name: name,
+            name,
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 33,

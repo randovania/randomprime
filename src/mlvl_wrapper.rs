@@ -36,7 +36,7 @@ impl<'r> MlvlEditor<'r> {
             .areas
             .iter_mut()
             .enumerate()
-            .find(|&(_, ref a)| a.mrea == file_id)
+            .find(|(_, a)| a.mrea == file_id)
             .unwrap();
         MlvlArea {
             mrea_index: i,
@@ -62,11 +62,8 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
 
     pub fn get_layer_id_from_name(&mut self, layer_name: &str) -> usize {
         let layer_name_nul = format!("{}\0", layer_name);
-        let c_layer_name = (*(&layer_name_nul[..])).as_bytes().as_cstr();
-        let layer_id = self
-            .layer_names
-            .iter()
-            .position(|x| x.eq(&(c_layer_name.to_owned())));
+        let c_layer_name = (layer_name_nul[..]).as_bytes().as_cstr();
+        let layer_id = self.layer_names.iter().position(|x| x.eq(&c_layer_name));
 
         if layer_id.is_none() {
             panic!("Layer {} doesn't exist", layer_name);
@@ -77,7 +74,7 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
 
     pub fn object_id_from_layer_name(&mut self, layer_name: &str, internal_idx: usize) -> u32 {
         let layer_id = self.get_layer_id_from_name(layer_name);
-        return self.object_id_from_layer_id(layer_id, internal_idx);
+        self.object_id_from_layer_id(layer_id, internal_idx)
     }
 
     pub fn object_id_from_layer_id(&mut self, layer_id: usize, internal_idx: usize) -> u32 {
@@ -95,7 +92,7 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
 
     pub fn new_object_id_from_layer_name(&mut self, layer_name: &str) -> u32 {
         let layer_id = self.get_layer_id_from_name(layer_name);
-        return self.new_object_id_from_layer_id(layer_id);
+        self.new_object_id_from_layer_id(layer_id)
     }
 
     pub fn new_object_id_from_layer_id(&mut self, layer_id: usize) -> u32 {
@@ -143,11 +140,10 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
 
         let layers = self.mrea().scly_section_mut().layers.as_mut_vec();
 
-        if layers[layer_id]
+        if !layers[layer_id]
             .objects
             .iter_mut()
-            .find(|obj| obj.instance_id == mem_relay_id)
-            .is_none()
+            .any(|obj| obj.instance_id == mem_relay_id)
         {
             panic!(
                 "[set_memory_relay_active] mem_relay doesn't exist! (ID : {:X})",
@@ -195,7 +191,7 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
                 sender_id: mem_relay.instance_id,
                 target_id: conn.target_object_id,
                 message: conn.message.0 as u16,
-                active: active,
+                active,
             });
         }
 
@@ -230,9 +226,7 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
             .push(SclyLayer::new());
 
         assert!(self.layer_names.len() as u32 == self.layer_flags.layer_count);
-        assert!(
-            self.layer_flags.layer_count as u32 == self.mrea().scly_section().layers.len() as u32
-        );
+        assert!(self.layer_flags.layer_count == self.mrea().scly_section().layers.len() as u32);
     }
 
     pub fn add_dependencies<I>(
@@ -246,7 +240,7 @@ impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
         let layers = self.mlvl_area.dependencies.deps.as_mut_vec();
         let iter = deps.filter_map(|dep| {
             if layers.iter().all(|layer| layer.iter().all(|i| *i != dep)) {
-                if !pickup_resources.contains_key(&&(dep.asset_id, dep.asset_type)) {
+                if !pickup_resources.contains_key(&(dep.asset_id, dep.asset_type)) {
                     panic!(
                         "Failed to find dependency in pickup_resources - 0x{:X} ({:?})",
                         dep.asset_id, dep.asset_type

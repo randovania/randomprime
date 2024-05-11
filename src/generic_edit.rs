@@ -7,12 +7,12 @@ use crate::{
     structs::SclyPropertyData,
 };
 
-pub fn patch_edit_objects<'r>(
+pub fn patch_edit_objects(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea,
     edit_objs: HashMap<u32, EditObjConfig>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
 
     /* Add layers */
     for (_, config) in edit_objs.iter() {
@@ -29,7 +29,7 @@ pub fn patch_edit_objects<'r>(
         }
 
         while area.layer_flags.layer_count <= layer_id {
-            let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+            let mrea_id = area.mlvl_area.mrea.to_u32();
             area.add_layer(b"New Layer\0".as_cstr());
             if area.layer_flags.layer_count >= 64 {
                 panic!("Ran out of layers in room 0x{:X}", mrea_id);
@@ -68,9 +68,9 @@ pub fn patch_edit_objects<'r>(
                 }
             }
 
-            let (old_layer_id, _) = info.expect(
-                format!("Cannot find object 0x{:X} in room 0x{:X}", obj_id, mrea_id).as_str(),
-            );
+            let (old_layer_id, _) = info.unwrap_or_else(|| {
+                panic!("Cannot find object 0x{:X} in room 0x{:X}", obj_id, mrea_id)
+            });
 
             old_layer_id
         };
@@ -91,7 +91,7 @@ pub fn patch_edit_objects<'r>(
             .retain(|obj| obj.instance_id & 0x00FFFFFF != obj_id);
 
         // re-add to target layer
-        scly.layers.as_mut_vec()[layer_id as usize]
+        scly.layers.as_mut_vec()[layer_id]
             .objects
             .as_mut_vec()
             .push(obj);
@@ -116,7 +116,9 @@ pub fn patch_edit_objects<'r>(
                 }
             }
 
-            obj.expect(format!("Could not find object 0x{:X} in room 0x{:X}", id, mrea_id).as_str())
+            obj.unwrap_or_else(|| {
+                panic!("Could not find object 0x{:X} in room 0x{:X}", id, mrea_id)
+            })
         };
 
         if let Some(value) = config.position {
@@ -194,13 +196,10 @@ pub fn patch_edit_objects<'r>(
         }
 
         if let Some(value) = config.health {
-            match obj.property_data.object_type() {
-                structs::Thardus::OBJECT_TYPE => {
-                    let thardus = obj.property_data.as_thardus_mut().unwrap();
-                    thardus.values[3] *= value;
-                    thardus.values[4] *= value;
-                }
-                _ => {}
+            if obj.property_data.object_type() == structs::Thardus::OBJECT_TYPE {
+                let thardus = obj.property_data.as_thardus_mut().unwrap();
+                thardus.values[3] *= value;
+                thardus.values[4] *= value;
             }
 
             if obj.property_data.supports_health_infos() {
@@ -274,17 +273,15 @@ pub fn set_scale(obj: &mut structs::SclyObject, value: [f32; 3], relative: bool)
 pub fn set_patterned_speed(obj: &mut structs::SclyObject, value: f32, index: Option<usize>) {
     let mut set = false;
     let mut data = get_patterned_infos(obj);
-    for i in 0..data.len() {
-        if should_skip(i, index) {
-            continue;
+    for (i, data) in data.iter_mut().enumerate() {
+        if !should_skip(i, index) {
+            data.speed *= value;
+            data.turn_speed *= value;
+            data.average_attack_time *= 1.0 / value;
+            // x.attack_time_variation *= 1.0/value;
+            data.damage_wait_time *= 1.0 / value;
+            set = true;
         }
-        let x = &mut data[i];
-        x.speed *= value;
-        x.turn_speed *= value;
-        x.average_attack_time *= 1.0 / value;
-        // x.attack_time_variation *= 1.0/value;
-        x.damage_wait_time *= 1.0 / value;
-        set = true;
     }
     set_patterned_infos(obj, data);
 
@@ -299,17 +296,15 @@ pub fn set_patterned_speed(obj: &mut structs::SclyObject, value: f32, index: Opt
 pub fn set_patterned_size(obj: &mut structs::SclyObject, value: f32, index: Option<usize>) {
     let mut set = false;
     let mut data = get_patterned_infos(obj);
-    for i in 0..data.len() {
-        if should_skip(i, index) {
-            continue;
+    for (i, data) in data.iter_mut().enumerate() {
+        if !should_skip(i, index) {
+            data.mass *= value;
+            data.half_extent *= value;
+            data.height *= value;
+            data.step_up_height *= value;
+            data.min_attack_range *= value;
+            set = true;
         }
-        let x = &mut data[i];
-        x.mass *= value;
-        x.half_extent *= value;
-        x.height *= value;
-        x.step_up_height *= value;
-        x.min_attack_range *= value;
-        set = true;
     }
     set_patterned_infos(obj, data);
 
@@ -324,18 +319,16 @@ pub fn set_patterned_size(obj: &mut structs::SclyObject, value: f32, index: Opti
 pub fn set_detection_range(obj: &mut structs::SclyObject, value: f32, index: Option<usize>) {
     let mut set = false;
     let mut data = get_patterned_infos(obj);
-    for i in 0..data.len() {
-        if should_skip(i, index) {
-            continue;
+    for (i, data) in data.iter_mut().enumerate() {
+        if !should_skip(i, index) {
+            data.detection_range *= value;
+            data.detection_height_range *= value;
+            data.detection_angle *= value;
+            data.player_leash_radius *= value;
+            // x.player_leash_time *= value;
+            data.leash_radius *= value;
+            set = true;
         }
-        let x = &mut data[i];
-        x.detection_range *= value;
-        x.detection_height_range *= value;
-        x.detection_angle *= value;
-        x.player_leash_radius *= value;
-        // x.player_leash_time *= value;
-        x.leash_radius *= value;
-        set = true;
     }
     set_patterned_infos(obj, data);
 
@@ -350,13 +343,11 @@ pub fn set_detection_range(obj: &mut structs::SclyObject, value: f32, index: Opt
 pub fn set_attack_range(obj: &mut structs::SclyObject, value: f32, index: Option<usize>) {
     let mut set = false;
     let mut data = get_patterned_infos(obj);
-    for i in 0..data.len() {
-        if should_skip(i, index) {
-            continue;
+    for (i, data) in data.iter_mut().enumerate() {
+        if !should_skip(i, index) {
+            data.max_attack_range *= value;
+            set = true;
         }
-        let x = &mut data[i];
-        x.max_attack_range *= value;
-        set = true;
     }
     set_patterned_infos(obj, data);
 
@@ -371,12 +362,11 @@ pub fn set_attack_range(obj: &mut structs::SclyObject, value: f32, index: Option
 pub fn set_vulnerability(obj: &mut structs::SclyObject, value: DoorType, index: Option<usize>) {
     let mut set = false;
     let mut data = get_vulnerabilities(obj);
-    for i in 0..data.len() {
-        if should_skip(i, index) {
-            continue;
+    for (i, data) in data.iter_mut().enumerate() {
+        if !should_skip(i, index) {
+            *data = value.vulnerability();
+            set = true;
         }
-        data[i] = value.vulnerability();
-        set = true;
     }
     set_vulnerabilities(obj, data);
 
@@ -391,12 +381,11 @@ pub fn set_vulnerability(obj: &mut structs::SclyObject, value: DoorType, index: 
 pub fn set_health(obj: &mut structs::SclyObject, value: f32, index: Option<usize>) {
     let mut set = false;
     let mut health_infos = get_health_infos(obj);
-    for i in 0..health_infos.len() {
-        if should_skip(i, index) {
-            continue;
+    for (i, health_info) in health_infos.iter_mut().enumerate() {
+        if !should_skip(i, index) {
+            health_info.health *= value;
+            set = true;
         }
-        health_infos[i].health *= value;
-        set = true;
     }
     set_health_infos(obj, health_infos);
 
@@ -411,17 +400,16 @@ pub fn set_health(obj: &mut structs::SclyObject, value: f32, index: Option<usize
 pub fn set_damage(obj: &mut structs::SclyObject, value: f32) {
     let mut set = false;
     let mut infos = get_patterned_infos(obj);
-    for i in 0..infos.len() {
-        let x = &mut infos[i];
-        x.x_damage *= value;
+    for info in infos.iter_mut() {
+        info.x_damage *= value;
         set = true;
     }
     set_patterned_infos(obj, infos);
 
     let mut damage_infos = get_damage_infos(obj);
-    for i in 0..damage_infos.len() {
-        damage_infos[i].damage *= value;
-        damage_infos[i].knockback_power *= value;
+    for damage_info in damage_infos.iter_mut() {
+        damage_info.damage *= value;
+        damage_info.knockback_power *= value;
         set = true;
     }
     set_damage_infos(obj, damage_infos);
@@ -455,7 +443,7 @@ fn set_patterned_infos(
     obj: &mut structs::SclyObject,
     value: Vec<structs::scly_structs::PatternedInfo>,
 ) {
-    if value.len() > 0 {
+    if !value.is_empty() {
         obj.property_data.set_patterned_infos(value);
     }
 }
@@ -469,7 +457,7 @@ fn get_damage_infos(obj: &mut structs::SclyObject) -> Vec<structs::scly_structs:
 }
 
 fn set_damage_infos(obj: &mut structs::SclyObject, value: Vec<structs::scly_structs::DamageInfo>) {
-    if value.len() > 0 {
+    if !value.is_empty() {
         obj.property_data.set_damage_infos(value);
     }
 }
@@ -488,7 +476,7 @@ fn set_vulnerabilities(
     obj: &mut structs::SclyObject,
     value: Vec<structs::scly_structs::DamageVulnerability>,
 ) {
-    if value.len() > 0 {
+    if !value.is_empty() {
         obj.property_data.set_vulnerabilities(value);
     }
 }
@@ -502,7 +490,7 @@ fn get_health_infos(obj: &mut structs::SclyObject) -> Vec<structs::scly_structs:
 }
 
 fn set_health_infos(obj: &mut structs::SclyObject, value: Vec<structs::scly_structs::HealthInfo>) {
-    if value.len() > 0 {
+    if !value.is_empty() {
         obj.property_data.set_health_infos(value);
     }
 }

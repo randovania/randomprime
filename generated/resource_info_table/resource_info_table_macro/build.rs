@@ -7,12 +7,12 @@ use std::{
 
 fn main() {
     let output_path = Path::new(&env::var("OUT_DIR").unwrap()).join("codegen.rs");
-    let mut output_file = BufWriter::new(File::create(&output_path).unwrap());
+    let mut output_file = BufWriter::new(File::create(output_path).unwrap());
 
     let resources_path = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap())
         .join("..")
         .join("resource_info.txt");
-    let resources_file = BufReader::new(File::open(&resources_path).unwrap());
+    let resources_file = BufReader::new(File::open(resources_path).unwrap());
 
     write!(
         &mut output_file,
@@ -23,7 +23,7 @@ fn main() {
     let mut resources: Vec<(String, String)> = vec![];
     for line in resources_file.lines() {
         let line = line.unwrap();
-        if line.len() == 0 {
+        if line.is_empty() {
             continue;
         }
         let mut parts = line.split('"');
@@ -70,5 +70,5 @@ fn main() {
         map_generator.entry(&resource_name[..], resource_data);
     }
     write!(&mut output_file, "{}", map_generator.build()).unwrap();
-    write!(&mut output_file, ";\n").unwrap();
+    writeln!(&mut output_file, ";").unwrap();
 }

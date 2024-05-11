@@ -20,6 +20,9 @@ struct MreaKey<'r> {
 
 type SclyPatch<'r, 's> =
     dyn FnMut(&mut PatcherState, &mut MlvlArea<'r, '_, '_, '_>) -> Result<(), String> + 's;
+
+#[allow(clippy::type_complexity)]
+#[derive(Default)]
 pub struct PrimePatcher<'r, 's> {
     file_patches:
         HashMap<&'s [u8], Vec<Box<dyn FnMut(&mut FstEntryFile<'r>) -> Result<(), String> + 's>>>,
@@ -94,7 +97,7 @@ impl<'r, 's> PrimePatcher<'r, 's> {
         let files_to_patch = self
             .file_patches
             .keys()
-            .map(|k| *k)
+            .copied()
             .chain(self.scly_patches.iter().map(|p| p.0.pak_name))
             .chain(self.resource_patches.iter().map(|p| p.0.pak_name))
             .collect::<HashSet<_>>();
@@ -107,7 +110,7 @@ impl<'r, 's> PrimePatcher<'r, 's> {
             if let Some(patches) = self.file_patches.get_mut(&name[..]) {
                 fst_entry.guess_kind();
                 for patch in patches.iter_mut() {
-                    (*patch)(&mut fst_entry.file_mut().unwrap())?
+                    (*patch)(fst_entry.file_mut().unwrap())?
                 }
             }
 

@@ -10,6 +10,10 @@ pub trait WithRead: fmt::Debug {
     where
         Self: 'r;
     fn with_read(&self, f: &mut dyn FnMut(&mut dyn Read) -> io::Result<u64>) -> io::Result<u64>;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<'r> Clone for Box<dyn WithRead + 'r> {

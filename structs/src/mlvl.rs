@@ -296,7 +296,7 @@ impl<'r> Readable<'r> for AreaLayerNames<'r> {
             + self
                 .0
                 .iter()
-                .flat_map(|i| i)
+                .flatten()
                 .map(|s| s.to_bytes_with_nul().len())
                 .sum::<usize>()
     }

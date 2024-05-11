@@ -28,6 +28,10 @@ where
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn iter<'s>(&'s self) -> IteratorArrayIterator<'s, 'r, T, I> {
         match *self {
             IteratorArray::Borrowed(ref reader, ref i) => {
@@ -41,7 +45,7 @@ where
         *self = match *self {
             IteratorArray::Borrowed(ref mut reader, ref mut iter) => {
                 let mut vec = Vec::with_capacity(iter.len());
-                while let Some(arg) = iter.next() {
+                for arg in iter.by_ref() {
                     vec.push(reader.read(arg));
                 }
                 IteratorArray::Owned(vec)

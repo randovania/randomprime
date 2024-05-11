@@ -41,11 +41,11 @@ impl<'r> SclyPropertyData for ActorContraption<'r> {
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
-        vec![self.damage_info.clone()]
+        vec![self.damage_info]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.damage_info = x[0].clone();
+        self.damage_info = x[0];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;

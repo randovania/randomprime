@@ -95,7 +95,7 @@ fn main() {
     // user-friendly one
     if !cfg!(debug_assertions) {
         panic::set_hook(Box::new(|_| {
-            let _ = eprintln!(
+            eprintln!(
                 "{} \
 An error occurred while parsing the input ISO. \
 This most likely means your ISO is corrupt. \
@@ -110,10 +110,9 @@ SHA1: ac20c744db18fdf0339f37945e880708fd317231
         }));
     }
 
-    match main_inner() {
-        Err(s) => eprintln!("{} {}", Format::Error("error:"), s),
-        Ok(()) => (),
-    };
+    if let Err(s) = main_inner() {
+        eprintln!("{} {}", Format::Error("error:"), s);
+    }
 
     maybe_pause_at_exit();
 }

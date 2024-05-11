@@ -56,7 +56,7 @@ where
     T: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        <T as fmt::Debug>::fmt(&self, f)
+        <T as fmt::Debug>::fmt(self, f)
     }
 }
 

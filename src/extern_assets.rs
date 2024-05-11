@@ -63,6 +63,7 @@ fn parse_dir(dir: &String) -> Result<Vec<PathBuf>, std::io::Error> {
 }
 
 impl ExternPickupModel {
+    #[allow(clippy::type_complexity)]
     pub fn parse(
         dir: &String,
     ) -> Result<(HashMap<String, Self>, HashMap<u32, ExternAsset>), String> {
@@ -71,7 +72,7 @@ impl ExternPickupModel {
 
         // Deserialize JSON
         let _metadata = fs::read_to_string(Path::new(dir).join("meta.json"))
-            .expect(format!("Unable to read extern model metadata from '{}'", dir).as_str());
+            .unwrap_or_else(|_| panic!("Unable to read extern model metadata from '{}'", dir));
         let metadata: MetadataJson = serde_json::from_str(&_metadata)
             .map_err(|e| format!("Extern Assets metadata.json parse failed: {}", e))?;
 
@@ -82,9 +83,9 @@ impl ExternPickupModel {
             let mut dependencies: Vec<(u32, FourCC)> = Vec::new();
             let mut deps: HashSet<u32> = HashSet::new();
             dependencies.push((model.ancs, FourCC::from_bytes(b"ANCS")));
-            deps.insert(model.ancs.clone());
+            deps.insert(model.ancs);
             dependencies.push((model.cmdl, FourCC::from_bytes(b"CMDL")));
-            deps.insert(model.cmdl.clone());
+            deps.insert(model.cmdl);
             let mut added = true;
             while added {
                 added = false;
@@ -122,10 +123,10 @@ impl ExternPickupModel {
         // Asset ids required
         let mut ids_to_find: HashSet<u32> = HashSet::new();
         for (_, model) in models.iter() {
-            ids_to_find.insert(model.ancs.clone());
-            ids_to_find.insert(model.cmdl.clone());
+            ids_to_find.insert(model.ancs);
+            ids_to_find.insert(model.cmdl);
             for (dep, _) in model.dependencies.iter() {
-                ids_to_find.insert(dep.clone());
+                ids_to_find.insert(*dep);
             }
         }
 
@@ -155,7 +156,7 @@ impl ExternPickupModel {
             // (I dislike Rust; This is just for parsing 4 letters)
             let fourcc = filename.clone();
             let fourcc = fourcc.to_str().unwrap();
-            let fourcc = fourcc.split(".");
+            let fourcc = fourcc.split('.');
             let fourcc: Vec<&str> = fourcc.collect();
             if fourcc.len() < 2 {
                 panic!("Extern asset, unexpected asset filename format");
@@ -166,10 +167,10 @@ impl ExternPickupModel {
             let fourcc = FourCC::from_bytes(&fourcc);
 
             // Read file contents to RAM
-            let mut file = File::open(&filename).expect("no file found");
-            let metadata = fs::metadata(&filename).expect("unable to read metadata");
+            let mut file = File::open(filename).expect("no file found");
+            let metadata = fs::metadata(filename).expect("unable to read metadata");
             let mut bytes = vec![0; metadata.len() as usize];
-            file.read(&mut bytes).expect("buffer overflow");
+            file.read_exact(&mut bytes).expect("buffer overflow");
 
             assets.insert(id, ExternAsset { fourcc, bytes });
         }

@@ -353,9 +353,9 @@ impl fmt::Display for CppOperatorType {
 impl syn::parse::Parse for CppOperatorType {
     fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let forked = input.fork();
-        if let Ok(_) = input.parse::<cpp_kws::new>() {
+        if input.parse::<cpp_kws::new>().is_ok() {
             Ok(CppOperatorType::New)
-        } else if let Ok(_) = input.parse::<Token![+]>() {
+        } else if input.parse::<Token![+]>().is_ok() {
             Ok(CppOperatorType::Add)
         } else {
             Err(forked.error("Invalid operator type"))
@@ -412,13 +412,11 @@ impl fmt::Display for CppPathSegment {
                 let id_s = self.id.to_string();
                 write!(f, "{}{}{}", id_s.len() + ta_s.len(), id_s, ta_s)
             }
+        } else if f.alternate() {
+            write!(f, "{}", self.id)
         } else {
-            if f.alternate() {
-                write!(f, "{}", self.id)
-            } else {
-                let s = self.id.to_string();
-                write!(f, "{}{}", s.len(), s)
-            }
+            let s = self.id.to_string();
+            write!(f, "{}{}", s.len(), s)
         }
     }
 }

@@ -62,9 +62,9 @@ impl<K> ResId<K> {
     }
 }
 
-impl<K> Into<u32> for ResId<K> {
-    fn into(self) -> u32 {
-        self.0
+impl<K> From<ResId<K>> for u32 {
+    fn from(val: ResId<K>) -> Self {
+        val.0
     }
 }
 
@@ -82,16 +82,16 @@ impl<K: ResIdKind> TryFrom<resource_info_table::ResourceInfo> for ResId<K> {
     }
 }
 
-impl<K: ResIdKind> Into<(u32, FourCC)> for ResId<K> {
-    fn into(self) -> (u32, FourCC) {
-        (self.0, K::FOURCC)
+impl<K: ResIdKind> From<ResId<K>> for (u32, FourCC) {
+    fn from(val: ResId<K>) -> Self {
+        (val.0, K::FOURCC)
     }
 }
 
-impl<K: ResIdKind> Into<crate::Dependency> for ResId<K> {
-    fn into(self) -> crate::Dependency {
+impl<K: ResIdKind> From<ResId<K>> for crate::Dependency {
+    fn from(val: ResId<K>) -> Self {
         crate::Dependency {
-            asset_id: self.0,
+            asset_id: val.0,
             asset_type: K::FOURCC,
         }
     }

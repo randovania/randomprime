@@ -222,7 +222,7 @@ where
             _ => panic!("Error - Bad artifact id '{}'", artifact_id),
         };
 
-        if scan_text[artifact_id].len() != 0 {
+        if !scan_text[artifact_id].is_empty() {
             // If there are multiple of this particular artifact, then we use the first instance
             // for the location of the artifact.
             continue;
@@ -242,15 +242,15 @@ where
     }
 
     // Set a default value for any artifacts that we didn't find.
-    for i in 0..scan_text.len() {
-        if scan_text[i].len() == 0 {
-            scan_text[i] = "Artifact not present. This layout may not be completable.\0".to_owned();
+    for scan_text in scan_text.iter_mut() {
+        if scan_text.is_empty() {
+            *scan_text = "Artifact not present. This layout may not be completable.\0".to_owned();
         }
     }
 
     if artifact_hints.is_some() {
         for (artifact_name, hint) in artifact_hints.unwrap() {
-            let words: Vec<&str> = artifact_name.split(" ").collect();
+            let words: Vec<&str> = artifact_name.split(' ').collect();
             let lastword = words[words.len() - 1];
             let idx = match lastword.trim().to_lowercase().as_str() {
                 "lifegiver" => 0,
@@ -280,14 +280,14 @@ fn patch_artifact_totem_scan_strg(
     text: &str,
     version: Version,
 ) -> Result<(), String> {
-    let mut string = format!("{}", text);
+    let mut string = text.to_string();
     if version == Version::NtscJ {
         string = format!("&line-extra-space=4;&font=C29C51F1;{}", string);
     }
     let strg = res.kind.as_strg_mut().unwrap();
     for st in strg.string_tables.as_mut_vec().iter_mut() {
         let strings = st.strings.as_mut_vec();
-        *strings.last_mut().unwrap() = format!("{}", string).into();
+        *strings.last_mut().unwrap() = string.to_string().into();
     }
     Ok(())
 }
@@ -370,7 +370,7 @@ fn patch_thermal_conduits_damage_vulnerabilities(
     Ok(())
 }
 
-fn is_door_lock<'r>(obj: &structs::SclyObject<'r>) -> bool {
+fn is_door_lock(obj: &structs::SclyObject) -> bool {
     let actor = obj.property_data.as_actor();
 
     if actor.is_none() {
@@ -445,7 +445,7 @@ fn patch_add_scans_to_savw(
     res: &mut structs::Resource,
     savw_scans_to_add: &Vec<ResId<res_id::SCAN>>,
     savw_scan_logbook_category: &HashMap<u32, u32>,
-    scan_ids_to_remove: &Vec<u32>,
+    scan_ids_to_remove: &[u32],
 ) -> Result<(), String> {
     let savw = res.kind.as_savw_mut().unwrap();
     savw.cinematic_skip_array.as_mut_vec().clear(); // This is obsoleted due to the .dol patch, remove to save space
@@ -489,21 +489,20 @@ fn patch_map_door_icon(
         .objects
         .iter_mut()
         .find(|obj| obj.editor_id == door_id)
-        .expect(
-            format!(
+        .unwrap_or_else(|| {
+            panic!(
                 "Failed to find door 0x{:X} in room 0x{:X}",
                 door_id, mrea_id
             )
-            .as_str(),
-        );
+        });
     door_icon.type_ = map_object_type;
 
     Ok(())
 }
 
-fn patch_remove_blast_shield<'r>(
+fn patch_remove_blast_shield(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     dock_num: u32,
 ) -> Result<(), String> {
     let mut dock_position: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
@@ -521,7 +520,7 @@ fn patch_remove_blast_shield<'r>(
         let dock = obj.property_data.as_dock_mut().unwrap();
         if dock.dock_index == dock_num {
             found = true;
-            dock_position = dock.position.clone();
+            dock_position = dock.position;
         }
     }
 
@@ -587,13 +586,13 @@ fn patch_door<'r>(
     // Update dependencies based on the upcoming patch(es)
     let mut deps: Vec<(u32, FourCC)> = Vec::new();
 
-    if door_type.is_some() {
-        deps.extend_from_slice(&door_type.as_ref().unwrap().dependencies());
+    if let Some(ref door_type) = door_type {
+        deps.extend_from_slice(&door_type.dependencies());
     }
 
-    if blast_shield_type.is_some() {
+    if let Some(ref blast_shield_type) = blast_shield_type {
         // Add dependencies
-        deps.extend_from_slice(&blast_shield_type.as_ref().unwrap().dependencies(DO_GIBBS));
+        deps.extend_from_slice(&blast_shield_type.dependencies(DO_GIBBS));
     }
 
     let blast_shield_can_change_door = door_type.is_some() && blast_shield_type.is_some();
@@ -626,8 +625,8 @@ fn patch_door<'r>(
         }
     };
 
-    if door_type_after_open.is_some() {
-        deps.extend_from_slice(&door_type_after_open.as_ref().unwrap().dependencies());
+    if let Some(ref door_type_after_open) = door_type_after_open {
+        deps.extend_from_slice(&door_type_after_open.dependencies());
     }
 
     let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
@@ -635,7 +634,7 @@ fn patch_door<'r>(
         asset_type: fourcc,
     });
 
-    area.add_dependencies(&door_resources, 0, deps_iter);
+    area.add_dependencies(door_resources, 0, deps_iter);
 
     let (damageable_trigger_id, shield_actor_id) = {
         let scly = area.mrea().scly_section_mut();
@@ -727,7 +726,7 @@ fn patch_door<'r>(
             .as_mut_vec()
             .iter_mut()
             .find(|obj| obj.instance_id == door_location.instance_id)
-            .expect(format!("Failed to find door in room 0x{:X}", mrea_id).as_str());
+            .unwrap_or_else(|| panic!("Failed to find door in room 0x{:X}", mrea_id));
 
         if obj.property_data.as_door_mut().unwrap().is_morphball_door != 0
             || obj.instance_id == 0x002C0186
@@ -769,12 +768,12 @@ fn patch_door<'r>(
 
         // Calculate placement //
         let rotation: GenericArray<f32, U3>;
-        let hitbox: GenericArray<f32, U3>; // this is actually scan offset
+        // this is actually scan offset
         let scale: GenericArray<f32, U3>;
-        let scan_offset: GenericArray<f32, U3>; // this is actually hitbox
+        // this is actually hitbox
 
-        scan_offset = [0.0, 0.0, 0.0].into();
-        hitbox = [0.0, 0.0, 0.0].into();
+        let scan_offset: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
+        let hitbox: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
 
         let door_rotation = door_loc.door_rotation.unwrap();
         let mut is_ceiling = false;
@@ -997,11 +996,11 @@ fn patch_door<'r>(
             );
         }
 
-        let is_unpowered = vec![
+        let is_unpowered = [
             0x001E000B, // Biohazard Containment
             0x0020000D, // Biotech Research Area 1
             0x000F01D1, // Ruined Courtyard
-            0x001B0088, // Cargo Frieght Lift to Deck Gamma
+            0x001B0088,
         ]
         .contains(&door_open_trigger_id);
 
@@ -1390,7 +1389,7 @@ fn patch_door<'r>(
         }
 
         // Create Gibbs and activate on DEAD //
-        let effect: Option<structs::SclyObject<'_>> = match DO_GIBBS {
+        let effect: Option<structs::SclyObject> = match DO_GIBBS {
             true => {
                 Some(structs::SclyObject {
                     instance_id: effect_id,
@@ -1449,7 +1448,7 @@ fn patch_door<'r>(
             instance_id: shaker_id,
             property_data: structs::NewCameraShaker {
                 name: b"myshaker\0".as_cstr(),
-                position: position.into(),
+                position,
                 active: 1,
                 unknown1: 1,
                 unknown2: 0,
@@ -1466,8 +1465,7 @@ fn patch_door<'r>(
                             sustain_time: 0.0,
                             duration: 0.4,
                             magnitude: 0.2,
-                        }
-                        .into(),
+                        },
                         fm: structs::NewCameraShakePoint {
                             unknown1: 1,
                             unknown2: 0,
@@ -1475,8 +1473,7 @@ fn patch_door<'r>(
                             sustain_time: 0.0,
                             duration: 0.2,
                             magnitude: 2.0,
-                        }
-                        .into(),
+                        },
                     },
                     structs::NewCameraShakerComponent {
                         unknown1: 1,
@@ -1488,8 +1485,7 @@ fn patch_door<'r>(
                             sustain_time: 0.0,
                             duration: 0.0,
                             magnitude: 0.0,
-                        }
-                        .into(),
+                        },
                         fm: structs::NewCameraShakePoint {
                             unknown1: 1,
                             unknown2: 1,
@@ -1497,8 +1493,7 @@ fn patch_door<'r>(
                             sustain_time: 0.0,
                             duration: 0.0,
                             magnitude: 0.0,
-                        }
-                        .into(),
+                        },
                     },
                     structs::NewCameraShakerComponent {
                         unknown1: 1,
@@ -1510,8 +1505,7 @@ fn patch_door<'r>(
                             sustain_time: 0.0,
                             duration: 0.3,
                             magnitude: 0.2,
-                        }
-                        .into(),
+                        },
                         fm: structs::NewCameraShakePoint {
                             unknown1: 1,
                             unknown2: 0,
@@ -1519,8 +1513,7 @@ fn patch_door<'r>(
                             sustain_time: 0.0,
                             duration: 0.3,
                             magnitude: 2.0,
-                        }
-                        .into(),
+                        },
                     },
                 ]
                 .into(),
@@ -1601,17 +1594,17 @@ fn patch_door<'r>(
             .objects
             .as_mut_vec()
             .push(poi);
-        if effect.is_some() {
+        if let Some(effect) = effect {
             layers[blast_shield_layer_idx]
                 .objects
                 .as_mut_vec()
-                .push(effect.unwrap());
+                .push(effect);
         }
-        if timer2.is_some() {
+        if let Some(timer2) = timer2 {
             layers[blast_shield_layer_idx]
                 .objects
                 .as_mut_vec()
-                .push(timer2.unwrap());
+                .push(timer2);
         }
         layers[blast_shield_layer_idx]
             .objects
@@ -1697,7 +1690,7 @@ fn patch_door<'r>(
 
                         obj.active != 0 || // remove inactive
                                 !this_near_that(obj.position.into(), position.into()) || // ...and within 3 units
-                                vec![0x001B0089].contains(&id) || // ... and exclude cargo freight lift door
+                                [0x001B0089].contains(&id) || // ... and exclude cargo freight lift door
                                 !DoorType::is_door(&cmdl) // ... and exclude non-doors
                     }
                     structs::DamageableTrigger::OBJECT_TYPE => {
@@ -1706,7 +1699,7 @@ fn patch_door<'r>(
 
                         obj.active != 0 || // remove inactive
                                 !this_near_that(obj.position.into(), position.into()) || // ...and withing 3 units
-                                vec![0x001B0087].contains(&id) // ... and exclude cargo freight lift door
+                                [0x001B0087].contains(&id) // ... and exclude cargo freight lift door
                     }
                     structs::Relay::OBJECT_TYPE => {
                         let obj = obj.property_data.as_relay().unwrap();
@@ -1914,13 +1907,12 @@ fn patch_door<'r>(
                         break;
                     }
                 }
-                door_shield.expect(
-                    format!(
+                door_shield.unwrap_or_else(|| {
+                    panic!(
                         "Could not find suitable door shield actor in room 0x{:X}",
                         mrea_id
                     )
-                    .as_str(),
-                )
+                })
             };
 
             let mut new_door_shield = door_shield.clone();
@@ -1931,12 +1923,12 @@ fn patch_door<'r>(
             layers[0].objects.as_mut_vec().push(new_door_shield);
         }
 
-        if vec![
+        if [
             (0x37B3AFE6, 1), // cargo freight lift
             (0xAC2C58FE, 1), // biohazard containment
             (0x5F2EB7B6, 1), // biotech research area 1
             (0x1921876D, 3), // ruined courtyard
-            (0xA49B2544, 1), // research core
+            (0xA49B2544, 1),
         ]
         .contains(&(mrea_id, door_loc.dock_number))
         {
@@ -2044,7 +2036,7 @@ fn patch_door<'r>(
                 .unwrap();
 
             obj.connections.as_mut_vec().retain(|conn| {
-                !vec![
+                ![
                     existing_door_shield_id,
                     existing_door_force_id,
                     door_shield_id,
@@ -2053,7 +2045,7 @@ fn patch_door<'r>(
                 .contains(&conn.target_object_id)
             });
 
-            obj.connections.as_mut_vec().extend_from_slice(&vec![
+            obj.connections.as_mut_vec().extend_from_slice(&[
                 structs::Connection {
                     state: structs::ConnectionState::ZERO,
                     message: structs::ConnectionMsg::ACTIVATE,
@@ -2073,7 +2065,7 @@ fn patch_door<'r>(
                 .find(|obj| obj.instance_id == relay_id)
                 .unwrap();
 
-            obj.connections.as_mut_vec().extend_from_slice(&vec![
+            obj.connections.as_mut_vec().extend_from_slice(&[
                 structs::Connection {
                     state: structs::ConnectionState::ZERO,
                     message: structs::ConnectionMsg::DEACTIVATE,
@@ -2101,15 +2093,14 @@ fn patch_door<'r>(
                     .objects
                     .iter_mut()
                     .find(|obj| obj.instance_id == deactivate_door_id)
-                    .expect(
-                        format!(
+                    .unwrap_or_else(|| {
+                        panic!(
                             "Could not find Deactivate Door relay in room 0x{:X}",
                             mrea_id
                         )
-                        .as_str(),
-                    );
+                    });
 
-                obj.connections.as_mut_vec().extend_from_slice(&vec![
+                obj.connections.as_mut_vec().extend_from_slice(&[
                     structs::Connection {
                         state: structs::ConnectionState::ZERO,
                         message: structs::ConnectionMsg::DEACTIVATE,
@@ -2134,13 +2125,12 @@ fn patch_door<'r>(
                     .objects
                     .iter_mut()
                     .find(|obj| obj.instance_id == activate_door_id)
-                    .expect(
-                        format!("Could not find Activate Door relay in room 0x{:X}", mrea_id)
-                            .as_str(),
-                    );
+                    .unwrap_or_else(|| {
+                        panic!("Could not find Activate Door relay in room 0x{:X}", mrea_id)
+                    });
 
                 obj.connections.as_mut_vec().retain(|conn| {
-                    !vec![
+                    ![
                         existing_door_shield_id,
                         existing_door_force_id,
                         door_shield_id,
@@ -2189,13 +2179,12 @@ fn patch_door<'r>(
                     door_force = obj;
                     break;
                 }
-                door_force.expect(
-                    format!(
+                door_force.unwrap_or_else(|| {
+                    panic!(
                         "Could not find suitable door damageable trigger in room 0x{:X}",
                         mrea_id
                     )
-                    .as_str(),
-                )
+                })
             };
 
             let mut new_door_force = structs::SclyObject {
@@ -2211,7 +2200,7 @@ fn patch_door<'r>(
             new_door_force
                 .connections
                 .as_mut_vec()
-                .retain(|conn| !(conn.target_object_id == existing_door_shield_id));
+                .retain(|conn| conn.target_object_id != existing_door_shield_id);
             new_door_force.connections.as_mut_vec().extend_from_slice(&[
                 structs::Connection {
                     state: structs::ConnectionState::DEAD,
@@ -2239,6 +2228,7 @@ fn patch_door<'r>(
 }
 
 // TODO: factor out shared code with modify_pickups_in_mrea
+#[allow(clippy::too_many_arguments)]
 fn patch_add_item<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -2281,8 +2271,8 @@ fn patch_add_item<'r>(
     let pickup_model_type: Option<PickupModel> = {
         if pickup_config.model.is_some() {
             let model_name = pickup_config.model.as_ref().unwrap();
-            let pmt = PickupModel::from_str(&model_name);
-            if pmt.is_none() && !extern_model.is_some() {
+            let pmt = PickupModel::from_str(model_name);
+            if pmt.is_none() && extern_model.is_none() {
                 panic!("Unknown Model Type {}", model_name);
             }
 
@@ -2293,13 +2283,13 @@ fn patch_add_item<'r>(
         }
     };
 
-    let pickup_model_type = pickup_model_type.clone().unwrap_or(PickupModel::Nothing);
+    let pickup_model_type = pickup_model_type.unwrap_or(PickupModel::Nothing);
     let mut pickup_model_data = pickup_model_type.pickup_data();
     if extern_model.is_some() {
-        let scale = extern_model.as_ref().unwrap().scale.clone();
-        pickup_model_data.scale[0] = pickup_model_data.scale[0] * scale;
-        pickup_model_data.scale[1] = pickup_model_data.scale[1] * scale;
-        pickup_model_data.scale[2] = pickup_model_data.scale[2] * scale;
+        let scale = extern_model.as_ref().unwrap().scale;
+        pickup_model_data.scale[0] *= scale;
+        pickup_model_data.scale[1] *= scale;
+        pickup_model_data.scale[2] *= scale;
         pickup_model_data.cmdl = ResId::<res_id::CMDL>::new(extern_model.as_ref().unwrap().cmdl);
         pickup_model_data.ancs.file_id =
             ResId::<res_id::ANCS>::new(extern_model.as_ref().unwrap().ancs);
@@ -2391,12 +2381,12 @@ fn patch_add_item<'r>(
 
     if pickup_config.destination.is_some() {
         area.add_dependencies(
-            &game_resources,
+            game_resources,
             0,
             iter::once(custom_asset_ids::GENERIC_WARP_STRG.into()),
         );
         area.add_dependencies(
-            &game_resources,
+            game_resources,
             0,
             iter::once(custom_asset_ids::WARPING_TO_START_DELAY_STRG.into()),
         );
@@ -2405,18 +2395,14 @@ fn patch_add_item<'r>(
     let curr_increase = {
         if pickup_type == PickupType::Nothing {
             0
+        } else if pickup_config.curr_increase.is_some() {
+            pickup_config.curr_increase.unwrap()
+        } else if pickup_type == PickupType::Missile {
+            5
+        } else if pickup_type == PickupType::HealthRefill {
+            50
         } else {
-            if pickup_config.curr_increase.is_some() {
-                pickup_config.curr_increase.unwrap()
-            } else {
-                if pickup_type == PickupType::Missile {
-                    5
-                } else if pickup_type == PickupType::HealthRefill {
-                    50
-                } else {
-                    1
-                }
-            }
+            1
         }
     };
     let max_increase = {
@@ -2449,7 +2435,7 @@ fn patch_add_item<'r>(
         }
     };
 
-    let mut scan_offset = pickup_model_data.scan_offset.clone();
+    let mut scan_offset = pickup_model_data.scan_offset;
 
     // If this is the echoes missile expansion model, compensate for the Z offset
     let json_pickup_name = pickup_config
@@ -2457,14 +2443,14 @@ fn patch_add_item<'r>(
         .as_ref()
         .unwrap_or(&"".to_string())
         .clone();
-    if json_pickup_name.contains(&"prime2_MissileExpansion")
-        || json_pickup_name.contains(&"prime2_UnlimitedMissiles")
+    if json_pickup_name.contains("prime2_MissileExpansion")
+        || json_pickup_name.contains("prime2_UnlimitedMissiles")
     {
         pickup_position[2] -= 1.2;
         scan_offset[2] += 1.2;
     }
 
-    let mut scale = pickup_model_data.scale.clone();
+    let mut scale = pickup_model_data.scale;
     if let Some(scale_modifier) = pickup_config.scale {
         scale = [
             scale[0] * scale_modifier[0],
@@ -2480,7 +2466,7 @@ fn patch_add_item<'r>(
         name: b"customItem\0".as_cstr(),
         position: pickup_position.into(),
         rotation: [0.0, 0.0, 0.0].into(),
-        hitbox: pickup_model_data.hitbox.clone(),
+        hitbox: pickup_model_data.hitbox,
         scan_offset,
         fade_in_timer: 0.0,
         spawn_delay: 0.0,
@@ -2497,9 +2483,9 @@ fn patch_add_item<'r>(
         // Model Pickup Data
         // "What does this pickup look like?"
         scale,
-        cmdl: pickup_model_data.cmdl.clone(),
+        cmdl: pickup_model_data.cmdl,
         ancs: pickup_model_data.ancs.clone(),
-        part: pickup_model_data.part.clone(),
+        part: pickup_model_data.part,
         actor_params: pickup_model_data.actor_params.clone(),
     };
 
@@ -2718,7 +2704,7 @@ fn patch_add_item<'r>(
     }
 
     let pickup_kind = pickup_type.kind();
-    if pickup_kind >= 29 && pickup_kind <= 40 {
+    if (29..=40).contains(&pickup_kind) {
         special_fn_artifact_layer_change_id = area.new_object_id_from_layer_name("Default");
     }
 
@@ -2732,7 +2718,7 @@ fn patch_add_item<'r>(
             floaty_contraption_id[1],
             floaty_contraption_id[2],
             floaty_contraption_id[3],
-            pickup_position.into(),
+            pickup_position,
         );
 
         pickup_obj
@@ -2775,7 +2761,7 @@ fn patch_add_item<'r>(
     }
 
     // If this is an artifact, create and push change function
-    if pickup_kind >= 29 && pickup_kind <= 40 {
+    if (29..=40).contains(&pickup_kind) {
         let function =
             artifact_layer_change_template(special_fn_artifact_layer_change_id, pickup_kind);
         layers[new_layer_idx as usize]
@@ -2872,13 +2858,13 @@ fn patch_add_item<'r>(
     Ok(())
 }
 
-fn add_world_teleporter<'r>(
+fn add_world_teleporter(
     the_next_four_ids: [u32; 4],
-    objects: &mut Vec<structs::SclyObject<'r>>,
+    objects: &mut Vec<structs::SclyObject>,
     destination: &str,
     version: Version,
 ) -> Vec<structs::Connection> {
-    let destination = SpawnRoomData::from_str(&destination);
+    let destination = SpawnRoomData::from_str(destination);
 
     let world_transporter_id = the_next_four_ids[0];
     let timer_id = the_next_four_ids[1];
@@ -2964,8 +2950,7 @@ fn add_world_teleporter<'r>(
                 activate_visor_xray: 0,
                 unknown6: 0,
                 face_object_on_unmorph: 0,
-            }
-            .into(),
+            },
 
             priority: 10,
         }
@@ -2992,19 +2977,18 @@ fn add_world_teleporter<'r>(
     ]
 }
 
-fn is_area_damage_special_function<'r>(obj: &structs::SclyObject<'r>) -> bool {
+fn is_area_damage_special_function(obj: &structs::SclyObject) -> bool {
     let special_function = obj.property_data.as_special_function();
-
-    if special_function.is_none() {
-        false
-    } else {
-        special_function.unwrap().type_ == 18 // is area damage type
-    }
+    special_function
+        .map(|special_function| {
+            special_function.type_ == 18 // is area damage type
+        })
+        .unwrap_or(false)
 }
 
-fn patch_deheat_room<'r>(
+fn patch_deheat_room(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layer_count = scly.layers.len();
@@ -3019,9 +3003,9 @@ fn patch_deheat_room<'r>(
     Ok(())
 }
 
-fn patch_superheated_room<'r>(
+fn patch_superheated_room(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     heat_damage_per_sec: f32,
 ) -> Result<(), String> {
     let area_damage_special_function = structs::SclyObject {
@@ -3056,7 +3040,7 @@ fn patch_superheated_room<'r>(
     Ok(())
 }
 
-fn is_water_related<'r>(obj: &structs::SclyObject<'r>, keep_water_related: bool) -> bool {
+fn is_water_related(obj: &structs::SclyObject, keep_water_related: bool) -> bool {
     if obj.property_data.is_water() {
         return true;
     }
@@ -3098,16 +3082,16 @@ fn is_water_related<'r>(obj: &structs::SclyObject<'r>, keep_water_related: bool)
             .to_lowercase();
         return name.contains("bubbles")
             || name.contains("waterfall")
-            || vec![0x5E2C7756, 0xEEF504D4, 0xC7CE1157, 0x0640CE97, 0x9FA2A896]
+            || [0x5E2C7756, 0xEEF504D4, 0xC7CE1157, 0x0640CE97, 0x9FA2A896]
                 .contains(&effect.part.to_u32());
     }
 
-    return false;
+    false
 }
 
-fn patch_remove_water<'r>(
+fn patch_remove_water(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     keep_water_related: bool,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -3140,9 +3124,10 @@ impl WaterType {
             WaterType::Phazon,
         ]
         .iter()
-        .map(|i| *i)
+        .copied()
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(string: &str) -> Self {
         let string = string.to_lowercase();
         if string == "water" || string == "normal" {
@@ -3162,19 +3147,20 @@ impl WaterType {
         let water_obj = self.to_obj();
         let water = water_obj.property_data.as_water().unwrap();
 
-        let mut deps: Vec<(u32, FourCC)> = Vec::new();
-        deps.push((water.txtr1, FourCC::from_bytes(b"TXTR")));
-        deps.push((water.txtr2, FourCC::from_bytes(b"TXTR")));
-        deps.push((water.txtr3, FourCC::from_bytes(b"TXTR")));
-        deps.push((water.txtr4, FourCC::from_bytes(b"TXTR")));
-        deps.push((water.refl_map_txtr, FourCC::from_bytes(b"TXTR")));
-        deps.push((water.txtr6, FourCC::from_bytes(b"TXTR")));
-        deps.push((water.lightmap_txtr, FourCC::from_bytes(b"TXTR")));
-        deps.push((water.small_enter_part, FourCC::from_bytes(b"PART")));
-        deps.push((water.med_enter_part, FourCC::from_bytes(b"PART")));
-        deps.push((water.large_enter_part, FourCC::from_bytes(b"PART")));
-        deps.push((water.part4, FourCC::from_bytes(b"PART")));
-        deps.push((water.part5, FourCC::from_bytes(b"PART")));
+        let mut deps: Vec<(u32, FourCC)> = vec![
+            (water.txtr1, FourCC::from_bytes(b"TXTR")),
+            (water.txtr2, FourCC::from_bytes(b"TXTR")),
+            (water.txtr3, FourCC::from_bytes(b"TXTR")),
+            (water.txtr4, FourCC::from_bytes(b"TXTR")),
+            (water.refl_map_txtr, FourCC::from_bytes(b"TXTR")),
+            (water.txtr6, FourCC::from_bytes(b"TXTR")),
+            (water.lightmap_txtr, FourCC::from_bytes(b"TXTR")),
+            (water.small_enter_part, FourCC::from_bytes(b"PART")),
+            (water.med_enter_part, FourCC::from_bytes(b"PART")),
+            (water.large_enter_part, FourCC::from_bytes(b"PART")),
+            (water.part4, FourCC::from_bytes(b"PART")),
+            (water.part5, FourCC::from_bytes(b"PART")),
+        ];
         deps.retain(|i| i.0 != 0xffffffff && i.0 != 0);
         deps
     }
@@ -3515,17 +3501,17 @@ fn patch_submerge_room<'r>(
     Ok(())
 }
 
-fn patch_remove_tangle_weed_scan_point<'r>(
+fn patch_remove_tangle_weed_scan_point(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     tangle_weed_ids: Vec<u32>,
 ) -> Result<(), String> {
     let layer_count = area.layer_flags.layer_count as usize;
     let scly = area.mrea().scly_section_mut();
     let layers = scly.layers.as_mut_vec();
 
-    for i in 0..layer_count {
-        for obj in layers[i].objects.as_mut_vec().iter_mut() {
+    for layer in layers.iter_mut().take(layer_count) {
+        for obj in layer.objects.as_mut_vec().iter_mut() {
             if tangle_weed_ids.contains(&obj.instance_id) {
                 let tangle_weed = obj.property_data.as_snake_weed_swarm_mut().unwrap();
                 tangle_weed.actor_params.scan_params.scan = ResId::invalid();
@@ -3536,6 +3522,7 @@ fn patch_remove_tangle_weed_scan_point<'r>(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn patch_add_poi<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -3559,7 +3546,7 @@ fn patch_add_poi<'r>(
         .objects
         .as_mut_vec()
         .push(structs::SclyObject {
-            instance_id: instance_id,
+            instance_id,
             connections: vec![].into(),
             property_data: structs::SclyProperty::PointOfInterest(Box::new(
                 structs::PointOfInterest {
@@ -3602,7 +3589,7 @@ fn patch_add_scan_actor<'r>(
         .objects
         .as_mut_vec()
         .push(structs::SclyObject {
-            instance_id: instance_id,
+            instance_id,
             connections: vec![].into(),
             property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
                 name: b"Scan Actor\0".as_cstr(),
@@ -3714,8 +3701,8 @@ where
     closest
 }
 
-fn get_shuffled_position<'r, R>(
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+fn get_shuffled_position<R>(
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     rng: &mut R,
 ) -> [f32; 3]
 where
@@ -3741,19 +3728,19 @@ where
     if mrea_id == 0x2398E906 {
         // Artifact Temple
         bounding_boxes.clear();
-        bounding_boxes.push([-410.0, 20.0, -40.0, -335.0, 69.0, -17.0].into());
-        bounding_boxes.push([-411.429, 67.9626, -14.8928, -370.429, 93.9626, -9.8928].into());
+        bounding_boxes.push([-410.0, 20.0, -40.0, -335.0, 69.0, -17.0]);
+        bounding_boxes.push([-411.429, 67.9626, -14.8928, -370.429, 93.9626, -9.8928]);
     } else if mrea_id == 0x4148F7B0 {
         // burn dome
         bounding_boxes.clear();
-        bounding_boxes.push([565.7892, -27.4683, 30.6111, 589.7892, 0.5317, 42.6111].into());
-        bounding_boxes.push([578.9656, 35.3132, 31.0428, 598.9656, 44.3132, 37.0428].into());
-        bounding_boxes.push([588.6971, 9.1298, 29.8123, 589.6971, 49.1298, 31.8123].into());
+        bounding_boxes.push([565.7892, -27.4683, 30.6111, 589.7892, 0.5317, 42.6111]);
+        bounding_boxes.push([578.9656, 35.3132, 31.0428, 598.9656, 44.3132, 37.0428]);
+        bounding_boxes.push([588.6971, 9.1298, 29.8123, 589.6971, 49.1298, 31.8123]);
     }
 
     let mut offset_xy = 0.0;
     let mut offset_max_z = 0.0;
-    if vec![
+    if [
         0xC44E7A07, // landing site
         0xB2701146, // alcove
         0xB9ABCD56, // fcs
@@ -3765,7 +3752,7 @@ where
         0xC7E821BA, // ttb
         0x4148F7B0, // burn dome
         0x43E4CC25, // hydra
-        0x21B4BFF6, // aether
+        0x21B4BFF6,
     ]
     .contains(&mrea_id)
     {
@@ -3779,7 +3766,7 @@ where
     let z_factor: f32 = gen_n_pick_closest(2, rng, 0.1, 0.8 + offset_max_z, 0.35);
 
     // Pick a bounding box if multiple are available
-    let bounding_box = bounding_boxes.choose(rng).unwrap().clone();
+    let bounding_box = *bounding_boxes.choose(rng).unwrap();
     [
         bounding_box[0] + (bounding_box[3] - bounding_box[0]) * x_factor,
         bounding_box[1] + (bounding_box[4] - bounding_box[1]) * y_factor,
@@ -3823,7 +3810,7 @@ fn add_player_freeze_assets<'r>(
     Ok(())
 }
 
-fn add_map_pickup_icon_txtr(file: &mut structs::FstEntryFile<'_>) -> Result<(), String> {
+fn add_map_pickup_icon_txtr(file: &mut structs::FstEntryFile) -> Result<(), String> {
     let pak = match file {
         structs::FstEntryFile::Pak(pak) => pak,
         _ => unreachable!(),
@@ -3843,7 +3830,7 @@ fn add_map_pickup_icon_txtr(file: &mut structs::FstEntryFile<'_>) -> Result<(), 
     Ok(())
 }
 
-fn add_pickups_to_mapa<'r>(
+fn add_pickups_to_mapa(
     res: &mut structs::Resource,
     show_icon: bool,
     memory_relay: pickup_meta::ScriptObjectLocation,
@@ -3857,6 +3844,7 @@ fn add_pickups_to_mapa<'r>(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn modify_pickups_in_mrea<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -3899,9 +3887,9 @@ fn modify_pickups_in_mrea<'r>(
         let pickup = pickup.property_data.as_pickup().unwrap();
 
         let pickup_model = pickup_model_for_pickup(&pickup)
-            .expect(format!("could not derrive pickup model in room 0x{:X}", mrea_id).as_str());
+            .unwrap_or_else(|| panic!("could not derrive pickup model in room 0x{:X}", mrea_id));
         let pickup_type = pickup_type_for_pickup(&pickup)
-            .expect(format!("could not derrive pickup type in room 0x{:X}", mrea_id).as_str());
+            .unwrap_or_else(|| panic!("could not derrive pickup type in room 0x{:X}", mrea_id));
 
         pickup_config.model = Some(pickup_model.name().to_string());
         pickup_config.pickup_type = pickup_type.name().to_string();
@@ -3971,8 +3959,8 @@ fn modify_pickups_in_mrea<'r>(
     let pickup_model_type: Option<PickupModel> = {
         if pickup_config.model.is_some() {
             let model_name = pickup_config.model.as_ref().unwrap();
-            let pmt = PickupModel::from_str(&model_name);
-            if pmt.is_none() && !extern_model.is_some() {
+            let pmt = PickupModel::from_str(model_name);
+            if pmt.is_none() && extern_model.is_none() {
                 panic!("Unknown Model Type {}", model_name);
             }
 
@@ -3983,13 +3971,13 @@ fn modify_pickups_in_mrea<'r>(
         }
     };
 
-    let pickup_model_type = pickup_model_type.clone().unwrap_or(PickupModel::Nothing);
+    let pickup_model_type = pickup_model_type.unwrap_or(PickupModel::Nothing);
     let mut pickup_model_data = pickup_model_type.pickup_data();
     if extern_model.is_some() {
-        let scale = extern_model.as_ref().unwrap().scale.clone();
-        pickup_model_data.scale[0] = pickup_model_data.scale[0] * scale;
-        pickup_model_data.scale[1] = pickup_model_data.scale[1] * scale;
-        pickup_model_data.scale[2] = pickup_model_data.scale[2] * scale;
+        let scale = extern_model.as_ref().unwrap().scale;
+        pickup_model_data.scale[0] *= scale;
+        pickup_model_data.scale[1] *= scale;
+        pickup_model_data.scale[2] *= scale;
         pickup_model_data.cmdl = ResId::<res_id::CMDL>::new(extern_model.as_ref().unwrap().cmdl);
         pickup_model_data.ancs.file_id =
             ResId::<res_id::ANCS>::new(extern_model.as_ref().unwrap().ancs);
@@ -4065,12 +4053,12 @@ fn modify_pickups_in_mrea<'r>(
 
     if pickup_config.destination.is_some() {
         area.add_dependencies(
-            &game_resources,
+            game_resources,
             0,
             iter::once(custom_asset_ids::GENERIC_WARP_STRG.into()),
         );
         area.add_dependencies(
-            &game_resources,
+            game_resources,
             0,
             iter::once(custom_asset_ids::WARPING_TO_START_DELAY_STRG.into()),
         );
@@ -4083,7 +4071,7 @@ fn modify_pickups_in_mrea<'r>(
     let mut special_fn_ice_trap_id = 0;
 
     let pickup_kind = pickup_type.kind();
-    if pickup_kind >= 29 && pickup_kind <= 40 {
+    if (29..=40).contains(&pickup_kind) {
         special_fn_artifact_layer_change_id = area.new_object_id_from_layer_name("Default");
     }
 
@@ -4249,7 +4237,7 @@ fn modify_pickups_in_mrea<'r>(
     });
 
     // If this is an artifact, insert a layer change function
-    if pickup_kind >= 29 && pickup_kind <= 40 {
+    if (29..=40).contains(&pickup_kind) {
         let function =
             artifact_layer_change_template(special_fn_artifact_layer_change_id, pickup_kind);
         layers[0].objects.as_mut_vec().push(function);
@@ -4376,7 +4364,7 @@ fn modify_pickups_in_mrea<'r>(
             instance_id: trigger_id,
             property_data: structs::Trigger {
                 name: b"Trigger\0".as_cstr(),
-                position: [-369.901093, -169.402206, 60.743099].into(),
+                position: [-369.901_1, -169.402_2, 60.743_1].into(),
                 scale: [20.0, 20.0, 5.0].into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: 0,
@@ -4498,7 +4486,7 @@ fn modify_pickups_in_mrea<'r>(
                 position_override,
             );
 
-            if additional_connections.len() > 0 {
+            if !additional_connections.is_empty() {
                 pickup_obj
                     .connections
                     .as_mut_vec()
@@ -4517,7 +4505,7 @@ fn modify_pickups_in_mrea<'r>(
             floaty_contraption_id[1],
             floaty_contraption_id[2],
             floaty_contraption_id[3],
-            position.clone().into(),
+            position,
         );
     }
 
@@ -4531,7 +4519,7 @@ fn modify_pickups_in_mrea<'r>(
                 property_data: structs::SclyProperty::PointOfInterest(Box::new(
                     structs::PointOfInterest {
                         name: b"mypoi\0".as_cstr(),
-                        position: position.clone().into(),
+                        position: position.into(),
                         rotation: [0.0, 0.0, 0.0].into(),
                         active: 1,
                         scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
@@ -4608,8 +4596,8 @@ fn modify_pickups_in_mrea<'r>(
     Ok(())
 }
 
-fn place_floaty_contraption<'r>(
-    objects: &mut Vec<structs::SclyObject<'r>>,
+fn place_floaty_contraption(
+    objects: &mut Vec<structs::SclyObject>,
     timer1_id: u32, // send RESET_AND_START to this ID to give floaty
     timer2_id: u32,
     water_id: u32,
@@ -4748,18 +4736,14 @@ fn update_pickup(
     let curr_increase = {
         if pickup_type == PickupType::Nothing {
             0
+        } else if pickup_config.curr_increase.is_some() {
+            pickup_config.curr_increase.unwrap()
+        } else if pickup_type == PickupType::Missile {
+            5
+        } else if pickup_type == PickupType::HealthRefill {
+            50
         } else {
-            if pickup_config.curr_increase.is_some() {
-                pickup_config.curr_increase.unwrap()
-            } else {
-                if pickup_type == PickupType::Missile {
-                    5
-                } else if pickup_type == PickupType::HealthRefill {
-                    50
-                } else {
-                    1
-                }
-            }
+            1
         }
     };
     let max_increase = {
@@ -4797,14 +4781,14 @@ fn update_pickup(
         .as_ref()
         .unwrap_or(&"".to_string())
         .clone();
-    if json_pickup_name.contains(&"prime2_MissileExpansion")
-        || json_pickup_name.contains(&"prime2_UnlimitedMissiles")
+    if json_pickup_name.contains("prime2_MissileExpansion")
+        || json_pickup_name.contains("prime2_UnlimitedMissiles")
     {
         position[2] -= 1.2;
         scan_offset[2] += 1.2;
     }
 
-    let mut scale = pickup_model_data.scale.clone();
+    let mut scale = pickup_model_data.scale;
     if let Some(scale_modifier) = pickup_config.scale {
         scale = [
             scale[0] * scale_modifier[0],
@@ -4819,7 +4803,7 @@ fn update_pickup(
         // "How is this pickup integrated into the room?"
         name: original_pickup.name,
         position: position.into(),
-        rotation: pickup_model_data.rotation.clone().into(),
+        rotation: pickup_model_data.rotation,
         hitbox: original_pickup.hitbox,
         scan_offset: scan_offset.into(),
         fade_in_timer: original_pickup.fade_in_timer,
@@ -4837,9 +4821,9 @@ fn update_pickup(
         // Model Pickup Data
         // "What does this pickup look like?"
         scale,
-        cmdl: pickup_model_data.cmdl.clone(),
+        cmdl: pickup_model_data.cmdl,
         ancs: pickup_model_data.ancs.clone(),
-        part: pickup_model_data.part.clone(),
+        part: pickup_model_data.part,
         actor_params: pickup_model_data.actor_params.clone(),
     };
 
@@ -4900,12 +4884,12 @@ fn rotate(mut coordinate: [f32; 3], mut rotation: [f32; 3], center: [f32; 3]) ->
         rotation[i] = rotation[i].to_radians();
     }
 
-    for i in 0..3 {
+    for (i, rotation) in rotation.iter_mut().enumerate() {
         let original = coordinate;
         let x = (i + 1) % 3;
         let y = (i + 2) % 3;
-        coordinate[x] = original[x] * rotation[i].cos() - original[y] * rotation[i].sin();
-        coordinate[y] = original[x] * rotation[i].sin() + original[y] * rotation[i].cos();
+        coordinate[x] = original[x] * rotation.cos() - original[y] * rotation.sin();
+        coordinate[y] = original[x] * rotation.sin() + original[y] * rotation.cos();
     }
 
     // Shift back to original position
@@ -4915,9 +4899,9 @@ fn rotate(mut coordinate: [f32; 3], mut rotation: [f32; 3], center: [f32; 3]) ->
     coordinate
 }
 
-fn patch_samus_actor_size<'r>(
+fn patch_samus_actor_size(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     player_size: f32,
 ) -> Result<(), String> {
     let mrea_id = area.mlvl_area.mrea.to_u32();
@@ -4926,18 +4910,18 @@ fn patch_samus_actor_size<'r>(
         for obj in layer.objects.as_mut_vec() {
             if obj.property_data.is_player_actor() {
                 let player_actor = obj.property_data.as_player_actor_mut().unwrap();
-                player_actor.scale[0] = player_actor.scale[0] * player_size;
-                player_actor.scale[1] = player_actor.scale[1] * player_size;
-                player_actor.scale[2] = player_actor.scale[2] * player_size;
+                player_actor.scale[0] *= player_size;
+                player_actor.scale[1] *= player_size;
+                player_actor.scale[2] *= player_size;
             }
 
             if mrea_id == 0xb4b41c48 {
                 if obj.property_data.is_actor() {
                     let actor = obj.property_data.as_actor_mut().unwrap();
-                    if actor.name.to_str().unwrap().contains(&"Samus") {
-                        actor.scale[0] = actor.scale[0] * player_size;
-                        actor.scale[1] = actor.scale[1] * player_size;
-                        actor.scale[2] = actor.scale[2] * player_size;
+                    if actor.name.to_str().unwrap().contains("Samus") {
+                        actor.scale[0] *= player_size;
+                        actor.scale[1] *= player_size;
+                        actor.scale[2] *= player_size;
                     }
                 }
 
@@ -4946,21 +4930,21 @@ fn patch_samus_actor_size<'r>(
                     if obj.property_data.is_camera() {
                         let camera = obj.property_data.as_camera_mut().unwrap();
                         let name = camera.name.to_str().unwrap().to_lowercase();
-                        if name.contains(&"buttons") {
+                        if name.contains("buttons") {
                             camera.rotation[0] = -2.0;
-                        } else if name.contains(&"camera4") {
+                        } else if name.contains("camera4") {
                             camera.rotation[0] = -5.0;
                         }
                     }
 
-                    if vec![
+                    if [
                         0x000004AF, 0x000004A4, 0x00000461, 0x00000477, 0x00000476, 0x00000474,
                         0x00000479, 0x00000478, 0x00000473, 0x0000045B,
                     ]
                     .contains(&(obj.instance_id & 0x0000FFFF))
                     {
                         let waypoint = obj.property_data.as_waypoint_mut().unwrap();
-                        waypoint.position[2] = waypoint.position[2] - 2.2;
+                        waypoint.position[2] -= 2.2;
                     }
                 }
             }
@@ -4969,9 +4953,9 @@ fn patch_samus_actor_size<'r>(
     Ok(())
 }
 
-fn patch_elevator_actor_size<'r>(
+fn patch_elevator_actor_size(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     player_size: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -4981,17 +4965,17 @@ fn patch_elevator_actor_size<'r>(
                 continue;
             }
             let wt = obj.property_data.as_world_transporter_mut().unwrap();
-            wt.player_scale[0] = wt.player_scale[0] * player_size;
-            wt.player_scale[1] = wt.player_scale[1] * player_size;
-            wt.player_scale[2] = wt.player_scale[2] * player_size;
+            wt.player_scale[0] *= player_size;
+            wt.player_scale[1] *= player_size;
+            wt.player_scale[2] *= player_size;
         }
     }
 
     Ok(())
 }
 
-fn make_elevators_patch<'a>(
-    patcher: &mut PrimePatcher<'_, 'a>,
+fn make_elevators_patch(
+    patcher: &mut PrimePatcher<'_, '_>,
     level_data: &HashMap<String, LevelConfig>,
     auto_enabled_elevators: bool,
     player_size: f32,
@@ -5016,14 +5000,14 @@ fn make_elevators_patch<'a>(
     for (_, level) in level_data.iter() {
         for (elevator_name, destination_name) in level.transports.iter() {
             // special cases, handled elsewhere
-            if vec!["frigate escape cutscene", "essence dead cutscene"]
+            if ["frigate escape cutscene", "essence dead cutscene"]
                 .contains(&(elevator_name.as_str().to_lowercase().as_str()))
             {
                 skip_frigate = false;
                 continue;
             }
 
-            let elv = Elevator::from_str(&elevator_name);
+            let elv = Elevator::from_str(elevator_name);
             if elv.is_none() {
                 panic!("Failed to parse elevator '{}'", elevator_name);
             }
@@ -5204,14 +5188,14 @@ fn patch_post_pq_frigate(
     }
     let layer_count = area.layer_flags.layer_count as usize;
     let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    for i in 0..layer_count {
-        layers[i].objects.as_mut_vec().retain(|obj| {
-            !vec![
+    for layer in layers.iter_mut().take(layer_count) {
+        layer.objects.as_mut_vec().retain(|obj| {
+            ![
                 0x00010074, 0x00010070, 0x00010072, 0x00010071, 0x00010073,
                 0x00010009, // Air Lock
                 0x000E003B, 0x000E0025, 0x000E00CF, 0x000E0095, // Biotech 1
                 0x0003000D, 0x0003000C, // Mech Shaft
-                0x000500AF, 0x000500AE, 0x000500B1, 0x0005013F, // Alpha Elevator
+                0x000500AF, 0x000500AE, 0x000500B1, 0x0005013F,
             ]
             .contains(&(obj.instance_id & 0x00FFFFFF))
         });
@@ -5238,11 +5222,7 @@ fn patch_post_pq_frigate(
         if trigger.is_some() {
             let trigger = trigger.unwrap();
             for conn in trigger.connections.as_mut_vec().iter_mut() {
-                if vec![
-                    0x000E0122, // 0x000E0079, 0x000E0078,
-                ]
-                .contains(&(conn.target_object_id & 0x00FFFFFF))
-                {
+                if [0x000E0122].contains(&(conn.target_object_id & 0x00FFFFFF)) {
                     conn.message = structs::ConnectionMsg::ACTIVATE;
                 }
             }
@@ -5296,7 +5276,7 @@ fn patch_post_pq_frigate(
                 target_object_id: 0x001A005D,
             });
         let trigger_property_data = cfldg_trigger.property_data.as_trigger_mut().unwrap();
-        trigger_property_data.position = [185.410889, -233.339539, -86.378212].into();
+        trigger_property_data.position = [185.410_89, -233.339_54, -86.378_21].into();
         trigger_property_data.flags = 0x1000; // detect morphed player
     }
 
@@ -5306,7 +5286,7 @@ fn patch_post_pq_frigate(
             instance_id,
             property_data: structs::Trigger {
                 name: b"Trigger\0".as_cstr(),
-                position: [184.816299, -263.740845, -86.882622].into(),
+                position: [184.816_3, -263.740_84, -86.882_62].into(),
                 scale: [1.5, 1.5, 1.5].into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: 0,
@@ -5377,7 +5357,7 @@ fn patch_post_pq_frigate(
     Ok(())
 }
 
-fn patch_edit_camera_keyframe<'r>(
+fn patch_edit_camera_keyframe(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32,
@@ -5407,7 +5387,7 @@ fn patch_edit_camera_keyframe<'r>(
     Ok(())
 }
 
-fn patch_sunchamber_cutscene_hack<'r>(
+fn patch_sunchamber_cutscene_hack(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -5432,7 +5412,7 @@ fn patch_sunchamber_cutscene_hack<'r>(
             }
 
             for conn in flaahgra_connections {
-                for id in vec![0x00500000, 0x00500001, 0x00500002] {
+                for id in [0x00500000, 0x00500001, 0x00500002] {
                     let mut new_conn = conn.clone();
                     new_conn.target_object_id = id;
                     obj.connections.as_mut_vec().push(new_conn);
@@ -5541,21 +5521,18 @@ fn patch_sunchamber_cutscene_hack<'r>(
             });
 
             /* Add connections to new flaahgra to enable the new object follow locators */
-            new_flaahgra
-                .connections
-                .as_mut_vec()
-                .extend_from_slice(&vec![
-                    structs::Connection {
-                        state: structs::ConnectionState::ACTIVE,
-                        message: structs::ConnectionMsg::ACTIVATE,
-                        target_object_id: drops_sf_id,
-                    },
-                    structs::Connection {
-                        state: structs::ConnectionState::ACTIVE,
-                        message: structs::ConnectionMsg::ACTIVATE,
-                        target_object_id: sound_sf_id,
-                    },
-                ]);
+            new_flaahgra.connections.as_mut_vec().extend_from_slice(&[
+                structs::Connection {
+                    state: structs::ConnectionState::ACTIVE,
+                    message: structs::ConnectionMsg::ACTIVATE,
+                    target_object_id: drops_sf_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::ACTIVE,
+                    message: structs::ConnectionMsg::ACTIVATE,
+                    target_object_id: sound_sf_id,
+                },
+            ]);
 
             /* Add new flaahgra to layer 1 */
             layer.objects.as_mut_vec().push(new_flaahgra);
@@ -5565,7 +5542,7 @@ fn patch_sunchamber_cutscene_hack<'r>(
     Ok(())
 }
 
-fn patch_move_camera<'r>(
+fn patch_move_camera(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32,
@@ -5590,7 +5567,8 @@ fn patch_move_camera<'r>(
     Ok(())
 }
 
-fn patch_add_camera<'r>(
+#[allow(clippy::too_many_arguments)]
+fn patch_add_camera(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32,
@@ -5601,7 +5579,7 @@ fn patch_add_camera<'r>(
     unknown: bool,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
-    let layer: &mut SclyLayer<'_> = &mut scly.layers.as_mut_vec()[0];
+    let layer: &mut SclyLayer = &mut scly.layers.as_mut_vec()[0];
     layer.objects.as_mut_vec().push(structs::SclyObject {
         instance_id: id,
         property_data: structs::Camera {
@@ -5622,7 +5600,7 @@ fn patch_add_camera<'r>(
     Ok(())
 }
 
-fn patch_add_boss_health_bar<'r>(
+fn patch_add_boss_health_bar(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32,
@@ -5671,7 +5649,7 @@ pub fn id_in_use(area: &mut mlvl_wrapper::MlvlArea, id: u32) -> bool {
     false
 }
 
-fn patch_add_camera_filter_key_frame<'r>(
+fn patch_add_camera_filter_key_frame(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32,
@@ -5703,7 +5681,7 @@ fn patch_add_camera_filter_key_frame<'r>(
     Ok(())
 }
 
-fn patch_add_cutscene_skip_fn<'r>(
+fn patch_add_cutscene_skip_fn(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32,
@@ -5747,9 +5725,9 @@ pub fn string_to_cstr<'r>(string: String) -> CStr<'r> {
     x
 }
 
-fn patch_edit_fog<'r>(
+fn patch_edit_fog(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     fog: FogConfig,
 ) -> Result<(), String> {
     let id = area.new_object_id_from_layer_id(0);
@@ -5834,8 +5812,8 @@ fn local_to_global_tranform(tranformation_matrix: [f32; 12], coordinates: [f32; 
     ]
 }
 
-fn derrive_bounding_box_measurements<'r>(
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+fn derrive_bounding_box_measurements(
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> ([f32; 3], [f32; 3], [f32; 3], [f32; 3]) {
     let area_transform: [f32; 12] = area.mlvl_area.area_transform.into();
     let bounding_box_untransformed: [f32; 6] = area.mlvl_area.area_bounding_box.into();
@@ -5860,9 +5838,7 @@ fn derrive_bounding_box_measurements<'r>(
     // min might not be min anymore after the transformation
     for i in 0..3 {
         if bounding_box_min[i] > bounding_box_max[i] {
-            let temp = bounding_box_min[i];
-            bounding_box_min[i] = bounding_box_max[i];
-            bounding_box_max[i] = temp;
+            std::mem::swap(&mut bounding_box_min[i], &mut bounding_box_max[i]);
         }
     }
 
@@ -5893,7 +5869,7 @@ fn patch_visible_aether_boundaries<'r>(
 ) -> Result<(), String> {
     const AETHER_BOUNDARY_TEXTURE: GenericTexture = GenericTexture::Snow;
 
-    let deps = vec![
+    let deps = [
         (AETHER_BOUNDARY_TEXTURE.cmdl().to_u32(), b"CMDL"),
         (AETHER_BOUNDARY_TEXTURE.txtr().to_u32(), b"TXTR"),
     ];
@@ -6002,9 +5978,9 @@ fn patch_visible_aether_boundaries<'r>(
     Ok(())
 }
 
-fn patch_ambient_lighting<'r>(
+fn patch_ambient_lighting(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let any = area
@@ -6271,7 +6247,7 @@ fn patch_landing_site_cutscene_triggers(
     // Platform Samus Ship
     objects
         .iter_mut()
-        .find(|obj: &&mut structs::SclyObject<'_>| obj.instance_id & 0x00FFFFFF == 0x141)
+        .find(|obj: &&mut structs::SclyObject| obj.instance_id & 0x00FFFFFF == 0x141)
         .and_then(|obj| obj.property_data.as_platform_mut())
         .unwrap()
         .active = 1;
@@ -6332,7 +6308,7 @@ fn patch_arboretum_vines(
     Ok(())
 }
 
-fn patch_teleporter_destination<'r>(
+fn patch_teleporter_destination(
     area: &mut mlvl_wrapper::MlvlArea,
     spawn_room: SpawnRoomData,
 ) -> Result<(), String> {
@@ -6349,7 +6325,7 @@ fn patch_teleporter_destination<'r>(
     Ok(())
 }
 
-fn patch_add_load_trigger<'r>(
+fn patch_add_load_trigger(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     position: [f32; 3],
@@ -6423,7 +6399,7 @@ fn fix_artifact_of_truth_requirements(
     let artifact_temple_layer_overrides = config
         .artifact_temple_layer_overrides
         .clone()
-        .unwrap_or(HashMap::new());
+        .unwrap_or_default();
 
     // Create a new layer that will be toggled on when the Artifact of Truth is collected
     assert!(ARTIFACT_OF_TRUTH_REQ_LAYER == area.layer_flags.layer_count);
@@ -6441,7 +6417,7 @@ fn fix_artifact_of_truth_requirements(
                 let artifact_temple_pickups = &rooms.get("Artifact Temple").unwrap().pickups;
                 if artifact_temple_pickups.is_some() {
                     let artifact_temple_pickups = artifact_temple_pickups.as_ref().unwrap();
-                    if artifact_temple_pickups.len() != 0 {
+                    if !artifact_temple_pickups.is_empty() {
                         _at_pickup_kind =
                             PickupType::from_str(&artifact_temple_pickups[0].pickup_type).kind();
                     }
@@ -6499,7 +6475,7 @@ fn fix_artifact_of_truth_requirements(
                     _ => panic!("Unhandled artifact idx - '{}'", i),
                 };
 
-                if key.to_lowercase().contains(&artifact_name) {
+                if key.to_lowercase().contains(artifact_name) {
                     _exists = _exists || *value; // if value is true, override
                     break;
                 }
@@ -6857,7 +6833,7 @@ fn patch_essence_cinematic_skip_nomusic(
     Ok(())
 }
 
-fn patch_research_lab_hydra_barrier<'r>(
+fn patch_research_lab_hydra_barrier(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -6903,7 +6879,7 @@ fn patch_lab_aether_cutscene_trigger(
     Ok(())
 }
 
-fn patch_research_lab_aether_exploding_wall<'r>(
+fn patch_research_lab_aether_exploding_wall(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -6938,7 +6914,7 @@ fn patch_research_lab_aether_exploding_wall<'r>(
     Ok(())
 }
 
-fn patch_research_lab_aether_exploding_wall_2<'r>(
+fn patch_research_lab_aether_exploding_wall_2(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -6966,7 +6942,7 @@ fn patch_research_lab_aether_exploding_wall_2<'r>(
     Ok(())
 }
 
-fn patch_observatory_2nd_pass_solvablility<'r>(
+fn patch_observatory_2nd_pass_solvablility(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -6989,7 +6965,7 @@ fn patch_observatory_2nd_pass_solvablility<'r>(
     Ok(())
 }
 
-fn patch_observatory_1st_pass_softlock<'r>(
+fn patch_observatory_1st_pass_softlock(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -7026,7 +7002,7 @@ fn patch_observatory_1st_pass_softlock<'r>(
             instance_id: LOCK_DOOR_TRIGGER_IDS[1],
             property_data: structs::Trigger {
                 name: b"Trigger\0".as_cstr(),
-                position: [-71.301552, -941.337952, 129.976822].into(),
+                position: [-71.301_55, -941.337_95, 129.976_82].into(),
                 scale: [10.516006, 6.079956, 7.128998].into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: 0,
@@ -7064,7 +7040,7 @@ fn patch_observatory_1st_pass_softlock<'r>(
             instance_id: LOCK_DOOR_TRIGGER_IDS[2],
             property_data: structs::Trigger {
                 name: b"Trigger\0".as_cstr(),
-                position: [-71.301552, -853.694336, 129.976822].into(),
+                position: [-71.301_55, -853.694_34, 129.976_82].into(),
                 scale: [10.516006, 6.079956, 7.128998].into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: 0,
@@ -7103,7 +7079,7 @@ fn patch_observatory_1st_pass_softlock<'r>(
     Ok(())
 }
 
-fn patch_main_ventilation_shaft_section_b_door<'r>(
+fn patch_main_ventilation_shaft_section_b_door(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -7163,7 +7139,7 @@ fn make_main_plaza_locked_door_two_ways(
             instance_id: trigger_doorunlock_id,
             property_data: structs::DamageableTrigger {
                 name: b"Trigger_DoorUnlock\0".as_cstr(),
-                position: [152.232117, 86.451134, 24.472418].into(),
+                position: [152.232_12, 86.451_13, 24.472418].into(),
                 scale: [0.25, 4.5, 4.0].into(),
                 health_info: structs::scly_structs::HealthInfo {
                     health: 1.0,
@@ -7237,7 +7213,7 @@ fn make_main_plaza_locked_door_two_ways(
             instance_id: trigger_dooropen_id,
             property_data: structs::Trigger {
                 name: b"Trigger_DoorOpen\0".as_cstr(),
-                position: [147.638397, 86.567917, 24.701054].into(),
+                position: [147.638_4, 86.567_92, 24.701054].into(),
                 scale: [20.0, 10.0, 4.0].into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: 0,
@@ -7270,7 +7246,7 @@ fn make_main_plaza_locked_door_two_ways(
             instance_id: actor_doorshield_id,
             property_data: structs::Actor {
                 name: b"Actor_DoorShield\0".as_cstr(),
-                position: [151.951187, 86.462578, 24.503178].into(),
+                position: [151.951_19, 86.462_58, 24.503178].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
                 scale: [1.0, 1.0, 1.0].into(),
                 hitbox: [0.0, 0.0, 0.0].into(),
@@ -7467,9 +7443,9 @@ fn patch_arboretum_invisible_wall(
     Ok(())
 }
 
-fn patch_op_death_pickup_spawn<'r>(
+fn patch_op_death_pickup_spawn(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layers = &mut scly.layers.as_mut_vec();
@@ -7480,7 +7456,7 @@ fn patch_op_death_pickup_spawn<'r>(
             if obj_id == 0x001A04B8 || obj_id == 0x001A04C5 {
                 // Elite Quarters Pickup(s)
                 let pickup = obj.property_data.as_pickup_mut().unwrap();
-                pickup.position[2] = pickup.position[2] + 2.0; // Move up so it's more obvious
+                pickup.position[2] += 2.0; // Move up so it's more obvious
 
                 // The pickup should display hudmemo instead of OP
                 obj.connections.as_mut_vec().push(structs::Connection {
@@ -7503,9 +7479,9 @@ fn patch_op_death_pickup_spawn<'r>(
             } else if obj_id == 0x001A0126 {
                 // Omega Pirate
                 obj.connections.as_mut_vec().retain(|conn| {
-                    !vec![
+                    ![
                         0x001A03D9, // elevator shield
-                        0x001A0328, // door unlock relay
+                        0x001A0328,
                     ]
                     .contains(&(conn.target_object_id & 0x00FFFFFF))
                 });
@@ -7516,9 +7492,9 @@ fn patch_op_death_pickup_spawn<'r>(
     Ok(())
 }
 
-fn patch_cutscene_force_phazon_suit<'r>(
+fn patch_cutscene_force_phazon_suit(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layers = &mut scly.layers.as_mut_vec();
@@ -7539,9 +7515,9 @@ fn patch_cutscene_force_phazon_suit<'r>(
 
 // for some reason this function is vitial to everything working
 // it must get called every time we patch
-fn patch_remove_otrs<'r>(
+fn patch_remove_otrs(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     otrs: &'static [ObjectsToRemove],
     remove: bool,
 ) -> Result<(), String> {
@@ -7586,9 +7562,9 @@ fn patch_audio_override<'r>(
     Ok(())
 }
 
-fn patch_remove_ids<'r>(
+fn patch_remove_ids(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     remove_ids: Vec<u32>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -7602,12 +7578,12 @@ fn patch_remove_ids<'r>(
     Ok(())
 }
 
-fn patch_set_layers<'r>(
+fn patch_set_layers(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     layers: HashMap<u32, bool>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
 
     // add more layers if needed
     let max = {
@@ -7625,7 +7601,7 @@ fn patch_set_layers<'r>(
     }
 
     for (layer_id, enabled) in layers.iter() {
-        let layer_id = layer_id.clone();
+        let layer_id = *layer_id;
         if layer_id >= area.layer_flags.layer_count {
             panic!("Unexpected layer #{} in room 0x{:X}", layer_id, mrea_id);
         }
@@ -7643,16 +7619,16 @@ fn patch_set_layers<'r>(
     Ok(())
 }
 
-fn patch_move_objects<'r>(
+fn patch_move_objects(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     layer_objs: HashMap<u32, u32>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
 
     // Add layers
     for (_, layer_id) in layer_objs.iter() {
-        let layer_id = layer_id.clone();
+        let layer_id = *layer_id;
         if layer_id >= 63 {
             panic!(
                 "Layer #{} above maximum (63) in room 0x{:X}",
@@ -7670,7 +7646,7 @@ fn patch_move_objects<'r>(
     // Move objects
     for (obj_id, layer_id) in layer_objs.iter() {
         let obj_id = obj_id & 0x00FFFFFF;
-        let layer_id = layer_id.clone() as usize;
+        let layer_id = *layer_id as usize;
 
         // find existing object
         let old_layer_id = {
@@ -7691,9 +7667,9 @@ fn patch_move_objects<'r>(
                 }
             }
 
-            let (old_layer_id, _) = info.expect(
-                format!("Cannot find object 0x{:X} in room 0x{:X}", obj_id, mrea_id).as_str(),
-            );
+            let (old_layer_id, _) = info.unwrap_or_else(|| {
+                panic!("Cannot find object 0x{:X} in room 0x{:X}", obj_id, mrea_id)
+            });
 
             old_layer_id
         };
@@ -7714,7 +7690,7 @@ fn patch_move_objects<'r>(
             .retain(|obj| obj.instance_id & 0x00FFFFFF != obj_id);
 
         // re-add to target layer
-        scly.layers.as_mut_vec()[layer_id as usize]
+        scly.layers.as_mut_vec()[layer_id]
             .objects
             .as_mut_vec()
             .push(obj);
@@ -7723,11 +7699,7 @@ fn patch_move_objects<'r>(
     Ok(())
 }
 
-fn patch_add_connection<'r>(
-    layers: &mut Vec<SclyLayer>,
-    connection: &ConnectionConfig,
-    mrea_id: u32,
-) {
+fn patch_add_connection(layers: &mut [SclyLayer], connection: &ConnectionConfig, mrea_id: u32) {
     for layer in layers.iter_mut() {
         let sender = layer
             .objects
@@ -7752,12 +7724,12 @@ fn patch_add_connection<'r>(
     );
 }
 
-fn patch_add_connections<'r>(
+fn patch_add_connections(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     connections: &Vec<ConnectionConfig>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
     let scly = area.mrea().scly_section_mut();
     let layers = scly.layers.as_mut_vec();
 
@@ -7768,7 +7740,7 @@ fn patch_add_connections<'r>(
     Ok(())
 }
 
-fn patch_remove_connection<'r>(layers: &mut Vec<SclyLayer>, connection: &ConnectionConfig) {
+fn patch_remove_connection(layers: &mut [SclyLayer], connection: &ConnectionConfig) {
     for layer in layers.iter_mut() {
         let sender = layer
             .objects
@@ -7795,9 +7767,9 @@ fn patch_remove_connection<'r>(layers: &mut Vec<SclyLayer>, connection: &Connect
     );
 }
 
-fn patch_remove_connections<'r>(
+fn patch_remove_connections(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     connections: &Vec<ConnectionConfig>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -7810,9 +7782,9 @@ fn patch_remove_connections<'r>(
     Ok(())
 }
 
-fn patch_remove_doors<'r>(
+fn patch_remove_doors(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layers = &mut scly.layers.as_mut_vec();
@@ -7828,9 +7800,9 @@ fn patch_remove_doors<'r>(
     Ok(())
 }
 
-fn patch_transform_bounding_box<'r>(
+fn patch_transform_bounding_box(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     offset: [f32; 3],
     scale: [f32; 3],
 ) -> Result<(), String> {
@@ -7857,9 +7829,9 @@ fn patch_transform_bounding_box<'r>(
     Ok(())
 }
 
-fn patch_spawn_point_position<'r>(
+fn patch_spawn_point_position(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     new_position: [f32; 3],
     relative_position: bool,
     force_default: bool,
@@ -7884,9 +7856,9 @@ fn patch_spawn_point_position<'r>(
             }
 
             if relative_position {
-                spawn_point.position[0] = spawn_point.position[0] + new_position[0];
-                spawn_point.position[1] = spawn_point.position[1] + new_position[1];
-                spawn_point.position[2] = spawn_point.position[2] + new_position[2];
+                spawn_point.position[0] += new_position[0];
+                spawn_point.position[1] += new_position[1];
+                spawn_point.position[2] += new_position[2];
             } else {
                 spawn_point.position = new_position.into();
             }
@@ -7954,7 +7926,7 @@ fn patch_fix_pca_crash(
         for obj in layer.objects.as_mut_vec() {
             if obj.property_data.is_trigger() {
                 let trigger = obj.property_data.as_trigger_mut().unwrap();
-                if trigger.name.to_str().unwrap().contains(&"eliteboss") {
+                if trigger.name.to_str().unwrap().contains("eliteboss") {
                     trigger.active = 1;
                 }
             }
@@ -8116,7 +8088,7 @@ fn patch_main_quarry_barrier(
     Ok(())
 }
 
-fn patch_main_quarry_door_lock_0_02<'r>(
+fn patch_main_quarry_door_lock_0_02(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -8129,7 +8101,7 @@ fn patch_main_quarry_door_lock_0_02<'r>(
     Ok(())
 }
 
-fn patch_geothermal_core_door_lock_0_02<'r>(
+fn patch_geothermal_core_door_lock_0_02(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -8157,7 +8129,7 @@ fn patch_hive_totem_boss_trigger_0_02(
         .find(|obj| obj.instance_id == trigger_obj_id)
         .and_then(|obj| obj.property_data.as_trigger_mut())
         .unwrap();
-    trigger_obj.position = [94.571053, 301.616028, 0.344905].into();
+    trigger_obj.position = [94.571_05, 301.616_03, 0.344905].into();
     trigger_obj.scale = [6.052994, 24.659973, 7.878154].into();
 
     Ok(())
@@ -8344,10 +8316,10 @@ fn patch_debug_trigger_1(
     });
 
     layer.objects.as_mut_vec().push(structs::SclyObject {
-        instance_id: instance_id,
+        instance_id,
         property_data: structs::DamageableTrigger {
             name: b"my dtrigger\0".as_cstr(),
-            position: [-380.12619, 297.455017, -3.8425].into(),
+            position: [-380.126_2, 297.455_02, -3.8425].into(),
             scale: [5.0, 1.5, 3.0].into(),
             health_info: structs::scly_structs::HealthInfo {
                 health: 0.5,
@@ -8438,7 +8410,7 @@ fn patch_add_pb_refill(
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32, // on zero, refill PBs
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
     let special_function_id = area.new_object_id_from_layer_id(0);
     let scly = area.mrea().scly_section_mut();
     let layer = &mut scly.layers.as_mut_vec()[0];
@@ -8533,7 +8505,7 @@ fn patch_remove_cutscenes(
                         .unwrap()
                         .to_string()
                         .to_lowercase();
-                    if name.contains(&"leaving") {
+                    if name.contains("leaving") {
                         skip_ids.push(obj.instance_id & 0x00FFFFFF);
                     }
                 }
@@ -8548,7 +8520,7 @@ fn patch_remove_cutscenes(
                         .unwrap()
                         .to_string()
                         .to_lowercase();
-                    if name.contains(&"leaving") {
+                    if name.contains("leaving") {
                         skip_ids.push(obj.instance_id & 0x00FFFFFF);
                     }
                 }
@@ -8652,10 +8624,10 @@ fn patch_remove_cutscenes(
             for connection in obj.connections.as_mut_vec().iter_mut() {
                 // if this object sends messages to a camera, change the message to be
                 // appropriate for a relay
-                if camera_ids.contains(&(connection.target_object_id & 0x00FFFFFF)) {
-                    if connection.message == structs::ConnectionMsg::ACTIVATE {
-                        connection.message = structs::ConnectionMsg::SET_TO_ZERO;
-                    }
+                if camera_ids.contains(&(connection.target_object_id & 0x00FFFFFF))
+                    && connection.message == structs::ConnectionMsg::ACTIVATE
+                {
+                    connection.message = structs::ConnectionMsg::SET_TO_ZERO;
                 }
             }
 
@@ -8685,8 +8657,8 @@ fn patch_remove_cutscenes(
                         0.1
                     } else {
                         let camera = obj.property_data.as_camera_mut();
-                        if camera.is_some() {
-                            camera.unwrap().shot_duration
+                        if let Some(camera) = camera {
+                            camera.shot_duration
                         } else {
                             // this is when shit gets double patched
                             // println!("object 0x{:X} in room 0x{:X} isn't actually a camera", room_id.to_u32(), obj_id);
@@ -8787,7 +8759,7 @@ fn patch_remove_cutscenes(
                 });
                 let trigger = obj.property_data.as_trigger_mut().unwrap();
                 trigger.scale[2] = 8.0;
-                trigger.position[2] = trigger.position[2] - 11.7;
+                trigger.position[2] -= 11.7;
                 trigger.deactivate_on_enter = 1;
             } else if obj_id == 0x00080058 {
                 // subchamber 3 trigger
@@ -8799,7 +8771,7 @@ fn patch_remove_cutscenes(
                 });
                 let trigger = obj.property_data.as_trigger_mut().unwrap();
                 trigger.scale[2] = 8.0;
-                trigger.position[2] = trigger.position[2] - 11.7;
+                trigger.position[2] -= 11.7;
                 trigger.deactivate_on_enter = 1;
             } else if obj_id == 0x0009005A {
                 // subchamber 4 trigger
@@ -8812,7 +8784,7 @@ fn patch_remove_cutscenes(
                 if obj.property_data.is_trigger() {
                     let trigger = obj.property_data.as_trigger_mut().unwrap();
                     trigger.scale[2] = 5.0;
-                    trigger.position[2] = trigger.position[2] - 11.7;
+                    trigger.position[2] -= 11.7;
                 }
             } else if obj_id == 0x001201AB {
                 // ventillation shaft end timer
@@ -8822,7 +8794,7 @@ fn patch_remove_cutscenes(
                     message: structs::ConnectionMsg::DEACTIVATE,
                     target_object_id: 0x001200C2, // gas damage trigger
                 });
-            } else if vec![
+            } else if [
                 0x001200B8, 0x001200B7, 0x001200B6, 0x001200B5, 0x001200B4, 0x001200B2,
             ]
             .contains(&obj_id)
@@ -8843,7 +8815,7 @@ fn patch_remove_cutscenes(
                 // the power bomb rock collision should not extend beyond the door
                 let actor = obj.property_data.as_actor_mut().unwrap();
                 actor.hitbox[1] = 0.4;
-                actor.position[1] = actor.position[1] - 0.8;
+                actor.position[1] -= 0.8;
             } else if obj_id == 0x0002023E {
                 // main plaza turn crane left relay
                 // snap the crane immediately so fast players don't fall through the intangible animation
@@ -8862,7 +8834,7 @@ fn patch_remove_cutscenes(
             } else if obj_id == 0x00130141 {
                 // arboretum disable gate timer
                 // Disable glowey gate marks with gate
-                for target_object_id in vec![0x00130119, 0x00130118, 0x0013011F, 0x0013011E] {
+                for target_object_id in [0x00130119, 0x00130118, 0x0013011F, 0x0013011E] {
                     // glowy symbols
                     obj.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
@@ -8874,12 +8846,9 @@ fn patch_remove_cutscenes(
             // unlock the artifact temple forcefield when memory relay is flipped, not when ridley dies
             else if obj_id == 0x00100101 {
                 // ridley
-                obj.connections.as_mut_vec().retain(|conn| {
-                    !vec![
-                        0x00100112, // forcefield
-                    ]
-                    .contains(&(conn.target_object_id & 0x00FFFFFF))
-                });
+                obj.connections
+                    .as_mut_vec()
+                    .retain(|conn| ![0x00100112].contains(&(conn.target_object_id & 0x00FFFFFF)));
             } else if obj_id == 0x0010028F {
                 // end of ridley death cine relay
                 obj.connections.as_mut_vec().push(structs::Connection {
@@ -8906,9 +8875,9 @@ fn patch_remove_cutscenes(
         // the ridley cutscene is okay
         {
             // special shorelines handling
-            let shorelines_triggers = vec![
+            let shorelines_triggers = [
                 0x00020155, // intro cutscene
-                0x000201F4, // shorelines tower cutscene
+                0x000201F4,
             ];
 
             layer.objects.as_mut_vec().retain(|obj| {
@@ -8936,7 +8905,7 @@ fn patch_remove_cutscenes(
                     obj.property_data.is_camera() ||
                     obj.property_data.is_camera_blur_keyframe() ||
                     obj.property_data.is_player_actor() ||
-                    vec![0x0018028E, 0x001802A1, 0x0018025C, 0x001800CC, 0x00180212, 0x00020473, 0x00070521, 0x001A034A, 0x001A04C2, 0x001A034B].contains(&(obj.instance_id&0x00FFFFFF)) || // thardus death sounds + thardus corpse + main quarry, security station playerhint, post OP death timer for hudmemo, Elite Quarters Control Disablers
+                    [0x0018028E, 0x001802A1, 0x0018025C, 0x001800CC, 0x00180212, 0x00020473, 0x00070521, 0x001A034A, 0x001A04C2, 0x001A034B].contains(&(obj.instance_id&0x00FFFFFF)) || // thardus death sounds + thardus corpse + main quarry, security station playerhint, post OP death timer for hudmemo, Elite Quarters Control Disablers
                     (obj.property_data.is_special_function() && obj.property_data.as_special_function().unwrap().type_ == 0x18) // "show billboard"
                 )
             });
@@ -8959,7 +8928,7 @@ fn patch_fix_central_dynamo_crash(
         layer
             .objects
             .as_mut_vec()
-            .retain(|obj| !vec![0x45].contains(&obj.property_data.object_type()));
+            .retain(|obj| ![0x45].contains(&obj.property_data.object_type()));
     }
 
     Ok(())
@@ -8986,7 +8955,7 @@ fn patch_main_quarry_door_lock_pal(
     Ok(())
 }
 
-fn patch_mines_security_station_soft_lock<'r>(
+fn patch_mines_security_station_soft_lock(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -9054,7 +9023,7 @@ fn patch_research_core_access_soft_lock(
     Ok(())
 }
 
-fn patch_hive_totem_softlock<'r>(
+fn patch_hive_totem_softlock(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -9071,7 +9040,7 @@ fn patch_hive_totem_softlock<'r>(
     Ok(())
 }
 
-fn patch_gravity_chamber_stalactite_grapple_point<'r>(
+fn patch_gravity_chamber_stalactite_grapple_point(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -9087,7 +9056,7 @@ fn patch_gravity_chamber_stalactite_grapple_point<'r>(
     Ok(())
 }
 
-fn patch_heat_damage_per_sec<'a>(patcher: &mut PrimePatcher<'_, 'a>, heat_damage_per_sec: f32) {
+fn patch_heat_damage_per_sec(patcher: &mut PrimePatcher<'_, '_>, heat_damage_per_sec: f32) {
     const HEATED_ROOMS: &[ResourceInfo] = &[
         resource_info!("06_grapplegallery.MREA"),
         resource_info!("00a_lava_connect.MREA"),
@@ -9119,7 +9088,7 @@ fn patch_heat_damage_per_sec<'a>(patcher: &mut PrimePatcher<'_, 'a>, heat_damage
     }
 }
 
-fn patch_poison_damage_per_sec<'a>(patcher: &mut PrimePatcher<'_, 'a>, poison_damage_per_sec: f32) {
+fn patch_poison_damage_per_sec(patcher: &mut PrimePatcher<'_, '_>, poison_damage_per_sec: f32) {
     const ROOMS_WITH_POISONED_WATER: &[ResourceInfo] = &[
         resource_info!("08_courtyard.MREA"),    // Chozo Ruins - Arboretum
         resource_info!("15_energycores.MREA"),  // Chozo Ruins - Energy Core
@@ -9160,7 +9129,7 @@ fn patch_save_station_for_warp_to_start<'r>(
     version: Version,
     warp_to_start_delay_s: f32,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
 
     let mut warp_to_start_delay_s = warp_to_start_delay_s;
     if warp_to_start_delay_s < 3.0 {
@@ -9168,12 +9137,12 @@ fn patch_save_station_for_warp_to_start<'r>(
     }
 
     area.add_dependencies(
-        &game_resources,
+        game_resources,
         0,
         iter::once(custom_asset_ids::WARPING_TO_START_STRG.into()),
     );
     area.add_dependencies(
-        &game_resources,
+        game_resources,
         0,
         iter::once(custom_asset_ids::WARPING_TO_START_DELAY_STRG.into()),
     );
@@ -9264,8 +9233,7 @@ fn patch_save_station_for_warp_to_start<'r>(
                 activate_visor_xray: 0,
                 unknown6: 0,
                 face_object_on_unmorph: 0,
-            }
-            .into(),
+            },
 
             priority: 10,
         }
@@ -9277,7 +9245,7 @@ fn patch_save_station_for_warp_to_start<'r>(
         if let Some(sp_function) = obj.property_data.as_special_function_mut() {
             if sp_function.type_ == 7 {
                 // Is Save Station function
-                obj.connections.as_mut_vec().extend_from_slice(&vec![
+                obj.connections.as_mut_vec().extend_from_slice(&[
                     structs::Connection {
                         target_object_id: player_hint_id,
                         state: structs::ConnectionState::RETREAT,
@@ -9324,7 +9292,7 @@ fn patch_memorycard_strg(res: &mut structs::Resource, version: Version) -> Resul
             .strings
             .as_mut_vec();
 
-        let s = strings.iter_mut().nth(8).unwrap();
+        let s = strings.get_mut(8).unwrap();
         *s = "スロットAのメモリーカードに\nデータをセーブしますか？\n&image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; キーを押したまま、「いいえ」を選択して開始ルームにワープします。\u{0}".to_string().into();
     } else {
         let strings = res
@@ -9363,7 +9331,7 @@ fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> 
             .strings
             .as_mut_vec();
 
-        let s = strings_jpn.iter_mut().nth(37).unwrap();
+        let s = strings_jpn.get_mut(37).unwrap();
         *s = "&main-color=#FFFFFF;エクストラ\u{0}".to_string().into();
         strings_jpn.push(format!("{}\0", msg).into());
     }
@@ -9538,7 +9506,7 @@ fn patch_credits(
                     }
                 }
 
-                if _room_name.len() == 0 {
+                if _room_name.is_empty() {
                     _room_name = "<Not Present>".to_string();
                 }
 
@@ -9550,21 +9518,21 @@ fn patch_credits(
     }
     output = format!("{}{}", output, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\0");
     if version == Version::NtscJ {
-        res.kind.as_strg_mut().unwrap().add_strings(
-            &[format!("{}", output)],
-            Languages::Some(&[b"ENGL", b"JAPN"]),
-        );
+        res.kind
+            .as_strg_mut()
+            .unwrap()
+            .add_strings(&[output.to_string()], Languages::Some(&[b"ENGL", b"JAPN"]));
     } else {
         res.kind
             .as_strg_mut()
             .unwrap()
-            .add_strings(&[format!("{}", output)], Languages::All);
+            .add_strings(&[output.to_string()], Languages::All);
     }
 
     /* We are who we choose to be */
     /* https://mobile.twitter.com/ZoidCTF/status/1542699504041750528 */
     res.kind.as_strg_mut().unwrap().edit_strings(
-        (format!("David 'Zoid' Kirsch"), format!("Zoid Kirsch")),
+        ("David 'Zoid' Kirsch".to_string(), "Zoid Kirsch".to_string()),
         Languages::All,
     );
 
@@ -9611,7 +9579,7 @@ fn patch_arbitrary_strg(
         strings.clear();
 
         for mut replacement_string in replacement_strings.clone() {
-            if !replacement_string.ends_with("\0") {
+            if !replacement_string.ends_with('\0') {
                 replacement_string += "\0";
             }
             strings.push(replacement_string.to_owned().into());
@@ -9723,7 +9691,7 @@ fn patch_starting_pickups<'r>(
                 },
             ]);
         area.add_dependencies(
-            &game_resources,
+            game_resources,
             starting_memo_layer_idx,
             iter::once(custom_asset_ids::STARTING_ITEMS_HUDMEMO_STRG.into()),
         );
@@ -9751,7 +9719,8 @@ fn create_rel_config_file(spawn_room: SpawnRoomData, quickplay: bool) -> Vec<u8>
     buf
 }
 
-fn patch_dol<'r>(
+#[allow(clippy::too_many_arguments)]
+fn patch_dol(
     file: &mut structs::FstEntryFile,
     spawn_room: SpawnRoomData,
     version: Version,
@@ -9943,46 +9912,47 @@ fn patch_dol<'r>(
         )?;
     } else if config.suit_colors.is_some() {
         let suit_colors = config.suit_colors.as_ref().unwrap();
-        let mut colors: Vec<Vec<u8>> = Vec::new();
-        colors.push(vec![
-            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
-            0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
-        ]); // skBallInnerGlowColors
-        colors.push(vec![
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
-            0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-        ]); // BallAuxGlowColors
-        colors.push(vec![
-            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
-            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-        ]); // BallTransFlashColors
-        colors.push(vec![
-            0xC2, 0x8F, 0x17, 0x70, 0xD4, 0xFF, 0x6A, 0xFF, 0x8A, 0x3D, 0x4D, 0xFF, 0xC0, 0x00,
-            0x00, 0x00, 0xBE, 0xDC, 0xDF, 0xFF, 0x00, 0xC4, 0x9E, 0xFF, 0xFF, 0x9A, 0x22,
-        ]); // BallSwooshColors
-        colors.push(vec![
-            0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xD5,
-            0x19, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00,
-        ]); // BallSwooshColorsJaggy
-        colors.push(vec![
-            0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0x80,
-            0x20, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00,
-        ]); // BallSwooshColorsCharged
-        colors.push(vec![
-            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
-            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-        ]); // BallGlowColors
+        let mut colors: Vec<Vec<u8>> = vec![
+            vec![
+                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
+                0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
+            ], // skBallInnerGlowColors
+            vec![
+                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
+                0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            ], // BallAuxGlowColors
+            vec![
+                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
+                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+            ], // BallTransFlashColors
+            vec![
+                0xC2, 0x8F, 0x17, 0x70, 0xD4, 0xFF, 0x6A, 0xFF, 0x8A, 0x3D, 0x4D, 0xFF, 0xC0, 0x00,
+                0x00, 0x00, 0xBE, 0xDC, 0xDF, 0xFF, 0x00, 0xC4, 0x9E, 0xFF, 0xFF, 0x9A, 0x22,
+            ], // BallSwooshColors
+            vec![
+                0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xD5,
+                0x19, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00,
+            ], // BallSwooshColorsJaggy
+            vec![
+                0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0x80,
+                0x20, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00,
+            ], // BallSwooshColorsCharged
+            vec![
+                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
+                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+            ], // BallGlowColors
+        ];
 
-        for i in 0..colors.len() {
+        for color in colors.iter_mut() {
             for j in 0..9 {
-                let angle = if vec![0].contains(&j) && suit_colors.power_deg.is_some() {
-                    suit_colors.power_deg.clone().unwrap()
-                } else if vec![1, 2].contains(&j) && suit_colors.varia_deg.is_some() {
-                    suit_colors.varia_deg.clone().unwrap()
-                } else if vec![3].contains(&j) && suit_colors.gravity_deg.is_some() {
-                    suit_colors.gravity_deg.clone().unwrap()
-                } else if vec![4].contains(&j) && suit_colors.phazon_deg.is_some() {
-                    suit_colors.phazon_deg.clone().unwrap()
+                let angle = if [0].contains(&j) && suit_colors.power_deg.is_some() {
+                    suit_colors.power_deg.unwrap()
+                } else if [1, 2].contains(&j) && suit_colors.varia_deg.is_some() {
+                    suit_colors.varia_deg.unwrap()
+                } else if [3].contains(&j) && suit_colors.gravity_deg.is_some() {
+                    suit_colors.gravity_deg.unwrap()
+                } else if [4].contains(&j) && suit_colors.phazon_deg.is_some() {
+                    suit_colors.phazon_deg.unwrap()
                 } else {
                     0
                 };
@@ -9997,11 +9967,10 @@ fn patch_dol<'r>(
                 let g_idx = r_idx + 1;
                 let b_idx = r_idx + 2;
 
-                let new_rgb =
-                    huerotate_color(matrix, colors[i][r_idx], colors[i][g_idx], colors[i][b_idx]);
-                colors[i][r_idx] = new_rgb[0];
-                colors[i][g_idx] = new_rgb[1];
-                colors[i][b_idx] = new_rgb[2];
+                let new_rgb = huerotate_color(matrix, color[r_idx], color[g_idx], color[b_idx]);
+                color[r_idx] = new_rgb[0];
+                color[g_idx] = new_rgb[1];
+                color[b_idx] = new_rgb[2];
             }
         }
 
@@ -10891,7 +10860,7 @@ fn patch_dol<'r>(
         b      { rel_loader_map["rel_loader_hook"] };
     }))?;
 
-    new_text_section_end = new_text_section_end + rel_loader_size;
+    new_text_section_end += rel_loader_size;
 
     // bool __thiscall CGameState::IsMemoryRelayActive(uint object_id, uint mlvl_id)
     let is_memory_relay_active_func = new_text_section_end;
@@ -10947,8 +10916,7 @@ fn patch_dol<'r>(
         blr;
     });
 
-    new_text_section_end =
-        new_text_section_end + is_memory_relay_active_func_patch.encoded_bytes().len() as u32;
+    new_text_section_end += is_memory_relay_active_func_patch.encoded_bytes().len() as u32;
     new_text_section.extend(is_memory_relay_active_func_patch.encoded_bytes());
 
     let patch_pickup_icon_case = ppcasm!(symbol_addr!("Case1B_Switch_Draw__CMappableObject", version) + ((structs::MapaObjectType::Pickup as u32) - 0x1b) * 4, {
@@ -10996,8 +10964,7 @@ fn patch_dol<'r>(
             b            { symbol_addr!("Draw__15CMappableObjectCFiRC13CMapWorldInfofb", version) + 0x284 };
         });
 
-        new_text_section_end =
-            new_text_section_end + set_pickup_icon_txtr_patch.encoded_bytes().len() as u32;
+        new_text_section_end += set_pickup_icon_txtr_patch.encoded_bytes().len() as u32;
         new_text_section.extend(set_pickup_icon_txtr_patch.encoded_bytes());
     } else {
         let set_pickup_icon_txtr_patch = ppcasm!(new_text_section_end, {
@@ -11022,8 +10989,7 @@ fn patch_dol<'r>(
             b            { symbol_addr!("Draw__15CMappableObjectCFiRC13CMapWorldInfofb", version) + 0x298 };
         });
 
-        new_text_section_end =
-            new_text_section_end + set_pickup_icon_txtr_patch.encoded_bytes().len() as u32;
+        new_text_section_end += set_pickup_icon_txtr_patch.encoded_bytes().len() as u32;
         new_text_section.extend(set_pickup_icon_txtr_patch.encoded_bytes());
     }
 
@@ -11059,8 +11025,7 @@ fn patch_dol<'r>(
                 b         { symbol_addr!("ThinkSaveStation__22CScriptSpecialFunctionFfR13CStateManager", version) + 0x58 };
         });
 
-        new_text_section_end =
-            new_text_section_end + warp_to_start_patch.encoded_bytes().len() as u32;
+        new_text_section_end += warp_to_start_patch.encoded_bytes().len() as u32;
         new_text_section.extend(warp_to_start_patch.encoded_bytes());
     }
 
@@ -11225,8 +11190,7 @@ fn patch_dol<'r>(
                 .float 1.5;
         });
 
-        new_text_section_end =
-            new_text_section_end + spring_ball_patch.encoded_bytes().len() as u32;
+        new_text_section_end += spring_ball_patch.encoded_bytes().len() as u32;
         new_text_section.extend(spring_ball_patch.encoded_bytes());
 
         let spring_ball_cooldown = new_text_section_end - 8;
@@ -11282,10 +11246,9 @@ fn patch_dol<'r>(
                 blr;
         });
 
-        new_text_section_end = new_text_section_end
-            + spring_ball_cooldown_reset_on_unmorph_patch
-                .encoded_bytes()
-                .len() as u32;
+        new_text_section_end += spring_ball_cooldown_reset_on_unmorph_patch
+            .encoded_bytes()
+            .len() as u32;
         new_text_section.extend(spring_ball_cooldown_reset_on_unmorph_patch.encoded_bytes());
 
         #[rustfmt::skip]
@@ -11332,10 +11295,9 @@ fn patch_dol<'r>(
                 blr;
         });
 
-        new_text_section_end = new_text_section_end
-            + spring_ball_cooldown_reset_on_morph_patch
-                .encoded_bytes()
-                .len() as u32;
+        new_text_section_end += spring_ball_cooldown_reset_on_morph_patch
+            .encoded_bytes()
+            .len() as u32;
         new_text_section.extend(spring_ball_cooldown_reset_on_morph_patch.encoded_bytes());
     }
 
@@ -11396,8 +11358,7 @@ fn patch_dol<'r>(
                     .float    75.0;
             });
 
-            new_text_section_end =
-                new_text_section_end + ice_trap_special_func_patch.encoded_bytes().len() as u32;
+            new_text_section_end += ice_trap_special_func_patch.encoded_bytes().len() as u32;
             new_text_section.extend(ice_trap_special_func_patch.encoded_bytes());
         } else {
             let ice_trap_special_func_patch = ppcasm!(new_text_section_end, {
@@ -11450,8 +11411,7 @@ fn patch_dol<'r>(
                     .float    75.0;
             });
 
-            new_text_section_end =
-                new_text_section_end + ice_trap_special_func_patch.encoded_bytes().len() as u32;
+            new_text_section_end += ice_trap_special_func_patch.encoded_bytes().len() as u32;
             new_text_section.extend(ice_trap_special_func_patch.encoded_bytes());
         }
     }
@@ -11496,8 +11456,7 @@ fn patch_dol<'r>(
             b {cridley_acceptscriptmsg_addr + 0x898};
         });
 
-        new_text_section_end = new_text_section_end
-            + restore_original_check_code_cave_patch.encoded_bytes().len() as u32;
+        new_text_section_end += restore_original_check_code_cave_patch.encoded_bytes().len() as u32;
         new_text_section.extend(restore_original_check_code_cave_patch.encoded_bytes());
     }
 
@@ -11518,7 +11477,7 @@ fn patch_dol<'r>(
     Ok(())
 }
 
-fn empty_frigate_pak<'r>(file: &mut structs::FstEntryFile) -> Result<(), String> {
+fn empty_frigate_pak(file: &mut structs::FstEntryFile) -> Result<(), String> {
     // To reduce the amount of data that needs to be copied, empty the contents of the pak
     let pak = match file {
         structs::FstEntryFile::Pak(pak) => pak,
@@ -11538,7 +11497,7 @@ fn empty_frigate_pak<'r>(file: &mut structs::FstEntryFile) -> Result<(), String>
 fn patch_ctwk_game(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> Result<(), String> {
     let mut ctwk = res.kind.as_ctwk_mut().unwrap();
     let ctwk_game = match &mut ctwk {
-        structs::Ctwk::CtwkGame(i) => i,
+        structs::Ctwk::Game(i) => i,
         _ => panic!("Failed to map res=0x{:X} as CtwkGame", res.file_id),
     };
 
@@ -11558,14 +11517,10 @@ fn patch_ctwk_game(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> Res
 
     if ctwk_config.underwater_fog_distance.is_some() {
         let underwater_fog_distance = ctwk_config.underwater_fog_distance.unwrap();
-        ctwk_game.water_fog_distance_base =
-            ctwk_game.water_fog_distance_base * underwater_fog_distance;
-        ctwk_game.water_fog_distance_range =
-            ctwk_game.water_fog_distance_range * underwater_fog_distance;
-        ctwk_game.gravity_water_fog_distance_base =
-            ctwk_game.gravity_water_fog_distance_base * underwater_fog_distance;
-        ctwk_game.gravity_water_fog_distance_range =
-            ctwk_game.gravity_water_fog_distance_range * underwater_fog_distance;
+        ctwk_game.water_fog_distance_base *= underwater_fog_distance;
+        ctwk_game.water_fog_distance_range *= underwater_fog_distance;
+        ctwk_game.gravity_water_fog_distance_base *= underwater_fog_distance;
+        ctwk_game.gravity_water_fog_distance_range *= underwater_fog_distance;
     }
 
     Ok(())
@@ -11574,26 +11529,24 @@ fn patch_ctwk_game(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> Res
 fn patch_ctwk_player(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> Result<(), String> {
     let mut ctwk = res.kind.as_ctwk_mut().unwrap();
     let ctwk_player = match &mut ctwk {
-        structs::Ctwk::CtwkPlayer(i) => i,
+        structs::Ctwk::Player(i) => i,
         _ => panic!("Failed to map res=0x{:X} as CtwkPlayer", res.file_id),
     };
 
     if ctwk_config.player_size.is_some() {
         let player_size = ctwk_config.player_size.unwrap();
-        ctwk_player.player_height = ctwk_player.player_height * player_size;
-        ctwk_player.player_xy_half_extent = ctwk_player.player_xy_half_extent * player_size;
-        ctwk_player.step_up_height = ctwk_player.step_up_height * player_size;
-        ctwk_player.step_down_height = ctwk_player.step_down_height * player_size;
+        ctwk_player.player_height *= player_size;
+        ctwk_player.player_xy_half_extent *= player_size;
+        ctwk_player.step_up_height *= player_size;
+        ctwk_player.step_down_height *= player_size;
     }
 
     if ctwk_config.step_up_height.is_some() {
-        ctwk_player.step_up_height =
-            ctwk_player.step_up_height * ctwk_config.step_up_height.unwrap();
+        ctwk_player.step_up_height *= ctwk_config.step_up_height.unwrap();
     }
 
     if ctwk_config.morph_ball_size.is_some() {
-        ctwk_player.player_ball_half_extent =
-            ctwk_player.player_ball_half_extent * ctwk_config.morph_ball_size.unwrap();
+        ctwk_player.player_ball_half_extent *= ctwk_config.morph_ball_size.unwrap();
     }
 
     if ctwk_config.easy_lava_escape.unwrap_or(false) {
@@ -11620,18 +11573,15 @@ fn patch_ctwk_player(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> R
     }
 
     if ctwk_config.bomb_jump_height.is_some() {
-        ctwk_player.bomb_jump_height =
-            ctwk_player.bomb_jump_height * ctwk_config.bomb_jump_height.unwrap();
+        ctwk_player.bomb_jump_height *= ctwk_config.bomb_jump_height.unwrap();
     }
 
     if ctwk_config.bomb_jump_radius.is_some() {
-        ctwk_player.bomb_jump_radius =
-            ctwk_player.bomb_jump_radius * ctwk_config.bomb_jump_radius.unwrap();
+        ctwk_player.bomb_jump_radius *= ctwk_config.bomb_jump_radius.unwrap();
     }
 
     if ctwk_config.grapple_beam_speed.is_some() {
-        ctwk_player.grapple_beam_speed =
-            ctwk_player.grapple_beam_speed * ctwk_config.grapple_beam_speed.unwrap();
+        ctwk_player.grapple_beam_speed *= ctwk_config.grapple_beam_speed.unwrap();
     }
 
     if ctwk_config.aim_assist_angle.is_some() {
@@ -11641,8 +11591,7 @@ fn patch_ctwk_player(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> R
     }
 
     if ctwk_config.gravity.is_some() {
-        ctwk_player.normal_grav_accel =
-            ctwk_player.normal_grav_accel * ctwk_config.gravity.unwrap();
+        ctwk_player.normal_grav_accel *= ctwk_config.gravity.unwrap();
     }
 
     if ctwk_config.ice_break_timeout.is_some() {
@@ -11658,8 +11607,7 @@ fn patch_ctwk_player(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> R
     }
 
     if ctwk_config.ground_friction.is_some() {
-        ctwk_player.translation_friction[0] =
-            ctwk_player.translation_friction[0] * ctwk_config.ground_friction.unwrap();
+        ctwk_player.translation_friction[0] *= ctwk_config.ground_friction.unwrap();
     }
 
     if ctwk_config.coyote_frames.is_some() {
@@ -11687,87 +11635,69 @@ fn patch_ctwk_player(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> R
     }
 
     if ctwk_config.varia_damage_reduction.is_some() {
-        ctwk_player.varia_damage_reduction =
-            ctwk_player.varia_damage_reduction * ctwk_config.varia_damage_reduction.unwrap();
+        ctwk_player.varia_damage_reduction *= ctwk_config.varia_damage_reduction.unwrap();
     }
 
     if ctwk_config.gravity_damage_reduction.is_some() {
-        ctwk_player.gravity_damage_reduction =
-            ctwk_player.gravity_damage_reduction * ctwk_config.gravity_damage_reduction.unwrap();
+        ctwk_player.gravity_damage_reduction *= ctwk_config.gravity_damage_reduction.unwrap();
     }
 
     if ctwk_config.phazon_damage_reduction.is_some() {
-        ctwk_player.phazon_damage_reduction =
-            ctwk_player.phazon_damage_reduction * ctwk_config.phazon_damage_reduction.unwrap();
+        ctwk_player.phazon_damage_reduction *= ctwk_config.phazon_damage_reduction.unwrap();
     }
 
     if ctwk_config.max_speed.is_some() {
         let max_speed = ctwk_config.max_speed.unwrap();
-        ctwk_player.translation_max_speed[0] = ctwk_player.translation_max_speed[0] * max_speed;
-        ctwk_player.translation_max_speed[1] = ctwk_player.translation_max_speed[1] * max_speed;
-        ctwk_player.translation_max_speed[2] = ctwk_player.translation_max_speed[2] * max_speed;
-        ctwk_player.translation_max_speed[3] = ctwk_player.translation_max_speed[3] * max_speed;
-        ctwk_player.translation_max_speed[4] = ctwk_player.translation_max_speed[4] * max_speed;
-        ctwk_player.translation_max_speed[5] = ctwk_player.translation_max_speed[5] * max_speed;
-        ctwk_player.translation_max_speed[6] = ctwk_player.translation_max_speed[6] * max_speed;
-        ctwk_player.translation_max_speed[7] = ctwk_player.translation_max_speed[7] * max_speed;
+        ctwk_player.translation_max_speed[0] *= max_speed;
+        ctwk_player.translation_max_speed[1] *= max_speed;
+        ctwk_player.translation_max_speed[2] *= max_speed;
+        ctwk_player.translation_max_speed[3] *= max_speed;
+        ctwk_player.translation_max_speed[4] *= max_speed;
+        ctwk_player.translation_max_speed[5] *= max_speed;
+        ctwk_player.translation_max_speed[6] *= max_speed;
+        ctwk_player.translation_max_speed[7] *= max_speed;
     }
 
     if ctwk_config.max_acceleration.is_some() {
         let max_acceleration = ctwk_config.max_acceleration.unwrap();
-        ctwk_player.translation_max_speed[0] =
-            ctwk_player.translation_max_speed[0] * max_acceleration;
-        ctwk_player.translation_max_speed[1] =
-            ctwk_player.translation_max_speed[1] * max_acceleration;
-        ctwk_player.translation_max_speed[2] =
-            ctwk_player.translation_max_speed[2] * max_acceleration;
-        ctwk_player.translation_max_speed[3] =
-            ctwk_player.translation_max_speed[3] * max_acceleration;
-        ctwk_player.translation_max_speed[4] =
-            ctwk_player.translation_max_speed[4] * max_acceleration;
-        ctwk_player.translation_max_speed[5] =
-            ctwk_player.translation_max_speed[5] * max_acceleration;
-        ctwk_player.translation_max_speed[6] =
-            ctwk_player.translation_max_speed[6] * max_acceleration;
-        ctwk_player.translation_max_speed[7] =
-            ctwk_player.translation_max_speed[7] * max_acceleration;
+        ctwk_player.translation_max_speed[0] *= max_acceleration;
+        ctwk_player.translation_max_speed[1] *= max_acceleration;
+        ctwk_player.translation_max_speed[2] *= max_acceleration;
+        ctwk_player.translation_max_speed[3] *= max_acceleration;
+        ctwk_player.translation_max_speed[4] *= max_acceleration;
+        ctwk_player.translation_max_speed[5] *= max_acceleration;
+        ctwk_player.translation_max_speed[6] *= max_acceleration;
+        ctwk_player.translation_max_speed[7] *= max_acceleration;
     }
 
     if ctwk_config.space_jump_impulse.is_some() {
-        ctwk_player.double_jump_impulse =
-            ctwk_player.double_jump_impulse * ctwk_config.space_jump_impulse.unwrap();
+        ctwk_player.double_jump_impulse *= ctwk_config.space_jump_impulse.unwrap();
     }
     if ctwk_config.vertical_space_jump_accel.is_some() {
-        ctwk_player.vertical_double_jump_accel =
-            ctwk_player.vertical_double_jump_accel * ctwk_config.vertical_space_jump_accel.unwrap();
+        ctwk_player.vertical_double_jump_accel *= ctwk_config.vertical_space_jump_accel.unwrap();
     }
     if ctwk_config.horizontal_space_jump_accel.is_some() {
-        ctwk_player.horizontal_double_jump_accel = ctwk_player.horizontal_double_jump_accel
-            * ctwk_config.horizontal_space_jump_accel.unwrap();
+        ctwk_player.horizontal_double_jump_accel *=
+            ctwk_config.horizontal_space_jump_accel.unwrap();
     }
 
     if ctwk_config.allowed_jump_time.is_some() {
-        ctwk_player.allowed_jump_time =
-            ctwk_player.allowed_jump_time * ctwk_config.allowed_jump_time.unwrap();
+        ctwk_player.allowed_jump_time *= ctwk_config.allowed_jump_time.unwrap();
     }
     if ctwk_config.allowed_space_jump_time.is_some() {
-        ctwk_player.allowed_double_jump_time =
-            ctwk_player.allowed_double_jump_time * ctwk_config.allowed_space_jump_time.unwrap();
+        ctwk_player.allowed_double_jump_time *= ctwk_config.allowed_space_jump_time.unwrap();
     }
     if ctwk_config.min_space_jump_window.is_some() {
-        ctwk_player.min_double_jump_window =
-            ctwk_player.min_double_jump_window * ctwk_config.min_space_jump_window.unwrap();
+        ctwk_player.min_double_jump_window *= ctwk_config.min_space_jump_window.unwrap();
     }
     if ctwk_config.max_space_jump_window.is_some() {
-        ctwk_player.max_double_jump_window =
-            ctwk_player.max_double_jump_window * ctwk_config.max_space_jump_window.unwrap();
+        ctwk_player.max_double_jump_window *= ctwk_config.max_space_jump_window.unwrap();
     }
     if ctwk_config.min_jump_time.is_some() {
-        ctwk_player.min_jump_time = ctwk_player.min_jump_time * ctwk_config.min_jump_time.unwrap();
+        ctwk_player.min_jump_time *= ctwk_config.min_jump_time.unwrap();
     }
     if ctwk_config.min_space_jump_time.is_some() {
-        ctwk_player.min_double_jump_time =
-            ctwk_player.min_double_jump_time * ctwk_config.min_space_jump_time.unwrap();
+        ctwk_player.min_double_jump_time *= ctwk_config.min_space_jump_time.unwrap();
     }
     if ctwk_config.falling_space_jump.is_some() {
         ctwk_player.falling_double_jump = {
@@ -11789,14 +11719,13 @@ fn patch_ctwk_player(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> R
     }
 
     if ctwk_config.eye_offset.is_some() {
-        ctwk_player.eye_offset = ctwk_player.eye_offset * ctwk_config.eye_offset.unwrap();
+        ctwk_player.eye_offset *= ctwk_config.eye_offset.unwrap();
     }
 
     if ctwk_config.turn_speed.is_some() {
         let turn_speed = ctwk_config.turn_speed.unwrap();
-        ctwk_player.turn_speed_multiplier = ctwk_player.turn_speed_multiplier * turn_speed;
-        ctwk_player.free_look_turn_speed_multiplier =
-            ctwk_player.free_look_turn_speed_multiplier * turn_speed;
+        ctwk_player.turn_speed_multiplier *= turn_speed;
+        ctwk_player.free_look_turn_speed_multiplier *= turn_speed;
         // there might be others
     }
 
@@ -11809,33 +11738,31 @@ fn patch_ctwk_player_gun(
 ) -> Result<(), String> {
     let mut ctwk = res.kind.as_ctwk_mut().unwrap();
     let ctwk_player_gun = match &mut ctwk {
-        structs::Ctwk::CtwkPlayerGun(i) => i,
+        structs::Ctwk::PlayerGun(i) => i,
         _ => panic!("Failed to map res=0x{:X} as CtwkPlayerGun", res.file_id),
     };
 
     if ctwk_config.gun_position.is_some() {
         let gun_position = ctwk_config.gun_position.unwrap();
-        ctwk_player_gun.gun_position[0] = ctwk_player_gun.gun_position[0] + gun_position[0];
-        ctwk_player_gun.gun_position[1] = ctwk_player_gun.gun_position[1] + gun_position[1];
-        ctwk_player_gun.gun_position[2] = ctwk_player_gun.gun_position[2] + gun_position[2];
+        ctwk_player_gun.gun_position[0] += gun_position[0];
+        ctwk_player_gun.gun_position[1] += gun_position[1];
+        ctwk_player_gun.gun_position[2] += gun_position[2];
     }
 
     if ctwk_config.gun_damage.is_some() {
         let gun_damage = ctwk_config.gun_damage.unwrap();
-        ctwk_player_gun.missile.damage = ctwk_player_gun.missile.damage * gun_damage;
+        ctwk_player_gun.missile.damage *= gun_damage;
         for i in 0..ctwk_player_gun.beams.len() {
-            ctwk_player_gun.beams[i].normal.damage =
-                ctwk_player_gun.beams[i].normal.damage * gun_damage;
-            ctwk_player_gun.beams[i].charged.damage =
-                ctwk_player_gun.beams[i].charged.damage * gun_damage;
-            ctwk_player_gun.combos[i].damage = ctwk_player_gun.combos[i].damage * gun_damage;
+            ctwk_player_gun.beams[i].normal.damage *= gun_damage;
+            ctwk_player_gun.beams[i].charged.damage *= gun_damage;
+            ctwk_player_gun.combos[i].damage *= gun_damage;
         }
     }
 
     if ctwk_config.gun_cooldown.is_some() {
         let gun_cooldown = ctwk_config.gun_cooldown.unwrap();
         for i in 0..ctwk_player_gun.beams.len() {
-            ctwk_player_gun.beams[i].cool_down = ctwk_player_gun.beams[i].cool_down * gun_cooldown;
+            ctwk_player_gun.beams[i].cool_down *= gun_cooldown;
         }
     }
     Ok(())
@@ -11845,134 +11772,93 @@ fn patch_ctwk_ball(res: &mut structs::Resource, ctwk_config: &CtwkConfig) -> Res
     let mut ctwk = res.kind.as_ctwk_mut().unwrap();
 
     let ctwk_ball = match &mut ctwk {
-        structs::Ctwk::CtwkBall(i) => i,
+        structs::Ctwk::Ball(i) => i,
         _ => panic!("Failed to map res=0x{:X} as CtwkBall", res.file_id),
     };
 
     if ctwk_config.max_translation_accel.is_some() {
-        ctwk_ball.max_translation_accel[0] =
-            ctwk_ball.max_translation_accel[0] * ctwk_config.max_translation_accel.unwrap();
-        ctwk_ball.max_translation_accel[1] =
-            ctwk_ball.max_translation_accel[1] * ctwk_config.max_translation_accel.unwrap();
-        ctwk_ball.max_translation_accel[2] =
-            ctwk_ball.max_translation_accel[2] * ctwk_config.max_translation_accel.unwrap();
-        ctwk_ball.max_translation_accel[3] =
-            ctwk_ball.max_translation_accel[3] * ctwk_config.max_translation_accel.unwrap();
-        ctwk_ball.max_translation_accel[4] =
-            ctwk_ball.max_translation_accel[4] * ctwk_config.max_translation_accel.unwrap();
-        ctwk_ball.max_translation_accel[5] =
-            ctwk_ball.max_translation_accel[5] * ctwk_config.max_translation_accel.unwrap();
-        ctwk_ball.max_translation_accel[6] =
-            ctwk_ball.max_translation_accel[6] * ctwk_config.max_translation_accel.unwrap();
-        ctwk_ball.max_translation_accel[7] =
-            ctwk_ball.max_translation_accel[7] * ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[0] *= ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[1] *= ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[2] *= ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[3] *= ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[4] *= ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[5] *= ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[6] *= ctwk_config.max_translation_accel.unwrap();
+        ctwk_ball.max_translation_accel[7] *= ctwk_config.max_translation_accel.unwrap();
     }
     if ctwk_config.translation_friction.is_some() {
-        ctwk_ball.translation_friction[0] =
-            ctwk_ball.translation_friction[0] * ctwk_config.translation_friction.unwrap();
-        ctwk_ball.translation_friction[1] =
-            ctwk_ball.translation_friction[1] * ctwk_config.translation_friction.unwrap();
-        ctwk_ball.translation_friction[2] =
-            ctwk_ball.translation_friction[2] * ctwk_config.translation_friction.unwrap();
-        ctwk_ball.translation_friction[3] =
-            ctwk_ball.translation_friction[3] * ctwk_config.translation_friction.unwrap();
-        ctwk_ball.translation_friction[4] =
-            ctwk_ball.translation_friction[4] * ctwk_config.translation_friction.unwrap();
-        ctwk_ball.translation_friction[5] =
-            ctwk_ball.translation_friction[5] * ctwk_config.translation_friction.unwrap();
-        ctwk_ball.translation_friction[6] =
-            ctwk_ball.translation_friction[6] * ctwk_config.translation_friction.unwrap();
-        ctwk_ball.translation_friction[7] =
-            ctwk_ball.translation_friction[7] * ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[0] *= ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[1] *= ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[2] *= ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[3] *= ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[4] *= ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[5] *= ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[6] *= ctwk_config.translation_friction.unwrap();
+        ctwk_ball.translation_friction[7] *= ctwk_config.translation_friction.unwrap();
     }
     if ctwk_config.translation_max_speed.is_some() {
-        ctwk_ball.translation_max_speed[0] =
-            ctwk_ball.translation_max_speed[0] * ctwk_config.translation_max_speed.unwrap();
-        ctwk_ball.translation_max_speed[1] =
-            ctwk_ball.translation_max_speed[1] * ctwk_config.translation_max_speed.unwrap();
-        ctwk_ball.translation_max_speed[2] =
-            ctwk_ball.translation_max_speed[2] * ctwk_config.translation_max_speed.unwrap();
-        ctwk_ball.translation_max_speed[3] =
-            ctwk_ball.translation_max_speed[3] * ctwk_config.translation_max_speed.unwrap();
-        ctwk_ball.translation_max_speed[4] =
-            ctwk_ball.translation_max_speed[4] * ctwk_config.translation_max_speed.unwrap();
-        ctwk_ball.translation_max_speed[5] =
-            ctwk_ball.translation_max_speed[5] * ctwk_config.translation_max_speed.unwrap();
-        ctwk_ball.translation_max_speed[6] =
-            ctwk_ball.translation_max_speed[6] * ctwk_config.translation_max_speed.unwrap();
-        ctwk_ball.translation_max_speed[7] =
-            ctwk_ball.translation_max_speed[7] * ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[0] *= ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[1] *= ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[2] *= ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[3] *= ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[4] *= ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[5] *= ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[6] *= ctwk_config.translation_max_speed.unwrap();
+        ctwk_ball.translation_max_speed[7] *= ctwk_config.translation_max_speed.unwrap();
     }
     if ctwk_config.ball_forward_braking_accel.is_some() {
-        ctwk_ball.ball_forward_braking_accel[0] = ctwk_ball.ball_forward_braking_accel[0]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
-        ctwk_ball.ball_forward_braking_accel[1] = ctwk_ball.ball_forward_braking_accel[1]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
-        ctwk_ball.ball_forward_braking_accel[2] = ctwk_ball.ball_forward_braking_accel[2]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
-        ctwk_ball.ball_forward_braking_accel[3] = ctwk_ball.ball_forward_braking_accel[3]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
-        ctwk_ball.ball_forward_braking_accel[4] = ctwk_ball.ball_forward_braking_accel[4]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
-        ctwk_ball.ball_forward_braking_accel[5] = ctwk_ball.ball_forward_braking_accel[5]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
-        ctwk_ball.ball_forward_braking_accel[6] = ctwk_ball.ball_forward_braking_accel[6]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
-        ctwk_ball.ball_forward_braking_accel[7] = ctwk_ball.ball_forward_braking_accel[7]
-            * ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[0] *= ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[1] *= ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[2] *= ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[3] *= ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[4] *= ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[5] *= ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[6] *= ctwk_config.ball_forward_braking_accel.unwrap();
+        ctwk_ball.ball_forward_braking_accel[7] *= ctwk_config.ball_forward_braking_accel.unwrap();
     }
     if ctwk_config.ball_gravity.is_some() {
-        ctwk_ball.ball_gravity = ctwk_ball.ball_gravity * ctwk_config.ball_gravity.unwrap();
+        ctwk_ball.ball_gravity *= ctwk_config.ball_gravity.unwrap();
     }
     if ctwk_config.ball_water_gravity.is_some() {
-        ctwk_ball.ball_water_gravity =
-            ctwk_ball.ball_water_gravity * ctwk_config.ball_water_gravity.unwrap();
+        ctwk_ball.ball_water_gravity *= ctwk_config.ball_water_gravity.unwrap();
     }
     if ctwk_config.boost_drain_time.is_some() {
-        ctwk_ball.boost_drain_time =
-            ctwk_ball.boost_drain_time * ctwk_config.boost_drain_time.unwrap();
+        ctwk_ball.boost_drain_time *= ctwk_config.boost_drain_time.unwrap();
     }
     if ctwk_config.boost_min_charge_time.is_some() {
-        ctwk_ball.boost_min_charge_time =
-            ctwk_ball.boost_min_charge_time * ctwk_config.boost_min_charge_time.unwrap();
+        ctwk_ball.boost_min_charge_time *= ctwk_config.boost_min_charge_time.unwrap();
     }
     if ctwk_config.boost_min_rel_speed_for_damage.is_some() {
-        ctwk_ball.boost_min_rel_speed_for_damage = ctwk_ball.boost_min_rel_speed_for_damage
-            * ctwk_config.boost_min_rel_speed_for_damage.unwrap();
+        ctwk_ball.boost_min_rel_speed_for_damage *=
+            ctwk_config.boost_min_rel_speed_for_damage.unwrap();
     }
     if ctwk_config.boost_charge_time0.is_some() {
-        ctwk_ball.boost_charge_time0 =
-            ctwk_ball.boost_charge_time0 * ctwk_config.boost_charge_time0.unwrap();
+        ctwk_ball.boost_charge_time0 *= ctwk_config.boost_charge_time0.unwrap();
     }
     if ctwk_config.boost_charge_time1.is_some() {
-        ctwk_ball.boost_charge_time1 =
-            ctwk_ball.boost_charge_time1 * ctwk_config.boost_charge_time1.unwrap();
+        ctwk_ball.boost_charge_time1 *= ctwk_config.boost_charge_time1.unwrap();
     }
     if ctwk_config.boost_charge_time2.is_some() {
-        ctwk_ball.boost_charge_time2 =
-            ctwk_ball.boost_charge_time2 * ctwk_config.boost_charge_time2.unwrap();
+        ctwk_ball.boost_charge_time2 *= ctwk_config.boost_charge_time2.unwrap();
     }
     if ctwk_config.boost_incremental_speed0.is_some() {
-        ctwk_ball.boost_incremental_speed0 =
-            ctwk_ball.boost_incremental_speed0 * ctwk_config.boost_incremental_speed0.unwrap();
+        ctwk_ball.boost_incremental_speed0 *= ctwk_config.boost_incremental_speed0.unwrap();
     }
     if ctwk_config.boost_incremental_speed1.is_some() {
-        ctwk_ball.boost_incremental_speed1 =
-            ctwk_ball.boost_incremental_speed1 * ctwk_config.boost_incremental_speed1.unwrap();
+        ctwk_ball.boost_incremental_speed1 *= ctwk_config.boost_incremental_speed1.unwrap();
     }
     if ctwk_config.boost_incremental_speed2.is_some() {
-        ctwk_ball.boost_incremental_speed2 =
-            ctwk_ball.boost_incremental_speed2 * ctwk_config.boost_incremental_speed2.unwrap();
+        ctwk_ball.boost_incremental_speed2 *= ctwk_config.boost_incremental_speed2.unwrap();
     }
 
     Ok(())
 }
 
-fn patch_subchamber_five_essence_permadeath<'r>(
+fn patch_subchamber_five_essence_permadeath(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
     let layer_count = area.mrea().scly_section_mut().layers.len();
     let disable_bosses_layer_num = layer_count;
     if disable_bosses_layer_num != 1 {
@@ -12035,8 +11921,8 @@ fn patch_subchamber_five_essence_permadeath<'r>(
             .into(),
             property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
                 name: b"push into hole\0".as_cstr(),
-                position: [43.704475, -260.3421, -124.530144].into(),
-                scale: [46.119999, 3.078979, 31.992004].into(),
+                position: [43.704475, -260.3421, -124.530_14].into(),
+                scale: [46.12, 3.078979, 31.992004].into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: 0,
                     damage: 0.0,
@@ -12123,8 +12009,7 @@ fn patch_subchamber_five_essence_permadeath<'r>(
                     activate_visor_xray: 0,
                     unknown6: 0,
                     face_object_on_unmorph: 0,
-                }
-                .into(),
+                },
                 priority: 10,
             }
             .into(),
@@ -12175,9 +12060,9 @@ fn patch_subchamber_five_essence_permadeath<'r>(
     Ok(())
 }
 
-fn patch_fix_aether_lab_entryway_broken_load<'r>(
+fn patch_fix_aether_lab_entryway_broken_load(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layers = &mut scly.layers.as_mut_vec();
@@ -12196,11 +12081,11 @@ fn patch_fix_aether_lab_entryway_broken_load<'r>(
     Ok(())
 }
 
-fn patch_pq_permadeath<'r>(
+fn patch_pq_permadeath(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
 
     let special_fn_id = area.new_object_id_from_layer_id(0);
     let timer1_id = area.new_object_id_from_layer_id(0);
@@ -12213,7 +12098,7 @@ fn patch_pq_permadeath<'r>(
     let layers = &mut scly.layers.as_mut_vec();
 
     // move objects to new layer //
-    for obj_id in vec![0x00190110, 0x00190053] {
+    for obj_id in [0x00190110, 0x00190053] {
         let obj = layers[0]
             .objects
             .as_mut_vec()
@@ -12316,10 +12201,10 @@ fn patch_final_boss_permadeath<'r>(
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32().clone();
+    let mrea_id = area.mlvl_area.mrea.to_u32();
     if mrea_id == 0x1A666C55 {
         // lair
-        let deps = vec![(0x12771AF0, b"CMDL"), (0xA6114429, b"TXTR")];
+        let deps = [(0x12771AF0, b"CMDL"), (0xA6114429, b"TXTR")];
         let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
             asset_id: file_id,
             asset_type: FourCC::from_bytes(fourcc),
@@ -12333,17 +12218,15 @@ fn patch_final_boss_permadeath<'r>(
     }
 
     let layer_count = area.mrea().scly_section().layers.len();
-    let disable_bosses_layer_num;
-
-    if mrea_id == 0x749DF46 {
+    let disable_bosses_layer_num = if mrea_id == 0x749DF46 {
         // subchamber two already has a layer #1 that we can use
-        disable_bosses_layer_num = 1;
+        1
     } else {
         if layer_count == 1 {
             area.add_layer(b"Disable Bosses Layer\0".as_cstr());
         }
-        disable_bosses_layer_num = 1;
-    }
+        1
+    };
 
     area.layer_flags.flags |= 1 << disable_bosses_layer_num; // layer enabled by default
                                                              // area.layer_flags.flags &= !(1 << disable_bosses_layer_num); // uncomment for easy testing
@@ -12388,7 +12271,7 @@ fn patch_final_boss_permadeath<'r>(
     if mrea_id == 0x1A666C55 {
         // lair
         /* Move Essence */
-        for obj_id in vec![0x000B0082, 0x000B0093, 0x000B008C] {
+        for obj_id in [0x000B0082, 0x000B0093, 0x000B008C] {
             let obj = layers[0]
                 .objects
                 .as_mut_vec()
@@ -12526,8 +12409,7 @@ fn patch_final_boss_permadeath<'r>(
                     activate_visor_xray: 0,
                     unknown6: 0,
                     face_object_on_unmorph: 0,
-                }
-                .into(),
+                },
                 priority: 10,
             }
             .into(),
@@ -12588,7 +12470,7 @@ fn patch_final_boss_permadeath<'r>(
             .into(),
             property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
                 name: b"unload subchamber five\0".as_cstr(),
-                position: [44.219898, -286.196686, -350.0].into(),
+                position: [44.219_9, -286.196_7, -350.0].into(),
                 scale: [100.0, 100.0, 130.0].into(),
                 damage_info: structs::scly_structs::DamageInfo {
                     weapon_type: 0,
@@ -12644,13 +12526,13 @@ fn patch_final_boss_permadeath<'r>(
                     obj.property_data.is_trigger() ||
                     obj.property_data.object_type() == 0x83 ||
                     obj.property_data.object_type() == 0x84)
-                    && !vec![
+                    && ![
                         0x00050014, // infusion chamber door
                         0x00050013, 0x00050014, 0x0005000E,
                     ]
                     .contains(&obj.instance_id)
                 {
-                    objs_to_remove.push(obj.instance_id.clone());
+                    objs_to_remove.push(obj.instance_id);
                 }
             }
         }
@@ -12696,7 +12578,11 @@ fn patch_final_boss_permadeath<'r>(
         }
 
         let mut _connections = Vec::new();
-        for i in 0..destinations.len() {
+        for (i, special_function_id) in special_function_ids
+            .iter()
+            .take(destinations.len())
+            .enumerate()
+        {
             let (state, message) = if (mrea_id == 0x1A666C55) && (i == 1) {
                 // lair -> subchamber five
                 (
@@ -12713,7 +12599,7 @@ fn patch_final_boss_permadeath<'r>(
             _connections.push(structs::Connection {
                 state,
                 message,
-                target_object_id: special_function_ids[i],
+                target_object_id: *special_function_id,
             });
         }
         layers[0].objects.as_mut_vec().push(structs::SclyObject {
@@ -12742,7 +12628,7 @@ fn patch_combat_hud_color(
         return Ok(());
     }
 
-    let mut new_color: [f32; 3] = ctwk_config.hud_color.as_ref().unwrap().clone();
+    let mut new_color: [f32; 3] = *ctwk_config.hud_color.as_ref().unwrap();
     let mut max_new = new_color[0];
     if new_color[1] > max_new {
         max_new = new_color[1];
@@ -12756,7 +12642,7 @@ fn patch_combat_hud_color(
 
     let frme = res.kind.as_frme_mut().unwrap();
     for widget in frme.widgets.as_mut_vec().iter_mut() {
-        let old_color = widget.color.clone();
+        let old_color = widget.color;
         if old_color[0] - old_color[1] > -0.1
             && old_color[0] - old_color[1] < 0.1
             && old_color[0] - old_color[2] > -0.1
@@ -12793,7 +12679,7 @@ fn patch_ctwk_gui_colors(
 ) -> Result<(), String> {
     let mut ctwk = res.kind.as_ctwk_mut().unwrap();
     let ctwk_gui_colors = match &mut ctwk {
-        structs::Ctwk::CtwkGuiColors(i) => i,
+        structs::Ctwk::GuiColors(i) => i,
         _ => panic!("Failed to map res=0x{:X} as CtwkGuiColors", res.file_id),
     };
 
@@ -12850,9 +12736,9 @@ fn patch_ctwk_gui_colors(
                     old_color[2] - new_color_scaled[2],
                 ];
                 let diff_scale = 0.65;
-                new_color_scaled[0] = new_color_scaled[0] + diff[0] * diff_scale;
-                new_color_scaled[1] = new_color_scaled[1] + diff[1] * diff_scale;
-                new_color_scaled[2] = new_color_scaled[2] + diff[2] * diff_scale;
+                new_color_scaled[0] += diff[0] * diff_scale;
+                new_color_scaled[1] += diff[1] * diff_scale;
+                new_color_scaled[2] += diff[2] * diff_scale;
             } else if i == 96 || i == 97 {
                 // critical scans should be distinguishable
                 let diff = [
@@ -12861,9 +12747,9 @@ fn patch_ctwk_gui_colors(
                     (1.0 - new_color_scaled[2]) - new_color_scaled[2],
                 ];
                 let diff_scale = 0.65;
-                new_color_scaled[0] = new_color_scaled[0] + diff[0] * diff_scale;
-                new_color_scaled[1] = new_color_scaled[1] + diff[1] * diff_scale;
-                new_color_scaled[2] = new_color_scaled[2] + diff[2] * diff_scale;
+                new_color_scaled[0] += diff[0] * diff_scale;
+                new_color_scaled[1] += diff[1] * diff_scale;
+                new_color_scaled[2] += diff[2] * diff_scale;
             }
             ctwk_gui_colors.colors[i as usize] = new_color_scaled.into();
         }
@@ -12907,9 +12793,9 @@ fn patch_ctwk_gui_colors(
     Ok(())
 }
 
-fn patch_move_item_loss_scan<'r>(
+fn patch_move_item_loss_scan(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layer_count = scly.layers.len();
@@ -12919,7 +12805,7 @@ fn patch_move_item_loss_scan<'r>(
             let mut _poi = obj.property_data.as_point_of_interest_mut();
             if _poi.is_some() {
                 let poi = _poi.unwrap();
-                poi.position[1] = poi.position[1] + 2.0;
+                poi.position[1] += 2.0;
             }
         }
     }
@@ -12952,14 +12838,14 @@ fn patch_move_item_loss_scan<'r>(
 //     Ok(())
 // }
 
-fn is_blast_shield<'r>(obj: &structs::SclyObject<'r>) -> bool {
+fn is_blast_shield(obj: &structs::SclyObject) -> bool {
     if !obj.property_data.is_actor() {
         return false;
     }
     obj.property_data.as_actor().unwrap().cmdl == 0xEFDFFB8C
 }
 
-fn is_blast_shield_poi<'r>(obj: &structs::SclyObject<'r>) -> bool {
+fn is_blast_shield_poi(obj: &structs::SclyObject) -> bool {
     if !obj.property_data.is_point_of_interest() {
         return false;
     }
@@ -12972,9 +12858,9 @@ fn is_blast_shield_poi<'r>(obj: &structs::SclyObject<'r>) -> bool {
         == 0x05f56f9d
 }
 
-fn patch_remove_blast_shields<'r>(
+fn patch_remove_blast_shields(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layer_count = scly.layers.len();
@@ -12983,15 +12869,15 @@ fn patch_remove_blast_shields<'r>(
         layer
             .objects
             .as_mut_vec()
-            .retain(|obj| !is_blast_shield(&obj) && !is_blast_shield_poi(&obj));
+            .retain(|obj| !is_blast_shield(obj) && !is_blast_shield_poi(obj));
     }
 
     Ok(())
 }
 
-fn patch_anti_oob<'r>(
+fn patch_anti_oob(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layer_count = scly.layers.len();
@@ -13001,7 +12887,7 @@ fn patch_anti_oob<'r>(
             if let Some(dock) = obj.property_data.as_dock_mut() {
                 let scale: [f32; 3] = dock.scale.into();
                 let volume = scale[0] * scale[1] * scale[2];
-                if volume < 49.9 || volume > 50.1 {
+                if !(49.9..=50.1).contains(&volume) {
                     continue; // This dock is weird don't touch it
                 }
 
@@ -13015,14 +12901,14 @@ fn patch_anti_oob<'r>(
                     dock.scale[2] = 1.85;
 
                     // Center with the door
-                    dock.position[2] = dock.position[2] - 0.6;
+                    dock.position[2] -= 0.6;
                 } else if scale[1] > 4.9 {
                     dock.scale[0] = 1.5;
                     dock.scale[1] = 2.4;
                     dock.scale[2] = 1.85;
 
                     // Center with the door
-                    dock.position[2] = dock.position[2] - 0.6;
+                    dock.position[2] -= 0.6;
                 }
             }
         }
@@ -13031,9 +12917,9 @@ fn patch_anti_oob<'r>(
     Ok(())
 }
 
-fn patch_remove_control_disabler<'r>(
+fn patch_remove_control_disabler(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layer_count = scly.layers.len();
@@ -13054,6 +12940,7 @@ fn patch_remove_control_disabler<'r>(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn patch_add_dock_teleport<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -13097,7 +12984,7 @@ fn patch_add_dock_teleport<'r>(
                 let dock = obj.property_data.as_dock_mut().unwrap();
 
                 // Remove all auto-loads in this room except for elevator rooms
-                if !vec![
+                if ![
                     0x3E6B2BB7, 0x8316EDF5, 0xA5FA69A1, 0x236E1B0F, 0xC00E3781, 0xDD0B0739,
                     0x11A02448, 0x2398E906, 0x8A31665E, 0x15D6FF8B, 0x0CA514F0, 0x7D106670,
                     0x430E999C, 0xE2C2CF38, 0x3BEAADC9, 0xDCA9A28B, 0x4C3D244C, 0xEF2F1440,
@@ -13111,7 +12998,7 @@ fn patch_add_dock_teleport<'r>(
                 // Find the specified dock
                 if dock.dock_index == destination_dock_num {
                     found = true;
-                    dock_position = dock.position.clone();
+                    dock_position = dock.position;
                 }
             }
         }
@@ -13164,7 +13051,7 @@ fn patch_add_dock_teleport<'r>(
             }
         }
 
-        door_rotation = door.rotation.clone();
+        door_rotation = door.rotation;
         is_frigate_door = door.ancs.file_id == 0xfafb5784;
         is_ceiling_door =
             door.ancs.file_id == 0xf57dd484 && door_rotation[0] > -90.0 && door_rotation[0] < 90.0;
@@ -13180,7 +13067,7 @@ fn patch_add_dock_teleport<'r>(
         is_morphball_door = true; // it's technically not actually a morph ball door
     }
 
-    let mut spawn_point_position = dock_position.clone();
+    let mut spawn_point_position = dock_position;
     let mut spawn_point_rotation = [0.0, 0.0, 0.0];
     let mut door_offset = 3.0;
     let mut vertical_offset = -2.0;
@@ -13233,24 +13120,24 @@ fn patch_add_dock_teleport<'r>(
 
     if door_rotation[2] >= 45.0 && door_rotation[2] < 135.0 {
         // Leads North (Y+)
-        spawn_point_position[1] = spawn_point_position[1] - door_offset;
+        spawn_point_position[1] -= door_offset;
         spawn_point_rotation[2] += 180.0;
     } else if (door_rotation[2] >= 135.0 && door_rotation[2] < 225.0)
         || (door_rotation[2] < -135.0 && door_rotation[2] > -225.0)
     {
         // Leads East (X+)
-        spawn_point_position[0] = spawn_point_position[0] + door_offset;
+        spawn_point_position[0] += door_offset;
         spawn_point_rotation[2] += 270.0;
     } else if door_rotation[2] >= -135.0 && door_rotation[2] < -45.0 {
         // Leads South (Y-)
-        spawn_point_position[1] = spawn_point_position[1] + door_offset;
+        spawn_point_position[1] += door_offset;
         spawn_point_rotation[2] += 0.0;
     } else if door_rotation[2] >= -45.0 && door_rotation[2] < 45.0 {
         // Leads West (X-)
-        spawn_point_position[0] = spawn_point_position[0] - door_offset;
+        spawn_point_position[0] -= door_offset;
         spawn_point_rotation[2] += 90.0;
     }
-    spawn_point_position[2] = spawn_point_position[2] + vertical_offset;
+    spawn_point_position[2] += vertical_offset;
 
     if spawn_rotation.is_some() {
         spawn_point_rotation[2] = spawn_rotation.unwrap();
@@ -13279,7 +13166,7 @@ fn patch_add_dock_teleport<'r>(
         connections: vec![].into(),
         property_data: structs::SclyProperty::SpawnPoint(Box::new(structs::SpawnPoint {
             name: b"dockspawnpoint\0".as_cstr(),
-            position: spawn_point_position.into(),
+            position: spawn_point_position,
             rotation: spawn_point_rotation.into(),
             power: 0,
             ice: 0,
@@ -13324,7 +13211,7 @@ fn patch_add_dock_teleport<'r>(
     if source_scale[2] < source_scale[thinnest] {
         thinnest = 2;
     }
-    let mut source_scale = source_scale.clone();
+    let mut source_scale = source_scale;
     source_scale[thinnest] = 0.1;
 
     // Insert a trigger at the previous room which sends the player to the freshly created spawn point
@@ -13339,7 +13226,7 @@ fn patch_add_dock_teleport<'r>(
     connections.push(structs::Connection {
         state: structs::ConnectionState::ENTERED,
         message: structs::ConnectionMsg::SET_TO_ZERO,
-        target_object_id: spawn_point_id as u32,
+        target_object_id: spawn_point_id,
     });
 
     layer.objects.as_mut_vec().push(structs::SclyObject {
@@ -13518,7 +13405,7 @@ fn patch_modify_dock<'r>(
         }
 
         // Remove all auto-loads in this room except for elevator rooms
-        if !vec![
+        if ![
             0x3E6B2BB7, 0x8316EDF5, 0xA5FA69A1, 0x236E1B0F, 0xC00E3781, 0xDD0B0739, 0x11A02448,
             0x2398E906, 0x8A31665E, 0x15D6FF8B, 0x0CA514F0, 0x7D106670, 0x430E999C, 0xE2C2CF38,
             0x3BEAADC9, 0xDCA9A28B, 0x4C3D244C, 0xEF2F1440, 0xC1AC9233, 0x93668996,
@@ -13627,9 +13514,9 @@ fn patch_modify_dock<'r>(
     Ok(())
 }
 
-fn patch_exo_scale<'r>(
+fn patch_exo_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -13641,7 +13528,7 @@ fn patch_exo_scale<'r>(
                 boss.scale[1] *= scale;
                 boss.scale[2] *= scale;
             } else if obj.property_data.is_actor()
-                && vec![0x00050090, 0x00050002, 0x00050076, 0x0005008F]
+                && [0x00050090, 0x00050002, 0x00050076, 0x0005008F]
                     .contains(&(obj.instance_id & 0x00FFFFFF))
             {
                 let boss = obj.property_data.as_actor_mut().unwrap();
@@ -13654,9 +13541,9 @@ fn patch_exo_scale<'r>(
     Ok(())
 }
 
-fn patch_ridley_damage_props<'r>(
+fn patch_ridley_damage_props(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     version: Version,
     contact_damage: DamageInfo,
     other_damages: Vec<DamageInfo>,
@@ -13714,9 +13601,9 @@ fn patch_ridley_damage_props<'r>(
     Ok(())
 }
 
-fn patch_ridley_health<'r>(
+fn patch_ridley_health(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     version: Version,
     health: f32,
 ) -> Result<(), String> {
@@ -13747,9 +13634,9 @@ fn patch_ridley_health<'r>(
     Ok(())
 }
 
-fn patch_ridley_scale<'r>(
+fn patch_ridley_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     version: Version,
     scale: f32,
 ) -> Result<(), String> {
@@ -13774,7 +13661,7 @@ fn patch_ridley_scale<'r>(
                     boss.scale[2] *= scale;
                 }
             } else if obj.property_data.is_actor()
-                && vec![
+                && [
                     0x00100218, 0x00100222, 0x001003D6, 0x0010028C, 0x00100472, 0x00100377,
                     0x001003C3, 0x001003E1, 0x00070098, 0x0000036D, 0x00000372, 0x00000379,
                     0x00000382, 0x0000039F, 0x0000036B,
@@ -13798,9 +13685,9 @@ fn patch_ridley_scale<'r>(
     Ok(())
 }
 
-fn patch_omega_pirate_scale<'r>(
+fn patch_omega_pirate_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -13876,9 +13763,9 @@ fn patch_omega_pirate_scale<'r>(
     Ok(())
 }
 
-fn patch_elite_pirate_scale<'r>(
+fn patch_elite_pirate_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -13890,7 +13777,7 @@ fn patch_elite_pirate_scale<'r>(
                 boss.scale[1] *= scale;
                 boss.scale[2] *= scale;
             } else if obj.property_data.is_actor()
-                && vec![
+                && [
                     0x00180126, 0x001401C3, 0x001401C4, 0x00140385, 0x00100337, 0x000D03FA,
                     0x000D01A7, 0x0010036A,
                 ]
@@ -13907,9 +13794,9 @@ fn patch_elite_pirate_scale<'r>(
     Ok(())
 }
 
-fn patch_sheegoth_scale<'r>(
+fn patch_sheegoth_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -13928,9 +13815,9 @@ fn patch_sheegoth_scale<'r>(
     Ok(())
 }
 
-fn patch_flaahgra_scale<'r>(
+fn patch_flaahgra_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -13950,9 +13837,9 @@ fn patch_flaahgra_scale<'r>(
     Ok(())
 }
 
-fn patch_idrone_scale<'r>(
+fn patch_idrone_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -13971,9 +13858,9 @@ fn patch_idrone_scale<'r>(
     Ok(())
 }
 
-fn patch_pq_health<'r>(
+fn patch_pq_health(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     health: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -13987,9 +13874,9 @@ fn patch_pq_health<'r>(
     Ok(())
 }
 
-fn patch_pq_scale<'r>(
+fn patch_pq_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -14001,7 +13888,7 @@ fn patch_pq_scale<'r>(
                 boss.scale[1] *= scale;
                 boss.scale[2] *= scale;
             } else if obj.property_data.is_actor()
-                && vec![0x0019006C].contains(&(obj.instance_id & 0x00FFFFFF))
+                && [0x0019006C].contains(&(obj.instance_id & 0x00FFFFFF))
             {
                 let boss = obj.property_data.as_actor_mut().unwrap();
                 boss.scale[0] *= scale;
@@ -14014,9 +13901,9 @@ fn patch_pq_scale<'r>(
     Ok(())
 }
 
-fn patch_thardus_scale<'r>(
+fn patch_thardus_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -14028,10 +13915,7 @@ fn patch_thardus_scale<'r>(
                 boss.scale[1] *= scale;
                 boss.scale[2] *= scale;
             } else if obj.property_data.is_platform()
-                && vec![
-                    // 0x00180212, platform didn't scale right, so not doing this
-                ]
-                .contains(&(obj.instance_id & 0x00FFFFFF))
+                && [].contains(&(obj.instance_id & 0x00FFFFFF))
             {
                 let boss = obj.property_data.as_platform_mut().unwrap();
                 boss.scale[0] *= scale;
@@ -14044,9 +13928,9 @@ fn patch_thardus_scale<'r>(
     Ok(())
 }
 
-fn patch_essence_health<'r>(
+fn patch_essence_health(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     health: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -14060,9 +13944,9 @@ fn patch_essence_health<'r>(
     Ok(())
 }
 
-fn patch_essence_scale<'r>(
+fn patch_essence_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -14074,7 +13958,7 @@ fn patch_essence_scale<'r>(
                 boss.scale[1] *= scale;
                 boss.scale[2] *= scale;
             } else if obj.property_data.is_actor()
-                && vec![
+                && [
                     0x000B00F4, 0x000B0101, 0x000B012B, 0x000B00EE, 0x000B00D2, 0x000B009F,
                     0x000B0121, 0x000B015D, 0x000B0162, 0x000B0163, 0x000B0168, 0x000B0195,
                 ]
@@ -14091,9 +13975,9 @@ fn patch_essence_scale<'r>(
     Ok(())
 }
 
-fn patch_drone_scale<'r>(
+fn patch_drone_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -14112,9 +13996,9 @@ fn patch_drone_scale<'r>(
     Ok(())
 }
 
-fn patch_garbeetle_scale<'r>(
+fn patch_garbeetle_scale(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     scale: f32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
@@ -14129,7 +14013,7 @@ fn patch_garbeetle_scale<'r>(
                 .to_str()
                 .unwrap()
                 .to_lowercase()
-                .contains(&"garbeetle")
+                .contains("garbeetle")
             {
                 continue;
             }
@@ -14154,7 +14038,7 @@ fn patch_bnr(file: &mut structs::FstEntryFile, banner: &GameBanner) -> Result<()
     fn write_encoded_str(field: &str, s: &Option<String>, slice: &mut [u8]) -> Result<(), String> {
         if let Some(s) = s {
             let mut bytes = WINDOWS_1252
-                .encode(&s, EncoderTrap::Strict)
+                .encode(s, EncoderTrap::Strict)
                 .map_err(|e| format!("Failed to encode banner field {}: {}", field, e))?;
             if bytes.len() >= (slice.len() - 1) {
                 Err(format!(
@@ -15316,7 +15200,7 @@ pub fn patch_qol_major_cutscenes(patcher: &mut PrimePatcher, shuffle_pickup_posi
     );
 }
 
-fn patch_power_conduits<'a>(patcher: &mut PrimePatcher<'_, 'a>) {
+fn patch_power_conduits(patcher: &mut PrimePatcher<'_, '_>) {
     patcher.add_scly_patch(
         resource_info!("05_ice_shorelines.MREA").into(), // ruined courtyard
         patch_thermal_conduits_damage_vulnerabilities,
@@ -15368,7 +15252,7 @@ fn patch_power_conduits<'a>(patcher: &mut PrimePatcher<'_, 'a>) {
     );
 }
 
-fn patch_hive_mecha<'a>(patcher: &mut PrimePatcher<'_, 'a>) {
+fn patch_hive_mecha(patcher: &mut PrimePatcher<'_, '_>) {
     patcher.add_scly_patch(resource_info!("19_hive_totem.MREA").into(), |_ps, area| {
         let flags = &mut area.layer_flags.flags;
         *flags &= !(1 << 1); // Turn off "1st pass" layer
@@ -15418,8 +15302,8 @@ fn patch_hive_mecha<'a>(patcher: &mut PrimePatcher<'_, 'a>) {
     });
 }
 
-fn patch_incinerator_drone_timer<'r>(
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+fn patch_incinerator_drone_timer(
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     timer_name: CString,
     minimum_time: Option<f32>,
     random_add: Option<f32>,
@@ -15446,7 +15330,7 @@ fn patch_incinerator_drone_timer<'r>(
     Ok(())
 }
 
-fn patch_arboretum_sandstone<'a>(patcher: &mut PrimePatcher<'_, 'a>) {
+fn patch_arboretum_sandstone(patcher: &mut PrimePatcher<'_, '_>) {
     patcher.add_scly_patch(resource_info!("08_courtyard.MREA").into(), |_ps, area| {
         let scly = area.mrea().scly_section_mut();
 
@@ -15510,7 +15394,7 @@ where
                     pak: pak_name.as_bytes(),
                     room_id: room_info.room_id.to_u32(),
                     audio_streamer_id: id,
-                    file_name: file_name,
+                    file_name,
                 });
             }
         }
@@ -15641,12 +15525,12 @@ fn export_logbook(gc_disc: &mut structs::GcDisc, config: &PatchConfig) -> Result
                 continue; // not a logbook entry
             }
 
-            let entry_name = string_table[1].clone().into_string().replace("\u{0}", "");
-            if entry_name.replace(" ", "") == "" {
+            let entry_name = string_table[1].clone().into_string().replace('\u{0}', "");
+            if entry_name.replace(' ', "") == "" {
                 continue; // lore, but not logbook entry
             }
 
-            if string_table[0].clone().into_string().contains(&"acquired!") {
+            if string_table[0].clone().into_string().contains("acquired!") {
                 continue; // modal text box that coincidentally has 3 strings
             }
 
@@ -15663,7 +15547,7 @@ fn export_logbook(gc_disc: &mut structs::GcDisc, config: &PatchConfig) -> Result
 
             let mut strings = Vec::<String>::new();
             for string in string_table.iter_mut() {
-                strings.push(string.clone().into_string().replace("\u{0}", ""));
+                strings.push(string.clone().into_string().replace('\u{0}', ""));
             }
             strgs.push(strings);
         }
@@ -15698,7 +15582,7 @@ fn export_assets(gc_disc: &mut structs::GcDisc, config: &PatchConfig) -> Result<
     let asset_dir = config.export_asset_dir.as_ref().unwrap_or(default_dir);
 
     if !Path::new(&asset_dir).is_dir() {
-        match fs::create_dir(&asset_dir) {
+        match fs::create_dir(asset_dir) {
             Ok(()) => {}
             Err(error) => {
                 panic!(
@@ -15709,7 +15593,7 @@ fn export_assets(gc_disc: &mut structs::GcDisc, config: &PatchConfig) -> Result<
         }
     }
 
-    let (_, _, _, _, _, _, _, _, custom_assets) = collect_game_resources(gc_disc, None, &config)?;
+    let (_, _, _, _, _, _, _, _, custom_assets) = collect_game_resources(gc_disc, None, config)?;
 
     for resource in custom_assets {
         let mut bytes = vec![];
@@ -15728,8 +15612,8 @@ fn build_and_run_patches<'r>(
     config: &PatchConfig,
     audio_override_patches: &'r Vec<AudioOverridePatch>,
 ) -> Result<(), String> {
-    let morph_ball_size = config.ctwk_config.morph_ball_size.clone().unwrap_or(1.0);
-    let player_size = config.ctwk_config.player_size.clone().unwrap_or(1.0);
+    let morph_ball_size = config.ctwk_config.morph_ball_size.unwrap_or(1.0);
+    let player_size = config.ctwk_config.player_size.unwrap_or(1.0);
 
     let remove_ball_color = morph_ball_size < 0.999;
     let remove_control_disabler = player_size < 0.999 || morph_ball_size < 0.999;
@@ -15757,7 +15641,7 @@ fn build_and_run_patches<'r>(
 
             let mut items: Vec<PickupType> = Vec::new();
             for pt in PickupType::iter() {
-                if !vec![
+                if ![
                     PickupType::IceBeam,
                     PickupType::WaveBeam,
                     PickupType::PlasmaBeam,
@@ -15801,7 +15685,7 @@ fn build_and_run_patches<'r>(
                 {
                     continue;
                 }
-                items.push(pt.clone());
+                items.push(pt);
             }
             items.push(PickupType::Missile);
             items.push(PickupType::Missile);
@@ -15839,8 +15723,7 @@ fn build_and_run_patches<'r>(
                     .pickups
                     .clone()
                     .unwrap()
-                    .len()
-                    == 0
+                    .is_empty()
                 {
                     level.rooms.get_mut(key).unwrap().pickups = Some(vec![PickupConfig {
                         id: None,
@@ -15922,7 +15805,7 @@ fn build_and_run_patches<'r>(
         savw_scan_logbook_category,
         extern_models,
         _,
-    ) = collect_game_resources(gc_disc, starting_memo, &config)?;
+    ) = collect_game_resources(gc_disc, starting_memo, config)?;
 
     let extern_models = &extern_models;
     let game_resources = &game_resources;
@@ -15996,7 +15879,7 @@ fn build_and_run_patches<'r>(
             let artifact_temple_layer_overrides = config
                 .artifact_temple_layer_overrides
                 .clone()
-                .unwrap_or(HashMap::new());
+                .unwrap_or_default();
             for (key, value) in &artifact_temple_layer_overrides {
                 let artifact_name = match kind {
                     33 => "lifegiver",
@@ -16014,7 +15897,7 @@ fn build_and_run_patches<'r>(
                     _ => panic!("Unhandled artifact idx - '{}'", i),
                 };
 
-                if key.to_lowercase().contains(&artifact_name) {
+                if key.to_lowercase().contains(artifact_name) {
                     _exists = _exists || *value; // if value is true, override
                     break;
                 }
@@ -16060,7 +15943,7 @@ fn build_and_run_patches<'r>(
     // Add the freeze effect assets required by CPlayer::Freeze()
     if config.enable_ice_traps {
         patcher.add_file_patch(b"GGuiSys.pak", |file| {
-            add_player_freeze_assets(file, &game_resources)
+            add_player_freeze_assets(file, game_resources)
         });
     }
 
@@ -16294,7 +16177,7 @@ fn build_and_run_patches<'r>(
                     patch_add_dock_teleport(
                         ps,
                         area,
-                        [42.955109, -287.172638, -278.084354], // source position
+                        [42.955_11, -287.172_64, -278.084_35], // source position
                         [75.0, 75.0, 50.0],                    // source scale
                         0,                                     // destination dock #
                         Some([41.5365, -287.8581, -284.6025]),
@@ -16405,7 +16288,7 @@ fn build_and_run_patches<'r>(
                 if level.is_some() {
                     let room = level.unwrap().rooms.get(room_info.name().trim());
                     if room.is_some() {
-                        let room = room.clone().unwrap();
+                        let room = room.unwrap();
                         if room.pickups.is_some() {
                             _pickups = room.pickups.clone().unwrap();
                         }
@@ -16428,7 +16311,7 @@ fn build_and_run_patches<'r>(
                                 move |_ps, area| patch_deheat_room(_ps, area),
                             );
 
-                            if room.superheated.clone().unwrap() {
+                            if room.superheated.unwrap() {
                                 patcher.add_scly_patch(
                                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                     move |_ps, area| {
@@ -16691,7 +16574,7 @@ fn build_and_run_patches<'r>(
                                 }
                             }
 
-                            skipper_ids.len() > 0
+                            !skipper_ids.is_empty()
                         };
 
                         if do_cutscene_skip_patches {
@@ -16706,10 +16589,10 @@ fn build_and_run_patches<'r>(
                                                 ps,
                                                 area,
                                                 0x5,
-                                                [-367.851898, 375.47049, -21.39986], // same as 0x1D8
+                                                [-367.851_9, 375.470_5, -21.39986], // same as 0x1D8
                                                 [11.490609, 0.0, 18.759502].into(),
                                                 4.5,
-                                                [0, 0, 1, 0, 1, 0, 0].into(),
+                                                [0, 0, 1, 0, 1, 0, 0],
                                                 true,
                                             )
                                         },
@@ -16768,9 +16651,9 @@ fn build_and_run_patches<'r>(
 
                             let room_id = room_info.room_id.to_u32();
                             if is_teleporter(room_id)
-                                || vec![
+                                || [
                                     0x90709AAC, // vent shaft
-                                    0x9A0A03EB, // sunchamber
+                                    0x9A0A03EB,
                                 ]
                                 .contains(&room_id)
                             {
@@ -16791,7 +16674,7 @@ fn build_and_run_patches<'r>(
                                             [0.0, 0.0, -1000.0],
                                             None,
                                             7.0,
-                                            [0, 0, 0, 0, 1, 0, 0].into(),
+                                            [0, 0, 0, 0, 1, 0, 0],
                                             false,
                                         )
                                     },
@@ -16940,8 +16823,8 @@ fn build_and_run_patches<'r>(
                             );
                         }
 
-                        let submerge = room.submerge.clone().unwrap_or(false);
-                        if room.remove_water.clone().unwrap_or(false) || submerge {
+                        let submerge = room.submerge.unwrap_or(false);
+                        if room.remove_water.unwrap_or(false) || submerge {
                             patcher.add_scly_patch(
                                 (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                 move |_ps, area| patch_remove_water(_ps, area, submerge),
@@ -17019,7 +16902,7 @@ fn build_and_run_patches<'r>(
                 };
 
                 let hudmemo_delay = {
-                    if pickup.modal_hudmemo.clone().unwrap_or(false) {
+                    if pickup.modal_hudmemo.unwrap_or(false) {
                         3.0 // manually specified modal hudmemos are 3s
                     } else {
                         0.0 // otherwise, leave unchanged from vanilla
@@ -17078,15 +16961,20 @@ fn build_and_run_patches<'r>(
                     },
                 );
 
-                idx = idx + 1;
-                seed = seed + 1;
+                idx += 1;
+                seed += 1;
             }
 
             // Patch extra item locations
             while idx < pickups_config_len {
                 let pickup = pickups[idx].clone(); // TODO: cloning is suboptimal
                 let show_icon = pickup.show_icon.unwrap_or(false);
-                let position = pickup.position.expect(format!("Additional pickup in room 0x{} is missing required \"position\" property", room_info.room_id.to_u32()).as_str()).clone();
+                let position = pickup.position.unwrap_or_else(|| {
+                    panic!(
+                        "Additional pickup in room 0x{} is missing required \"position\" property",
+                        room_info.room_id.to_u32()
+                    )
+                });
 
                 // doesn't count the original pickups in the indexing
                 let custom_pickup_idx = idx - room_info.pickup_locations.len();
@@ -17099,7 +16987,7 @@ fn build_and_run_patches<'r>(
 
                 let skip_hudmemos = {
                     if config.qol_cosmetic {
-                        !(pickup.modal_hudmemo.clone().unwrap_or(false))
+                        !(pickup.modal_hudmemo.unwrap_or(false))
                     } else {
                         true
                     }
@@ -17159,7 +17047,7 @@ fn build_and_run_patches<'r>(
                     },
                 );
 
-                idx = idx + 1;
+                idx += 1;
             }
 
             // Add extra scans (poi)
@@ -17181,8 +17069,8 @@ fn build_and_run_patches<'r>(
                             ps,
                             area,
                             game_resources,
-                            scan_id.clone(),
-                            strg_id.clone(),
+                            *scan_id,
+                            *strg_id,
                             scan.position,
                             scan.id,
                             scan.layer,
@@ -17206,12 +17094,12 @@ fn build_and_run_patches<'r>(
                     );
                 }
 
-                idx = idx + 1;
+                idx += 1;
             }
 
             // Edit doors
             for (dock_num, door_config) in doors {
-                let is_vertical_dock = vec![
+                let is_vertical_dock = [
                     (0x11BD63B7, 0), // Tower Chamber
                     (0x0D72F1F7, 1), // Tower of Light
                     (0xFB54A0CB, 4), // Hall of the Elders
@@ -17227,7 +17115,7 @@ fn build_and_run_patches<'r>(
                     (0xA20201D4, 1), // Security Access B (both doors)
                     (0x956F1552, 1), // Mine Security Station
                     (0xC50AF17A, 2), // Elite Control
-                    (0x90709AAC, 1), // Ventilation Shaft
+                    (0x90709AAC, 1),
                 ]
                 .contains(&(room_info.room_id.to_u32(), dock_num));
 
@@ -17246,21 +17134,21 @@ fn build_and_run_patches<'r>(
                     // NTSC-K is based on NTSC-U and shouldn't be part of those changes
                     if config.version == Version::Pal || config.version == Version::NtscJ {
                         // Tallon Overworld - Temple Security Station
-                        if mrea_id == 0xBDB1FCAC {
-                            if local_dl.door_location.unwrap().instance_id == 0x00070055 {
-                                local_dl.door_location = Some(ScriptObjectLocation {
-                                    layer: 0,
-                                    instance_id: 0x000700a5,
-                                });
-                                local_dl.door_force_locations = Box::new([ScriptObjectLocation {
-                                    layer: 0,
-                                    instance_id: 0x000700a6,
-                                }]);
-                                local_dl.door_shield_locations = Box::new([ScriptObjectLocation {
-                                    layer: 0,
-                                    instance_id: 0x000700a8,
-                                }]);
-                            }
+                        if mrea_id == 0xBDB1FCAC
+                            && local_dl.door_location.unwrap().instance_id == 0x00070055
+                        {
+                            local_dl.door_location = Some(ScriptObjectLocation {
+                                layer: 0,
+                                instance_id: 0x000700a5,
+                            });
+                            local_dl.door_force_locations = Box::new([ScriptObjectLocation {
+                                layer: 0,
+                                instance_id: 0x000700a6,
+                            }]);
+                            local_dl.door_shield_locations = Box::new([ScriptObjectLocation {
+                                layer: 0,
+                                instance_id: 0x000700a8,
+                            }]);
                         }
                     }
 
@@ -17336,8 +17224,8 @@ fn build_and_run_patches<'r>(
                     );
 
                     if room_info.mapa_id != 0 {
-                        let map_object_type: u32 = if door_type.is_some() {
-                            door_type.as_ref().unwrap().map_object_type()
+                        let map_object_type: u32 = if let Some(ref door_type) = door_type {
+                            door_type.map_object_type()
                         } else {
                             let counterpart =
                                 blast_shield_type.as_ref().unwrap().door_type_counterpart();
@@ -17389,7 +17277,7 @@ fn build_and_run_patches<'r>(
                         room_id: room_info.room_id.to_u32(),
                         pickup_idx: idx as u32,
                     };
-                    idx = idx + 1;
+                    idx += 1;
                     let (dest_scan_id, dest_strg_id) = extra_scans.get(&key).unwrap();
 
                     // Get info about the destination room
@@ -17425,7 +17313,7 @@ fn build_and_run_patches<'r>(
 
                     let scan = match config.door_destination_scans {
                         false => None,
-                        true => Some((dest_scan_id.clone(), dest_strg_id.clone())),
+                        true => Some((*dest_scan_id, *dest_strg_id)),
                     };
 
                     patcher.add_scly_patch(
@@ -17445,13 +17333,13 @@ fn build_and_run_patches<'r>(
                     // Patch the destination room to "catch" the player with a teleporter at the same location as this room's dock
 
                     // Scale the height down a little so you can transition the dock without teleporting from OoB
-                    let mut position: [f32; 3] = door_location.dock_position.into();
-                    let mut scale: [f32; 3] = door_location.dock_scale.into();
+                    let mut position: [f32; 3] = door_location.dock_position;
+                    let mut scale: [f32; 3] = door_location.dock_scale;
 
                     if is_vertical_dock {
                         scale = [scale[0], scale[1], 0.01];
                     } else {
-                        let mut rotation = door_location.door_rotation.clone().unwrap();
+                        let mut rotation = door_location.door_rotation.unwrap();
                         position[2] -= 0.9;
                         let mut trigger_offset: f32 = 0.5;
 
@@ -17515,10 +17403,7 @@ fn build_and_run_patches<'r>(
                     pickup_idx: idx as u32,
                 };
 
-                let strg_id = match extra_scans.get(&key) {
-                    None => None,
-                    Some((_, strg_id)) => Some(*strg_id),
-                };
+                let strg_id = extra_scans.get(&key).map(|(_, strg_id)| *strg_id);
 
                 patcher.add_scly_patch(
                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
@@ -17527,7 +17412,7 @@ fn build_and_run_patches<'r>(
                     },
                 );
 
-                idx = idx + 1;
+                idx += 1;
             }
 
             if config.visible_bounding_box {
@@ -17661,11 +17546,11 @@ fn build_and_run_patches<'r>(
         }
     }
 
-    if essence_done_room.is_some() {
+    if let Some(essence_done_room) = essence_done_room {
         // redirect end of crater cutscene to room specified in layout
         patcher.add_scly_patch(
             resource_info!("03f_crater.MREA").into(),
-            move |_ps, area| patch_teleporter_destination(area, essence_done_room.unwrap()),
+            move |_ps, area| patch_teleporter_destination(area, essence_done_room),
         );
     }
 
@@ -17694,7 +17579,7 @@ fn build_and_run_patches<'r>(
             .zip(artifact_totem_strings.iter())
         {
             patcher.add_resource_patch((*res_info).into(), move |res| {
-                patch_artifact_totem_scan_strg(res, &strg_text, config.version)
+                patch_artifact_totem_scan_strg(res, strg_text, config.version)
             });
         }
     }
@@ -17721,10 +17606,7 @@ fn build_and_run_patches<'r>(
     });
 
     if config.required_artifact_count.is_some() {
-        patch_required_artifact_count(
-            &mut patcher,
-            config.required_artifact_count.clone().unwrap(),
-        );
+        patch_required_artifact_count(&mut patcher, config.required_artifact_count.unwrap());
     }
 
     patcher.add_resource_patch(
@@ -17762,22 +17644,16 @@ fn build_and_run_patches<'r>(
     if config.incinerator_drone_config.is_some() {
         let incinerator_drone_config = config.incinerator_drone_config.clone().unwrap();
 
-        let reset_contraption_minimum_time = incinerator_drone_config
-            .contraption_start_delay_minimum_time
-            .clone();
-        let reset_contraption_random_time = incinerator_drone_config
-            .contraption_start_delay_random_time
-            .clone();
-        let eye_stay_up_minimum_time = incinerator_drone_config.eye_stay_up_minimum_time.clone();
-        let eye_stay_up_random_time = incinerator_drone_config.eye_stay_up_random_time.clone();
-        let eye_wait_initial_minimum_time = incinerator_drone_config
-            .eye_wait_initial_minimum_time
-            .clone();
-        let eye_wait_initial_random_time = incinerator_drone_config
-            .eye_wait_initial_random_time
-            .clone();
-        let eye_wait_minimum_time = incinerator_drone_config.eye_wait_minimum_time.clone();
-        let eye_wait_random_time = incinerator_drone_config.eye_wait_random_time.clone();
+        let reset_contraption_minimum_time =
+            incinerator_drone_config.contraption_start_delay_minimum_time;
+        let reset_contraption_random_time =
+            incinerator_drone_config.contraption_start_delay_random_time;
+        let eye_stay_up_minimum_time = incinerator_drone_config.eye_stay_up_minimum_time;
+        let eye_stay_up_random_time = incinerator_drone_config.eye_stay_up_random_time;
+        let eye_wait_initial_minimum_time = incinerator_drone_config.eye_wait_initial_minimum_time;
+        let eye_wait_initial_random_time = incinerator_drone_config.eye_wait_initial_random_time;
+        let eye_wait_minimum_time = incinerator_drone_config.eye_wait_minimum_time;
+        let eye_wait_random_time = incinerator_drone_config.eye_wait_random_time;
 
         patcher.add_scly_patch(
             resource_info!("03_monkey_lower.MREA").into(),
@@ -17854,9 +17730,9 @@ fn build_and_run_patches<'r>(
         move |res| {
             patch_add_scans_to_savw(
                 res,
-                &savw_scans_to_add,
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scans_to_add,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17866,8 +17742,8 @@ fn build_and_run_patches<'r>(
             patch_add_scans_to_savw(
                 res,
                 &local_savw_scans_to_add[World::TallonOverworld as usize],
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17877,9 +17753,9 @@ fn build_and_run_patches<'r>(
         move |res| {
             patch_add_scans_to_savw(
                 res,
-                &savw_scans_to_add,
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scans_to_add,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17889,8 +17765,8 @@ fn build_and_run_patches<'r>(
             patch_add_scans_to_savw(
                 res,
                 &local_savw_scans_to_add[World::ChozoRuins as usize],
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17900,9 +17776,9 @@ fn build_and_run_patches<'r>(
         move |res| {
             patch_add_scans_to_savw(
                 res,
-                &savw_scans_to_add,
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scans_to_add,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17912,8 +17788,8 @@ fn build_and_run_patches<'r>(
             patch_add_scans_to_savw(
                 res,
                 &local_savw_scans_to_add[World::MagmoorCaverns as usize],
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17921,17 +17797,17 @@ fn build_and_run_patches<'r>(
     patcher.add_resource_patch(resource_info!("!IceWorld_Master.SAVW").into(), move |res| {
         patch_add_scans_to_savw(
             res,
-            &savw_scans_to_add,
-            &savw_scan_logbook_category,
-            &savw_to_remove_from_logbook,
+            savw_scans_to_add,
+            savw_scan_logbook_category,
+            savw_to_remove_from_logbook,
         )
     });
     patcher.add_resource_patch(resource_info!("!IceWorld_Master.SAVW").into(), move |res| {
         patch_add_scans_to_savw(
             res,
             &local_savw_scans_to_add[World::PhendranaDrifts as usize],
-            &savw_scan_logbook_category,
-            &savw_to_remove_from_logbook,
+            savw_scan_logbook_category,
+            savw_to_remove_from_logbook,
         )
     });
 
@@ -17940,9 +17816,9 @@ fn build_and_run_patches<'r>(
         move |res| {
             patch_add_scans_to_savw(
                 res,
-                &savw_scans_to_add,
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scans_to_add,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17952,8 +17828,8 @@ fn build_and_run_patches<'r>(
             patch_add_scans_to_savw(
                 res,
                 &local_savw_scans_to_add[World::PhazonMines as usize],
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17963,9 +17839,9 @@ fn build_and_run_patches<'r>(
         move |res| {
             patch_add_scans_to_savw(
                 res,
-                &savw_scans_to_add,
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scans_to_add,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17975,8 +17851,8 @@ fn build_and_run_patches<'r>(
             patch_add_scans_to_savw(
                 res,
                 &local_savw_scans_to_add[World::ImpactCrater as usize],
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17986,9 +17862,9 @@ fn build_and_run_patches<'r>(
         move |res| {
             patch_add_scans_to_savw(
                 res,
-                &savw_scans_to_add,
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scans_to_add,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -17998,8 +17874,8 @@ fn build_and_run_patches<'r>(
             patch_add_scans_to_savw(
                 res,
                 &local_savw_scans_to_add[World::EndCinema as usize],
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         },
     );
@@ -18012,7 +17888,7 @@ fn build_and_run_patches<'r>(
                 area,
                 &config.starting_items,
                 show_starting_memo,
-                &game_resources,
+                game_resources,
                 0x00050140, // item loss spawn in item loss elevator
             )
         },
@@ -18027,7 +17903,7 @@ fn build_and_run_patches<'r>(
                     area,
                     &config.item_loss_items,
                     false,
-                    &game_resources,
+                    game_resources,
                     0x00050002, // default spawn in item loss elevator
                 )
             },
@@ -18036,17 +17912,17 @@ fn build_and_run_patches<'r>(
         patcher.add_resource_patch(resource_info!("!Intro_Master.SAVW").into(), move |res| {
             patch_add_scans_to_savw(
                 res,
-                &savw_scans_to_add,
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scans_to_add,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         });
         patcher.add_resource_patch(resource_info!("!Intro_Master.SAVW").into(), move |res| {
             patch_add_scans_to_savw(
                 res,
                 &local_savw_scans_to_add[World::FrigateOrpheon as usize],
-                &savw_scan_logbook_category,
-                &savw_to_remove_from_logbook,
+                savw_scan_logbook_category,
+                savw_to_remove_from_logbook,
             )
         });
 
@@ -18163,17 +18039,16 @@ fn build_and_run_patches<'r>(
         }
     }
 
-    if !config.force_vanilla_layout {
-        if starting_room.mrea != SpawnRoom::LandingSite.spawn_room_data().mrea
-            || config.qol_cutscenes == CutsceneMode::Major
-        {
-            // If we have a non-default start point, patch the landing site to avoid
-            // weirdness with cutscene triggers and the ship spawning.
-            patcher.add_scly_patch(
-                resource_info!("01_over_mainplaza.MREA").into(),
-                patch_landing_site_cutscene_triggers,
-            );
-        }
+    if !config.force_vanilla_layout
+        && (starting_room.mrea != SpawnRoom::LandingSite.spawn_room_data().mrea
+            || config.qol_cutscenes == CutsceneMode::Major)
+    {
+        // If we have a non-default start point, patch the landing site to avoid
+        // weirdness with cutscene triggers and the ship spawning.
+        patcher.add_scly_patch(
+            resource_info!("01_over_mainplaza.MREA").into(),
+            patch_landing_site_cutscene_triggers,
+        );
     }
 
     patch_heat_damage_per_sec(&mut patcher, config.heat_damage_per_sec);
@@ -18274,8 +18149,7 @@ fn build_and_run_patches<'r>(
                         radius: 0.0,
                         knockback_power: 15.0,
                     },
-                ]
-                .into(),
+                ],
                 25.0,
             )
         });
@@ -18346,7 +18220,7 @@ fn build_and_run_patches<'r>(
     }
 
     for (_boss_name, scale) in config.boss_sizes.iter() {
-        let boss_name = _boss_name.to_lowercase().replace(" ", "").replace("_", "");
+        let boss_name = _boss_name.to_lowercase().replace([' ', '_'], "");
         let scale = *scale;
         if boss_name == "parasitequeen" {
             if !skip_frigate {
@@ -18604,19 +18478,19 @@ fn build_and_run_patches<'r>(
 
         if suit_colors.power_deg.is_some() {
             suit_textures.push(POWER_SUIT_TEXTURES);
-            angles.push(suit_colors.power_deg.clone().unwrap());
+            angles.push(suit_colors.power_deg.unwrap());
         }
         if suit_colors.varia_deg.is_some() {
             suit_textures.push(VARIA_SUIT_TEXTURES);
-            angles.push(suit_colors.varia_deg.clone().unwrap());
+            angles.push(suit_colors.varia_deg.unwrap());
         }
         if suit_colors.gravity_deg.is_some() {
             suit_textures.push(GRAVITY_SUIT_TEXTURES);
-            angles.push(suit_colors.gravity_deg.clone().unwrap());
+            angles.push(suit_colors.gravity_deg.unwrap());
         }
         if suit_colors.phazon_deg.is_some() {
             suit_textures.push(PHAZON_SUIT_TEXTURES);
-            angles.push(suit_colors.phazon_deg.clone().unwrap());
+            angles.push(suit_colors.phazon_deg.unwrap());
         }
 
         let mut complained: bool = false;
@@ -18717,8 +18591,8 @@ fn build_and_run_patches<'r>(
                                 },
                             }
                         }
-                        w = w / 2;
-                        h = h / 2;
+                        w /= 2;
+                        h /= 2;
                     }
                     let mut bytes = vec![];
                     txtr.write_to(&mut bytes).unwrap();
@@ -18762,7 +18636,7 @@ fn build_and_run_patches<'r>(
                 patch_save_station_for_warp_to_start(
                     ps,
                     area,
-                    &game_resources,
+                    game_resources,
                     starting_room,
                     config.version,
                     config.warp_to_start_delay_s,
@@ -18822,9 +18696,9 @@ fn patch_hall_of_the_elders_bomb_slot_covers(
     patcher: &mut PrimePatcher,
     bomb_slot_covers: HallOfTheEldersBombSlotCoversConfig,
 ) {
-    const WAVE_ACTOR_NAME: &'static str = "Actor -membrane Slot1 Purple\0";
-    const ICE_ACTOR_NAME: &'static str = "Actor -membrane Slot2 White\0";
-    const PLASMA_ACTOR_NAME: &'static str = "Actor -membrane Slot3 Orange\0";
+    const WAVE_ACTOR_NAME: &str = "Actor -membrane Slot1 Purple\0";
+    const ICE_ACTOR_NAME: &str = "Actor -membrane Slot2 White\0";
+    const PLASMA_ACTOR_NAME: &str = "Actor -membrane Slot3 Orange\0";
 
     if let Some(cover) = bomb_slot_covers.wave {
         patch_slot_cover(patcher, WAVE_ACTOR_NAME, cover, 0x003401AF);
@@ -18845,7 +18719,7 @@ fn patch_slot_cover<'a>(
     cover: BombSlotCover,
     poi_id: u32,
 ) {
-    const WAVE_CMDL_ID: u32 = 0x896a6BD3;
+    const WAVE_CMDL_ID: u32 = 0x896A6BD3;
     const ICE_CMDL_ID: u32 = 0x675822C5;
     const PLASMA_CMDL_ID: u32 = 0xA8C349F0;
 
@@ -18992,7 +18866,7 @@ fn patch_conduit_health(
     Ok(())
 }
 
-fn patch_weaken_conduits<'a>(patcher: &mut PrimePatcher<'_, 'a>) {
+fn patch_weaken_conduits(patcher: &mut PrimePatcher<'_, '_>) {
     patcher.add_scly_patch(
         resource_info!("05_ice_shorelines.MREA").into(), // ruined courtyard
         patch_conduit_health,
@@ -19044,7 +18918,7 @@ fn patch_weaken_conduits<'a>(patcher: &mut PrimePatcher<'_, 'a>) {
     );
 }
 
-fn patch_elite_research_platforms<'r>(
+fn patch_elite_research_platforms(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -19075,7 +18949,7 @@ fn patch_elite_research_door_lock<'r>(
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
 ) -> Result<(), String> {
-    let deps = vec![
+    let deps = [
         (0x6E5D6796, b"CMDL"),
         (0x0D36FB59, b"TXTR"),
         (0xACADD83F, b"TXTR"),
@@ -19102,7 +18976,7 @@ fn patch_elite_research_door_lock<'r>(
         connections: vec![].into(),
         property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
             name: b"Custom Blast Shield\0".as_cstr(),
-            position: [21.35, 166.275131, 51.825].into(),
+            position: [21.35, 166.275_13, 51.825].into(),
             rotation: [0.0, 0.0, 0.0].into(),
             scale: [1.45, 1.45, 1.45].into(),
             hitbox: [1.75, 5.0, 5.0].into(),

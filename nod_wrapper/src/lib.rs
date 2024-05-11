@@ -1,4 +1,8 @@
-#![allow(non_upper_case_globals)]
+#![allow(
+    clippy::size_of_ref,
+    clippy::transmute_num_to_bytes,
+    non_upper_case_globals
+)]
 #![recursion_limit = "1024"]
 
 #[macro_use]
@@ -114,6 +118,7 @@ cpp! {{
 }}
 
 pub struct DiscWrapper(*const ());
+
 impl DiscWrapper {
     pub fn new<P>(disc_path: P) -> Result<DiscWrapper, String>
     where
@@ -174,6 +179,7 @@ impl Drop for DiscWrapper {
 
 #[derive(Debug)]
 pub struct FileWrapper(*const ());
+
 impl FileWrapper {
     pub fn read_bytes(&self, offset: u64, buf: &mut [u8]) -> u64 {
         let p = self.0;
@@ -191,6 +197,10 @@ impl FileWrapper {
         cpp!(unsafe [p as "FileWrapper*"] -> u64 as "uint64_t" {
             return p->file.size();
         })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 

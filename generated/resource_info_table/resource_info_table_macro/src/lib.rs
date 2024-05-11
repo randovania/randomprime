@@ -8,7 +8,6 @@ use syn::{parse_macro_input, LitStr};
 pub fn resource_info(item: TokenStream) -> TokenStream {
     let res_name = parse_macro_input!(item as LitStr);
     if let Some(res_data) = RESOURCES.get(&res_name.value()[..]) {
-        let res_data = res_data; // XXX Weird erroneous compiler-warning
         syn::parse_str::<proc_macro2::TokenStream>(res_data)
             .unwrap()
             .into()

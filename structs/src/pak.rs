@@ -77,6 +77,7 @@ impl ResourceInfo {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 enum ResourceListElem<'r> {
     Array(RoArray<'r, ResourceInfo>),
@@ -100,7 +101,7 @@ pub struct ResourceList<'r> {
 
 impl<'r> ResourceList<'r> {
     pub fn cursor<'s>(&'s mut self) -> ResourceListCursor<'r, 's> {
-        let inner_cursor = match self.list.get(0) {
+        let inner_cursor = match self.list.first() {
             Some(ResourceListElem::Array(a)) => Some(InnerCursor {
                 info_array: a.clone(),
                 idx: 0,
@@ -125,6 +126,10 @@ impl<'r> ResourceList<'r> {
     pub fn len(&self) -> usize {
         // TODO: It might make sense to cache this...
         self.list.iter().map(|elem| elem.len()).sum()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn clear(&mut self) {
@@ -171,7 +176,7 @@ impl<'r> iter::FromIterator<Resource<'r>> for ResourceList<'r> {
     {
         ResourceList {
             pak_start: None,
-            list: i.into_iter().map(|x| ResourceListElem::Inst(x)).collect(),
+            list: i.into_iter().map(ResourceListElem::Inst).collect(),
         }
     }
 }
@@ -243,7 +248,7 @@ impl<'r, 'list> ResourceListCursor<'r, 'list> {
             .as_mut()
             .map(|ic| !ic.next())
             .unwrap_or(true);
-        if advance_cursor && !self.list.list.get(self.idx).is_none() {
+        if advance_cursor && self.list.list.get(self.idx).is_some() {
             self.inner_cursor = None;
             self.idx += 1;
             match self.list.list.get(self.idx) {
@@ -506,7 +511,7 @@ impl<'r> Writable for Resource<'r> {
 
 macro_rules! build_resource_data {
     ($($name:ident, $fourcc:expr, $accessor:ident, $accessor_mut:ident,)*) => {
-
+        #[allow(clippy::large_enum_variant)]
         #[derive(Clone, Debug)]
         pub enum ResourceKind<'r>
         {

@@ -43,11 +43,11 @@ impl<'r> SclyPropertyData for Metroid<'r> {
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
-        vec![self.patterned_info.contact_damage.clone()]
+        vec![self.patterned_info.contact_damage]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.patterned_info.contact_damage = x[0].clone();
+        self.patterned_info.contact_damage = x[0];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;

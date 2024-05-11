@@ -75,30 +75,30 @@ pub enum BlastShieldType {
 
 impl DoorType {
     pub const fn is_vertical(&self) -> bool {
-        match self {
-            DoorType::VerticalBlue => true,
-            DoorType::VerticalPowerOnly => true,
-            DoorType::VerticalPurple => true,
-            DoorType::VerticalWhite => true,
-            DoorType::VerticalRed => true,
-            DoorType::VerticalBoost => true,
-            DoorType::VerticalPowerBomb => true,
-            DoorType::VerticalBomb => true,
-            DoorType::VerticalMissile => true,
-            DoorType::VerticalCharge => true,
-            DoorType::VerticalSuper => true,
-            DoorType::VerticalDisabled => true,
-            DoorType::VerticalWavebuster => true,
-            DoorType::VerticalIcespreader => true,
-            DoorType::VerticalFlamethrower => true,
-            DoorType::VerticalAi => true,
-            DoorType::VerticalGrapple => true,
-            DoorType::VerticalPhazon => true,
-            DoorType::VerticalThermal => true,
-            DoorType::VerticalXRay => true,
-            DoorType::VerticalScan => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            DoorType::VerticalBlue
+                | DoorType::VerticalPowerOnly
+                | DoorType::VerticalPurple
+                | DoorType::VerticalWhite
+                | DoorType::VerticalRed
+                | DoorType::VerticalBoost
+                | DoorType::VerticalPowerBomb
+                | DoorType::VerticalBomb
+                | DoorType::VerticalMissile
+                | DoorType::VerticalCharge
+                | DoorType::VerticalSuper
+                | DoorType::VerticalDisabled
+                | DoorType::VerticalWavebuster
+                | DoorType::VerticalIcespreader
+                | DoorType::VerticalFlamethrower
+                | DoorType::VerticalAi
+                | DoorType::VerticalGrapple
+                | DoorType::VerticalPhazon
+                | DoorType::VerticalThermal
+                | DoorType::VerticalXRay
+                | DoorType::VerticalScan
+        )
     }
 
     pub fn to_vertical(&self) -> DoorType {
@@ -201,12 +201,7 @@ impl DoorType {
     }
 
     pub fn from_string(string: String) -> Option<Self> {
-        let test_str = string
-            .trim()
-            .to_lowercase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
+        let test_str = string.trim().to_lowercase().replace([' ', '_', '-'], "");
         let test_str = test_str.as_str();
 
         match test_str {
@@ -667,7 +662,7 @@ impl DoorType {
             DoorType::VerticalScan,
         ]
         .iter()
-        .map(|i| *i)
+        .copied()
     }
 
     pub fn vulnerability(&self) -> DamageVulnerability {
@@ -902,7 +897,7 @@ impl DoorType {
 
     pub fn from_cmdl(cmdl: &u32) -> Self {
         Self::maybe_from_cmdl(cmdl)
-            .expect(format!("Unhandled cmdl id when derriving door type: 0x{:X}", cmdl).as_str())
+            .unwrap_or_else(|| panic!("Unhandled cmdl id when derriving door type: 0x{:X}", cmdl))
     }
 
     pub fn is_door(cmdl: &u32) -> bool {
@@ -921,13 +916,9 @@ impl DoorType {
 }
 
 impl BlastShieldType {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(string: &str) -> Option<Self> {
-        let test_str = string
-            .trim()
-            .to_lowercase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
+        let test_str = string.trim().to_lowercase().replace([' ', '_', '-'], "");
         let test_str = test_str.as_str();
 
         match test_str {
@@ -1164,21 +1155,22 @@ impl BlastShieldType {
     pub fn dependencies(&self, do_gibbs: bool) -> Vec<(u32, FourCC)> {
         // dependencies to add to the area
 
-        let mut data: Vec<(u32, FourCC)> = Vec::new();
-        data.push((self.cmdl().to_u32(), FourCC::from_bytes(b"CMDL")));
-        data.push((self.metal_body_txtr().to_u32(), FourCC::from_bytes(b"TXTR")));
-        data.push((
-            self.glow_border_txtr().to_u32(),
-            FourCC::from_bytes(b"TXTR"),
-        ));
-        data.push((self.glow_trim_txtr().to_u32(), FourCC::from_bytes(b"TXTR")));
-        data.push((
-            self.animated_glow_txtr().to_u32(),
-            FourCC::from_bytes(b"TXTR"),
-        ));
-        data.push((self.metal_trim_txtr().to_u32(), FourCC::from_bytes(b"TXTR")));
-        data.push((self.scan().to_u32(), FourCC::from_bytes(b"SCAN")));
-        data.push((self.strg().to_u32(), FourCC::from_bytes(b"STRG")));
+        let mut data: Vec<(u32, FourCC)> = vec![
+            (self.cmdl().to_u32(), FourCC::from_bytes(b"CMDL")),
+            (self.metal_body_txtr().to_u32(), FourCC::from_bytes(b"TXTR")),
+            (
+                self.glow_border_txtr().to_u32(),
+                FourCC::from_bytes(b"TXTR"),
+            ),
+            (self.glow_trim_txtr().to_u32(), FourCC::from_bytes(b"TXTR")),
+            (
+                self.animated_glow_txtr().to_u32(),
+                FourCC::from_bytes(b"TXTR"),
+            ),
+            (self.metal_trim_txtr().to_u32(), FourCC::from_bytes(b"TXTR")),
+            (self.scan().to_u32(), FourCC::from_bytes(b"SCAN")),
+            (self.strg().to_u32(), FourCC::from_bytes(b"STRG")),
+        ];
 
         /* Gibbs */
         if do_gibbs {
@@ -1241,7 +1233,7 @@ impl BlastShieldType {
             BlastShieldType::Scan,
         ]
         .iter()
-        .map(|i| *i)
+        .copied()
     }
 
     pub fn vulnerability(&self) -> DamageVulnerability {

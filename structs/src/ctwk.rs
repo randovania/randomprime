@@ -3,23 +3,24 @@ use std::io;
 use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr, Readable, Reader, Writable};
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum Ctwk<'r> {
-    CtwkGame(CtwkGame<'r>),
-    CtwkPlayer(CtwkPlayer<'r>),
-    CtwkPlayerGun(CtwkPlayerGun<'r>),
-    CtwkBall(CtwkBall<'r>),
-    CtwkGuiColors(CtwkGuiColors<'r>),
+    Game(CtwkGame<'r>),
+    Player(CtwkPlayer<'r>),
+    PlayerGun(CtwkPlayerGun<'r>),
+    Ball(CtwkBall<'r>),
+    GuiColors(CtwkGuiColors<'r>),
 }
 
 impl<'r> Writable for Ctwk<'r> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match self {
-            Ctwk::CtwkGame(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkPlayer(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkPlayerGun(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkBall(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkGuiColors(ctwk) => ctwk.write_to(writer),
+            Ctwk::Game(ctwk) => ctwk.write_to(writer),
+            Ctwk::Player(ctwk) => ctwk.write_to(writer),
+            Ctwk::PlayerGun(ctwk) => ctwk.write_to(writer),
+            Ctwk::Ball(ctwk) => ctwk.write_to(writer),
+            Ctwk::GuiColors(ctwk) => ctwk.write_to(writer),
         }
     }
 }
@@ -31,22 +32,22 @@ impl<'r> Readable<'r> for Ctwk<'r> {
         //  - PlayerControls from PlayerControls2 (size == 288)
         //  - Ball from GunRes (size == 480)
         match reader.len() {
-            96 => Ctwk::CtwkGame(reader.read(())),
-            800 => Ctwk::CtwkPlayer(reader.read(())),
-            512 => Ctwk::CtwkPlayerGun(reader.read(())),
-            480 => Ctwk::CtwkBall(reader.read(())),
-            2368 => Ctwk::CtwkGuiColors(reader.read(())),
+            96 => Ctwk::Game(reader.read(())),
+            800 => Ctwk::Player(reader.read(())),
+            512 => Ctwk::PlayerGun(reader.read(())),
+            480 => Ctwk::Ball(reader.read(())),
+            2368 => Ctwk::GuiColors(reader.read(())),
             _ => panic!("Unhandled CTWK size - {}", reader.len()),
         }
     }
 
     fn size(&self) -> usize {
         match self {
-            Ctwk::CtwkGame(ctwk) => ctwk.size(),
-            Ctwk::CtwkPlayer(ctwk) => ctwk.size(),
-            Ctwk::CtwkPlayerGun(ctwk) => ctwk.size(),
-            Ctwk::CtwkBall(ctwk) => ctwk.size(),
-            Ctwk::CtwkGuiColors(ctwk) => ctwk.size(),
+            Ctwk::Game(ctwk) => ctwk.size(),
+            Ctwk::Player(ctwk) => ctwk.size(),
+            Ctwk::PlayerGun(ctwk) => ctwk.size(),
+            Ctwk::Ball(ctwk) => ctwk.size(),
+            Ctwk::GuiColors(ctwk) => ctwk.size(),
         }
     }
 }

@@ -34,9 +34,7 @@ pub fn strip_jsonc_comments(jsonc_input: &str, preserve_locations: bool) -> Stri
                 }
             // Check for block comment end
             } else if !is_in_string && last_char == Some('*') && cur_char == '/' {
-                if block_comment_depth > 0 {
-                    block_comment_depth -= 1;
-                }
+                block_comment_depth = block_comment_depth.saturating_sub(1);
                 last_char = None;
                 if preserve_locations {
                     json_output.push_str("  ");
@@ -47,10 +45,8 @@ pub fn strip_jsonc_comments(jsonc_input: &str, preserve_locations: bool) -> Stri
                     if let Some(last_char) = last_char {
                         json_output.push(last_char);
                     }
-                } else {
-                    if preserve_locations {
-                        json_output.push_str(" ");
-                    }
+                } else if preserve_locations {
+                    json_output.push(' ');
                 }
                 last_char = Some(cur_char);
             }

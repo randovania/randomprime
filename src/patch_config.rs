@@ -230,15 +230,13 @@ impl GenericTexture {
     }
 
     pub fn cmdl(self) -> ResId<res_id::CMDL> {
-        let id = match self {
+        match self {
             GenericTexture::Grass => custom_asset_ids::BLOCK_COLOR_0,
             GenericTexture::Crater => custom_asset_ids::BLOCK_COLOR_1,
             GenericTexture::Mine => custom_asset_ids::BLOCK_COLOR_2,
             GenericTexture::Snow => custom_asset_ids::BLOCK_COLOR_3,
             GenericTexture::Sandstone => custom_asset_ids::BLOCK_COLOR_4,
-        };
-
-        id
+        }
     }
 
     pub fn dependencies(self) -> Vec<(u32, FourCC)> {
@@ -257,7 +255,7 @@ impl GenericTexture {
             GenericTexture::Sandstone,
         ]
         .iter()
-        .map(|i| *i)
+        .copied()
     }
 }
 
@@ -745,8 +743,9 @@ pub struct ControllerActionConfig {
     pub one_shot: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
+#[repr(u32)]
 pub enum ConnectionState {
     ANY = 0xFFFFFFFF,
     ACTIVE = 0x0,
@@ -783,8 +782,9 @@ pub enum ConnectionState {
     INHERIT_BOUNDS = 0x20,
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
+#[repr(u32)]
 pub enum ConnectionMsg {
     NONE = 0xFFFFFFFF,
     UNKM0 = 0x0,
@@ -1662,7 +1662,7 @@ fn merge_json(config: &mut PatchConfigPrivate, text: &'static str) -> Result<(),
 
 impl PatchConfigPrivate {
     // returns all non-vanilla game layers which this config modifies
-    fn layers(self: &Self) -> HashMap<u32, HashSet<u32>> {
+    fn layers(&self) -> HashMap<u32, HashSet<u32>> {
         let mut layers = HashMap::new();
 
         for world in World::iter() {
@@ -1673,7 +1673,7 @@ impl PatchConfigPrivate {
             }
             let rooms = &level_config.unwrap().rooms;
 
-            for (_, room_config) in rooms {
+            for room_config in rooms.values() {
                 if room_config.special_functions.is_none() {
                     continue;
                 }
@@ -1696,9 +1696,9 @@ impl PatchConfigPrivate {
                         continue; // This is modifying a vanilla layer, so skip
                     }
 
-                    if !layers.contains_key(&room_lookup.mrea_id) {
-                        layers.insert(room_lookup.mrea_id, HashSet::new());
-                    }
+                    layers
+                        .entry(room_lookup.mrea_id)
+                        .or_insert_with(HashSet::new);
 
                     let room = layers.get_mut(&room_lookup.mrea_id).unwrap();
                     room.insert(layer);
@@ -1710,7 +1710,7 @@ impl PatchConfigPrivate {
     }
 
     /* Extends the "stuff" added/edited in each room */
-    pub fn merge(self: &mut Self, other: Self) {
+    pub fn merge(&mut self, other: Self) {
         /* First check if there for any conflicts when adding new layers */
         let self_layers = self.layers();
         let other_layers = other.layers();
@@ -1959,7 +1959,7 @@ impl PatchConfigPrivate {
             .to_lowercase();
         let mode = mode.trim();
 
-        if vec!["skippable", "skippablecompetitive"].contains(&mode) {
+        if ["skippable", "skippablecompetitive"].contains(&mode) {
             merge_json(&mut result, SKIPPABLE_CUTSCENES)?;
 
             if [
@@ -2017,7 +2017,7 @@ impl PatchConfigPrivate {
             .write(true)
             .create(true)
             .truncate(true)
-            .open(&output_iso_path)
+            .open(output_iso_path)
             .map_err(|e| format!("Failed to open {}: {}", output_iso_path, e))?;
 
         let iso_format = if output_iso_path.ends_with(".gcz") {
@@ -2063,7 +2063,7 @@ impl PatchConfigPrivate {
 
             MapaObjectVisibilityMode::from_str(map_default_state_string.as_str())
                 .ok()
-                .expect(format!("Invalid mapDefaultState '{}'", map_default_state_string).as_str())
+                .unwrap_or_else(|| panic!("Invalid mapDefaultState '{}'", map_default_state_string))
         };
 
         let flaahgra_music_files = self
@@ -2162,8 +2162,6 @@ impl PatchConfigPrivate {
             "thermal"
         } else if starting_items.xray {
             "xray"
-        } else if starting_items.scan_visor {
-            "scan"
         } else {
             "scan"
         };
@@ -2293,7 +2291,7 @@ impl PatchConfigPrivate {
             force_vanilla_layout,
 
             seed: self.seed.unwrap_or(123),
-            uuid: self.uuid.clone(),
+            uuid: self.uuid,
             extern_assets_dir: self.extern_assets_dir.clone(),
 
             level_data: self.level_data.clone(),
@@ -2329,16 +2327,14 @@ impl PatchConfigPrivate {
             maze_seeds: self.game_config.maze_seeds.clone(),
             hall_of_the_elders_bomb_slot_covers: self
                 .game_config
-                .hall_of_the_elders_bomb_slot_covers
-                .clone(),
-
+                .hall_of_the_elders_bomb_slot_covers,
             automatic_crash_screen: self.preferences.automatic_crash_screen.unwrap_or(true),
             visible_bounding_box: self.preferences.visible_bounding_box.unwrap_or(false),
             door_destination_scans: self.preferences.door_destination_scans.unwrap_or(true),
             artifact_hint_behavior,
             flaahgra_music_files,
             suit_colors: self.preferences.suit_colors.clone(),
-            force_fusion: self.preferences.force_fusion.clone().unwrap_or(false),
+            force_fusion: self.preferences.force_fusion.unwrap_or(false),
             cache_dir: self
                 .preferences
                 .cache_dir
@@ -2380,11 +2376,7 @@ impl PatchConfigPrivate {
                 .artifact_temple_layer_overrides
                 .clone(),
             no_doors: self.game_config.no_doors.unwrap_or(false),
-            boss_sizes: self
-                .game_config
-                .boss_sizes
-                .clone()
-                .unwrap_or(HashMap::new()),
+            boss_sizes: self.game_config.boss_sizes.clone().unwrap_or_default(),
             shoot_in_grapple: self.game_config.shoot_in_grapple.unwrap_or(false),
             difficulty_behavior: self
                 .game_config
@@ -2412,16 +2404,16 @@ impl PatchConfigPrivate {
             starting_beam,
 
             etank_capacity: self.game_config.etank_capacity.unwrap_or(100),
-            item_max_capacity: item_max_capacity,
+            item_max_capacity,
 
             game_banner: self.game_config.game_banner.clone().unwrap_or_default(),
-            comment: self.game_config.comment.clone().unwrap_or(String::new()),
+            comment: self.game_config.comment.clone().unwrap_or_default(),
             main_menu_message,
 
             credits_string,
             results_string,
             artifact_hints: self.game_config.artifact_hints.clone(),
-            required_artifact_count: self.game_config.required_artifact_count.clone(),
+            required_artifact_count: self.game_config.required_artifact_count,
 
             ctwk_config: self.tweaks.clone(),
         };

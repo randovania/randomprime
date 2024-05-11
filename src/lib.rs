@@ -52,7 +52,7 @@ impl<'a> GcDiscLookupExtensions<'a> for structs::GcDisc<'a> {
     fn find_file(&self, name: &str) -> Option<&structs::FstEntry<'a>> {
         let mut entry = &self.file_system_root;
         for seg in name.split('/') {
-            if seg.len() == 0 {
+            if seg.is_empty() {
                 continue;
             }
             match entry {
@@ -70,7 +70,7 @@ impl<'a> GcDiscLookupExtensions<'a> for structs::GcDisc<'a> {
     fn find_file_mut(&mut self, name: &str) -> Option<&mut structs::FstEntry<'a>> {
         let mut entry = &mut self.file_system_root;
         for seg in name.split('/') {
-            if seg.len() == 0 {
+            if seg.is_empty() {
                 continue;
             }
             match entry {
@@ -95,12 +95,12 @@ impl<'a> GcDiscLookupExtensions<'a> for structs::GcDisc<'a> {
     {
         let file_entry = self.find_file(pak_name)?;
         match file_entry.file()? {
-            structs::FstEntryFile::Pak(ref pak) => pak.resources.iter().find(|res| f(&res)),
+            structs::FstEntryFile::Pak(ref pak) => pak.resources.iter().find(|res| f(res)),
             structs::FstEntryFile::Unknown(ref reader) => {
                 let pak: structs::Pak = reader.clone().read(());
                 pak.resources
                     .iter()
-                    .find(|res| f(&res))
+                    .find(|res| f(res))
                     .map(|res| LCow::Owned(res.into_owned()))
             }
             _ => panic!(),
@@ -149,7 +149,7 @@ impl<'a> GcDiscLookupExtensions<'a> for structs::GcDisc<'a> {
 
         let mut entry = &mut self.file_system_root;
         for seg in path.split('/') {
-            if seg.len() == 0 {
+            if seg.is_empty() {
                 continue;
             }
             let dir_entries = entry.dir_entries_mut().ok_or_else(|| "".to_owned())?;
@@ -183,7 +183,7 @@ pub struct ResourceData<'a> {
 }
 
 impl<'a> ResourceData<'a> {
-    pub fn new_external(res: &'a structs::Resource<'_>) -> ResourceData<'a> {
+    pub fn new_external(res: &'a structs::Resource) -> ResourceData<'a> {
         let reader = match &res.kind {
             structs::ResourceKind::External(bytes, _) => Reader::new(&bytes[..]),
             _ => panic!("Only uninitialized (aka Unknown) resources may be added."),

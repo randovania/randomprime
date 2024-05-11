@@ -84,7 +84,7 @@ pub enum LazyUtf16beStr<'r> {
 }
 
 impl<'r> LazyUtf16beStr<'r> {
-    pub fn contains<'s>(&self, text: &String) -> bool {
+    pub fn contains(&self, text: &String) -> bool {
         match *self {
             LazyUtf16beStr::Owned(ref s) => (*s).contains(text),
             LazyUtf16beStr::Borrowed(ref s) => {
@@ -94,20 +94,18 @@ impl<'r> LazyUtf16beStr<'r> {
         }
     }
 
-    pub fn replace<'s>(&mut self, from: &String, to: &String) -> &mut Self {
+    pub fn replace(&mut self, from: &String, to: &str) -> &mut Self {
         *self = match *self {
-            LazyUtf16beStr::Owned(ref mut s) => {
-                LazyUtf16beStr::from((*s).replace(from, to.as_str()))
-            }
+            LazyUtf16beStr::Owned(ref mut s) => LazyUtf16beStr::from((*s).replace(from, to)),
             LazyUtf16beStr::Borrowed(ref s) => {
                 let string = s.chars().map(|i| i.unwrap()).collect::<String>();
-                LazyUtf16beStr::Owned(string.replace(from, to.as_str()))
+                LazyUtf16beStr::Owned(string.replace(from, to))
             }
         };
         self
     }
 
-    pub fn as_mut_string<'s>(&mut self) -> &mut String {
+    pub fn as_mut_string(&mut self) -> &mut String {
         *self = match *self {
             LazyUtf16beStr::Owned(ref mut s) => return s,
             LazyUtf16beStr::Borrowed(ref s) => {
@@ -117,9 +115,9 @@ impl<'r> LazyUtf16beStr<'r> {
         self.as_mut_string()
     }
 
-    pub fn into_string<'s>(self) -> String {
+    pub fn into_string(self) -> String {
         match self {
-            LazyUtf16beStr::Owned(s) => return s,
+            LazyUtf16beStr::Owned(s) => s,
             LazyUtf16beStr::Borrowed(s) => s.chars().map(|i| i.unwrap()).collect(),
         }
     }
@@ -193,7 +191,7 @@ impl<'r, 's> Iterator for LazyUtf16beStrChars<'r, 's> {
     type Item = char;
     fn next(&mut self) -> Option<Self::Item> {
         match *self {
-            LazyUtf16beStrChars::Owned(ref mut c) => c.next().map(|i| i),
+            LazyUtf16beStrChars::Owned(ref mut c) => c.next(),
             LazyUtf16beStrChars::Borrowed(ref mut c) => {
                 c.next().map(|r| r.unwrap_or(REPLACEMENT_CHARACTER))
             }
@@ -204,7 +202,7 @@ impl<'r, 's> Iterator for LazyUtf16beStrChars<'r, 's> {
 impl<'r> From<String> for LazyUtf16beStr<'r> {
     fn from(s: String) -> LazyUtf16beStr<'r> {
         // Verify null-terminator
-        assert!(s.chars().next_back().unwrap() == '\0');
+        assert!(s.ends_with('\u{0}'));
         LazyUtf16beStr::Owned(s)
     }
 }

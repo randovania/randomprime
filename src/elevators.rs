@@ -30,7 +30,7 @@ impl World {
             World::EndCinema,
         ]
         .iter()
-        .map(|i| *i)
+        .copied()
     }
 
     pub fn to_pak_str(&self) -> &'static str {
@@ -47,13 +47,7 @@ impl World {
     }
 
     pub fn from_pak(pak_str: &str) -> Option<Self> {
-        for world in World::iter() {
-            if pak_str.to_lowercase() == world.to_pak_str().to_lowercase() {
-                return Some(world);
-            }
-        }
-
-        None
+        World::iter().find(|&world| pak_str.to_lowercase() == world.to_pak_str().to_lowercase())
     }
 
     pub fn mlvl(&self) -> u32 {
@@ -180,11 +174,12 @@ macro_rules! decl_elevators {
 }
 
 impl Elevator {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(name: &str) -> Option<Self> {
-        let mut name = name.to_lowercase().replace("\0", "");
+        let mut name = name.to_lowercase().replace('\0', "");
         name.retain(|c| !c.is_whitespace());
         for elevator in Elevator::iter() {
-            let mut elevator_name = elevator.name.to_lowercase().replace("\0", "");
+            let mut elevator_name = elevator.name.to_lowercase().replace('\0', "");
             elevator_name.retain(|c| !c.is_whitespace());
             if elevator_name == name {
                 return Some(elevator);
@@ -620,6 +615,7 @@ macro_rules! decl_spawn_rooms {
 }
 
 impl SpawnRoomData {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(dest_name: &str) -> Self {
         let dest_name = dest_name.to_lowercase();
 
@@ -638,7 +634,7 @@ impl SpawnRoomData {
         }
 
         // Handle specific room destinations //
-        let vec: Vec<&str> = dest_name.split(":").collect();
+        let vec: Vec<&str> = dest_name.split(':').collect();
         if vec.len() != 2 {
             panic!("Error - Could not find destination '{}'", dest_name);
         }
@@ -653,8 +649,7 @@ impl SpawnRoomData {
                 continue;
             }
 
-            let mut idx: u32 = 0;
-            for room_info in rooms.iter() {
+            for (idx, room_info) in (0_u32..).zip(rooms.iter()) {
                 // for each room in the pak
                 if room_info.name().to_lowercase().trim() == room_name {
                     // trim both because "west tower " has an extra space in it
@@ -667,7 +662,6 @@ impl SpawnRoomData {
                         name: room_info.name(),
                     };
                 }
-                idx = idx + 1;
             }
         }
 
@@ -691,12 +685,6 @@ impl PartialEq<Elevator> for SpawnRoom {
 impl From<Elevator> for SpawnRoom {
     fn from(elv: Elevator) -> Self {
         SpawnRoom::Elevator(elv)
-    }
-}
-
-impl Default for SpawnRoom {
-    fn default() -> Self {
-        SpawnRoom::FrigateExteriorDockingHangar
     }
 }
 

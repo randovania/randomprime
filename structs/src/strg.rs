@@ -3,7 +3,7 @@ use reader_writer::{
     FourCC, IteratorArray, LCow, LazyArray, LazyUtf16beStr, Readable, RoArray, RoArrayIter,
 };
 
-static SUPPORTED_LANGUAGES: &'static [&[u8; 4]] = &[
+static SUPPORTED_LANGUAGES: &[&[u8; 4]] = &[
     b"ENGL", b"DUTC", b"FREN", b"GERM", b"ITAL", b"JAPN", b"SPAN",
 ];
 
@@ -48,7 +48,7 @@ impl<'r> Strg<'r> {
             && languages.iter().any(|lang| *lang == b"JAPN")
     }
 
-    pub fn add_strings(self: &mut Self, strings: &[String], languages: Languages) {
+    pub fn add_strings(&mut self, strings: &[String], languages: Languages) {
         let languages = match languages {
             Languages::All => SUPPORTED_LANGUAGES,
             Languages::Some(value) => value,
@@ -66,14 +66,14 @@ impl<'r> Strg<'r> {
                         table
                             .strings
                             .as_mut_vec()
-                            .push(format!("{}", string).into());
+                            .push(string.to_string().into());
                     }
                 }
             }
         }
     }
 
-    pub fn edit_strings(self: &mut Self, (from, to): (String, String), languages: Languages) {
+    pub fn edit_strings(&mut self, (from, to): (String, String), languages: Languages) {
         let languages = match languages {
             Languages::All => SUPPORTED_LANGUAGES,
             Languages::Some(value) => value,
@@ -117,7 +117,7 @@ impl<'r> Strg<'r> {
                 },
                 StrgStringTable {
                     lang: b"JAPN".into(),
-                    strings: strings,
+                    strings,
                 },
             ]
             .into(),
@@ -154,7 +154,7 @@ impl<'r> Strg<'r> {
                 },
                 StrgStringTable {
                     lang: b"JAPN".into(),
-                    strings: strings,
+                    strings,
                 },
             ]
             .into(),

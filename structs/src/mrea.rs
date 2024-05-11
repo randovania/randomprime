@@ -145,7 +145,7 @@ impl<'r> Writable for MreaSection<'r> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match *self {
             MreaSection::Unknown(ref reader) => {
-                writer.write_all(&reader)?;
+                writer.write_all(reader)?;
                 Ok(reader.len() as u64)
             }
             MreaSection::Scly(ref scly) => scly.write_to(writer),

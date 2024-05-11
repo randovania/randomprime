@@ -122,7 +122,7 @@ pub extern "C" fn randomprime_patch_iso(
     cb: extern "C" fn(*const (), *const c_char),
 ) {
     thread_local! {
-        static PANIC_DETAILS: Cell<Option<(String, u32)>> = Cell::new(None);
+        static PANIC_DETAILS: Cell<Option<(String, u32)>> = const { Cell::new(None) };
     }
     panic::set_hook(Box::new(|pinfo| {
         PANIC_DETAILS.with(|pd| {
@@ -146,8 +146,7 @@ pub extern "C" fn randomprime_patch_iso(
                     .components()
                     .skip(1)
                     .zip(&mut comp)
-                    .find(|(c, _)| c.as_os_str() == "randomprime")
-                    .is_some();
+                    .any(|(c, _)| c.as_os_str() == "randomprime");
                 // If possible, include the section of the path starting with the directory named
                 // "randomprime". If no such directoy exists, just use the file name.
                 let shortened_path = if found {

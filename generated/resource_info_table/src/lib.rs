@@ -10,21 +10,21 @@ pub struct ResourceInfo {
     pub paks: &'static [&'static [u8]],
 }
 
-impl<'a, 'b> Into<(&'a [&'b [u8]], u32, FourCC)> for ResourceInfo {
-    fn into(self) -> (&'a [&'b [u8]], u32, FourCC) {
-        (self.paks, self.res_id, self.fourcc)
+impl<'a, 'b> From<ResourceInfo> for (&'a [&'b [u8]], u32, FourCC) {
+    fn from(val: ResourceInfo) -> Self {
+        (val.paks, val.res_id, val.fourcc)
     }
 }
 
-impl Into<(u32, FourCC)> for ResourceInfo {
-    fn into(self) -> (u32, FourCC) {
-        (self.res_id, self.fourcc)
+impl From<ResourceInfo> for (u32, FourCC) {
+    fn from(val: ResourceInfo) -> Self {
+        (val.res_id, val.fourcc)
     }
 }
 
-impl<'a> Into<(&'a [u8], u32)> for ResourceInfo {
-    fn into(self) -> (&'a [u8], u32) {
-        assert_eq!(self.paks.len(), 1);
-        (self.paks[0], self.res_id)
+impl<'a> From<ResourceInfo> for (&'a [u8], u32) {
+    fn from(val: ResourceInfo) -> Self {
+        assert_eq!(val.paks.len(), 1);
+        (val.paks[0], val.res_id)
     }
 }

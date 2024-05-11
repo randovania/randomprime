@@ -1,7 +1,9 @@
+#![allow(clippy::unused_unit)] // this lint originates from `scroll`
+
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufRead, BufReader, Seek, SeekFrom, Write},
+    io::{BufRead, BufReader, Seek, Write},
     iter,
     path::{Path, PathBuf},
     rc::Rc,
@@ -228,7 +230,7 @@ build_ppc_reloc_types! {
 }
 
 impl ElfRelocationType {
-    fn to_rel_reloc(&self) -> RelRelocationType {
+    fn to_rel_reloc(self) -> RelRelocationType {
         // TODO: Some of the PLT or GOT relocation types might be mappable onto
         //       Rel relocation types
         match self {
@@ -302,9 +304,9 @@ const SHN_COMMON: u16 = 65522;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum RelocationKind<'a> {
-    ExternalSymbol(&'a str),
-    InternalSymbol(u32 /* sec idx */, u32 /* offset */),
-    AbsoluteSymbol(u32),
+    External(&'a str),
+    Internal(u32 /* sec idx */, u32 /* offset */),
+    Absolute(u32),
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -328,18 +330,15 @@ impl<'a> Relocation<'a> {
             addend: reloc.r_addend.unwrap_or(0) as u32,
             type_: ElfRelocationType::from_u32(reloc.r_type).unwrap(),
             kind: if sym.st_type() == elf::sym::STT_SECTION {
-                RelocationKind::InternalSymbol(map_sec_index(sym.st_shndx as u32), 0)
+                RelocationKind::Internal(map_sec_index(sym.st_shndx as u32), 0)
             } else if sym.is_import() {
-                RelocationKind::ExternalSymbol(elf.strtab.get(sym.st_name).unwrap().unwrap())
+                RelocationKind::External(elf.strtab.get(sym.st_name).unwrap().unwrap())
             } else if sym.st_shndx as u16 == SHN_COMMON {
-                RelocationKind::InternalSymbol(map_bss_index(reloc.r_sym as u32), 0)
+                RelocationKind::Internal(map_bss_index(reloc.r_sym as u32), 0)
             } else if sym.st_shndx as u16 == SHN_ABS {
-                RelocationKind::AbsoluteSymbol(sym.st_value as u32)
+                RelocationKind::Absolute(sym.st_value as u32)
             } else {
-                RelocationKind::InternalSymbol(
-                    map_sec_index(sym.st_shndx as u32),
-                    sym.st_value as u32,
-                )
+                RelocationKind::Internal(map_sec_index(sym.st_shndx as u32), sym.st_value as u32)
             },
         }
     }
@@ -350,19 +349,19 @@ impl<'a> Relocation<'a> {
         local_sym_table: &HashMap<&str, (RelSectionType, u32)>,
     ) -> bool {
         let (known_static_addr, known_relative_addr) = match self.kind {
-            RelocationKind::InternalSymbol(sec_idx, _) => {
+            RelocationKind::Internal(sec_idx, _) => {
                 let sec_type = loc_sec.sibling_section_rel_sections[sec_idx as usize].unwrap();
                 // The addr is never known for BSS sections
                 (false, sec_type != RelSectionType::Bss)
             }
-            RelocationKind::ExternalSymbol(sym_name) => {
+            RelocationKind::External(sym_name) => {
                 if local_sym_table.contains_key(&sym_name) {
                     (false, true)
                 } else {
                     (true, false)
                 }
             }
-            RelocationKind::AbsoluteSymbol(_) => (true, false),
+            RelocationKind::Absolute(_) => (true, false),
         };
 
         match self.type_ {
@@ -386,14 +385,14 @@ impl<'a> Relocation<'a> {
 
     fn is_dol_relocation(&self, local_sym_table: &HashMap<&str, (RelSectionType, u32)>) -> bool {
         match self.kind {
-            RelocationKind::ExternalSymbol(sym_name) => !local_sym_table.contains_key(sym_name),
-            RelocationKind::AbsoluteSymbol(_) => true,
-            RelocationKind::InternalSymbol(_, _) => false,
+            RelocationKind::External(sym_name) => !local_sym_table.contains_key(sym_name),
+            RelocationKind::Absolute(_) => true,
+            RelocationKind::Internal(_, _) => false,
         }
     }
 
     fn to_rel_relocation(
-        &self,
+        self,
         offset: u16,
         loc_sec: &LocatedSection,
         rel_sections: &EnumMap<RelSectionType, SectionInfo>,
@@ -401,7 +400,7 @@ impl<'a> Relocation<'a> {
         extern_sym_table: &HashMap<String, u32>,
     ) -> Result<RelRelocation> {
         let (section_index, symbol_offset) = match self.kind {
-            RelocationKind::InternalSymbol(sec_index, offset) => {
+            RelocationKind::Internal(sec_index, offset) => {
                 let sec_offset = loc_sec.sibling_section_offsets[sec_index as usize].unwrap();
                 let sec_type = loc_sec.sibling_section_rel_sections[sec_index as usize].unwrap();
                 (
@@ -409,7 +408,7 @@ impl<'a> Relocation<'a> {
                     sec_offset + offset,
                 )
             }
-            RelocationKind::ExternalSymbol(sym_name) => {
+            RelocationKind::External(sym_name) => {
                 if let Some((sec_type, offset)) = local_sym_table.get(sym_name) {
                     (rel_sections[*sec_type].rel_section_index.unwrap(), *offset)
                 } else if let Some(offset) = extern_sym_table.get(sym_name) {
@@ -425,7 +424,7 @@ impl<'a> Relocation<'a> {
                     unreachable!()
                 }
             }
-            RelocationKind::AbsoluteSymbol(addr) => (0, addr),
+            RelocationKind::Absolute(addr) => (0, addr),
         };
 
         Ok(RelRelocation {
@@ -436,6 +435,7 @@ impl<'a> Relocation<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn apply_relocation(
         &self,
         data: &[u8],
@@ -449,7 +449,7 @@ impl<'a> Relocation<'a> {
         let rel_addr;
         let abs_addr;
         match self.kind {
-            RelocationKind::InternalSymbol(sec_index, offset) => {
+            RelocationKind::Internal(sec_index, offset) => {
                 let sec_offset = loc_sec.sibling_section_offsets[sec_index as usize].unwrap();
                 let sec_type = loc_sec.sibling_section_rel_sections[sec_index as usize].unwrap();
 
@@ -463,7 +463,7 @@ impl<'a> Relocation<'a> {
                     None
                 };
             }
-            RelocationKind::ExternalSymbol(sym_name) => {
+            RelocationKind::External(sym_name) => {
                 if let Some((sec_type, offset)) = local_sym_table.get(sym_name) {
                     rel_addr = Some(
                         (rel_section_locations[*sec_type].unwrap() + *offset + self.addend) as i64,
@@ -485,7 +485,7 @@ impl<'a> Relocation<'a> {
                     unreachable!("Symbol: {}", sym_name)
                 }
             }
-            RelocationKind::AbsoluteSymbol(addr) => {
+            RelocationKind::Absolute(addr) => {
                 rel_addr = None;
                 abs_addr = Some((addr + self.addend) as i64);
             }
@@ -575,7 +575,7 @@ impl SymbolVis {
         match elf::sym::st_visibility(st_other) {
             elf::sym::STV_DEFAULT => SymbolVis::Default,
             elf::sym::STV_HIDDEN => SymbolVis::Hidden,
-            i @ _ => panic!(
+            i => panic!(
                 "Unsupported symbol visiblity: {} {}",
                 i,
                 elf::sym::visibility_to_str(i)
@@ -609,7 +609,7 @@ impl<'a> Section<'a> {
             .iter()
             .filter(|(idx, _)| elf.section_headers[*idx].sh_info == sec_idx as u32)
             .flat_map(|(_, reloc_section)| reloc_section.iter())
-            .map(|reloc| Relocation::from_reloc(reloc, &elf, &map_sec_index, &map_bss_index))
+            .map(|reloc| Relocation::from_reloc(reloc, elf, &map_sec_index, &map_bss_index))
             .collect::<Vec<_>>();
         relocations.sort_by_key(|reloc| reloc.offset);
 
@@ -730,8 +730,8 @@ impl<'a> ObjectFile<'a> {
                 sh,
                 bytes,
                 &elf,
-                &map_sec_index,
-                &map_bss_index,
+                map_sec_index,
+                map_bss_index,
             ))
         }
 
@@ -763,7 +763,7 @@ struct LocatedSection<'a> {
 impl<'a> std::ops::Deref for LocatedSection<'a> {
     type Target = Section<'a>;
     fn deref(&self) -> &Self::Target {
-        &self.section
+        self.section
     }
 }
 
@@ -856,18 +856,18 @@ fn filter_unused_sections<'a>(
                 .flat_map(|(relocs_k, of_ki)| relocs_k.iter().zip(iter::repeat(of_ki)))
                 .any(|(reloc, of_ki)| {
                     match reloc.kind {
-                        RelocationKind::InternalSymbol(sec_idx, _) if of_qi == of_ki =>
+                        RelocationKind::Internal(sec_idx, _) if of_qi == of_ki =>
                         // Check if any of sec_k's Internal relocs reference sec_q
                         {
                             sec_idx == *sec_qi as u32
                         }
-                        RelocationKind::ExternalSymbol(sn_k) if sn_k.starts_with("__start_") => {
+                        RelocationKind::External(sn_k) if sn_k.starts_with("__start_") => {
                             sec_q.name == &sn_k[8..]
                         }
-                        RelocationKind::ExternalSymbol(sn_k) if sn_k.starts_with("__stop_") => {
+                        RelocationKind::External(sn_k) if sn_k.starts_with("__stop_") => {
                             sec_q.name == &sn_k[7..]
                         }
-                        RelocationKind::ExternalSymbol(sym_name_k) => {
+                        RelocationKind::External(sym_name_k) => {
                             // Check if any of sec_k's External relocs match sec_q's symbols
                             sec_q
                                 .exported_symbols
@@ -1039,12 +1039,12 @@ fn build_local_symbol_table<'a, 'b: 'a>(
             if sec_type != RelSectionType::Bss {
                 // NOTE because we grouped the sections by name earlier, a simple min/max works here
                 local_sym_table
-                    .entry(&start_name)
+                    .entry(start_name)
                     .and_modify(|(_, o)| *o = std::cmp::min(*o, loc_sec.offset))
                     .or_insert((sec_type, loc_sec.offset));
 
                 local_sym_table
-                    .entry(&stop_name)
+                    .entry(stop_name)
                     .and_modify(|(_, o)| *o = std::cmp::max(*o, loc_sec.offset + loc_sec.size()))
                     .or_insert((sec_type, loc_sec.offset + loc_sec.size()));
             }
@@ -1054,6 +1054,7 @@ fn build_local_symbol_table<'a, 'b: 'a>(
     Ok(local_sym_table)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_relocated_section_data(
     mut addr: u32,
     rel_sections: &EnumMap<RelSectionType, SectionInfo>,
@@ -1087,8 +1088,7 @@ fn write_relocated_section_data(
 
             let mut prev_offset = 0;
             for reloc in loc_sec.relocations.iter() {
-                if locations_are_relative
-                    && !reloc.is_locally_resolvable(&loc_sec, &local_sym_table)
+                if locations_are_relative && !reloc.is_locally_resolvable(loc_sec, local_sym_table)
                 {
                     continue;
                 }
@@ -1104,10 +1104,10 @@ fn write_relocated_section_data(
                     &data[reloc.offset as usize..],
                     rel_section_locations[sec_type].unwrap() + loc_sec.offset + reloc.offset,
                     loc_sec,
-                    &rel_section_locations,
+                    rel_section_locations,
                     locations_are_relative,
-                    &local_sym_table,
-                    &extern_sym_table,
+                    local_sym_table,
+                    extern_sym_table,
                 );
                 output_file
                     .write_all(&relocated_bytes[..])
@@ -1129,7 +1129,7 @@ fn write_relocated_section_data(
     Ok(())
 }
 
-pub fn link_obj_files_to_rel<'a>(
+pub fn link_obj_files_to_rel(
     obj_file_names: impl Iterator<Item = impl AsRef<Path>>,
     extern_sym_table: &HashMap<String, u32>,
     output_file_name: impl AsRef<Path>,
@@ -1156,7 +1156,7 @@ pub fn link_obj_files_to_rel<'a>(
     for (sec_type, rs) in rel_sections.iter() {
         for loc_sec in rs.sections.iter() {
             for reloc in loc_sec.relocations.iter() {
-                if reloc.is_locally_resolvable(&loc_sec, &local_sym_table) {
+                if reloc.is_locally_resolvable(loc_sec, &local_sym_table) {
                     continue;
                 }
 
@@ -1190,7 +1190,7 @@ pub fn link_obj_files_to_rel<'a>(
                     loc_sec,
                     &rel_sections,
                     &local_sym_table,
-                    &extern_sym_table,
+                    extern_sym_table,
                 )?);
             }
         }
@@ -1203,8 +1203,8 @@ pub fn link_obj_files_to_rel<'a>(
 
     let sections_table_size = section_count * 8;
 
-    let has_dol_relocs = dol_relocations.values().any(|v| v.len() > 0);
-    let has_self_relocs = self_relocations.values().any(|v| v.len() > 0);
+    let has_dol_relocs = dol_relocations.values().any(|v| !v.is_empty());
+    let has_self_relocs = self_relocations.values().any(|v| !v.is_empty());
     let imports_table_size = (has_dol_relocs as u32 + has_self_relocs as u32) * 8;
 
     // Build the imports & relocations tables first to make calculating the latter's size easier
@@ -1217,7 +1217,7 @@ pub fn link_obj_files_to_rel<'a>(
         let relocs_table_start_size = relocs_table.len() as u32;
 
         for (sec_type, relocations) in relocs.iter() {
-            if relocations.len() > 0 {
+            if !relocations.is_empty() {
                 let i = rel_sections[sec_type].rel_section_index.unwrap();
                 relocs_table.push(RelRelocation::start_section_entry(i));
             }
@@ -1225,7 +1225,7 @@ pub fn link_obj_files_to_rel<'a>(
         }
 
         // Did we actually have anything to push?
-        if relocs.values().any(|v| v.len() > 0) {
+        if relocs.values().any(|v| !v.is_empty()) {
             relocs_table.push(RelRelocation::end_relocations_entry());
 
             imports_table.push(RelImport {
@@ -1348,7 +1348,7 @@ pub fn link_obj_files_to_rel<'a>(
             })?;
     }
 
-    let pos = output_file.seek(SeekFrom::Current(0)).unwrap() as u32;
+    let pos = output_file.stream_position().unwrap() as u32;
 
     // Write actual section data
     write_relocated_section_data(
@@ -1357,13 +1357,13 @@ pub fn link_obj_files_to_rel<'a>(
         &rel_section_locations,
         true, /* locations_are_relative */
         &local_sym_table,
-        &extern_sym_table,
+        extern_sym_table,
         output_file_name,
         &mut output_file,
     )?;
 
     // Ensure the file length is a multiple of 32 so it loads currectly from the GC disc
-    let pos = output_file.seek(SeekFrom::Current(0)).unwrap() as u32;
+    let pos = output_file.stream_position().unwrap() as u32;
     let aligned_pos = align_to(pos, 32u8);
     output_file
         .write_all(&[0u8; 32][..(aligned_pos - pos) as usize])
@@ -1372,7 +1372,7 @@ pub fn link_obj_files_to_rel<'a>(
     Ok(())
 }
 
-pub fn link_obj_files_to_bin<'a>(
+pub fn link_obj_files_to_bin(
     obj_file_names: impl Iterator<Item = impl AsRef<Path>>,
     load_addr: u32,
     extern_sym_table: &HashMap<String, u32>,
@@ -1394,7 +1394,7 @@ pub fn link_obj_files_to_bin<'a>(
         for loc_sec in rs.sections.iter() {
             for reloc in loc_sec.relocations.iter() {
                 match reloc.kind {
-                    RelocationKind::ExternalSymbol(sym_name) => {
+                    RelocationKind::External(sym_name) => {
                         ensure!(
                             local_sym_table.contains_key(sym_name)
                                 || extern_sym_table.contains_key(sym_name),
@@ -1403,8 +1403,8 @@ pub fn link_obj_files_to_bin<'a>(
                             }
                         );
                     }
-                    RelocationKind::InternalSymbol(_, _) => (),
-                    RelocationKind::AbsoluteSymbol(_) => (),
+                    RelocationKind::Internal(_, _) => (),
+                    RelocationKind::Absolute(_) => (),
                 }
             }
         }
@@ -1430,7 +1430,7 @@ pub fn link_obj_files_to_bin<'a>(
         &rel_section_locations,
         false, /* locations_are_relative */
         &local_sym_table,
-        &extern_sym_table,
+        extern_sym_table,
         output_file_name,
         &mut output_file,
     )?;
@@ -1459,7 +1459,7 @@ pub fn parse_symbol_table(
             line_number,
         })?;
 
-        if line.trim().len() == 0 {
+        if line.trim().is_empty() {
             continue;
         }
 

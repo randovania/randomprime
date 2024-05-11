@@ -26,7 +26,7 @@ fn invoke_cargo(ppc_manifest: &Path, package: &str) {
         .output()
         .expect("Failed to compile ppc crate");
     if !output.status.success() {
-        panic!("{:#?}", output.stderr);
+        panic!("{}", String::from_utf8_lossy(&output.stderr));
     }
 }
 
@@ -88,7 +88,7 @@ fn main() {
 
     let walkdir = WalkDir::new(ppc_dir).into_iter().filter_entry(|entry| {
         let name = entry.file_name().to_str().unwrap_or("");
-        !name.starts_with(".") && name != "target"
+        !name.starts_with('.') && name != "target"
     });
     for entry in walkdir {
         let entry = entry.unwrap();

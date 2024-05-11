@@ -7,7 +7,7 @@ use std::{
 
 fn main() {
     let output_path = Path::new(&env::var("OUT_DIR").unwrap()).join("codegen.rs");
-    let mut output_file = BufWriter::new(File::create(&output_path).unwrap());
+    let mut output_file = BufWriter::new(File::create(output_path).unwrap());
 
     const GAME_VERSIONS: &[(&str, &str)] = &[
         ("1.00.txt", "MP1_100_SYMBOL_TABLE"),
@@ -37,7 +37,7 @@ fn main() {
             .lines()
             .filter_map(|line| {
                 let line = line.unwrap();
-                if line.len() == 0 {
+                if line.is_empty() {
                     None
                 } else {
                     assert_eq!(&line[..2], "0x");
@@ -53,6 +53,6 @@ fn main() {
             map_generator.entry(&sym_name[..], &format!("0x{:X}", sym_addr));
         }
         write!(&mut output_file, "{}", map_generator.build()).unwrap();
-        write!(&mut output_file, ";\n").unwrap();
+        writeln!(&mut output_file, ";").unwrap();
     }
 }

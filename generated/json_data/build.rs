@@ -8,7 +8,7 @@ fn helper(filename: &'static str) {
     let out_dir = Path::new(&out_dir);
 
     let json_text =
-        fs::read_to_string(filename).expect(format!("Failed to read {}", filename).as_str());
+        fs::read_to_string(filename).unwrap_or_else(|_| panic!("Failed to read {}", filename));
     let json_text = strip_jsonc_comments(&json_text, true);
     let json_text = minify(&json_text);
 
@@ -16,7 +16,7 @@ fn helper(filename: &'static str) {
     let out_filename = out_filename.as_str();
     let out_path = out_dir.join(out_filename);
 
-    fs::write(out_path, json_text).expect(format!("Failed to write {}", out_filename).as_str());
+    fs::write(out_path, json_text).unwrap_or_else(|_| panic!("Failed to write {}", out_filename));
 }
 
 fn main() {

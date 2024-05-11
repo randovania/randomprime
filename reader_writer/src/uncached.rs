@@ -93,7 +93,7 @@ where
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match self {
             Uncached::Borrowed(reader, _) => {
-                writer.write_all(&reader)?;
+                writer.write_all(reader)?;
                 Ok(reader.len() as u64)
             }
             Uncached::Owned(t) => t.write_to(writer),

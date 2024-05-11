@@ -344,10 +344,7 @@ impl TxtrFormatExt for TxtrFormat {
     }
 
     fn flipped(&self) -> bool {
-        match self {
-            TxtrFormat::C4(_, _) | TxtrFormat::C8(_, _) => false,
-            _ => true,
-        }
+        !matches!(self, TxtrFormat::C4(_, _) | TxtrFormat::C8(_, _))
     }
 
     fn compute_palette(&mut self, pixels: &[u8]) -> Result<(), ()> {

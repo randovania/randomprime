@@ -37,13 +37,12 @@ impl<'r> Readable<'r> for GcDisc<'r> {
 
         let fst = { fst_start }.read((0, start, string_table_start));
 
-        let gc_disc = GcDisc {
-            header: header,
-            header_info: header_info,
-            apploader: apploader,
+        GcDisc {
+            header,
+            header_info,
+            apploader,
             file_system_root: fst,
-        };
-        gc_disc
+        }
     }
 
     fn fixed_size() -> Option<usize> {
@@ -190,6 +189,7 @@ pub struct GcDiscApploader<'r> {
     pub code: RoArray<'r, u8>,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum FstEntry<'r> {
     Dir(CStr<'r>, Vec<FstEntry<'r>>),
@@ -259,7 +259,7 @@ impl<'r> FstEntry<'r> {
                                 length: 0,
                             },
                             file: None,
-                            name: name,
+                            name,
                         });
 
                         state.string_table_len += name.to_bytes_with_nul().len() as u16;
@@ -280,7 +280,7 @@ impl<'r> FstEntry<'r> {
                                 length: file.size() as u32,
                             },
                             file: Some(file),
-                            name: name,
+                            name,
                         });
                         state.string_table_len += name.to_bytes_with_nul().len() as u16;
                     }
@@ -309,7 +309,7 @@ impl<'r> FstEntry<'r> {
             string_table_len: root_name.to_bytes_with_nul().len() as u16,
         };
 
-        inner(&root_vec, &mut state);
+        inner(root_vec, &mut state);
         state.entries[0].raw_entry.length = state.entries.len() as u32;
 
         // Recompute the on-disc sort order/locations
@@ -359,7 +359,7 @@ impl<'r> FstEntry<'r> {
         let zero_bytes = [0u8; 32];
         for (e, zeroes) in entries_and_zeroes {
             if let Some(f) = e.file {
-                notifier.notify_writing_file(&e.name, e.raw_entry.length as usize);
+                notifier.notify_writing_file(e.name, e.raw_entry.length as usize);
                 f.write_to(writer)?;
                 writer.write_all(&zero_bytes[0..zeroes as usize])?;
             }
@@ -391,6 +391,7 @@ struct WrappedFstEntry<'a, 'r> {
     name: &'a CStr<'r>,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum FstEntryFile<'r> {
     Pak(Pak<'r>),
@@ -531,7 +532,7 @@ impl<'r> FstEntryFile<'r> {
             FstEntryFile::Bnr(ref bnr) => bnr.write_to(writer),
             FstEntryFile::ExternalFile(ref i) => i.with_read(&mut |r| io::copy(r, writer)),
             FstEntryFile::Unknown(ref reader) => {
-                writer.write_all(&reader)?;
+                writer.write_all(reader)?;
                 Ok(reader.len() as u64)
             }
         }

@@ -200,7 +200,7 @@ fn parse_immediate(input: ParseStream) -> Result<Expr> {
             parse_quote_spanned! {lit.span()=> #minus #v }
         }
     };
-    if let Ok(_) = input.parse::<Token![@]>() {
+    if input.parse::<Token![@]>().is_ok() {
         let id: Ident = input.parse()?;
         if id == "h" {
             Ok(parse_quote_spanned! {expr.span()=> ppcasm::upper_bits(#expr) })
@@ -327,10 +327,10 @@ macro_rules! decl_instrs {
                 let opname = ident.to_string() + maybe_dot.as_ref().map(|_| ".").unwrap_or("");
 
                 $(
+                #[allow(unused_mut)]
                 if opname.starts_with(stringify!($nm)) {
-                    let flags_str = &opname[stringify!($nm).len()..];
+                    let mut flags_str = opname.strip_prefix(stringify!($nm)).expect("flags");
                     $(
-                    let mut flags_str = flags_str;
                     let flag_ident!(__dot__, $flag) = if flags_str.starts_with(stringify!($flag)) {
                         flags_str = &{ flags_str }[stringify!($flag).len()..];
                         1i32

@@ -89,7 +89,7 @@ impl AutoStructField {
         Ok(AutoStructField {
             ident: field.ident.clone().unwrap(),
             ty: field.ty.clone(),
-            kind: kind,
+            kind,
         })
     }
 
@@ -290,7 +290,7 @@ impl AutoStructDecl {
                             Punctuated::<RawAutoStructAttr, Token![,]>::parse_terminated(&content)
                         };
                         let attrs = parser.parse2(attr.tokens.clone())?;
-                        if attrs.len() == 0 {
+                        if attrs.is_empty() {
                             err(attr.span(), "Empty auto_struct attribute")?;
                         }
                         as_attrs.extend(attrs.into_iter());
@@ -309,15 +309,13 @@ impl AutoStructDecl {
                         } else {
                             init_attr = Some(raw_attr);
                         }
+                    } else if kind_attr.is_some() {
+                        err(
+                            raw_attr.ident.span(),
+                            "Each field may have only 1 non init auto_struct attribute",
+                        )?;
                     } else {
-                        if kind_attr.is_some() {
-                            err(
-                                raw_attr.ident.span(),
-                                "Each field may have only 1 non init auto_struct attribute",
-                            )?;
-                        } else {
-                            kind_attr = Some(raw_attr);
-                        }
+                        kind_attr = Some(raw_attr);
                     }
                 }
 

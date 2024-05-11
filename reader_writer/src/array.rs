@@ -32,7 +32,7 @@ where
     }
 }
 
-impl<'r, T> Writable for Vec<T>
+impl<T> Writable for Vec<T>
 where
     T: Writable,
 {
@@ -71,11 +71,15 @@ where
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn iter<'s>(&'s self) -> LazyArrayIter<'s, 'r, T> {
         self.into_iter()
     }
 
-    pub fn iter_mut<'s>(&'s mut self) -> SliceIterMut<'s, T> {
+    pub fn iter_mut(&mut self) -> SliceIterMut<'_, T> {
         self.as_mut_vec().iter_mut()
     }
 
@@ -216,7 +220,7 @@ where
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match *self {
             LazyArray::Borrowed(ref array) => array.write_to(writer),
-            LazyArray::Owned(ref vec) => <Vec<T> as Writable>::write_to(&vec, writer),
+            LazyArray::Owned(ref vec) => <Vec<T> as Writable>::write_to(vec, writer),
         }
     }
 }

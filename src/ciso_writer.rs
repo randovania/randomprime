@@ -67,7 +67,7 @@ impl<W: Write + Seek> Write for CisoWriter<W> {
 
 impl<W: Write + Seek + 'static> structs::WriteExt for CisoWriter<W> {
     fn skip_bytes(&mut self, bytes: u64) -> io::Result<()> {
-        let pos = self.file.seek(io::SeekFrom::Current(0))?;
+        let pos = self.file.stream_position()?;
         let pos_rounded_up = (pos + block_size!() - 1) & !(block_size!() - 1);
 
         // Finish out the current block with zeroes
@@ -96,7 +96,7 @@ impl<W: Write + Seek + 'static> structs::WriteExt for CisoWriter<W> {
 impl<W: Write + Seek> Drop for CisoWriter<W> {
     fn drop(&mut self) {
         let res = || -> io::Result<()> {
-            let pos = self.file.seek(io::SeekFrom::Current(0))?;
+            let pos = self.file.stream_position()?;
             let pos_rounded_up = (pos + block_size!() - 1) & !(block_size!() - 1);
             let current_block = pos_rounded_up / block_size!() + self.skipped_blocks as u64;
             let l = current_block as usize - self.blocks_map.len();

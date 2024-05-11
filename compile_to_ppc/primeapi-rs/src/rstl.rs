@@ -31,6 +31,7 @@ extern "C" {
 }
 
 impl WString {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn from_ucs2_str(s: *const u16) -> Self {
         let mut this = MaybeUninit::uninit(); // WString(MaybeUninit::uninit());
         unsafe {
@@ -53,11 +54,11 @@ impl WString {
         let mut this = Self::with_capacity(s.len());
         for (i, b) in s.iter().enumerate() {
             unsafe {
-                core::ptr::write(this.data.offset(i as isize), *b as u16);
+                core::ptr::write(this.data.add(i), *b as u16);
             }
         }
         unsafe {
-            core::ptr::write(this.data.offset(s.len() as isize), 0);
+            core::ptr::write(this.data.add(s.len()), 0);
         }
         this.size = s.len();
         this
@@ -104,9 +105,9 @@ impl<T> core::ops::DerefMut for Vector<T> {
     }
 }
 
-impl<T> Into<alloc::vec::Vec<T>> for Vector<T> {
-    fn into(self) -> alloc::vec::Vec<T> {
-        unsafe { alloc::vec::Vec::from_raw_parts(self.data, self.size, self.capacity) }
+impl<T> From<Vector<T>> for alloc::vec::Vec<T> {
+    fn from(val: Vector<T>) -> Self {
+        unsafe { alloc::vec::Vec::from_raw_parts(val.data, val.size, val.capacity) }
     }
 }
 

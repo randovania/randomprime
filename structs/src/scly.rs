@@ -154,6 +154,12 @@ pub struct SclyLayer<'r> {
     _pad: (),
 }
 
+impl<'r> Default for SclyLayer<'r> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'r> SclyLayer<'r> {
     pub fn new() -> SclyLayer<'r> {
         SclyLayer {
