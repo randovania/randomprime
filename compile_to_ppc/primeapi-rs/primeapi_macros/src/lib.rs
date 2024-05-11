@@ -283,7 +283,10 @@ enum CppBuiltinType {
     Double,
 }
 
-struct CppPtrQualifier(Token![*], Option<Token![const]>);
+struct CppPtrQualifier {
+    _star: Token![*],
+    r#const: Option<Token![const]>,
+}
 
 struct CppDeclType {
     const_qual: Option<Token![const]>,
@@ -300,7 +303,10 @@ impl syn::parse::Parse for CppDeclType {
             ptr_quals: {
                 let mut ptr_quals = vec![];
                 while input.peek(Token![*]) {
-                    ptr_quals.push(CppPtrQualifier(input.parse()?, input.parse()?))
+                    ptr_quals.push(CppPtrQualifier {
+                        _star: input.parse()?,
+                        r#const: input.parse()?,
+                    })
                 }
                 ptr_quals
             },
@@ -315,7 +321,7 @@ impl fmt::Display for CppDeclType {
             write!(f, "R")?;
         }
         for ptr_qual in self.ptr_quals.iter() {
-            if ptr_qual.1.is_some() {
+            if ptr_qual.r#const.is_some() {
                 write!(f, "C")?;
             }
             write!(f, "P")?;
