@@ -3,7 +3,3 @@ name = "json_strip"
 version = "0.1.0"
 authors = ["toasterparty <toasterparty@derpymail.org>"]
 edition = "2021"
-
-[dependencies]
-
-[build-dependencies]

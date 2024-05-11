@@ -8,11 +8,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-quote = "1.0"
-syn = { version = "1.0", features = ["full"] }
-proc-macro2 = "1.0"
-reader_writer = { path = "../reader_writer" }
-
-[[test]]
-name = "test_macros"
-path = "./tests/test.rs"
+proc-macro2.workspace = true
+quote.workspace = true
+reader_writer.workspace = true
+syn.workspace = true

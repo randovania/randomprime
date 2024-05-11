@@ -5,5 +5,5 @@ authors = ["April Wade <wayedt@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-reader_writer = { path = "../../reader_writer" }
+reader_writer.workspace = true
 resource_info_table_macro = { path = "resource_info_table_macro" }
