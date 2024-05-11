@@ -1,10 +1,10 @@
-#[macro_use] extern crate auto_struct_macros;
+#[macro_use]
+extern crate auto_struct_macros;
 extern crate reader_writer;
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone)]
-struct FixedSizeTest
-{
+struct FixedSizeTest {
     i: u32,
     m: u32,
     y: u16,
@@ -12,8 +12,7 @@ struct FixedSizeTest
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone)]
-struct SizeTest<'r>
-{
+struct SizeTest<'r> {
     #[auto_struct(args)]
     i: u32,
 
@@ -26,8 +25,7 @@ struct SizeTest<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone)]
-struct PaddingTest
-{
+struct PaddingTest {
     i: u32,
 
     #[auto_struct(pad_align = 32)]
@@ -38,8 +36,7 @@ struct PaddingTest
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone)]
-struct DeriveFromIteratorTest<'r>
-{
+struct DeriveFromIteratorTest<'r> {
     #[auto_struct(derive = array.len() as u32)]
     count: u32,
 
@@ -48,17 +45,11 @@ struct DeriveFromIteratorTest<'r>
     args: reader_writer::RoArray<'r, u32>,
 
     #[auto_struct(init = args.iter())]
-    array: reader_writer::IteratorArray<
-        'r,
-        SizeTest<'r>,
-        reader_writer::RoArrayIter<'r, u32>,
-    >,
+    array: reader_writer::IteratorArray<'r, SizeTest<'r>, reader_writer::RoArrayIter<'r, u32>>,
 }
 
-
 #[test]
-fn test_size()
-{
+fn test_size() {
     use reader_writer::Readable;
     let data = [0xFFu8; 32];
     let mut reader = reader_writer::Reader::new(&data[..]);
@@ -67,16 +58,14 @@ fn test_size()
 }
 
 #[test]
-fn test_fixed_size()
-{
+fn test_fixed_size() {
     use reader_writer::Readable;
     assert_eq!(FixedSizeTest::fixed_size(), Some(10));
     assert_eq!(SizeTest::fixed_size(), None);
 }
 
 #[test]
-fn test_padding()
-{
+fn test_padding() {
     use reader_writer::Readable;
     let data = [0xFFu8; 36];
     let mut reader = reader_writer::Reader::new(&data[..]);

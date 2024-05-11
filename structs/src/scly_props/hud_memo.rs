@@ -1,13 +1,11 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::CStr;
-use crate::{ResId, SclyPropertyData};
-use crate::res_id::*;
+
+use crate::{res_id::*, ResId, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct HudMemo<'r>
-{
+pub struct HudMemo<'r> {
     #[auto_struct(expect = 6)]
     prop_count: u32,
 
@@ -20,7 +18,6 @@ pub struct HudMemo<'r>
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for HudMemo<'r>
-{
+impl<'r> SclyPropertyData for HudMemo<'r> {
     const OBJECT_TYPE: u8 = 0x17;
 }

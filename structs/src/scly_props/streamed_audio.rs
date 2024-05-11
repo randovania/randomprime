@@ -1,12 +1,11 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::CStr;
+
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct StreamedAudio<'r>
-{
+pub struct StreamedAudio<'r> {
     #[auto_struct(expect = 9)]
     prop_count: u32,
 
@@ -23,7 +22,6 @@ pub struct StreamedAudio<'r>
     pub is_music: u8,
 }
 
-impl<'r> SclyPropertyData for StreamedAudio<'r>
-{
+impl<'r> SclyPropertyData for StreamedAudio<'r> {
     const OBJECT_TYPE: u8 = 0x61;
 }

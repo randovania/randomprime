@@ -1,17 +1,15 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::{ResId, SclyPropertyData};
-use crate::scly_props::structs::{ActorParameters, AncsProp};
-use crate::res_id::*;
-
+use crate::{
+    res_id::*,
+    scly_props::structs::{ActorParameters, AncsProp},
+    ResId, SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Pickup<'r>
-{
+pub struct Pickup<'r> {
     #[auto_struct(expect = 18)]
     prop_count: u32,
 
@@ -42,8 +40,7 @@ pub struct Pickup<'r>
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Pickup<'r>
-{
+impl<'r> SclyPropertyData for Pickup<'r> {
     const OBJECT_TYPE: u8 = 0x11;
 
     impl_position!();

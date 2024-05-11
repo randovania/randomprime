@@ -3,22 +3,14 @@
 #[macro_use]
 extern crate cpp;
 
-use std::{
-    os::raw::c_char,
-    ffi::CStr,
-    io,
-    path::Path,
-};
+use std::{ffi::CStr, io, os::raw::c_char, path::Path};
 
 #[cfg(windows)]
-mod os
-{
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
+mod os {
+    use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
     pub(crate) type NodSystemChar = u16;
 
-    pub(crate) fn os_str_to_sys_char(s: &OsStr) -> Vec<NodSystemChar>
-    {
+    pub(crate) fn os_str_to_sys_char(s: &OsStr) -> Vec<NodSystemChar> {
         let mut v: Vec<_> = s.encode_wide().collect();
         v.push(0);
         v
@@ -26,14 +18,11 @@ mod os
 }
 
 #[cfg(not(windows))]
-mod os
-{
-    use std::ffi::OsStr;
-    use std::os::unix::ffi::OsStrExt;
+mod os {
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
     pub(crate) type NodSystemChar = u8;
 
-    pub(crate) fn os_str_to_sys_char(s: &OsStr) -> Vec<NodSystemChar>
-    {
+    pub(crate) fn os_str_to_sys_char(s: &OsStr) -> Vec<NodSystemChar> {
         let mut v: Vec<_> = s.as_bytes().to_owned();
         v.push(0);
         v
@@ -124,10 +113,10 @@ cpp! {{
 }}
 
 pub struct DiscWrapper(*const ());
-impl DiscWrapper
-{
+impl DiscWrapper {
     pub fn new<P>(disc_path: P) -> Result<DiscWrapper, String>
-        where P: AsRef<Path>
+    where
+        P: AsRef<Path>,
     {
         let disc_path = os_str_to_sys_char(disc_path.as_ref().as_os_str());
         let disc_path = &disc_path[..] as *const [_] as *const NodSystemChar;
@@ -142,7 +131,9 @@ impl DiscWrapper
 
         if p.is_null() {
             Err(if !err_msg.is_null() {
-                unsafe { CStr::from_ptr(*err_msg) }.to_string_lossy().into_owned()
+                unsafe { CStr::from_ptr(*err_msg) }
+                    .to_string_lossy()
+                    .into_owned()
             } else {
                 "Unknown error".to_owned()
             })?
@@ -151,8 +142,7 @@ impl DiscWrapper
         Ok(DiscWrapper(p))
     }
 
-    pub fn open_file(&self, file_name: &CStr) -> Result<FileWrapper, String>
-    {
+    pub fn open_file(&self, file_name: &CStr) -> Result<FileWrapper, String> {
         let self_ptr = self.0;
         let file_name_ptr = file_name.as_ptr();
 
@@ -162,17 +152,18 @@ impl DiscWrapper
         });
 
         if p.is_null() {
-            Err(format!("Failed to find file {}", &file_name.to_string_lossy()[..]))?
+            Err(format!(
+                "Failed to find file {}",
+                &file_name.to_string_lossy()[..]
+            ))?
         }
 
         Ok(FileWrapper(p))
     }
 }
 
-impl Drop for DiscWrapper
-{
-    fn drop(&mut self)
-    {
+impl Drop for DiscWrapper {
+    fn drop(&mut self) {
         let p = self.0;
         cpp!(unsafe [p as "DiscWrapper*"] {
             delete p;
@@ -182,10 +173,8 @@ impl Drop for DiscWrapper
 
 #[derive(Debug)]
 pub struct FileWrapper(*const ());
-impl FileWrapper
-{
-    pub fn read_bytes(&self, offset: u64, buf: &mut [u8]) -> u64
-    {
+impl FileWrapper {
+    pub fn read_bytes(&self, offset: u64, buf: &mut [u8]) -> u64 {
         let p = self.0;
         let buf_len = buf.len() as u64;
         let buf = buf as *mut [u8] as *mut u8;
@@ -196,8 +185,7 @@ impl FileWrapper
         })
     }
 
-    pub fn len(&self) -> u64
-    {
+    pub fn len(&self) -> u64 {
         let p = self.0;
         cpp!(unsafe [p as "FileWrapper*"] -> u64 as "uint64_t" {
             return p->file.size();
@@ -205,10 +193,8 @@ impl FileWrapper
     }
 }
 
-impl Drop for FileWrapper
-{
-    fn drop(&mut self)
-    {
+impl Drop for FileWrapper {
+    fn drop(&mut self) {
         let p = self.0;
         cpp!(unsafe [p as "FileWrapper*"] {
             delete p;
@@ -216,10 +202,8 @@ impl Drop for FileWrapper
     }
 }
 
-impl Clone for FileWrapper
-{
-    fn clone(&self) -> Self
-    {
+impl Clone for FileWrapper {
+    fn clone(&self) -> Self {
         let p = self.0;
         let p = cpp!(unsafe [p as "FileWrapper*"] -> *const () as "FileWrapper*" {
             return new FileWrapper(*p);
@@ -228,21 +212,22 @@ impl Clone for FileWrapper
     }
 }
 
-impl reader_writer::WithRead for FileWrapper
-{
-    fn len(&self) -> usize
-    {
+impl reader_writer::WithRead for FileWrapper {
+    fn len(&self) -> usize {
         self.len() as usize
     }
 
     fn boxed<'a>(&self) -> Box<dyn reader_writer::WithRead + 'a>
-        where Self: 'a
+    where
+        Self: 'a,
     {
         Box::new(self.clone())
     }
 
-    fn with_read(&self, f: &mut dyn FnMut(&mut dyn io::Read) -> io::Result<u64>) -> io::Result<u64>
-    {
+    fn with_read(
+        &self,
+        f: &mut dyn FnMut(&mut dyn io::Read) -> io::Result<u64>,
+    ) -> io::Result<u64> {
         f(&mut FileWrapperRead {
             fw: self,
             offset: 0,
@@ -250,16 +235,13 @@ impl reader_writer::WithRead for FileWrapper
     }
 }
 
-struct FileWrapperRead<'a>
-{
+struct FileWrapperRead<'a> {
     fw: &'a FileWrapper,
     offset: u64,
 }
 
-impl<'a> io::Read for FileWrapperRead<'a>
-{
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize>
-    {
+impl<'a> io::Read for FileWrapperRead<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let bytes_to_write = std::cmp::min(buf.len() as u64, self.fw.len() - self.offset) as usize;
         let i = self.fw.read_bytes(self.offset, &mut buf[..bytes_to_write]);
         self.offset += i;

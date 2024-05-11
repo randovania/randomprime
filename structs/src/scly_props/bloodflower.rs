@@ -1,15 +1,14 @@
 use auto_struct_macros::auto_struct;
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::*;
-use crate::{impl_position, impl_rotation, impl_scale, impl_patterned_info};
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{
+    impl_patterned_info, impl_position, impl_rotation, impl_scale, scly_props::structs::*,
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Bloodflower<'r>
-{
+pub struct Bloodflower<'r> {
     #[auto_struct(expect = 18)]
     pub prop_count: u32,
 
@@ -34,8 +33,7 @@ pub struct Bloodflower<'r>
     pub unknown2: u32,
 }
 
-impl<'r> SclyPropertyData for Bloodflower<'r>
-{
+impl<'r> SclyPropertyData for Bloodflower<'r> {
     const OBJECT_TYPE: u8 = 0x2D;
 
     impl_position!();
@@ -64,9 +62,7 @@ impl<'r> SclyPropertyData for Bloodflower<'r>
     const SUPPORTS_VULNERABILITIES: bool = true;
 
     fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
-        vec![
-            self.patterned_info.damage_vulnerability.clone(),
-        ]
+        vec![self.patterned_info.damage_vulnerability.clone()]
     }
 
     fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
@@ -76,9 +72,7 @@ impl<'r> SclyPropertyData for Bloodflower<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.patterned_info.health_info.clone()
-        ]
+        vec![self.patterned_info.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

@@ -1,14 +1,15 @@
 use auto_struct_macros::auto_struct;
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::*;
-use crate::{impl_position, impl_rotation, impl_scale, impl_patterned_info};
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{
+    impl_patterned_info, impl_position, impl_rotation, impl_scale, scly_props::structs::*,
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Magdolite<'r> // a.k.a magmoor
+pub struct Magdolite<'r>
+// a.k.a magmoor
 {
     #[auto_struct(expect = 22)]
     pub prop_count: u32,
@@ -38,8 +39,7 @@ pub struct Magdolite<'r> // a.k.a magmoor
     pub dont_care: GenericArray<u8, U4>,
 }
 
-impl<'r> SclyPropertyData for Magdolite<'r>
-{
+impl<'r> SclyPropertyData for Magdolite<'r> {
     const OBJECT_TYPE: u8 = 0x6B;
 
     impl_position!();
@@ -82,9 +82,7 @@ impl<'r> SclyPropertyData for Magdolite<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.patterned_info.health_info.clone()
-        ]
+        vec![self.patterned_info.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

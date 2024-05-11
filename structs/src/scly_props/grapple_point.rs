@@ -1,15 +1,11 @@
 use auto_struct_macros::auto_struct;
-
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct GrappleParams
-{
+pub struct GrappleParams {
     #[auto_struct(expect = 12)]
     prop_count: u32,
 
@@ -30,8 +26,7 @@ pub struct GrappleParams
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct GrapplePoint<'r>
-{
+pub struct GrapplePoint<'r> {
     #[auto_struct(expect = 5)]
     prop_count: u32,
 
@@ -46,8 +41,7 @@ pub struct GrapplePoint<'r>
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for GrapplePoint<'r>
-{
+impl<'r> SclyPropertyData for GrapplePoint<'r> {
     const OBJECT_TYPE: u8 = 0x30;
     impl_position!();
     impl_rotation!();

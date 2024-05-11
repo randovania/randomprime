@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct SpiderBallWaypoint<'r>
-{
+pub struct SpiderBallWaypoint<'r> {
     #[auto_struct(expect = 5)]
     prop_count: u32,
 
@@ -21,8 +18,7 @@ pub struct SpiderBallWaypoint<'r>
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for SpiderBallWaypoint<'r>
-{
+impl<'r> SclyPropertyData for SpiderBallWaypoint<'r> {
     const OBJECT_TYPE: u8 = 0x2C;
     impl_position!();
     impl_rotation!();

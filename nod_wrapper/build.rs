@@ -1,6 +1,4 @@
-
-fn main()
-{
+fn main() {
     // This is based Nod's cmake files. If those change, this probably needs to too.
     let mut build = cpp_build::Config::new();
     build

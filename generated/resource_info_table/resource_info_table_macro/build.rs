@@ -1,10 +1,11 @@
-use std::env;
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::path::Path;
+use std::{
+    env,
+    fs::File,
+    io::{BufRead, BufReader, BufWriter, Write},
+    path::Path,
+};
 
-fn main()
-{
+fn main() {
     let output_path = Path::new(&env::var("OUT_DIR").unwrap()).join("codegen.rs");
     let mut output_file = BufWriter::new(File::create(&output_path).unwrap());
 
@@ -13,7 +14,11 @@ fn main()
         .join("resource_info.txt");
     let resources_file = BufReader::new(File::open(&resources_path).unwrap());
 
-    write!(&mut output_file, "static RESOURCES: phf::Map<&'static str, &str> = ").unwrap();
+    write!(
+        &mut output_file,
+        "static RESOURCES: phf::Map<&'static str, &str> = "
+    )
+    .unwrap();
 
     let mut resources: Vec<(String, String)> = vec![];
     for line in resources_file.lines() {
@@ -38,24 +43,25 @@ fn main()
             None
         };
 
-        let pak_names_formatted = pak_names.iter()
+        let pak_names_formatted = pak_names
+            .iter()
             .map(|name| format!("b{:?}", name))
             .collect::<Vec<_>>()
             .join(", ");
 
-        let resource_data = format!("
+        let resource_data = format!(
+            "
             r#\"resource_info_table::ResourceInfo {{
                 long_name: {:?},
                 short_name: {:?},
                 res_id: {},
                 fourcc: reader_writer::FourCC::from_bytes(b\"{}\"),
                 paks: &[{}],
-            }}\"#", long_name, short_name, res_id, res_type, pak_names_formatted);
+            }}\"#",
+            long_name, short_name, res_id, res_type, pak_names_formatted
+        );
         if let Some(short_name) = short_name {
-            resources.push((
-                short_name.to_string(),
-                resource_data.clone()
-            ));
+            resources.push((short_name.to_string(), resource_data.clone()));
         }
         resources.push((long_name.to_string(), resource_data));
     }

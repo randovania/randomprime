@@ -1,43 +1,46 @@
-use reader_writer::FourCC;
-use structs::{FstEntryFile, GcDisc, Resource, ResourceKind};
-use crate::mlvl_wrapper::{MlvlArea, MlvlEditor};
 use std::collections::{HashMap, HashSet};
 
+use reader_writer::FourCC;
+use structs::{FstEntryFile, GcDisc, Resource, ResourceKind};
+
+use crate::mlvl_wrapper::{MlvlArea, MlvlEditor};
+
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Debug)]
-struct ResourceKey<'r>
-{
+struct ResourceKey<'r> {
     pak_name: &'r [u8],
     kind: FourCC,
     id: u32,
 }
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd, Debug)]
-struct MreaKey<'r>
-{
+struct MreaKey<'r> {
     pak_name: &'r [u8],
     room_id: u32,
 }
 
-type SclyPatch<'r, 's> = dyn FnMut(&mut PatcherState, &mut MlvlArea<'r, '_, '_, '_>) -> Result<(), String> + 's;
-pub struct PrimePatcher<'r, 's>
-{
-    file_patches: HashMap<&'s [u8], Vec<Box<dyn FnMut(&mut FstEntryFile<'r>) -> Result<(), String> + 's>>>,
+type SclyPatch<'r, 's> =
+    dyn FnMut(&mut PatcherState, &mut MlvlArea<'r, '_, '_, '_>) -> Result<(), String> + 's;
+pub struct PrimePatcher<'r, 's> {
+    file_patches:
+        HashMap<&'s [u8], Vec<Box<dyn FnMut(&mut FstEntryFile<'r>) -> Result<(), String> + 's>>>,
     // TODO: Come up with a better data structure for this. A per PAK list of patches, for example.
-    resource_patches: Vec<(ResourceKey<'s>, Box<dyn FnMut(&mut Resource<'r>) -> Result<(), String> + 's>)>,
+    resource_patches: Vec<(
+        ResourceKey<'s>,
+        Box<dyn FnMut(&mut Resource<'r>) -> Result<(), String> + 's>,
+    )>,
     scly_patches: Vec<(MreaKey<'s>, Vec<Box<SclyPatch<'r, 's>>>)>,
 }
 
 #[derive(Default)]
-pub struct PatcherState
-{
-    #[deprecated(note = "Please use mlvl_wrapper.MlvlArea.new_object_id_from_layer_id/name instead!")]
+pub struct PatcherState {
+    #[deprecated(
+        note = "Please use mlvl_wrapper.MlvlArea.new_object_id_from_layer_id/name instead!"
+    )]
     pub fresh_instance_id_range: (),
 }
 
-impl<'r, 's> PrimePatcher<'r, 's>
-{
-    pub fn new() -> PrimePatcher<'r, 's>
-    {
+impl<'r, 's> PrimePatcher<'r, 's> {
+    pub fn new() -> PrimePatcher<'r, 's> {
         PrimePatcher {
             file_patches: HashMap::new(),
             resource_patches: Vec::new(),
@@ -46,7 +49,8 @@ impl<'r, 's> PrimePatcher<'r, 's>
     }
 
     pub fn add_file_patch<F>(&mut self, name: &'s [u8], f: F)
-        where F: FnMut(&mut FstEntryFile<'r>) -> Result<(), String> + 's
+    where
+        F: FnMut(&mut FstEntryFile<'r>) -> Result<(), String> + 's,
     {
         if self.file_patches.contains_key(name) {
             self.file_patches.get_mut(name).unwrap().push(Box::new(f));
@@ -59,8 +63,8 @@ impl<'r, 's> PrimePatcher<'r, 's>
         &mut self,
         (paks, res_id, fourcc): (&'_ [&'s [u8]], u32, FourCC),
         f: F,
-    )
-        where F: Clone + FnMut(&mut Resource<'r>) -> Result<(), String> + 's
+    ) where
+        F: Clone + FnMut(&mut Resource<'r>) -> Result<(), String> + 's,
     {
         for pak_name in paks {
             let key = ResourceKey {
@@ -73,9 +77,10 @@ impl<'r, 's> PrimePatcher<'r, 's>
     }
 
     pub fn add_scly_patch<F>(&mut self, (pak_name, room_id): (&'s [u8], u32), f: F)
-        where F: FnMut(&mut PatcherState, &mut MlvlArea<'r, '_, '_, '_>) -> Result<(), String> + 's
+    where
+        F: FnMut(&mut PatcherState, &mut MlvlArea<'r, '_, '_, '_>) -> Result<(), String> + 's,
     {
-        let key = MreaKey { pak_name, room_id, };
+        let key = MreaKey { pak_name, room_id };
         if let Some((_, v)) = self.scly_patches.iter_mut().find(|p| p.0 == key) {
             v.push(Box::new(f));
         } else {
@@ -83,16 +88,19 @@ impl<'r, 's> PrimePatcher<'r, 's>
         }
     }
 
-    pub fn run(&mut self, gc_disc: &mut GcDisc<'r>) -> Result<(), String>
-    {
+    pub fn run(&mut self, gc_disc: &mut GcDisc<'r>) -> Result<(), String> {
         let mut patcher_state = PatcherState::default();
 
-        let files_to_patch = self.file_patches.keys()
+        let files_to_patch = self
+            .file_patches
+            .keys()
             .map(|k| *k)
             .chain(self.scly_patches.iter().map(|p| p.0.pak_name))
             .chain(self.resource_patches.iter().map(|p| p.0.pak_name))
             .collect::<HashSet<_>>();
-        let files = gc_disc.file_system_root.dir_files_iter_mut()
+        let files = gc_disc
+            .file_system_root
+            .dir_files_iter_mut()
             .filter(|(path, _)| files_to_patch.contains(&path[..]));
 
         for (name, fst_entry) in files {
@@ -103,7 +111,9 @@ impl<'r, 's> PrimePatcher<'r, 's>
                 }
             }
 
-            let pak_patch_exists = self.resource_patches.iter()
+            let pak_patch_exists = self
+                .resource_patches
+                .iter()
                 .map(|p| p.0.pak_name)
                 .chain(self.scly_patches.iter().map(|p| p.0.pak_name))
                 .any(|n| n == &name[..]);
@@ -124,17 +134,21 @@ impl<'r, 's> PrimePatcher<'r, 's>
             // PAK.
             let scly_patch_exists = self.scly_patches.iter().any(|p| p.0.pak_name == &name[..]);
             let mut mlvl_editor = if scly_patch_exists {
-
                 // If the pak has few or no resources in it, assume it's been gutted (e.g. frigate skip) //
                 // and don't bother looking for a mlvl resource inside //
                 if pak.resources.len() as u32 <= 1 {
                     continue;
                 }
 
-                let mlvl = pak.resources.iter()
+                let mlvl = pak
+                    .resources
+                    .iter()
                     .find(|i| i.fourcc() == reader_writer::FourCC::from_bytes(b"MLVL"))
                     .unwrap()
-                    .kind.as_mlvl().unwrap().into_owned();
+                    .kind
+                    .as_mlvl()
+                    .unwrap()
+                    .into_owned();
                 Some(MlvlEditor::new(mlvl))
             } else {
                 None

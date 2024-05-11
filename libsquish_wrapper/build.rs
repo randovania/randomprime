@@ -1,6 +1,4 @@
-
-fn main()
-{
+fn main() {
     cc::Build::new()
         .include("libSquish")
         .file("src/wrapper.cpp")
@@ -17,4 +15,3 @@ fn main()
         .cpp(true)
         .compile("libSquish");
 }
-

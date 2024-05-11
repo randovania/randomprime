@@ -1,33 +1,18 @@
+use std::{borrow::Cow, fmt, io, iter, ops};
+
 use auto_struct_macros::auto_struct;
 use reader_writer::{
-    FourCC, LCow, Readable, Reader, RoArray, Writable, align_byte_count, pad_bytes,
+    align_byte_count, pad_bytes, FourCC, LCow, Readable, Reader, RoArray, Writable,
 };
 
-use std::borrow::Cow;
-use std::fmt;
-use std::io;
-use std::iter;
-use std::ops;
-
 use crate::{
-    dumb::Dumb,
-    evnt::Evnt,
-    frme::Frme,
-    hint::Hint,
-    mapa::Mapa,
-    mapw::Mapw,
-    mlvl::Mlvl,
-    mrea::Mrea,
-    savw::Savw,
-    scan::Scan,
-    strg::Strg,
-    ctwk::*,
+    ctwk::*, dumb::Dumb, evnt::Evnt, frme::Frme, hint::Hint, mapa::Mapa, mapw::Mapw, mlvl::Mlvl,
+    mrea::Mrea, savw::Savw, scan::Scan, strg::Strg,
 };
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct Pak<'r>
-{
+pub struct Pak<'r> {
     pub start: Reader<'r>,
     #[auto_struct(expect = 0x00030005)]
     version: u32,
@@ -62,16 +47,13 @@ pub struct Pak<'r>
     #[auto_struct(init = (start.clone(), resource_info))]
     pub resources: ResourceList<'r>,
 
-
     #[auto_struct(pad_align = 32)]
     _pad: (),
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct NamedResource<'r>
-{
+pub struct NamedResource<'r> {
     pub fourcc: FourCC,
     pub file_id: u32,
     pub name_length: u32,
@@ -79,11 +61,9 @@ pub struct NamedResource<'r>
     pub name: RoArray<'r, u8>,
 }
 
-
 #[auto_struct(Readable, FixedSize, Writable)]
 #[derive(Debug, Clone, Copy)]
-pub struct ResourceInfo
-{
+pub struct ResourceInfo {
     pub compressed: u32,
     pub fourcc: FourCC,
     pub file_id: u32,
@@ -91,25 +71,20 @@ pub struct ResourceInfo
     pub offset: u32,
 }
 
-impl ResourceInfo
-{
-    fn get_resource<'r>(&self, pak_start: Reader<'r>) -> Resource<'r>
-    {
+impl ResourceInfo {
+    fn get_resource<'r>(&self, pak_start: Reader<'r>) -> Resource<'r> {
         pak_start.offset(self.offset as usize).read(*self)
     }
 }
 
 #[derive(Clone, Debug)]
-enum ResourceListElem<'r>
-{
+enum ResourceListElem<'r> {
     Array(RoArray<'r, ResourceInfo>),
     Inst(Resource<'r>),
 }
 
-impl<'r> ResourceListElem<'r>
-{
-    fn len(&self) -> usize
-    {
+impl<'r> ResourceListElem<'r> {
+    fn len(&self) -> usize {
         match *self {
             ResourceListElem::Array(ref array) => array.len(),
             ResourceListElem::Inst(_) => 1,
@@ -118,33 +93,28 @@ impl<'r> ResourceListElem<'r>
 }
 
 #[derive(Clone)]
-pub struct ResourceList<'r>
-{
+pub struct ResourceList<'r> {
     pak_start: Option<Reader<'r>>,
     list: Vec<ResourceListElem<'r>>,
 }
 
-impl<'r> ResourceList<'r>
-{
-    pub fn cursor<'s>(&'s mut self) -> ResourceListCursor<'r, 's>
-    {
+impl<'r> ResourceList<'r> {
+    pub fn cursor<'s>(&'s mut self) -> ResourceListCursor<'r, 's> {
         let inner_cursor = match self.list.get(0) {
-                Some(ResourceListElem::Array(a)) => Some(InnerCursor {
-                    info_array: a.clone(),
-                    idx: 0
-                }),
-                _ => None,
-            };
+            Some(ResourceListElem::Array(a)) => Some(InnerCursor {
+                info_array: a.clone(),
+                idx: 0,
+            }),
+            _ => None,
+        };
         ResourceListCursor {
             list: self,
             idx: 0,
             inner_cursor,
         }
-
     }
 
-    pub fn iter<'s>(&'s self) -> ResourceListIter<'r, 's>
-    {
+    pub fn iter<'s>(&'s self) -> ResourceListIter<'r, 's> {
         ResourceListIter {
             pak_start: self.pak_start.as_ref(),
             list_iter: self.list.iter(),
@@ -152,23 +122,19 @@ impl<'r> ResourceList<'r>
         }
     }
 
-    pub fn len(&self) -> usize
-    {
+    pub fn len(&self) -> usize {
         // TODO: It might make sense to cache this...
         self.list.iter().map(|elem| elem.len()).sum()
     }
 
-    pub fn clear(&mut self)
-    {
+    pub fn clear(&mut self) {
         self.list.clear()
     }
 }
 
-impl<'r> Readable<'r> for ResourceList<'r>
-{
+impl<'r> Readable<'r> for ResourceList<'r> {
     type Args = (Reader<'r>, RoArray<'r, ResourceInfo>);
-    fn read_from(reader: &mut Reader<'r>, (pak_start, info_array): Self::Args) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, (pak_start, info_array): Self::Args) -> Self {
         let res = ResourceList {
             pak_start: Some(pak_start),
             list: vec![ResourceListElem::Array(info_array)],
@@ -177,16 +143,13 @@ impl<'r> Readable<'r> for ResourceList<'r>
         res
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         self.iter().fold(0, |s, i| s + i.size())
     }
 }
 
-impl<'r> Writable for ResourceList<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for ResourceList<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let mut s = 0;
         for i in self.iter() {
             s += i.write_to(writer)?
@@ -195,18 +158,16 @@ impl<'r> Writable for ResourceList<'r>
     }
 }
 
-impl<'r> fmt::Debug for ResourceList<'r>
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl<'r> fmt::Debug for ResourceList<'r> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "ResourceList {{ list: {:?} }}", self.list)
     }
 }
 
-impl<'r> iter::FromIterator<Resource<'r>> for ResourceList<'r>
-{
+impl<'r> iter::FromIterator<Resource<'r>> for ResourceList<'r> {
     fn from_iter<I>(i: I) -> Self
-        where I: IntoIterator<Item = Resource<'r>>
+    where
+        I: IntoIterator<Item = Resource<'r>>,
     {
         ResourceList {
             pak_start: None,
@@ -216,17 +177,13 @@ impl<'r> iter::FromIterator<Resource<'r>> for ResourceList<'r>
 }
 
 #[derive(Clone)]
-struct InnerCursor<'r>
-{
+struct InnerCursor<'r> {
     info_array: RoArray<'r, ResourceInfo>,
     idx: usize,
 }
 
-
-impl<'r> InnerCursor<'r>
-{
-    fn next(&mut self) -> bool
-    {
+impl<'r> InnerCursor<'r> {
+    fn next(&mut self) -> bool {
         if self.idx == self.info_array.len() - 1 {
             false
         } else {
@@ -235,24 +192,26 @@ impl<'r> InnerCursor<'r>
         }
     }
 
-    fn get(&self) -> ResourceInfo
-    {
+    fn get(&self) -> ResourceInfo {
         self.info_array.get(self.idx).unwrap()
     }
 
-    fn split(mut self) -> (Option<RoArray<'r, ResourceInfo>>, RoArray<'r, ResourceInfo>)
-    {
+    fn split(mut self) -> (Option<RoArray<'r, ResourceInfo>>, RoArray<'r, ResourceInfo>) {
         if self.idx == 0 {
             (None, self.info_array)
         } else {
             let left = self.info_array.split_off(self.idx);
             (Some(left), self.info_array)
         }
-   }
+    }
 
-   fn split_around(mut self)
-        -> (Option<RoArray<'r, ResourceInfo>>, ResourceInfo, Option<RoArray<'r, ResourceInfo>>)
-    {
+    fn split_around(
+        mut self,
+    ) -> (
+        Option<RoArray<'r, ResourceInfo>>,
+        ResourceInfo,
+        Option<RoArray<'r, ResourceInfo>>,
+    ) {
         let item = self.get();
         if self.info_array.len() == 1 {
             (None, item, None)
@@ -270,19 +229,20 @@ impl<'r> InnerCursor<'r>
     }
 }
 
-pub struct ResourceListCursor<'r, 'list>
-{
+pub struct ResourceListCursor<'r, 'list> {
     list: &'list mut ResourceList<'r>,
     idx: usize,
     inner_cursor: Option<InnerCursor<'r>>,
 }
 
-impl<'r, 'list> ResourceListCursor<'r, 'list>
-{
+impl<'r, 'list> ResourceListCursor<'r, 'list> {
     // TODO: Return value?
-    pub fn next(&mut self)
-    {
-        let advance_cursor = self.inner_cursor.as_mut().map(|ic| !ic.next()).unwrap_or(true);
+    pub fn next(&mut self) {
+        let advance_cursor = self
+            .inner_cursor
+            .as_mut()
+            .map(|ic| !ic.next())
+            .unwrap_or(true);
         if advance_cursor && !self.list.list.get(self.idx).is_none() {
             self.inner_cursor = None;
             self.idx += 1;
@@ -294,7 +254,7 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
                         info_array: a.clone(),
                         idx: 0,
                     });
-                },
+                }
             };
         };
     }
@@ -304,7 +264,8 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
     /// Inserts the items yielded by `iter` into the list. The cursor will be
     /// positioned at the first inserted item.
     pub fn insert_before<I>(&mut self, iter: I)
-        where I: Iterator<Item = Resource<'r>>
+    where
+        I: Iterator<Item = Resource<'r>>,
     {
         let mut iter = iter.peekable();
         if iter.peek().is_none() {
@@ -316,12 +277,16 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
         if let Some(ic) = self.inner_cursor.take() {
             let (left, right) = ic.split();
             if let Some(left) = left {
-                self.list.list.insert(self.idx, ResourceListElem::Array(left));
+                self.list
+                    .list
+                    .insert(self.idx, ResourceListElem::Array(left));
                 self.idx += 1
             };
             self.list.list[self.idx] = ResourceListElem::Array(right);
         };
-        self.list.list.splice(self.idx..self.idx, iter.map(ResourceListElem::Inst));
+        self.list
+            .list
+            .splice(self.idx..self.idx, iter.map(ResourceListElem::Inst));
         // We shouldn't need to set self.inner_cursor here. We've inserted at
         // least one element, so self.cursor should be pointing to an Inst.
     }
@@ -329,7 +294,8 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
     /// Inserts the items yielded by `iter` into the list. The cursor will be positioned after the
     /// last inserted item (the same item it was originally pointed to).
     pub fn insert_after<I>(&mut self, iter: I)
-        where I: Iterator<Item = Resource<'r>>
+    where
+        I: Iterator<Item = Resource<'r>>,
     {
         let mut iter = iter.peekable();
         if iter.peek().is_none() {
@@ -342,21 +308,27 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
         if let Some(ic) = self.inner_cursor.take() {
             let (left, right) = ic.split();
             if let Some(left) = left {
-                self.list.list.insert(self.idx, ResourceListElem::Array(left));
+                self.list
+                    .list
+                    .insert(self.idx, ResourceListElem::Array(left));
                 self.idx += 1
             };
             self.list.list[self.idx] = ResourceListElem::Array(right);
         };
-        self.list.list.splice(self.idx..self.idx, iter.map(ResourceListElem::Inst));
+        self.list
+            .list
+            .splice(self.idx..self.idx, iter.map(ResourceListElem::Inst));
         self.idx += self.list.list.len() - pre_len
         // We shouldn't need to set self.inner_cursor here. We've inserted at
         // least one element, so self.cursor should be pointing to an Inst.
     }
 
-    pub fn peek(&mut self) -> Option<LCow<Resource<'r>>>
-    {
+    pub fn peek(&mut self) -> Option<LCow<Resource<'r>>> {
         if let Some(ref ic) = self.inner_cursor {
-            Some(LCow::Owned(ic.get().get_resource(self.list.pak_start.as_ref().unwrap().clone())))
+            Some(LCow::Owned(
+                ic.get()
+                    .get_resource(self.list.pak_start.as_ref().unwrap().clone()),
+            ))
         } else {
             match self.list.list.get(self.idx) {
                 None => None,
@@ -366,15 +338,16 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
         }
     }
 
-    pub fn value(&mut self) -> Option<&mut Resource<'r>>
-    {
+    pub fn value(&mut self) -> Option<&mut Resource<'r>> {
         if let Some(ic) = self.inner_cursor.take() {
             let (left, info, right) = ic.split_around();
             let elem = info.get_resource(self.list.pak_start.as_ref().unwrap().clone());
             if let Some(right) = right {
                 // There are elements to the right
                 self.list.list[self.idx] = ResourceListElem::Array(right);
-                self.list.list.insert(self.idx, ResourceListElem::Inst(elem));
+                self.list
+                    .list
+                    .insert(self.idx, ResourceListElem::Inst(elem));
             } else {
                 // This was the last element.
                 self.list.list[self.idx] = ResourceListElem::Inst(elem);
@@ -382,7 +355,9 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
             // self.cursor now points to the correct Inst
             if let Some(left) = left {
                 // There are elements to the left.
-                self.list.list.insert(self.idx, ResourceListElem::Array(left));
+                self.list
+                    .list
+                    .insert(self.idx, ResourceListElem::Array(left));
                 self.idx += 1
             };
         };
@@ -393,8 +368,7 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
         }
     }
 
-    pub fn into_value(mut self) -> Option<&'list mut Resource<'r>>
-    {
+    pub fn into_value(mut self) -> Option<&'list mut Resource<'r>> {
         self.value();
         match self.list.list.get_mut(self.idx) {
             Some(&mut ResourceListElem::Inst(ref mut inst)) => Some(inst),
@@ -403,60 +377,50 @@ impl<'r, 'list> ResourceListCursor<'r, 'list>
         }
     }
 
-    pub fn cursor_advancer<'s>(&'s mut self) -> ResourceListCursorAdvancer<'r, 'list, 's>
-    {
+    pub fn cursor_advancer<'s>(&'s mut self) -> ResourceListCursorAdvancer<'r, 'list, 's> {
         ResourceListCursorAdvancer { cursor: self }
     }
 }
 
-
 /// Wraps a ResourceListCursor and automatically advances it when it is dropped.
-pub struct ResourceListCursorAdvancer<'r, 'list, 'cursor>
-{
+pub struct ResourceListCursorAdvancer<'r, 'list, 'cursor> {
     cursor: &'cursor mut ResourceListCursor<'r, 'list>,
 }
 
-impl<'r, 'list, 'cursor> Drop for ResourceListCursorAdvancer<'r, 'list, 'cursor>
-{
-    fn drop(&mut self)
-    {
+impl<'r, 'list, 'cursor> Drop for ResourceListCursorAdvancer<'r, 'list, 'cursor> {
+    fn drop(&mut self) {
         self.cursor.next()
     }
 }
 
-impl<'r, 'list, 'cursor> ops::Deref for ResourceListCursorAdvancer<'r, 'list, 'cursor>
-{
+impl<'r, 'list, 'cursor> ops::Deref for ResourceListCursorAdvancer<'r, 'list, 'cursor> {
     type Target = ResourceListCursor<'r, 'list>;
-    fn deref(&self) -> &Self::Target
-    {
+    fn deref(&self) -> &Self::Target {
         &*self.cursor
     }
 }
 
-impl<'r, 'list, 'cursor> ops::DerefMut for ResourceListCursorAdvancer<'r, 'list, 'cursor>
-{
-    fn deref_mut(&mut self) -> &mut Self::Target
-    {
+impl<'r, 'list, 'cursor> ops::DerefMut for ResourceListCursorAdvancer<'r, 'list, 'cursor> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.cursor
     }
 }
 
 #[derive(Clone)]
-pub struct ResourceListIter<'r, 'list>
-{
+pub struct ResourceListIter<'r, 'list> {
     pak_start: Option<&'list Reader<'r>>,
     list_iter: std::slice::Iter<'list, ResourceListElem<'r>>,
     inner_cursor: Option<InnerCursor<'r>>,
 }
 
-impl<'r, 'list> Iterator for ResourceListIter<'r, 'list>
-{
+impl<'r, 'list> Iterator for ResourceListIter<'r, 'list> {
     type Item = LCow<'list, Resource<'r>>;
-    fn next(&mut self) -> Option<Self::Item>
-    {
+    fn next(&mut self) -> Option<Self::Item> {
         if let Some(cursor) = &mut self.inner_cursor {
             if cursor.next() {
-                return Some(LCow::Owned(cursor.get().get_resource(self.pak_start.unwrap().clone())))
+                return Some(LCow::Owned(
+                    cursor.get().get_resource(self.pak_start.unwrap().clone()),
+                ));
             }
         }
         match self.list_iter.next() {
@@ -468,18 +432,15 @@ impl<'r, 'list> Iterator for ResourceListIter<'r, 'list>
                 let res = cursor.get().get_resource(self.pak_start.unwrap().clone());
                 self.inner_cursor = Some(cursor);
                 Some(LCow::Owned(res))
-            },
+            }
             Some(ResourceListElem::Inst(inst)) => Some(LCow::Borrowed(inst)),
             None => None,
         }
     }
 }
 
-
-
 #[derive(Debug, Clone)]
-pub struct Resource<'r>
-{
+pub struct Resource<'r> {
     pub compressed: bool,
     pub file_id: u32,
     pub kind: ResourceKind<'r>,
@@ -487,10 +448,8 @@ pub struct Resource<'r>
     pub original_offset: u32,
 }
 
-impl<'r> Resource<'r>
-{
-    pub fn resource_info(&self, offset: u32) -> ResourceInfo
-    {
+impl<'r> Resource<'r> {
+    pub fn resource_info(&self, offset: u32) -> ResourceInfo {
         ResourceInfo {
             compressed: self.compressed as u32,
             fourcc: self.fourcc(),
@@ -500,18 +459,15 @@ impl<'r> Resource<'r>
         }
     }
 
-    pub fn fourcc(&self) -> FourCC
-    {
+    pub fn fourcc(&self) -> FourCC {
         self.kind.fourcc()
     }
 }
 
-impl<'r> Readable<'r> for Resource<'r>
-{
+impl<'r> Readable<'r> for Resource<'r> {
     type Args = ResourceInfo;
     #[cfg(debug_assertions)]
-    fn read_from(reader: &mut Reader<'r>, info: Self::Args) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, info: Self::Args) -> Self {
         if info.compressed > 1 {
             panic!("Bad info.compressed")
         };
@@ -525,8 +481,7 @@ impl<'r> Readable<'r> for Resource<'r>
         res
     }
     #[cfg(not(debug_assertions))]
-    fn read_from(reader: &mut Reader<'r>, info: Self::Args) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, info: Self::Args) -> Self {
         let res = Resource {
             compressed: info.compressed == 1,
             file_id: info.file_id,
@@ -536,16 +491,13 @@ impl<'r> Readable<'r> for Resource<'r>
         res
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         align_byte_count(32, self.kind.size())
     }
 }
 
-impl<'r> Writable for Resource<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for Resource<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let bytes_written = self.kind.write_to(writer)?;
         let padding_written = pad_bytes(32, bytes_written as usize).write_to(writer)?;
         Ok(bytes_written + padding_written)
@@ -641,16 +593,52 @@ macro_rules! build_resource_data {
 }
 
 build_resource_data!(
-    Dumb, b"DUMB", as_dumb, as_dumb_mut,
-    Evnt, b"EVNT", as_evnt, as_evnt_mut,
-    Frme, b"FRME", as_frme, as_frme_mut,
-    Hint, b"HINT", as_hint, as_hint_mut,
-    Mapa, b"MAPA", as_mapa, as_mapa_mut,
-    Mapw, b"MAPW", as_mapw, as_mapw_mut,
-    Mlvl, b"MLVL", as_mlvl, as_mlvl_mut,
-    Mrea, b"MREA", as_mrea, as_mrea_mut,
-    Savw, b"SAVW", as_savw, as_savw_mut,
-    Scan, b"SCAN", as_scan, as_scan_mut,
-    Strg, b"STRG", as_strg, as_strg_mut,
-    Ctwk, b"CTWK", as_ctwk, as_ctwk_mut,
+    Dumb,
+    b"DUMB",
+    as_dumb,
+    as_dumb_mut,
+    Evnt,
+    b"EVNT",
+    as_evnt,
+    as_evnt_mut,
+    Frme,
+    b"FRME",
+    as_frme,
+    as_frme_mut,
+    Hint,
+    b"HINT",
+    as_hint,
+    as_hint_mut,
+    Mapa,
+    b"MAPA",
+    as_mapa,
+    as_mapa_mut,
+    Mapw,
+    b"MAPW",
+    as_mapw,
+    as_mapw_mut,
+    Mlvl,
+    b"MLVL",
+    as_mlvl,
+    as_mlvl_mut,
+    Mrea,
+    b"MREA",
+    as_mrea,
+    as_mrea_mut,
+    Savw,
+    b"SAVW",
+    as_savw,
+    as_savw_mut,
+    Scan,
+    b"SCAN",
+    as_scan,
+    as_scan_mut,
+    Strg,
+    b"STRG",
+    as_strg,
+    as_strg_mut,
+    Ctwk,
+    b"CTWK",
+    as_ctwk,
+    as_ctwk_mut,
 );

@@ -1,10 +1,11 @@
-use std::env;
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::path::Path;
+use std::{
+    env,
+    fs::File,
+    io::{BufRead, BufReader, BufWriter, Write},
+    path::Path,
+};
 
-fn main()
-{
+fn main() {
     let output_path = Path::new(&env::var("OUT_DIR").unwrap()).join("codegen.rs");
     let mut output_file = BufWriter::new(File::create(&output_path).unwrap());
 
@@ -30,8 +31,10 @@ fn main()
             &mut output_file,
             "static {}: phf::Map<&'static str, u32> = ",
             table_name,
-        ).unwrap();
-        let symbols = symbol_file.lines()
+        )
+        .unwrap();
+        let symbols = symbol_file
+            .lines()
             .filter_map(|line| {
                 let line = line.unwrap();
                 if line.len() == 0 {

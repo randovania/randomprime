@@ -1,29 +1,16 @@
-use randomprime::{
-    patches,
-    reader_writer,
-    structs,
-    patch_config::PatchConfig,
-};
+use std::{panic, process::Command, time::Instant};
 
 use clap::Format;
+use randomprime::{patch_config::PatchConfig, patches, reader_writer, structs};
 
-use std::{
-    panic,
-    process::Command,
-    time::Instant,
-};
-
-struct ProgressNotifier
-{
+struct ProgressNotifier {
     total_size: usize,
     bytes_so_far: usize,
     quiet: bool,
 }
 
-impl ProgressNotifier
-{
-    fn new(quiet: bool) -> ProgressNotifier
-    {
+impl ProgressNotifier {
+    fn new(quiet: bool) -> ProgressNotifier {
         ProgressNotifier {
             total_size: 0,
             bytes_so_far: 0,
@@ -32,15 +19,12 @@ impl ProgressNotifier
     }
 }
 
-impl structs::ProgressNotifier for ProgressNotifier
-{
-    fn notify_total_bytes(&mut self, total_size: usize)
-    {
+impl structs::ProgressNotifier for ProgressNotifier {
+    fn notify_total_bytes(&mut self, total_size: usize) {
         self.total_size = total_size
     }
 
-    fn notify_writing_file(&mut self, file_name: &reader_writer::CStr, file_bytes: usize)
-    {
+    fn notify_writing_file(&mut self, file_name: &reader_writer::CStr, file_bytes: usize) {
         if self.quiet {
             return;
         }
@@ -49,8 +33,7 @@ impl structs::ProgressNotifier for ProgressNotifier
         self.bytes_so_far += file_bytes;
     }
 
-    fn notify_writing_header(&mut self)
-    {
+    fn notify_writing_header(&mut self) {
         if self.quiet {
             return;
         }
@@ -58,8 +41,7 @@ impl structs::ProgressNotifier for ProgressNotifier
         println!("{:02.0}% -- Writing ISO header", percent);
     }
 
-    fn notify_flushing_to_disk(&mut self)
-    {
+    fn notify_flushing_to_disk(&mut self) {
         if self.quiet {
             return;
         }
@@ -68,12 +50,9 @@ impl structs::ProgressNotifier for ProgressNotifier
 }
 
 #[cfg(windows)]
-fn was_launched_by_windows_explorer() -> bool
-{
+fn was_launched_by_windows_explorer() -> bool {
     // https://stackoverflow.com/a/513574
-    use winapi::um::processenv:: *;
-    use winapi::um::winbase:: *;
-    use winapi::um::wincon:: *;
+    use winapi::um::{processenv::*, winbase::*, wincon::*};
     static mut CACHED: Option<bool> = None;
     unsafe {
         if let Some(t) = CACHED {
@@ -87,21 +66,18 @@ fn was_launched_by_windows_explorer() -> bool
 }
 
 #[cfg(not(windows))]
-fn was_launched_by_windows_explorer() -> bool
-{
+fn was_launched_by_windows_explorer() -> bool {
     false
 }
 
-fn maybe_pause_at_exit()
-{
+fn maybe_pause_at_exit() {
     if was_launched_by_windows_explorer() {
         // XXX Windows only
         let _ = Command::new("cmd.exe").arg("/c").arg("pause").status();
     }
 }
 
-fn main_inner() -> Result<(), String>
-{
+fn main_inner() -> Result<(), String> {
     let start_time = Instant::now();
     let patch_config = PatchConfig::from_cli_options()?;
     let pn = ProgressNotifier::new(patch_config.quiet);
@@ -110,8 +86,7 @@ fn main_inner() -> Result<(), String>
     Ok(())
 }
 
-fn main()
-{
+fn main() {
     // XXX We have to check this before we print anything; it relies on the cursor position and
     //     caches its result.
     was_launched_by_windows_explorer();
@@ -120,13 +95,16 @@ fn main()
     // user-friendly one
     if !cfg!(debug_assertions) {
         panic::set_hook(Box::new(|_| {
-            let _ = eprintln!("{} \
+            let _ = eprintln!(
+                "{} \
 An error occurred while parsing the input ISO. \
 This most likely means your ISO is corrupt. \
 Please verify that your ISO matches one of the following hashes:
 MD5:  eeacd0ced8e2bae491eca14f141a4b7c
 SHA1: ac20c744db18fdf0339f37945e880708fd317231
-", Format::Error("error:"));
+",
+                Format::Error("error:")
+            );
 
             maybe_pause_at_exit();
         }));

@@ -1,15 +1,16 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::{ActorParameters, DamageVulnerability, DamageInfo, PatternedInfo, HealthInfo};
+use crate::{
+    scly_props::structs::{
+        ActorParameters, DamageInfo, DamageVulnerability, HealthInfo, PatternedInfo,
+    },
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct IceSheegoth<'r>
-{
+pub struct IceSheegoth<'r> {
     #[auto_struct(expect = 37)]
     pub prop_count: u32,
 
@@ -34,9 +35,8 @@ pub struct IceSheegoth<'r>
     pub dont_care6: u8,
 }
 
-use crate::{impl_position, impl_rotation, impl_scale, impl_patterned_info};
-impl<'r> SclyPropertyData for IceSheegoth<'r>
-{
+use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+impl<'r> SclyPropertyData for IceSheegoth<'r> {
     const OBJECT_TYPE: u8 = 0x4B;
 
     impl_position!();
@@ -79,13 +79,11 @@ impl<'r> SclyPropertyData for IceSheegoth<'r>
         self.damage_vulnerabilities[1] = x[2].clone();
         self.damage_vulnerabilities[2] = x[3].clone();
     }
-    
+
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.patterned_info.health_info.clone()
-        ]
+        vec![self.patterned_info.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

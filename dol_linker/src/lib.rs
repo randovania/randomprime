@@ -1,37 +1,35 @@
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader, Seek, SeekFrom, Write},
+    iter,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use enum_map::{Enum, EnumMap};
-use goblin::elf::{self, Elf};
-use goblin::Object;
-
+use goblin::{
+    elf::{self, Elf},
+    Object,
+};
 use memmap::{Mmap, MmapOptions};
-
-use scroll::{ctx, IOwrite, Cwrite, SizeWith};
+use scroll::{ctx, Cwrite, IOwrite, SizeWith};
 use snafu::{ensure, OptionExt, ResultExt, Snafu};
-
-
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Write, Seek, SeekFrom};
-use std::iter;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
-
 
 // XXX This is a throughly awful hack
 static ZEROES: &[u8] = &[0; 4096];
 
 #[derive(Debug, Snafu)]
-pub enum Error
-{
+pub enum Error {
     #[snafu(display("Could not open file {}: {}", filename.display(), source))]
     OpenFile {
         filename: PathBuf,
-        source: std::io::Error
+        source: std::io::Error,
     },
     #[snafu(display("Could not write to file {}: {}", filename.display(), source))]
     WriteFile {
         filename: PathBuf,
-        source: std::io::Error
+        source: std::io::Error,
     },
     #[snafu(display("Failed parsing object file {}: {}", filename.display(), source))]
     ObjectParsing {
@@ -39,9 +37,7 @@ pub enum Error
         source: goblin::error::Error,
     },
     #[snafu(display("Unrecognized or unknown object file format {}", filename.display()))]
-    ObjectFormat {
-        filename: PathBuf,
-    },
+    ObjectFormat { filename: PathBuf },
     #[snafu(display("Failed parsing symbol table file {} on line {}: {}",
                     filename.display(), line_number, source))]
     SymTableAddrParsing {
@@ -70,20 +66,15 @@ pub enum Error
     },
 
     #[snafu(display("Unresolved symbol: {}", symbol_name))]
-    UnresolvedSymbol {
-        symbol_name: String,
-    },
+    UnresolvedSymbol { symbol_name: String },
     #[snafu(display("Duplicate symbol: {}", symbol_name))]
-    DuplicateSymbol {
-        symbol_name: String,
-    },
+    DuplicateSymbol { symbol_name: String },
 }
 
 type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, Clone, IOwrite, SizeWith)]
-struct RelHeader
-{
+struct RelHeader {
     module_id: u32,
 
     next_module_link: u32,
@@ -91,7 +82,6 @@ struct RelHeader
 
     section_count: u32,
     section_table_offset: u32,
-
 
     module_name_offset: u32,
     module_name_size: u32,
@@ -116,55 +106,42 @@ struct RelHeader
 }
 
 #[derive(Debug, Clone, Copy)]
-struct RelSectionInfo
-{
+struct RelSectionInfo {
     size: u32,
     is_executable: bool,
     offset: u32,
 }
 
-impl<C> ctx::SizeWith<C> for RelSectionInfo
-{
-    fn size_with(_: &C) -> usize
-    {
+impl<C> ctx::SizeWith<C> for RelSectionInfo {
+    fn size_with(_: &C) -> usize {
         8
     }
 }
 
-impl<C: Copy> ctx::IntoCtx<C> for RelSectionInfo
-{
-    fn into_ctx(self, w: &mut [u8], _: C)
-    {
-
+impl<C: Copy> ctx::IntoCtx<C> for RelSectionInfo {
+    fn into_ctx(self, w: &mut [u8], _: C) {
         let real_offset = self.offset | if self.is_executable { 1 } else { 0 };
         w.cwrite_with(real_offset, 0, scroll::BE);
         w.cwrite_with(self.size, 4, scroll::BE);
     }
 }
 
-
 #[derive(Debug, Clone, Copy, IOwrite, SizeWith)]
-struct RelImport
-{
+struct RelImport {
     module_id: u32,
     relocations_offset: u32,
 }
 
-
 #[derive(Debug, Clone, Copy, IOwrite, SizeWith)]
-struct RelRelocation
-{
+struct RelRelocation {
     offset: u16,
     relocation_type: u8,
     section_index: u8,
     symbol_offset: u32,
 }
 
-
-impl RelRelocation
-{
-    fn start_section_entry(section_index: u8) -> RelRelocation
-    {
+impl RelRelocation {
+    fn start_section_entry(section_index: u8) -> RelRelocation {
         RelRelocation {
             offset: 0,
             relocation_type: RelRelocationType::R_DOLPHIN_SECTION as u8,
@@ -173,8 +150,7 @@ impl RelRelocation
         }
     }
 
-    fn end_relocations_entry() -> RelRelocation
-    {
+    fn end_relocations_entry() -> RelRelocation {
         RelRelocation {
             offset: 0,
             relocation_type: RelRelocationType::R_DOLPHIN_END as u8,
@@ -183,7 +159,6 @@ impl RelRelocation
         }
     }
 }
-
 
 macro_rules! build_ppc_reloc_types {
     ($enum_name:ident { $($name:ident : $value:expr,)* }) => {
@@ -252,10 +227,8 @@ build_ppc_reloc_types! {
     }
 }
 
-impl ElfRelocationType
-{
-    fn to_rel_reloc(&self) -> RelRelocationType
-    {
+impl ElfRelocationType {
+    fn to_rel_reloc(&self) -> RelRelocationType {
         // TODO: Some of the PLT or GOT relocation types might be mappable onto
         //       Rel relocation types
         match self {
@@ -306,8 +279,7 @@ impl ElfRelocationType
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 #[repr(u8)]
-enum RelRelocationType
-{
+enum RelRelocationType {
     R_PPC_NONE = 0,
     R_PPC_ADDR32 = 1,
     R_PPC_ADDR24 = 2,
@@ -325,36 +297,31 @@ enum RelRelocationType
     R_DOLPHIN_END = 203,
 }
 
-
 const SHN_ABS: u16 = 65521;
 const SHN_COMMON: u16 = 65522;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum RelocationKind<'a>
-{
+enum RelocationKind<'a> {
     ExternalSymbol(&'a str),
     InternalSymbol(u32 /* sec idx */, u32 /* offset */),
     AbsoluteSymbol(u32),
 }
 
 #[derive(Copy, Clone, Debug)]
-struct Relocation<'a>
-{
+struct Relocation<'a> {
     kind: RelocationKind<'a>,
     addend: u32,
     offset: u32,
     type_: ElfRelocationType,
 }
 
-impl<'a> Relocation<'a>
-{
+impl<'a> Relocation<'a> {
     fn from_reloc(
         reloc: elf::reloc::Reloc,
         elf: &Elf<'a>,
         map_sec_index: impl Fn(u32) -> u32,
         map_bss_index: impl Fn(u32) -> u32,
-    ) -> Relocation<'a>
-    {
+    ) -> Relocation<'a> {
         let sym = elf.syms.get(reloc.r_sym).unwrap();
         Relocation {
             offset: reloc.r_offset as u32,
@@ -371,7 +338,7 @@ impl<'a> Relocation<'a>
             } else {
                 RelocationKind::InternalSymbol(
                     map_sec_index(sym.st_shndx as u32),
-                    sym.st_value as u32
+                    sym.st_value as u32,
                 )
             },
         }
@@ -380,21 +347,21 @@ impl<'a> Relocation<'a>
     fn is_locally_resolvable(
         &self,
         loc_sec: &LocatedSection,
-        local_sym_table: &HashMap<&str, (RelSectionType, u32)>
-    ) -> bool
-    {
+        local_sym_table: &HashMap<&str, (RelSectionType, u32)>,
+    ) -> bool {
         let (known_static_addr, known_relative_addr) = match self.kind {
             RelocationKind::InternalSymbol(sec_idx, _) => {
                 let sec_type = loc_sec.sibling_section_rel_sections[sec_idx as usize].unwrap();
                 // The addr is never known for BSS sections
                 (false, sec_type != RelSectionType::Bss)
-            },
-            RelocationKind::ExternalSymbol(sym_name) =>
+            }
+            RelocationKind::ExternalSymbol(sym_name) => {
                 if local_sym_table.contains_key(&sym_name) {
                     (false, true)
                 } else {
                     (true, false)
-                },
+                }
+            }
             RelocationKind::AbsoluteSymbol(_) => (true, false),
         };
 
@@ -417,15 +384,13 @@ impl<'a> Relocation<'a>
         }
     }
 
-    fn is_dol_relocation(&self, local_sym_table: &HashMap<&str, (RelSectionType, u32)>) -> bool
-    {
+    fn is_dol_relocation(&self, local_sym_table: &HashMap<&str, (RelSectionType, u32)>) -> bool {
         match self.kind {
             RelocationKind::ExternalSymbol(sym_name) => !local_sym_table.contains_key(sym_name),
             RelocationKind::AbsoluteSymbol(_) => true,
             RelocationKind::InternalSymbol(_, _) => false,
         }
     }
-
 
     fn to_rel_relocation(
         &self,
@@ -434,14 +399,16 @@ impl<'a> Relocation<'a>
         rel_sections: &EnumMap<RelSectionType, SectionInfo>,
         local_sym_table: &HashMap<&str, (RelSectionType, u32)>,
         extern_sym_table: &HashMap<String, u32>,
-    ) -> Result<RelRelocation>
-    {
+    ) -> Result<RelRelocation> {
         let (section_index, symbol_offset) = match self.kind {
             RelocationKind::InternalSymbol(sec_index, offset) => {
                 let sec_offset = loc_sec.sibling_section_offsets[sec_index as usize].unwrap();
                 let sec_type = loc_sec.sibling_section_rel_sections[sec_index as usize].unwrap();
-                (rel_sections[sec_type].rel_section_index.unwrap(), sec_offset + offset)
-            },
+                (
+                    rel_sections[sec_type].rel_section_index.unwrap(),
+                    sec_offset + offset,
+                )
+            }
             RelocationKind::ExternalSymbol(sym_name) => {
                 if let Some((sec_type, offset)) = local_sym_table.get(sym_name) {
                     (rel_sections[*sec_type].rel_section_index.unwrap(), *offset)
@@ -449,10 +416,15 @@ impl<'a> Relocation<'a>
                     (0, *offset)
                 } else {
                     // XXX Is there a more direct way to do this?
-                    ensure!(false, UnresolvedSymbol { symbol_name: sym_name });
+                    ensure!(
+                        false,
+                        UnresolvedSymbol {
+                            symbol_name: sym_name
+                        }
+                    );
                     unreachable!()
                 }
-            },
+            }
             RelocationKind::AbsoluteSymbol(addr) => (0, addr),
         };
 
@@ -473,8 +445,7 @@ impl<'a> Relocation<'a>
         locations_are_relative: bool,
         local_sym_table: &HashMap<&str, (RelSectionType, u32)>,
         extern_sym_table: &HashMap<String, u32>,
-    ) -> Vec<u8>
-    {
+    ) -> Vec<u8> {
         let rel_addr;
         let abs_addr;
         match self.kind {
@@ -482,21 +453,21 @@ impl<'a> Relocation<'a>
                 let sec_offset = loc_sec.sibling_section_offsets[sec_index as usize].unwrap();
                 let sec_type = loc_sec.sibling_section_rel_sections[sec_index as usize].unwrap();
 
-                rel_addr = Some((rel_section_locations[sec_type].unwrap()
-                        + sec_offset
-                        + offset
-                        + self.addend) as i64);
+                rel_addr = Some(
+                    (rel_section_locations[sec_type].unwrap() + sec_offset + offset + self.addend)
+                        as i64,
+                );
                 abs_addr = if !locations_are_relative {
                     Some(rel_addr.unwrap())
                 } else {
                     None
                 };
-            },
+            }
             RelocationKind::ExternalSymbol(sym_name) => {
                 if let Some((sec_type, offset)) = local_sym_table.get(sym_name) {
-                    rel_addr = Some((rel_section_locations[*sec_type].unwrap()
-                            + *offset
-                            + self.addend) as i64);
+                    rel_addr = Some(
+                        (rel_section_locations[*sec_type].unwrap() + *offset + self.addend) as i64,
+                    );
                     abs_addr = if !locations_are_relative {
                         Some(rel_addr.unwrap())
                     } else {
@@ -513,11 +484,11 @@ impl<'a> Relocation<'a>
                     // We should have already filtered out any unresolved symbols
                     unreachable!("Symbol: {}", sym_name)
                 }
-            },
+            }
             RelocationKind::AbsoluteSymbol(addr) => {
                 rel_addr = None;
                 abs_addr = Some((addr + self.addend) as i64);
-            },
+            }
         };
         let rel_addr = rel_addr.map(|addr| (addr - self_offset as i64));
 
@@ -525,9 +496,7 @@ impl<'a> Relocation<'a>
 
         let bounds_check_and_mask = |len: u8, addr: i64| {
             // XXX Only len + 1 because this is a sign-extended value
-            if addr > (1 << (len + 1)) - 1
-                || addr < -1 << (len + 1)
-                || addr as u64 & 0x3 != 0 {
+            if addr > (1 << (len + 1)) - 1 || addr < -1 << (len + 1) || addr as u64 & 0x3 != 0 {
                 panic!()
             } else {
                 (addr as u64 & ((1 << (len + 2)) - 1)) as u32
@@ -537,22 +506,27 @@ impl<'a> Relocation<'a>
         match (self.type_, rel_addr, abs_addr) {
             (ElfRelocationType::R_PPC_NONE, _, _) => vec![],
 
-            (ElfRelocationType::R_PPC_UADDR32, _, Some(addr)) |
-            (ElfRelocationType::R_PPC_ADDR32, _, Some(addr)) |
-            (ElfRelocationType::R_PPC_REL32, Some(addr), _) => {
+            (ElfRelocationType::R_PPC_UADDR32, _, Some(addr))
+            | (ElfRelocationType::R_PPC_ADDR32, _, Some(addr))
+            | (ElfRelocationType::R_PPC_REL32, Some(addr), _) => {
                 (addr as u32).to_be_bytes().to_vec()
-            },
+            }
             (ElfRelocationType::R_PPC_ADDR24, _, Some(abs_addr)) => {
                 let addr = bounds_check_and_mask(24, abs_addr);
                 ((read_instr() & 0xfc000003) | addr).to_be_bytes().to_vec()
-            },
-            (ElfRelocationType::R_PPC_UADDR16, _, Some(abs_addr)) |
-            (ElfRelocationType::R_PPC_ADDR16, _, Some(abs_addr)) if abs_addr < (1 << 16) - 1 =>
-                (abs_addr as u32).to_be_bytes()[2..].to_vec(),
-            (ElfRelocationType::R_PPC_ADDR16_LO, _, Some(abs_addr)) =>
-                (abs_addr as u32).to_be_bytes()[2..].to_vec(),
-            (ElfRelocationType::R_PPC_ADDR16_HI, _, Some(abs_addr)) =>
-                (abs_addr as u32).to_be_bytes()[..2].to_vec(),
+            }
+            (ElfRelocationType::R_PPC_UADDR16, _, Some(abs_addr))
+            | (ElfRelocationType::R_PPC_ADDR16, _, Some(abs_addr))
+                if abs_addr < (1 << 16) - 1 =>
+            {
+                (abs_addr as u32).to_be_bytes()[2..].to_vec()
+            }
+            (ElfRelocationType::R_PPC_ADDR16_LO, _, Some(abs_addr)) => {
+                (abs_addr as u32).to_be_bytes()[2..].to_vec()
+            }
+            (ElfRelocationType::R_PPC_ADDR16_HI, _, Some(abs_addr)) => {
+                (abs_addr as u32).to_be_bytes()[..2].to_vec()
+            }
             (ElfRelocationType::R_PPC_ADDR16_HA, _, Some(abs_addr)) => {
                 if abs_addr & 0x8000 == 0 {
                     (abs_addr as u32).to_be_bytes()[..2].to_vec()
@@ -560,57 +534,58 @@ impl<'a> Relocation<'a>
                     // Actually do the shift to prevent any chance of overflow
                     (((abs_addr >> 16) + 1) as u32).to_be_bytes()[2..].to_vec()
                 }
-            },
-            (ElfRelocationType::R_PPC_REL14, Some(addr), _) |
-            (ElfRelocationType::R_PPC_ADDR14, _, Some(addr)) => {
+            }
+            (ElfRelocationType::R_PPC_REL14, Some(addr), _)
+            | (ElfRelocationType::R_PPC_ADDR14, _, Some(addr)) => {
                 let addr = bounds_check_and_mask(14, addr);
                 ((read_instr() & 0xffff0003) | addr).to_be_bytes().to_vec()
-            },
-            (ElfRelocationType::R_PPC_REL14_BRTAKEN, Some(addr), _) |
-            (ElfRelocationType::R_PPC_ADDR14_BRTAKEN, _, Some(addr)) => {
+            }
+            (ElfRelocationType::R_PPC_REL14_BRTAKEN, Some(addr), _)
+            | (ElfRelocationType::R_PPC_ADDR14_BRTAKEN, _, Some(addr)) => {
                 let addr = bounds_check_and_mask(14, addr);
-                ((read_instr() & 0xffdf0003) | addr | 1 << 21).to_be_bytes().to_vec()
-            },
-            (ElfRelocationType::R_PPC_REL14_BRNTAKEN, Some(addr), _) |
-            (ElfRelocationType::R_PPC_ADDR14_BRNTAKEN , _, Some(addr)) => {
+                ((read_instr() & 0xffdf0003) | addr | 1 << 21)
+                    .to_be_bytes()
+                    .to_vec()
+            }
+            (ElfRelocationType::R_PPC_REL14_BRNTAKEN, Some(addr), _)
+            | (ElfRelocationType::R_PPC_ADDR14_BRNTAKEN, _, Some(addr)) => {
                 let addr = bounds_check_and_mask(14, addr);
                 ((read_instr() & 0xffdf0003) | addr).to_be_bytes().to_vec()
-            },
-            (ElfRelocationType::R_PPC_PLTREL24, Some(rel_addr), _) |
-            (ElfRelocationType::R_PPC_REL24, Some(rel_addr), _) => {
+            }
+            (ElfRelocationType::R_PPC_PLTREL24, Some(rel_addr), _)
+            | (ElfRelocationType::R_PPC_REL24, Some(rel_addr), _) => {
                 let addr = bounds_check_and_mask(24, rel_addr);
                 ((read_instr() & 0xfc000003) | addr).to_be_bytes().to_vec()
-            },
+            }
             a => panic!("Unimplemented relocation {:?}", a),
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum SymbolVis
-{
+enum SymbolVis {
     Default,
     Hidden,
     // Singleton,
     // Eliminate,
 }
 
-impl SymbolVis
-{
-    fn from_st_other(st_other: u8) -> SymbolVis
-    {
+impl SymbolVis {
+    fn from_st_other(st_other: u8) -> SymbolVis {
         match elf::sym::st_visibility(st_other) {
             elf::sym::STV_DEFAULT => SymbolVis::Default,
             elf::sym::STV_HIDDEN => SymbolVis::Hidden,
-            i@_ => panic!("Unsupported symbol visiblity: {} {}", i, elf::sym::visibility_to_str(i)),
+            i @ _ => panic!(
+                "Unsupported symbol visiblity: {} {}",
+                i,
+                elf::sym::visibility_to_str(i)
+            ),
         }
     }
 }
 
-
 #[derive(Clone, Debug)]
-struct Section<'a>
-{
+struct Section<'a> {
     name: &'a str,
     data: &'a [u8],
     alignment: u8,
@@ -620,8 +595,7 @@ struct Section<'a>
     relocations: Vec<Relocation<'a>>,
 }
 
-impl<'a> Section<'a>
-{
+impl<'a> Section<'a> {
     fn from_section_header(
         sec_idx: usize,
         sh: &elf::section_header::SectionHeader,
@@ -629,18 +603,22 @@ impl<'a> Section<'a>
         elf: &Elf<'a>,
         map_sec_index: impl Fn(u32) -> u32,
         map_bss_index: impl Fn(u32) -> u32,
-    ) -> Self
-    {
-        let mut relocations = elf.shdr_relocs.iter()
+    ) -> Self {
+        let mut relocations = elf
+            .shdr_relocs
+            .iter()
             .filter(|(idx, _)| elf.section_headers[*idx].sh_info == sec_idx as u32)
             .flat_map(|(_, reloc_section)| reloc_section.iter())
             .map(|reloc| Relocation::from_reloc(reloc, &elf, &map_sec_index, &map_bss_index))
             .collect::<Vec<_>>();
         relocations.sort_by_key(|reloc| reloc.offset);
 
-        let exported_symbols = elf.syms.iter()
-            .filter(|sym| sym.st_bind() == elf::sym::STB_GLOBAL ||
-                          sym.st_bind() == elf::sym::STB_WEAK)
+        let exported_symbols = elf
+            .syms
+            .iter()
+            .filter(|sym| {
+                sym.st_bind() == elf::sym::STB_GLOBAL || sym.st_bind() == elf::sym::STB_WEAK
+            })
             .filter(|sym| sym.st_shndx == sec_idx)
             .map(|sym| {
                 (
@@ -664,15 +642,10 @@ impl<'a> Section<'a>
             is_bss: sh.sh_type == elf::section_header::SHT_NOBITS,
             exported_symbols,
             relocations,
-
         }
     }
 
-    fn from_common_symbol(
-        sym: &elf::sym::Sym,
-        elf: &Elf<'a>,
-    ) -> Self
-    {
+    fn from_common_symbol(sym: &elf::sym::Sym, elf: &Elf<'a>) -> Self {
         Section {
             name: elf.strtab.get(sym.st_name).unwrap().unwrap(),
             alignment: sym.st_value as u8,
@@ -682,26 +655,25 @@ impl<'a> Section<'a>
             is_bss: true,
 
             relocations: vec![],
-            exported_symbols: if sym.st_bind() == elf::sym::STB_GLOBAL ||
-                                sym.st_bind() == elf::sym::STB_WEAK {
-                    vec![(
-                        elf.strtab.get(sym.st_name).unwrap().unwrap(),
-                        0,
-                        SymbolVis::from_st_other(sym.st_other),
-                    )]
-                } else {
-                    vec![]
-                },
+            exported_symbols: if sym.st_bind() == elf::sym::STB_GLOBAL
+                || sym.st_bind() == elf::sym::STB_WEAK
+            {
+                vec![(
+                    elf.strtab.get(sym.st_name).unwrap().unwrap(),
+                    0,
+                    SymbolVis::from_st_other(sym.st_other),
+                )]
+            } else {
+                vec![]
+            },
         }
     }
 
-    fn size(&self) -> u32
-    {
+    fn size(&self) -> u32 {
         self.data.len() as u32
     }
 
-    fn section_type(&self) -> RelSectionType
-    {
+    fn section_type(&self) -> RelSectionType {
         if self.is_executable {
             RelSectionType::Text
         } else if self.is_bss {
@@ -712,44 +684,46 @@ impl<'a> Section<'a>
     }
 }
 
-
 #[derive(Clone, Debug)]
-struct ObjectFile<'a>
-{
-    sections: Vec<Section<'a>>
+struct ObjectFile<'a> {
+    sections: Vec<Section<'a>>,
 }
 
-impl<'a> ObjectFile<'a>
-{
-    fn from_elf(bytes: &'a [u8], elf: Elf<'a>) -> Self
-    {
-        let sec_indices_map = elf.section_headers.iter()
+impl<'a> ObjectFile<'a> {
+    fn from_elf(bytes: &'a [u8], elf: Elf<'a>) -> Self {
+        let sec_indices_map = elf
+            .section_headers
+            .iter()
             .enumerate()
-            .filter(|(_, sh)| (sh.sh_type == elf::section_header::SHT_PROGBITS
-                                || sh.sh_type == elf::section_header::SHT_NOBITS)
-                                && sh.sh_flags as u32 & elf::section_header::SHF_ALLOC != 0)
+            .filter(|(_, sh)| {
+                (sh.sh_type == elf::section_header::SHT_PROGBITS
+                    || sh.sh_type == elf::section_header::SHT_NOBITS)
+                    && sh.sh_flags as u32 & elf::section_header::SHF_ALLOC != 0
+            })
             .map(|(i, _)| i as u32)
             .collect::<Vec<_>>();
-        let bss_indices_map = elf.syms.iter()
+        let bss_indices_map = elf
+            .syms
+            .iter()
             .enumerate()
             .filter(|(_, sym)| sym.st_shndx as u16 == SHN_COMMON)
             .map(|(i, _)| i as u32)
             .collect::<Vec<_>>();
 
-        let map_sec_index = |shndx| sec_indices_map.iter()
-            .position(|i| *i == shndx)
-            .unwrap() as u32;
-        let map_bss_index = |shndx| bss_indices_map.iter()
-            .position(|i| *i == shndx)
-            .unwrap() as u32 + sec_indices_map.len() as u32;
+        let map_sec_index =
+            |shndx| sec_indices_map.iter().position(|i| *i == shndx).unwrap() as u32;
+        let map_bss_index = |shndx| {
+            bss_indices_map.iter().position(|i| *i == shndx).unwrap() as u32
+                + sec_indices_map.len() as u32
+        };
 
         let mut sections = vec![];
         for (i, sh) in elf.section_headers.iter().enumerate() {
             if (sh.sh_type != elf::section_header::SHT_PROGBITS
                 && sh.sh_type != elf::section_header::SHT_NOBITS)
-                || sh.sh_flags as u32 & elf::section_header::SHF_ALLOC == 0 {
-
-                continue
+                || sh.sh_flags as u32 & elf::section_header::SHF_ALLOC == 0
+            {
+                continue;
             }
             sections.push(Section::from_section_header(
                 i,
@@ -761,61 +735,58 @@ impl<'a> ObjectFile<'a>
             ))
         }
 
-        sections.extend(elf.syms.iter()
-            .filter(|sym| sym.st_shndx as u16 == SHN_COMMON)
-            .map(|sym| Section::from_common_symbol(&sym, &elf)));
+        sections.extend(
+            elf.syms
+                .iter()
+                .filter(|sym| sym.st_shndx as u16 == SHN_COMMON)
+                .map(|sym| Section::from_common_symbol(&sym, &elf)),
+        );
 
-        ObjectFile {
-            sections,
-        }
+        ObjectFile { sections }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Enum)]
-enum RelSectionType
-{
+enum RelSectionType {
     Text,
     Data,
     Bss,
 }
 
-struct LocatedSection<'a>
-{
+struct LocatedSection<'a> {
     section: &'a Section<'a>,
     offset: u32,
     sibling_section_rel_sections: Rc<[Option<RelSectionType>]>,
     sibling_section_offsets: Rc<[Option<u32>]>,
 }
 
-impl<'a> std::ops::Deref for LocatedSection<'a>
-{
+impl<'a> std::ops::Deref for LocatedSection<'a> {
     type Target = Section<'a>;
-    fn deref(&self) -> &Self::Target
-    {
+    fn deref(&self) -> &Self::Target {
         &self.section
     }
 }
 
-struct SectionInfo<'a>
-{
+struct SectionInfo<'a> {
     size: u32,
     alignment: u8,
     sections: Vec<LocatedSection<'a>>,
     rel_section_index: Option<u8>,
 }
 
-fn mmap_obj_files(obj_file_names: impl Iterator<Item = impl AsRef<Path>>)
-    -> Result<Vec<(PathBuf, Mmap)>>
-{
+fn mmap_obj_files(
+    obj_file_names: impl Iterator<Item = impl AsRef<Path>>,
+) -> Result<Vec<(PathBuf, Mmap)>> {
     let mut mmaps = vec![];
     for fname in obj_file_names {
         let fname = fname.as_ref();
-        let f = File::open(fname)
-            .with_context(|| OpenFile { filename: fname.to_path_buf() })?;
+        let f = File::open(fname).with_context(|| OpenFile {
+            filename: fname.to_path_buf(),
+        })?;
         let mmap = unsafe {
-            MmapOptions::new()
-                .map(&f)
-                .with_context(|| OpenFile { filename: fname.to_path_buf() })?
+            MmapOptions::new().map(&f).with_context(|| OpenFile {
+                filename: fname.to_path_buf(),
+            })?
         };
         mmaps.push((fname.to_path_buf(), mmap));
     }
@@ -823,23 +794,22 @@ fn mmap_obj_files(obj_file_names: impl Iterator<Item = impl AsRef<Path>>)
     Ok(mmaps)
 }
 
-fn object_files_from_mmaps(mmaps: &[(PathBuf, Mmap)]) -> Result<Vec<ObjectFile>>
-{
+fn object_files_from_mmaps(mmaps: &[(PathBuf, Mmap)]) -> Result<Vec<ObjectFile>> {
     let mut object_files = vec![];
     for (filename, mmap) in mmaps.iter() {
         match Object::parse(mmap).with_context(|| ObjectParsing { filename })? {
             Object::Elf(elf) => {
                 object_files.push(ObjectFile::from_elf(mmap, elf));
-            },
+            }
             Object::Archive(ar) => {
                 for member_name in ar.members() {
-                    let buf = ar.extract(member_name, mmap)
+                    let buf = ar
+                        .extract(member_name, mmap)
                         .with_context(|| ObjectParsing { filename })?;
-                    let elf = Elf::parse(buf)
-                        .with_context(|| ObjectParsing { filename })?;
+                    let elf = Elf::parse(buf).with_context(|| ObjectParsing { filename })?;
                     object_files.push(ObjectFile::from_elf(buf, elf));
                 }
-            },
+            }
             _ => {
                 ensure!(false, ObjectFormat { filename });
                 unreachable!()
@@ -852,16 +822,20 @@ fn object_files_from_mmaps(mmaps: &[(PathBuf, Mmap)]) -> Result<Vec<ObjectFile>>
 /// Filter out sections that a) contain no public symbols and b) are unreferenced by sections that
 /// contain public symbols or b) are (possibly transitively) referenced by sections which contains
 /// public symbols.
-fn filter_unused_sections<'a>(object_files: &'a [ObjectFile<'a>])
-    -> Vec<(usize, usize, &'a Section<'a>)>
-{
+fn filter_unused_sections<'a>(
+    object_files: &'a [ObjectFile<'a>],
+) -> Vec<(usize, usize, &'a Section<'a>)> {
     // Naturally, we do this with a fixed point starting from the sections that do have public
     // symbols.
     let mut sections_to_keep = vec![];
     let mut sections_in_question = vec![];
     for (of_i, of) in object_files.iter().enumerate() {
         for (sec_i, sec) in of.sections.iter().enumerate() {
-            if sec.exported_symbols.iter().any(|(_, _, vis)| *vis == SymbolVis::Default) {
+            if sec
+                .exported_symbols
+                .iter()
+                .any(|(_, _, vis)| *vis == SymbolVis::Default)
+            {
                 sections_to_keep.push((of_i, sec_i, sec));
             } else {
                 sections_in_question.push((of_i, sec_i, sec));
@@ -875,28 +849,31 @@ fn filter_unused_sections<'a>(object_files: &'a [ObjectFile<'a>])
         prev_len = sections_to_keep.len();
 
         sections_in_question.retain(|(of_qi, sec_qi, sec_q)| {
-
             // See if we any of the 'keep' secitons reference us
-            let matches = sections_to_keep.iter()
+            let matches = sections_to_keep
+                .iter()
                 .map(|(of_ki, _, sec_k)| (&sec_k.relocations, of_ki))
                 .flat_map(|(relocs_k, of_ki)| relocs_k.iter().zip(iter::repeat(of_ki)))
                 .any(|(reloc, of_ki)| {
                     match reloc.kind {
                         RelocationKind::InternalSymbol(sec_idx, _) if of_qi == of_ki =>
-                            // Check if any of sec_k's Internal relocs reference sec_q
-                            sec_idx == *sec_qi as u32,
+                        // Check if any of sec_k's Internal relocs reference sec_q
+                        {
+                            sec_idx == *sec_qi as u32
+                        }
                         RelocationKind::ExternalSymbol(sn_k) if sn_k.starts_with("__start_") => {
                             sec_q.name == &sn_k[8..]
                         }
                         RelocationKind::ExternalSymbol(sn_k) if sn_k.starts_with("__stop_") => {
                             sec_q.name == &sn_k[7..]
-                        },
+                        }
                         RelocationKind::ExternalSymbol(sym_name_k) => {
                             // Check if any of sec_k's External relocs match sec_q's symbols
-                            sec_q.exported_symbols
+                            sec_q
+                                .exported_symbols
                                 .iter()
                                 .any(|(sym_name_q, _, _)| sym_name_k == *sym_name_q)
-                        },
+                        }
                         _ => false,
                     }
                 });
@@ -920,23 +897,22 @@ fn filter_unused_sections<'a>(object_files: &'a [ObjectFile<'a>])
 fn group_elf_sections<'a>(
     sections: Vec<(usize, usize, &'a Section<'a>)>,
     convert_bss_to_data: bool,
-)
-    -> Vec<(RelSectionType, usize, usize, &'a Section<'a>)>
-{
+) -> Vec<(RelSectionType, usize, usize, &'a Section<'a>)> {
     let mut grouped_elf_sections = HashMap::new();
     for (of_i, sec_i, sec) in sections.iter() {
-
         if sec.section_type() == RelSectionType::Bss {
             if convert_bss_to_data {
-                let (_, elf_sections) = grouped_elf_sections.entry("bss".to_string())
+                let (_, elf_sections) = grouped_elf_sections
+                    .entry("bss".to_string())
                     .or_insert_with(|| (RelSectionType::Data, vec![]));
                 elf_sections.push((*of_i, *sec_i, *sec));
             }
-            continue
+            continue;
         }
 
         let name = sec.name.to_string();
-        let (sec_type, elf_sections) = grouped_elf_sections.entry(name)
+        let (sec_type, elf_sections) = grouped_elf_sections
+            .entry(name)
             .or_insert_with(|| (sec.section_type(), vec![]));
         elf_sections.push((*of_i, *sec_i, *sec));
 
@@ -945,7 +921,8 @@ fn group_elf_sections<'a>(
         }
     }
 
-    let mut grouped_elf_sections = grouped_elf_sections.values()
+    let mut grouped_elf_sections = grouped_elf_sections
+        .values()
         .flat_map(|(sec_type, elf_sections)| iter::repeat(*sec_type).zip(elf_sections.iter()))
         .map(|(sec_type, (of_i, sec_i, sec))| (sec_type, *of_i, *sec_i, *sec))
         .collect::<Vec<_>>();
@@ -955,7 +932,8 @@ fn group_elf_sections<'a>(
     if !convert_bss_to_data {
         // We've split apart the bss and non-bss sections when we did the grouping, so build an
         // iterator that captures both
-        let bss_sections_iter = sections.iter()
+        let bss_sections_iter = sections
+            .iter()
             .filter(|(_of_i, _sec_i, sec)| sec.section_type() == RelSectionType::Bss)
             .map(|(of_i, sec_i, sec)| (RelSectionType::Bss, *of_i, *sec_i, *sec));
         grouped_elf_sections.extend(bss_sections_iter);
@@ -966,16 +944,17 @@ fn group_elf_sections<'a>(
 fn build_rel_sections<'a>(
     object_files: &'a [ObjectFile<'a>],
     grouped_sections: Vec<(RelSectionType, usize, usize, &'a Section<'a>)>,
-) -> EnumMap<RelSectionType, SectionInfo<'a>>
-{
+) -> EnumMap<RelSectionType, SectionInfo<'a>> {
     // Compute the offset for each Elf section in its Rel section and, along the way, the size of
     // each Rel section.
 
-    let mut object_file_section_offsets = object_files.iter()
+    let mut object_file_section_offsets = object_files
+        .iter()
         .map(|of| of.sections.iter().map(|_| None).collect::<Vec<_>>())
         .map(|v| v.into_boxed_slice().into())
         .collect::<Vec<Rc<[_]>>>();
-    let mut object_file_section_types = object_files.iter()
+    let mut object_file_section_types = object_files
+        .iter()
         .map(|of| of.sections.iter().map(|_| None).collect::<Vec<_>>())
         .map(|v| v.into_boxed_slice().into())
         .collect::<Vec<Rc<[_]>>>();
@@ -997,14 +976,15 @@ fn build_rel_sections<'a>(
             alignment: 0,
             sections: vec![],
             rel_section_index: if size > 0 {
-                    curr_index += 1;
-                    // NOTE We want the first section to be 1, not 0
-                    Some(curr_index)
-                } else {
-                    None
-                },
+                curr_index += 1;
+                // NOTE We want the first section to be 1, not 0
+                Some(curr_index)
+            } else {
+                None
+            },
         }
-    }).into();
+    })
+    .into();
 
     for &(sec_type, of_i, sec_i, sec) in grouped_sections.iter() {
         let sec_info = &mut rel_sections[sec_type];
@@ -1024,12 +1004,17 @@ fn build_rel_sections<'a>(
 fn build_local_symbol_table<'a, 'b: 'a>(
     rel_sections: &'a EnumMap<RelSectionType, SectionInfo>,
     section_boundary_symbol_names: &'b mut HashMap<&'a str, (String, String)>,
-) -> Result<HashMap<&'b str, (RelSectionType, u32)>>
-{
-    *section_boundary_symbol_names = rel_sections.values()
+) -> Result<HashMap<&'b str, (RelSectionType, u32)>> {
+    *section_boundary_symbol_names = rel_sections
+        .values()
         .flat_map(|rs| rs.sections.iter())
         .map(|sec| sec.name)
-        .map(|name| (name, (format!("__start_{}", name), format!("__stop_{}", name))))
+        .map(|name| {
+            (
+                name,
+                (format!("__start_{}", name), format!("__stop_{}", name)),
+            )
+        })
         .collect::<HashMap<&str, (String, String)>>();
 
     let mut local_sym_table = HashMap::new();
@@ -1041,20 +1026,25 @@ fn build_local_symbol_table<'a, 'b: 'a>(
                 let o = local_sym_table.insert(*sym_name, (sec_type, loc_sec.offset + sym_offset));
                 // TODO: If we have a STV_SINGLETON symbol, we would actually want to not error
                 // out, but instead keep only one of the two symbols
-                ensure!(o.is_none(), DuplicateSymbol { symbol_name: *sym_name });
+                ensure!(
+                    o.is_none(),
+                    DuplicateSymbol {
+                        symbol_name: *sym_name
+                    }
+                );
             }
 
-            let (start_name, stop_name) = section_boundary_symbol_names
-                .get(loc_sec.name)
-                .unwrap();
+            let (start_name, stop_name) = section_boundary_symbol_names.get(loc_sec.name).unwrap();
 
             if sec_type != RelSectionType::Bss {
                 // NOTE because we grouped the sections by name earlier, a simple min/max works here
-                local_sym_table.entry(&start_name)
+                local_sym_table
+                    .entry(&start_name)
                     .and_modify(|(_, o)| *o = std::cmp::min(*o, loc_sec.offset))
                     .or_insert((sec_type, loc_sec.offset));
 
-                local_sym_table.entry(&stop_name)
+                local_sym_table
+                    .entry(&stop_name)
                     .and_modify(|(_, o)| *o = std::cmp::max(*o, loc_sec.offset + loc_sec.size()))
                     .or_insert((sec_type, loc_sec.offset + loc_sec.size()));
             }
@@ -1073,17 +1063,17 @@ fn write_relocated_section_data(
     extern_sym_table: &HashMap<String, u32>,
     output_file_name: &Path,
     mut output_file: impl Write + Seek,
-) -> Result<()>
-{
-
+) -> Result<()> {
     for (sec_type, rs) in rel_sections.iter() {
         if sec_type == RelSectionType::Bss {
-            continue
+            continue;
         }
 
         // Ensure the whole section is properly aligned
         let aligned_addr = align_to(addr, rs.alignment);
-        output_file.write_all(&[0u8; 64][..(aligned_addr - addr) as usize]).unwrap();
+        output_file
+            .write_all(&[0u8; 64][..(aligned_addr - addr) as usize])
+            .unwrap();
         addr = aligned_addr;
 
         for loc_sec in rs.sections.iter() {
@@ -1091,17 +1081,24 @@ fn write_relocated_section_data(
 
             let aligned_addr = align_to(addr, loc_sec.alignment);
 
-            output_file.write_all(&[0u8; 64][..(aligned_addr - addr) as usize]).unwrap();
+            output_file
+                .write_all(&[0u8; 64][..(aligned_addr - addr) as usize])
+                .unwrap();
 
             let mut prev_offset = 0;
             for reloc in loc_sec.relocations.iter() {
-                if locations_are_relative && !reloc.is_locally_resolvable(&loc_sec, &local_sym_table) {
-                    continue
+                if locations_are_relative
+                    && !reloc.is_locally_resolvable(&loc_sec, &local_sym_table)
+                {
+                    continue;
                 }
                 assert!(prev_offset <= reloc.offset as usize);
 
-                output_file.write_all(&data[prev_offset..reloc.offset as usize])
-                    .with_context(|| WriteFile { filename: output_file_name })?;
+                output_file
+                    .write_all(&data[prev_offset..reloc.offset as usize])
+                    .with_context(|| WriteFile {
+                        filename: output_file_name,
+                    })?;
 
                 let relocated_bytes = reloc.apply_relocation(
                     &data[reloc.offset as usize..],
@@ -1110,31 +1107,33 @@ fn write_relocated_section_data(
                     &rel_section_locations,
                     locations_are_relative,
                     &local_sym_table,
-                    &extern_sym_table
+                    &extern_sym_table,
                 );
-                output_file.write_all(&relocated_bytes[..])
-                    .with_context(|| WriteFile { filename: output_file_name })?;
+                output_file
+                    .write_all(&relocated_bytes[..])
+                    .with_context(|| WriteFile {
+                        filename: output_file_name,
+                    })?;
 
                 prev_offset = reloc.offset as usize + relocated_bytes.len();
             }
-            output_file.write_all(&data[prev_offset..])
-                .with_context(|| WriteFile { filename: output_file_name })?;
+            output_file
+                .write_all(&data[prev_offset..])
+                .with_context(|| WriteFile {
+                    filename: output_file_name,
+                })?;
 
             addr = aligned_addr + data.len() as u32;
-
         }
     }
     Ok(())
 }
 
-
 pub fn link_obj_files_to_rel<'a>(
     obj_file_names: impl Iterator<Item = impl AsRef<Path>>,
     extern_sym_table: &HashMap<String, u32>,
     output_file_name: impl AsRef<Path>,
-) -> Result<()>
-{
-
+) -> Result<()> {
     let mmaps = mmap_obj_files(obj_file_names)?;
     let object_files = object_files_from_mmaps(&mmaps)?;
 
@@ -1146,30 +1145,30 @@ pub fn link_obj_files_to_rel<'a>(
     let rel_sections = build_rel_sections(&object_files, grouped_sections);
 
     let mut section_boundary_symbol_names = HashMap::new();
-    let local_sym_table = build_local_symbol_table(&rel_sections, &mut section_boundary_symbol_names)?;
+    let local_sym_table =
+        build_local_symbol_table(&rel_sections, &mut section_boundary_symbol_names)?;
 
     // Build the lists of relocations that will be included in the REL
     let mut dol_relocations = EnumMap::<_, Vec<_>>::default();
     let mut dol_curr_offsets = EnumMap::default();
     let mut self_relocations = EnumMap::default();
     let mut self_curr_offsets = EnumMap::default();
-    for (sec_type, rs)in rel_sections.iter() {
+    for (sec_type, rs) in rel_sections.iter() {
         for loc_sec in rs.sections.iter() {
             for reloc in loc_sec.relocations.iter() {
                 if reloc.is_locally_resolvable(&loc_sec, &local_sym_table) {
-                    continue
+                    continue;
                 }
 
                 let (curr_offset, relocations) = if reloc.is_dol_relocation(&local_sym_table) {
                     (
                         &mut dol_curr_offsets[sec_type],
-                        &mut dol_relocations[sec_type]
+                        &mut dol_relocations[sec_type],
                     )
-
                 } else {
                     (
                         &mut self_curr_offsets[sec_type],
-                        &mut self_relocations[sec_type]
+                        &mut self_relocations[sec_type],
                     )
                 };
 
@@ -1193,13 +1192,12 @@ pub fn link_obj_files_to_rel<'a>(
                     &local_sym_table,
                     &extern_sym_table,
                 )?);
-
             }
         }
-
     }
 
-    let section_count = 1 + rel_sections.values()
+    let section_count = 1 + rel_sections
+        .values()
         .map(|rs| rs.rel_section_index.is_some() as u32)
         .sum::<u32>();
 
@@ -1291,17 +1289,18 @@ pub fn link_obj_files_to_rel<'a>(
             .unwrap_or(0),
     };
 
-    let mut size_accum = 0x40
-            + sections_table_size
-            + imports_table_size
-            + relocs_table_size;
+    let mut size_accum = 0x40 + sections_table_size + imports_table_size + relocs_table_size;
 
     let mut sections_table = Vec::with_capacity(section_count as usize);
-    sections_table.push(RelSectionInfo { offset: 0, size: 0, is_executable: false });
+    sections_table.push(RelSectionInfo {
+        offset: 0,
+        size: 0,
+        is_executable: false,
+    });
     let mut rel_section_locations = EnumMap::default();
     for (sec_type, rs) in rel_sections.iter() {
         if rs.size == 0 {
-            continue
+            continue;
         }
         rel_section_locations[sec_type] = if sec_type == RelSectionType::Bss {
             None
@@ -1319,23 +1318,35 @@ pub fn link_obj_files_to_rel<'a>(
     }
 
     let output_file_name = output_file_name.as_ref();
-    let mut output_file = File::create(output_file_name)
-        .with_context(|| WriteFile { filename: output_file_name })?;
-    output_file.iowrite_with(rel_header, scroll::BE)
-        .with_context(|| WriteFile { filename: output_file_name })?;
+    let mut output_file = File::create(output_file_name).with_context(|| WriteFile {
+        filename: output_file_name,
+    })?;
+    output_file
+        .iowrite_with(rel_header, scroll::BE)
+        .with_context(|| WriteFile {
+            filename: output_file_name,
+        })?;
     for section in sections_table {
-        output_file.iowrite_with(section, scroll::BE)
-            .with_context(|| WriteFile { filename: output_file_name })?;
+        output_file
+            .iowrite_with(section, scroll::BE)
+            .with_context(|| WriteFile {
+                filename: output_file_name,
+            })?;
     }
     for import in imports_table {
-        output_file.iowrite_with(import, scroll::BE)
-            .with_context(|| WriteFile { filename: output_file_name })?;
+        output_file
+            .iowrite_with(import, scroll::BE)
+            .with_context(|| WriteFile {
+                filename: output_file_name,
+            })?;
     }
     for reloc in relocs_table {
-        output_file.iowrite_with(reloc, scroll::BE)
-            .with_context(|| WriteFile { filename: output_file_name })?;
+        output_file
+            .iowrite_with(reloc, scroll::BE)
+            .with_context(|| WriteFile {
+                filename: output_file_name,
+            })?;
     }
-
 
     let pos = output_file.seek(SeekFrom::Current(0)).unwrap() as u32;
 
@@ -1354,7 +1365,9 @@ pub fn link_obj_files_to_rel<'a>(
     // Ensure the file length is a multiple of 32 so it loads currectly from the GC disc
     let pos = output_file.seek(SeekFrom::Current(0)).unwrap() as u32;
     let aligned_pos = align_to(pos, 32u8);
-    output_file.write_all(&[0u8; 32][..(aligned_pos - pos) as usize]).unwrap();
+    output_file
+        .write_all(&[0u8; 32][..(aligned_pos - pos) as usize])
+        .unwrap();
 
     Ok(())
 }
@@ -1364,9 +1377,7 @@ pub fn link_obj_files_to_bin<'a>(
     load_addr: u32,
     extern_sym_table: &HashMap<String, u32>,
     output_file_name: impl AsRef<Path>,
-) -> Result<Vec<(String, u32)>>
-{
-
+) -> Result<Vec<(String, u32)>> {
     let mmaps = mmap_obj_files(obj_file_names)?;
     let object_files = object_files_from_mmaps(&mmaps)?;
 
@@ -1376,7 +1387,8 @@ pub fn link_obj_files_to_bin<'a>(
     let rel_sections = build_rel_sections(&object_files, grouped_sections);
 
     let mut section_boundary_symbol_names = HashMap::new();
-    let local_sym_table = build_local_symbol_table(&rel_sections, &mut section_boundary_symbol_names)?;
+    let local_sym_table =
+        build_local_symbol_table(&rel_sections, &mut section_boundary_symbol_names)?;
 
     for rs in rel_sections.values() {
         for loc_sec in rs.sections.iter() {
@@ -1386,7 +1398,9 @@ pub fn link_obj_files_to_bin<'a>(
                         ensure!(
                             local_sym_table.contains_key(sym_name)
                                 || extern_sym_table.contains_key(sym_name),
-                            UnresolvedSymbol { symbol_name: sym_name }
+                            UnresolvedSymbol {
+                                symbol_name: sym_name
+                            }
                         );
                     }
                     RelocationKind::InternalSymbol(_, _) => (),
@@ -1405,8 +1419,9 @@ pub fn link_obj_files_to_bin<'a>(
     }
 
     let output_file_name = output_file_name.as_ref();
-    let mut output_file = File::create(output_file_name)
-        .with_context(|| WriteFile { filename: output_file_name })?;
+    let mut output_file = File::create(output_file_name).with_context(|| WriteFile {
+        filename: output_file_name,
+    })?;
 
     // Write actual section data
     write_relocated_section_data(
@@ -1420,68 +1435,87 @@ pub fn link_obj_files_to_bin<'a>(
         &mut output_file,
     )?;
 
-    let mut sorted_symbols = local_sym_table.iter()
+    let mut sorted_symbols = local_sym_table
+        .iter()
         .filter(|(n, _)| !(n.starts_with("__start_") || n.starts_with("__stop_")))
         .map(|(n, (sec_type, off))| (rel_section_locations[*sec_type].unwrap() + off, n))
         .collect::<Vec<_>>();
     sorted_symbols.sort_by_key(|(addr, _)| *addr);
 
-    Ok(sorted_symbols.iter()
-       .map(|(addr, sym_name)| (sym_name.to_string(), *addr))
-            .collect()
-    )
+    Ok(sorted_symbols
+        .iter()
+        .map(|(addr, sym_name)| (sym_name.to_string(), *addr))
+        .collect())
 }
 
 pub fn parse_symbol_table(
     fname: &Path,
     lines: impl Iterator<Item = std::io::Result<String>>,
-) -> Result<HashMap<String, u32>>
-{
+) -> Result<HashMap<String, u32>> {
     let mut sym_table = HashMap::new();
     for (line_number, line) in lines.enumerate() {
-        let line = line
-            .with_context(|| SymTableIO { filename: fname, line_number })?;
+        let line = line.with_context(|| SymTableIO {
+            filename: fname,
+            line_number,
+        })?;
 
         if line.trim().len() == 0 {
-            continue
+            continue;
         }
 
         let mut it = line.splitn(2, ' ');
 
-        let addr = it.next()
-            .with_context(|| SymTableWrongNumberOfComponenets { filename: fname, line_number })?;
-        let name = it.next()
-            .with_context(|| SymTableWrongNumberOfComponenets { filename: fname, line_number })?;
+        let addr = it
+            .next()
+            .with_context(|| SymTableWrongNumberOfComponenets {
+                filename: fname,
+                line_number,
+            })?;
+        let name = it
+            .next()
+            .with_context(|| SymTableWrongNumberOfComponenets {
+                filename: fname,
+                line_number,
+            })?;
 
         ensure!(
             it.next().is_none(),
-            SymTableWrongNumberOfComponenets { filename: fname, line_number }
+            SymTableWrongNumberOfComponenets {
+                filename: fname,
+                line_number
+            }
         );
 
-        let addr = u32::from_str_radix(addr.trim_start_matches("0x"), 16)
-            .with_context(|| SymTableAddrParsing { filename: fname, line_number })?;
+        let addr = u32::from_str_radix(addr.trim_start_matches("0x"), 16).with_context(|| {
+            SymTableAddrParsing {
+                filename: fname,
+                line_number,
+            }
+        })?;
 
         let o = sym_table.insert(name.to_string(), addr);
-        ensure!(o.is_none(), SymTableDuplicateEntry { filename: fname, line_number });
+        ensure!(
+            o.is_none(),
+            SymTableDuplicateEntry {
+                filename: fname,
+                line_number
+            }
+        );
     }
 
     Ok(sym_table)
 }
 
-pub fn read_symbol_table(fname: impl AsRef<Path>)
-    -> Result<HashMap<String, u32>>
-{
+pub fn read_symbol_table(fname: impl AsRef<Path>) -> Result<HashMap<String, u32>> {
     let fname = fname.as_ref();
 
-    let file = File::open(fname)
-        .with_context(|| OpenFile { filename: fname })?;
+    let file = File::open(fname).with_context(|| OpenFile { filename: fname })?;
     let file = BufReader::new(file);
 
     parse_symbol_table(fname, file.lines())
 }
 
-fn align_to(x: impl Into<u32>, alignment: impl Into<u32>) -> u32
-{
+fn align_to(x: impl Into<u32>, alignment: impl Into<u32>) -> u32 {
     let x = x.into();
     let alignment = alignment.into();
     if alignment == 0 {
@@ -1492,16 +1526,14 @@ fn align_to(x: impl Into<u32>, alignment: impl Into<u32>) -> u32
 }
 
 #[test]
-fn test_external_symbol_table()
-{
+fn test_external_symbol_table() {
     let extern_sym_table = read_symbol_table("test_data/symbols.map").unwrap();
     assert_eq!(extern_sym_table["printf"], 0x80001230);
     assert_eq!(extern_sym_table["FindWidget__9CGuiFrameCFPCc"], 0x80002230);
 }
 
 #[test]
-fn test_read_objects()
-{
+fn test_read_objects() {
     let mmaps = mmap_obj_files(["test_data/func_a.o", "test_data/func_b.o"].iter()).unwrap();
     let object_files = object_files_from_mmaps(&mmaps).unwrap();
 
@@ -1509,12 +1541,10 @@ fn test_read_objects()
 
     assert_eq!(object_files[0].sections.len(), 3);
     assert_eq!(object_files[1].sections.len(), 6);
-
 }
 
 #[test]
-fn test_filter_sections()
-{
+fn test_filter_sections() {
     let mmaps = mmap_obj_files(["test_data/func_a.o", "test_data/func_b.o"].iter()).unwrap();
     let object_files = object_files_from_mmaps(&mmaps).unwrap();
     let _sections_to_keep = filter_unused_sections(&object_files);

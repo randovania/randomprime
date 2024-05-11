@@ -1,19 +1,19 @@
 extern crate proc_macro;
 
-use proc_macro::TokenStream;
-use quote::{quote, quote_spanned, TokenStreamExt, ToTokens};
-use syn::{
-    braced, parenthesized, parse_macro_input, parse_quote, token, Error, Expr,
-    Ident, LitByteStr, LitFloat, LitInt, Token, Result
-};
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
-
 use std::collections::HashSet;
 
-struct AsmBlock
-{
+use proc_macro::TokenStream;
+use quote::{quote, quote_spanned, ToTokens, TokenStreamExt};
+use syn::{
+    braced, parenthesized,
+    parse::{Parse, ParseStream},
+    parse_macro_input, parse_quote,
+    punctuated::Punctuated,
+    spanned::Spanned,
+    token, Error, Expr, Ident, LitByteStr, LitFloat, LitInt, Result, Token,
+};
+
+struct AsmBlock {
     starting_address: Expr,
     _comma: Token![,],
     _brace: token::Brace,
@@ -25,10 +25,8 @@ macro_rules! parse_quote_spanned {
     ($($tts:tt)*) => { syn::parse(quote_spanned! { $($tts)* }.into()).unwrap() };
 }
 
-impl Parse for AsmBlock
-{
-    fn parse(input: ParseStream) -> Result<Self>
-    {
+impl Parse for AsmBlock {
+    fn parse(input: ParseStream) -> Result<Self> {
         let content;
         let block = AsmBlock {
             starting_address: input.parse()?,
@@ -53,51 +51,44 @@ impl Parse for AsmBlock
     }
 }
 
-impl ToTokens for AsmBlock
-{
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream)
-    {
+impl ToTokens for AsmBlock {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let sa: &Ident = &parse_quote! { __sa__ };
 
-        let labels_let_iter = self.asm.iter()
-            .enumerate()
-            .flat_map(|(i, instr)| {
-                let i = (i * 4) as u32;
-                instr.labels.iter().map(move |id| quote!(let #id = #sa + #i;))
-            });
-        let labels_name_iter = self.asm.iter()
-            .flat_map(|instr| instr.labels.iter());
-        let labels_field_iter = self.asm.iter()
-            .flat_map(|instr| instr.labels.iter());
+        let labels_let_iter = self.asm.iter().enumerate().flat_map(|(i, instr)| {
+            let i = (i * 4) as u32;
+            instr
+                .labels
+                .iter()
+                .map(move |id| quote!(let #id = #sa + #i;))
+        });
+        let labels_name_iter = self.asm.iter().flat_map(|instr| instr.labels.iter());
+        let labels_field_iter = self.asm.iter().flat_map(|instr| instr.labels.iter());
 
-        let instrs_iter = self.asm.iter()
-            .enumerate()
-            .map(|(i, instr)| {
-                let iter = instr.parts.iter().map(|(width, op)| {
-                    match op {
-                        AsmOp::Expr(e) => {
-                            quote_spanned! {e.span()=>
-                                ppcasm::AsmInstrPart::new(#width, #e)
-                            }
-                        },
-                        AsmOp::BranchExpr(e) => {
-                            let instr_offset = i as i64 * 4;
-                            quote_spanned! {e.span()=>
-                                ppcasm::AsmInstrPart::new(
-                                    #width,
-                                    ((#e) as i64 - #sa as i64 - (#instr_offset)) >> 2
-                                )
-                            }
-                        },
-                        AsmOp::AtBranchExpr(e) => {
-                            quote_spanned! {e.span()=>
-                                ppcasm::AsmInstrPart::new(#width, (#e) >> 2)
-                            }
-                        },
+        let instrs_iter = self.asm.iter().enumerate().map(|(i, instr)| {
+            let iter = instr.parts.iter().map(|(width, op)| match op {
+                AsmOp::Expr(e) => {
+                    quote_spanned! {e.span()=>
+                        ppcasm::AsmInstrPart::new(#width, #e)
                     }
-                });
-                quote! { ppcasm::AsmInstrPart::assemble(&[#(#iter),*]) }
+                }
+                AsmOp::BranchExpr(e) => {
+                    let instr_offset = i as i64 * 4;
+                    quote_spanned! {e.span()=>
+                        ppcasm::AsmInstrPart::new(
+                            #width,
+                            ((#e) as i64 - #sa as i64 - (#instr_offset)) >> 2
+                        )
+                    }
+                }
+                AsmOp::AtBranchExpr(e) => {
+                    quote_spanned! {e.span()=>
+                        ppcasm::AsmInstrPart::new(#width, (#e) >> 2)
+                    }
+                }
             });
+            quote! { ppcasm::AsmInstrPart::assemble(&[#(#iter),*]) }
+        });
 
         let sa_e = &self.starting_address;
         tokens.append_all(quote! {
@@ -118,17 +109,14 @@ impl ToTokens for AsmBlock
 }
 
 #[derive(Clone)]
-enum AsmOp
-{
+enum AsmOp {
     Expr(Expr),
     BranchExpr(Expr),
     AtBranchExpr(Expr),
 }
 
-impl ToTokens for AsmOp
-{
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream)
-    {
+impl ToTokens for AsmOp {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
             AsmOp::Expr(e) => e.to_tokens(tokens),
             _ => unreachable!(),
@@ -138,43 +126,39 @@ impl ToTokens for AsmOp
 
 struct AsmInstrVec(Vec<AsmInstr>);
 
-impl From<Vec<AsmInstr>> for AsmInstrVec
-{
-    fn from(vec: Vec<AsmInstr>) -> Self
-    {
+impl From<Vec<AsmInstr>> for AsmInstrVec {
+    fn from(vec: Vec<AsmInstr>) -> Self {
         AsmInstrVec(vec)
     }
 }
 
-struct AsmInstr
-{
+struct AsmInstr {
     labels: Vec<Ident>,
     parts: Vec<(u8, AsmOp)>,
 }
 
-const CR_NAMES: &[&str] = &[
-    "cr0", "cr1", "cr2", "cr3", "cr4", "cr5", "cr6", "cr7",
-];
+const CR_NAMES: &[&str] = &["cr0", "cr1", "cr2", "cr3", "cr4", "cr5", "cr6", "cr7"];
 
 const GPR_NAMES: &[&str] = &[
-    "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9",
-    "r10", "r11", "r12", "r13", "r14", "r15", "r16", "r17", "r18", "r19",
-    "r20", "r21", "r22", "r23", "r24", "r25", "r26", "r27", "r28", "r29",
-    "r30", "r31",
+    "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13", "r14",
+    "r15", "r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23", "r24", "r25", "r26", "r27",
+    "r28", "r29", "r30", "r31",
 ];
 
 const FPR_NAMES: &[&str] = &[
-    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9",
-    "f10", "f11", "f12", "f13", "f14", "f15", "f16", "f17", "f18", "f19",
-    "f20", "f21", "f22", "f23", "f24", "f25", "f26", "f27", "f28", "f29",
-    "f30", "f31",
+    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14",
+    "f15", "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25", "f26", "f27",
+    "f28", "f29", "f30", "f31",
 ];
 
 macro_rules! flag_ident {
-    ($dotname:ident, $id:ident) => { $id };
-    ($dotname:ident, .) => { $dotname };
+    ($dotname:ident, $id:ident) => {
+        $id
+    };
+    ($dotname:ident, .) => {
+        $dotname
+    };
 }
-
 
 macro_rules! parse_part {
     ($dotname:ident, (?$flag:tt)) => {
@@ -201,8 +185,7 @@ macro_rules! parse_part {
     ($dotname:ident, $id:ident) => { $id.clone() };
 }
 
-fn parse_immediate(input: ParseStream) -> Result<Expr>
-{
+fn parse_immediate(input: ParseStream) -> Result<Expr> {
     let expr: syn::Expr = if input.peek(token::Brace) {
         let content;
         let _ = braced!(content in input);

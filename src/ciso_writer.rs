@@ -1,10 +1,10 @@
-use reader_writer::byteorder::{LittleEndian, WriteBytesExt};
-
 use std::{
     cmp::min,
     io::{self, Seek, Write},
     iter,
 };
+
+use reader_writer::byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::gcz_writer::ZEROES;
 
@@ -17,21 +17,20 @@ use crate::gcz_writer::ZEROES;
 const HEADER_SIZE: usize = 0x8000;
 
 macro_rules! block_size {
-    () => { 2 * 1024 * 1024 };
+    () => {
+        2 * 1024 * 1024
+    };
 }
 const BLOCK_SIZE: u32 = block_size!();
 
-pub struct CisoWriter<W: Write + Seek>
-{
+pub struct CisoWriter<W: Write + Seek> {
     file: W,
     blocks_map: Vec<u8>,
     skipped_blocks: u32,
 }
 
-impl<W: Write + Seek> CisoWriter<W>
-{
-    pub fn new(mut file: W) -> io::Result<CisoWriter<W>>
-    {
+impl<W: Write + Seek> CisoWriter<W> {
+    pub fn new(mut file: W) -> io::Result<CisoWriter<W>> {
         file.seek(io::SeekFrom::Start(0))?;
         file.write_all(&[0u8; HEADER_SIZE])?;
         Ok(CisoWriter {
@@ -42,8 +41,7 @@ impl<W: Write + Seek> CisoWriter<W>
     }
 
     // pub fn new(mut file: W) -> io::Result<CisoWriter<W>>
-    fn write_zeroes(&mut self, mut bytes: u64) -> io::Result<()>
-    {
+    fn write_zeroes(&mut self, mut bytes: u64) -> io::Result<()> {
         while bytes > 0 {
             let l = min(ZEROES.len() as u64, bytes);
             self.file.write_all(&ZEROES[..l as usize])?;
@@ -53,28 +51,22 @@ impl<W: Write + Seek> CisoWriter<W>
     }
 }
 
-impl<W: Write + Seek> Write for CisoWriter<W>
-{
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize>
-    {
+impl<W: Write + Seek> Write for CisoWriter<W> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         self.file.write(bytes)
     }
 
-    fn write_all(&mut self, bytes: &[u8]) -> io::Result<()>
-    {
+    fn write_all(&mut self, bytes: &[u8]) -> io::Result<()> {
         self.file.write_all(bytes)
     }
 
-    fn flush(&mut self) -> io::Result<()>
-    {
+    fn flush(&mut self) -> io::Result<()> {
         self.file.flush()
     }
 }
 
-impl<W: Write + Seek + 'static> structs::WriteExt for CisoWriter<W>
-{
-    fn skip_bytes(&mut self, bytes: u64) -> io::Result<()>
-    {
+impl<W: Write + Seek + 'static> structs::WriteExt for CisoWriter<W> {
+    fn skip_bytes(&mut self, bytes: u64) -> io::Result<()> {
         let pos = self.file.seek(io::SeekFrom::Current(0))?;
         let pos_rounded_up = (pos + block_size!() - 1) & !(block_size!() - 1);
 
@@ -90,21 +82,19 @@ impl<W: Write + Seek + 'static> structs::WriteExt for CisoWriter<W>
 
         // Add skipped blocks
         let to_skip = bytes / block_size!();
-        self.blocks_map.extend(iter::repeat(0).take(to_skip as usize));
+        self.blocks_map
+            .extend(iter::repeat(0).take(to_skip as usize));
         self.skipped_blocks += to_skip as u32;
 
         // Fill in the start of the next block with zeroes
         self.write_zeroes(bytes % block_size!())?;
 
         Ok(())
-
     }
 }
 
-impl<W: Write + Seek> Drop for CisoWriter<W>
-{
-    fn drop(&mut self)
-    {
+impl<W: Write + Seek> Drop for CisoWriter<W> {
+    fn drop(&mut self) {
         let res = || -> io::Result<()> {
             let pos = self.file.seek(io::SeekFrom::Current(0))?;
             let pos_rounded_up = (pos + block_size!() - 1) & !(block_size!() - 1);
