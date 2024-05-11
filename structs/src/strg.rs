@@ -53,7 +53,7 @@ impl<'r> Strg<'r> {
             Languages::All => SUPPORTED_LANGUAGES,
             Languages::Some(value) => value,
         };
-        let is_jpn = Self::is_jpn_version(languages.clone());
+        let is_jpn = Self::is_jpn_version(languages);
         for table in self.string_tables.as_mut_vec().iter_mut() {
             if languages.contains(&table.lang.as_bytes()) {
                 for string in strings.iter() {

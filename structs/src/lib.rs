@@ -1,3 +1,4 @@
+#![allow(ambiguous_glob_reexports, unused_imports)]
 pub mod res_id;
 
 mod ancs;

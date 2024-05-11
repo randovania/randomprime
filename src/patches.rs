@@ -18875,7 +18875,7 @@ fn patch_slot_cover<'a>(
                 }
 
                 if let Some(actor) = obj.property_data.as_actor_mut() {
-                    if actor.name == actor_name.clone().as_bytes().as_cstr() {
+                    if actor.name == actor_name.as_bytes().as_cstr() {
                         actor.damage_vulnerability.wave = TypeVulnerability::Reflect as u32;
                         actor.damage_vulnerability.ice = TypeVulnerability::Reflect as u32;
                         actor.damage_vulnerability.plasma = TypeVulnerability::Reflect as u32;
