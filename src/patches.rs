@@ -2764,10 +2764,7 @@ fn patch_add_item<'r>(
     if (29..=40).contains(&pickup_kind) {
         let function =
             artifact_layer_change_template(special_fn_artifact_layer_change_id, pickup_kind);
-        layers[new_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(function);
+        layers[new_layer_idx].objects.as_mut_vec().push(function);
         pickup_obj
             .connections
             .as_mut_vec()
@@ -2835,18 +2832,12 @@ fn patch_add_item<'r>(
             ));
     }
 
-    layers[new_layer_idx]
-        .objects
-        .as_mut_vec()
-        .push(hudmemo);
+    layers[new_layer_idx].objects.as_mut_vec().push(hudmemo);
     layers[new_layer_idx]
         .objects
         .as_mut_vec()
         .push(attainment_audio);
-    layers[new_layer_idx]
-        .objects
-        .as_mut_vec()
-        .push(pickup_obj);
+    layers[new_layer_idx].objects.as_mut_vec().push(pickup_obj);
 
     // 2022-02-08 - I had to remove this because there's a bug in the vanilla engine where playerhint -> Scan Visor doesn't holster the weapon
     // if pickup_type == PickupType::ScanVisor && no_starting_visor{
@@ -15627,7 +15618,7 @@ fn build_and_run_patches<'r>(
         for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
             let world = World::from_pak(pak_name).unwrap();
 
-            if level_data.get(world.to_json_key()).is_none() {
+            if !level_data.contains_key(world.to_json_key()) {
                 level_data.insert(
                     world.to_json_key().to_string(),
                     LevelConfig {
@@ -15708,7 +15699,7 @@ fn build_and_run_patches<'r>(
 
             for room_info in rooms.iter() {
                 let key = room_info.name().trim();
-                if level.rooms.get(key).is_none() {
+                if !level.rooms.contains_key(key) {
                     level.rooms.insert(key.to_string(), RoomConfig::default());
                 }
 
@@ -15755,7 +15746,7 @@ fn build_and_run_patches<'r>(
             let x = frigate_level
                 .unwrap()
                 .transports
-                .get(&"Frigate Escape Cutscene".to_string());
+                .get("Frigate Escape Cutscene");
             if x.is_some() {
                 destination_name = x.unwrap();
             }
@@ -15770,7 +15761,7 @@ fn build_and_run_patches<'r>(
             let x = crater_level
                 .unwrap()
                 .transports
-                .get(&"Essence Dead Cutscene".to_string());
+                .get("Essence Dead Cutscene");
             if x.is_some() {
                 destination = Some(SpawnRoomData::from_str(x.unwrap()))
             }
