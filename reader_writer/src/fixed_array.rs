@@ -18,7 +18,6 @@ where
     type Args = T::Args;
 
     fn read_from(reader: &mut Reader<'r>, args: Self::Args) -> Self {
-        
         {
             let iter = (0..N::to_usize()).map(|_| reader.read(args.clone()));
             GenericArray::from_exact_iter(iter).unwrap()

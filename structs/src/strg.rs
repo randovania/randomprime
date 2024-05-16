@@ -63,10 +63,7 @@ impl<'r> Strg<'r> {
                             .as_mut_vec()
                             .push(format!("&line-extra-space=4;&font=C29C51F1;{}", string).into());
                     } else {
-                        table
-                            .strings
-                            .as_mut_vec()
-                            .push(string.to_string().into());
+                        table.strings.as_mut_vec().push(string.to_string().into());
                     }
                 }
             }

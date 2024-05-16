@@ -36,10 +36,7 @@ impl<'r> SclyPropertyData for JellyZap<'r> {
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
-        vec![
-            self.patterned_info.contact_damage,
-            self.damage_info,
-        ]
+        vec![self.patterned_info.contact_damage, self.damage_info]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
