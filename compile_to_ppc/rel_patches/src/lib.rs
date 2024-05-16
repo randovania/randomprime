@@ -38,7 +38,7 @@ unsafe extern "C" fn setup_global_state() {
         {
             let _ = fi.read_async(recv_buf, 0, 0);
         }
-        REL_CONFIG = ssmarshal::deserialize(&recv_buf[..config_size].assume_init())
+        REL_CONFIG = ssmarshal::deserialize(recv_buf[..config_size].assume_init())
             .unwrap()
             .0;
     }

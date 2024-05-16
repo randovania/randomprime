@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(clippy::missing_safety_doc)]
 
 use core::mem::MaybeUninit;
 
@@ -36,7 +37,7 @@ pub unsafe extern "C" fn rel_loader_hook() {
     }
 
     let rel_header = rel_data.as_mut_ptr() as *mut OSModuleHeader;
-    let bss_data = leak_aligned_slice((&*rel_header).bss_size as usize);
+    let bss_data = leak_aligned_slice((*rel_header).bss_size as usize);
 
     OSLink(
         &mut (*rel_header).mod_info,
