@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::impl_rotation;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{impl_rotation, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ActorRotate<'r>
-{
+pub struct ActorRotate<'r> {
     #[auto_struct(expect = 6)]
     pub prop_count: u32,
 
@@ -20,8 +17,7 @@ pub struct ActorRotate<'r>
     pub update_active: u8,
 }
 
-impl<'r> SclyPropertyData for ActorRotate<'r>
-{
+impl<'r> SclyPropertyData for ActorRotate<'r> {
     const OBJECT_TYPE: u8 = 0x39;
 
     impl_rotation!();

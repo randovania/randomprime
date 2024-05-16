@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct PlayerHintStruct
-{
+pub struct PlayerHintStruct {
     #[auto_struct(expect = 15)]
     prop_count: u32,
 
@@ -31,8 +28,7 @@ pub struct PlayerHintStruct
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PlayerHint<'r>
-{
+pub struct PlayerHint<'r> {
     #[auto_struct(expect = 6)]
     prop_count: u32,
 
@@ -47,8 +43,7 @@ pub struct PlayerHint<'r>
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for PlayerHint<'r>
-{
+impl<'r> SclyPropertyData for PlayerHint<'r> {
     const OBJECT_TYPE: u8 = 0x3E;
     impl_position!();
     impl_rotation!();

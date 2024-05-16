@@ -1,11 +1,9 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::{CStr, FourCC, LazyArray, RoArray};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Evnt<'r>
-{
+pub struct Evnt<'r> {
     #[auto_struct(derive = if sound_events.is_none() { 1 } else { 2 })]
     version: u32,
 
@@ -34,12 +32,9 @@ pub struct Evnt<'r>
     _pad: (),
 }
 
-
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct EventBase<'r>
-{
+pub struct EventBase<'r> {
     pub unknown0: u16,
     pub name: CStr<'r>,
     pub event_type: u16,
@@ -51,27 +46,23 @@ pub struct EventBase<'r>
     pub unknown2: u32,
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct AnimTime
-{
+pub struct AnimTime {
     pub timestamp: f32,
     pub differential_state: u32,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct LoopEvent<'r>
-{
+pub struct LoopEvent<'r> {
     pub base: EventBase<'r>,
     pub unknown: u8,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct UserEvent<'r>
-{
+pub struct UserEvent<'r> {
     pub base: EventBase<'r>,
     pub event_type: u32,
     pub bone_name: CStr<'r>,
@@ -79,8 +70,7 @@ pub struct UserEvent<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct EffectEvent<'r>
-{
+pub struct EffectEvent<'r> {
     pub base: EventBase<'r>,
     pub frame_count: u32,
 
@@ -93,8 +83,7 @@ pub struct EffectEvent<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct SoundEvent<'r>
-{
+pub struct SoundEvent<'r> {
     pub base: EventBase<'r>,
     pub sound_id: u32,
 

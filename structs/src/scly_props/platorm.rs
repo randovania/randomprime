@@ -1,17 +1,15 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::{ResId, SclyPropertyData};
-use crate::res_id::*;
-use crate::scly_props::structs::{ActorParameters, AncsProp, DamageVulnerability, HealthInfo};
-
+use crate::{
+    res_id::*,
+    scly_props::structs::{ActorParameters, AncsProp, DamageVulnerability, HealthInfo},
+    ResId, SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Platform<'r>
-{
+pub struct Platform<'r> {
     #[auto_struct(expect = 19)]
     prop_count: u32,
 
@@ -20,7 +18,7 @@ pub struct Platform<'r>
     pub position: GenericArray<f32, U3>,
     pub rotation: GenericArray<f32, U3>,
     pub scale: GenericArray<f32, U3>,
-    pub extent: GenericArray<f32, U3>,// hitbox?
+    pub extent: GenericArray<f32, U3>, // hitbox?
     pub scan_offset: GenericArray<f32, U3>,
 
     pub cmdl: ResId<CMDL>,
@@ -47,8 +45,7 @@ pub struct Platform<'r>
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Platform<'r>
-{
+impl<'r> SclyPropertyData for Platform<'r> {
     const OBJECT_TYPE: u8 = 0x8;
     impl_position!();
     impl_rotation!();
@@ -57,9 +54,7 @@ impl<'r> SclyPropertyData for Platform<'r>
     const SUPPORTS_VULNERABILITIES: bool = true;
 
     fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
-        vec![
-            self.damage_vulnerability.clone(),
-        ]
+        vec![self.damage_vulnerability.clone()]
     }
 
     fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
@@ -69,9 +64,7 @@ impl<'r> SclyPropertyData for Platform<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.health_info.clone()
-        ]
+        vec![self.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

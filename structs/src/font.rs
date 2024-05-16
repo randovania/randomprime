@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::{CStr, FourCC, RoArray};
 
-use crate::ResId;
-use crate::res_id::*;
+use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Font<'r>
-{
+pub struct Font<'r> {
     #[auto_struct(expect = FourCC::from_bytes(b"FONT"))]
     magic: FourCC,
 
@@ -41,8 +38,7 @@ pub struct Font<'r>
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct FontGlyph
-{
+pub struct FontGlyph {
     utf16_char: u16,
     left_uv_coordinate: f32,
     top_uv_coordinate: f32,
@@ -59,8 +55,7 @@ pub struct FontGlyph
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct FontKerning
-{
+pub struct FontKerning {
     char1: u16,
     char2: u16,
     kerning_adjust: i32,

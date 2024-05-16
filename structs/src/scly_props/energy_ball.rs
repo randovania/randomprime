@@ -1,15 +1,14 @@
 use auto_struct_macros::auto_struct;
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::*;
-use crate::{impl_position, impl_rotation, impl_scale, impl_patterned_info};
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{
+    impl_patterned_info, impl_position, impl_rotation, impl_scale, scly_props::structs::*,
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct EnergyBall<'r>
-{
+pub struct EnergyBall<'r> {
     #[auto_struct(expect = 20)]
     pub prop_count: u32,
 
@@ -37,8 +36,7 @@ pub struct EnergyBall<'r>
     pub unknown6: f32,
 }
 
-impl<'r> SclyPropertyData for EnergyBall<'r>
-{
+impl<'r> SclyPropertyData for EnergyBall<'r> {
     const OBJECT_TYPE: u8 = 0x8B;
 
     impl_position!();
@@ -50,24 +48,22 @@ impl<'r> SclyPropertyData for EnergyBall<'r>
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
         vec![
-            self.patterned_info.contact_damage.clone(),
-            self.damage_info1.clone(),
-            self.damage_info2.clone(),
+            self.patterned_info.contact_damage,
+            self.damage_info1,
+            self.damage_info2,
         ]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.patterned_info.contact_damage = x[0].clone();
-        self.damage_info1 = x[1].clone();
-        self.damage_info2 = x[2].clone();
+        self.patterned_info.contact_damage = x[0];
+        self.damage_info1 = x[1];
+        self.damage_info2 = x[2];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;
 
     fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
-        vec![
-            self.patterned_info.damage_vulnerability.clone(),
-        ]
+        vec![self.patterned_info.damage_vulnerability.clone()]
     }
 
     fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
@@ -77,9 +73,7 @@ impl<'r> SclyPropertyData for EnergyBall<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.patterned_info.health_info.clone()
-        ]
+        vec![self.patterned_info.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

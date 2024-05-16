@@ -1,15 +1,14 @@
 use auto_struct_macros::auto_struct;
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::scly_props::structs::*;
-use crate::SclyPropertyData;
-use crate::{impl_position, impl_rotation, impl_scale, impl_patterned_info};
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{
+    impl_patterned_info, impl_position, impl_rotation, impl_scale, scly_props::structs::*,
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Babygoth<'r>
-{
+pub struct Babygoth<'r> {
     #[auto_struct(expect = 33)]
     pub prop_count: u32,
 
@@ -50,8 +49,7 @@ pub struct Babygoth<'r>
     pub flame_player_ice_txtr: u32,
 }
 
-impl<'r> SclyPropertyData for Babygoth<'r>
-{
+impl<'r> SclyPropertyData for Babygoth<'r> {
     const OBJECT_TYPE: u8 = 0x66;
 
     impl_position!();
@@ -63,18 +61,18 @@ impl<'r> SclyPropertyData for Babygoth<'r>
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
         vec![
-            self.patterned_info.contact_damage.clone(),
-            self.fireball_damage.clone(),
-            self.attack_contact_damage.clone(),
-            self.fire_breath_damage.clone(),
+            self.patterned_info.contact_damage,
+            self.fireball_damage,
+            self.attack_contact_damage,
+            self.fire_breath_damage,
         ]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.patterned_info.contact_damage = x[0].clone();
-        self.fireball_damage = x[1].clone();
-        self.attack_contact_damage = x[2].clone();
-        self.fire_breath_damage = x[3].clone();
+        self.patterned_info.contact_damage = x[0];
+        self.fireball_damage = x[1];
+        self.attack_contact_damage = x[2];
+        self.fire_breath_damage = x[3];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;

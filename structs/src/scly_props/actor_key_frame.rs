@@ -1,12 +1,11 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::CStr;
+
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ActorKeyFrame<'r>
-{
+pub struct ActorKeyFrame<'r> {
     #[auto_struct(expect = 7)]
     pub prop_count: u32,
 
@@ -19,7 +18,6 @@ pub struct ActorKeyFrame<'r>
     pub total_playback: f32,
 }
 
-impl<'r> SclyPropertyData for ActorKeyFrame<'r>
-{
+impl<'r> SclyPropertyData for ActorKeyFrame<'r> {
     const OBJECT_TYPE: u8 = 0x1D;
 }

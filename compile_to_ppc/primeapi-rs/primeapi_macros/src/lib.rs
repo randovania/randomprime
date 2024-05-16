@@ -1,30 +1,22 @@
 extern crate proc_macro;
 
+use std::fmt;
+
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{
-    parenthesized,
-    parse_macro_input,
-    parse::Parser,
-    punctuated::Punctuated,
-    spanned::Spanned,
+    parenthesized, parse::Parser, parse_macro_input, punctuated::Punctuated, spanned::Spanned,
     Token,
 };
 
-use std::fmt;
-
-
-struct NameExprPair
-{
+struct NameExprPair {
     ident: syn::Ident,
     _eq_token: Token![=],
     tokens: proc_macro2::TokenStream,
 }
 
-impl syn::parse::Parse for NameExprPair
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for NameExprPair {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         Ok(NameExprPair {
             ident: input.parse()?,
             _eq_token: input.parse()?,
@@ -34,25 +26,20 @@ impl syn::parse::Parse for NameExprPair
     }
 }
 
-enum PatchKind
-{
+enum PatchKind {
     Call,
-    Return
+    Return,
 }
 
-
-struct Flags
-{
+struct Flags {
     target: syn::LitStr,
     offset: syn::LitInt,
     version: syn::Expr,
     kind: PatchKind,
 }
 
-impl syn::parse::Parse for Flags
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for Flags {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let forked = input.fork();
         let pairs = Punctuated::<NameExprPair, Token![,]>::parse_terminated(input)?;
 
@@ -62,7 +49,10 @@ impl syn::parse::Parse for Flags
         for pair in pairs {
             if pair.ident == "target" {
                 if target_and_offset.is_some() {
-                    Err(syn::Error::new(pair.ident.span(), "Duplicate `target` flag"))?;
+                    Err(syn::Error::new(
+                        pair.ident.span(),
+                        "Duplicate `target` flag",
+                    ))?;
                 }
                 let parser = |input: syn::parse::ParseStream| {
                     let name = input.parse()?;
@@ -88,11 +78,17 @@ impl syn::parse::Parse for Flags
                 } else if ident == "return" {
                     Some(PatchKind::Return)
                 } else {
-                    Err(syn::Error::new_spanned(ident, "Unknown value for `kind` flag"))?
+                    Err(syn::Error::new_spanned(
+                        ident,
+                        "Unknown value for `kind` flag",
+                    ))?
                 }
             } else if pair.ident == "version" {
                 if version.is_some() {
-                    Err(syn::Error::new(pair.ident.span(), "Duplicate `version` flag"))?;
+                    Err(syn::Error::new(
+                        pair.ident.span(),
+                        "Duplicate `version` flag",
+                    ))?;
                 }
                 version = Some(<syn::Expr as syn::parse::Parse>::parse.parse2(pair.tokens)?);
             } else {
@@ -100,18 +96,21 @@ impl syn::parse::Parse for Flags
             }
         }
 
-        let kind = kind
-            .ok_or_else(|| forked.error("Missing flag `kind`"))?;
-        let (target, offset) = target_and_offset
-            .ok_or_else(|| forked.error("Missing flag `target`"))?;
+        let kind = kind.ok_or_else(|| forked.error("Missing flag `kind`"))?;
+        let (target, offset) =
+            target_and_offset.ok_or_else(|| forked.error("Missing flag `target`"))?;
         let version = version.unwrap_or(syn::parse_quote!(Any));
-        Ok(Flags { kind, target, offset, version })
+        Ok(Flags {
+            kind,
+            target,
+            offset,
+            version,
+        })
     }
 }
 
 #[proc_macro_attribute]
-pub fn patch_fn(attr: TokenStream, item: TokenStream) -> TokenStream
-{
+pub fn patch_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as syn::ItemFn);
 
     let flags = parse_macro_input!(attr as Flags);
@@ -155,12 +154,12 @@ pub fn patch_fn(attr: TokenStream, item: TokenStream) -> TokenStream
         };
 
         #func
-    }).into()
+    })
+    .into()
 }
 
 #[proc_macro_attribute]
-pub fn prolog_fn(_attr: TokenStream, item: TokenStream) -> TokenStream
-{
+pub fn prolog_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as syn::ItemFn);
 
     let func_name = &func.sig.ident;
@@ -172,18 +171,17 @@ pub fn prolog_fn(_attr: TokenStream, item: TokenStream) -> TokenStream
         #[distributed_slice(primeapi::PROLOG_FUNCS)]
         static #static_name: unsafe extern "C" fn()  = #func_name;
         #func
-    }).into()
+    })
+    .into()
 }
 
-enum CppBaseType
-{
+enum CppBaseType {
     Named(CppPath),
     Builtin(Option<cpp_kws::unsigned>, CppBuiltinType),
     // TODO: Function(Box<CppDeclType>, Punctuated<CppDeclType, token![,]>),
 }
 
-mod cpp_kws
-{
+mod cpp_kws {
     syn::custom_keyword!(unsigned);
     syn::custom_keyword!(new);
 
@@ -198,10 +196,8 @@ mod cpp_kws
     syn::custom_keyword!(double);
 }
 
-impl syn::parse::Parse for CppBaseType
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for CppBaseType {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         macro_rules! check_lookahead {
             ($(($ctor:ident, $tk:ident),)+) => {
                 let maybe_unsigned = input.parse()?;
@@ -246,10 +242,8 @@ impl syn::parse::Parse for CppBaseType
 
 // https://github.com/Pwootage/prime-practice-native/blob/master/PrimeAPI/script/Mangle.py
 // TODO: Special case constructors
-impl fmt::Display for CppBaseType
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppBaseType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             CppBaseType::Builtin(maybe_unsigned, ty) => {
                 if maybe_unsigned.is_some() {
@@ -268,7 +262,7 @@ impl fmt::Display for CppBaseType
                     CppBuiltinType::Double => 'd',
                 };
                 write!(f, "{}", c)?;
-            },
+            }
             CppBaseType::Named(path) => write!(f, "{}", path)?,
         }
         Ok(())
@@ -276,11 +270,11 @@ impl fmt::Display for CppBaseType
 }
 
 #[derive(Debug)]
-enum CppBuiltinType
-{
+enum CppBuiltinType {
     Void,
     Bool,
-    Char, WChar,
+    Char,
+    WChar,
     Short,
     Int,
     Long,
@@ -289,27 +283,30 @@ enum CppBuiltinType
     Double,
 }
 
-struct CppPtrQualifier(Token![*], Option<Token![const]>);
+struct CppPtrQualifier {
+    _star: Token![*],
+    r#const: Option<Token![const]>,
+}
 
-struct CppDeclType
-{
+struct CppDeclType {
     const_qual: Option<Token![const]>,
     base_type: CppBaseType,
     ptr_quals: Vec<CppPtrQualifier>,
     ref_qual: Option<Token![&]>,
 }
 
-impl syn::parse::Parse for CppDeclType
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for CppDeclType {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         Ok(CppDeclType {
             const_qual: input.parse()?,
             base_type: input.parse()?,
             ptr_quals: {
                 let mut ptr_quals = vec![];
                 while input.peek(Token![*]) {
-                    ptr_quals.push(CppPtrQualifier(input.parse()?, input.parse()?))
+                    ptr_quals.push(CppPtrQualifier {
+                        _star: input.parse()?,
+                        r#const: input.parse()?,
+                    })
                 }
                 ptr_quals
             },
@@ -318,15 +315,13 @@ impl syn::parse::Parse for CppDeclType
     }
 }
 
-impl fmt::Display for CppDeclType
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppDeclType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if self.ref_qual.is_some() {
             write!(f, "R")?;
         }
         for ptr_qual in self.ptr_quals.iter() {
-            if ptr_qual.1.is_some() {
+            if ptr_qual.r#const.is_some() {
                 write!(f, "C")?;
             }
             write!(f, "P")?;
@@ -341,17 +336,13 @@ impl fmt::Display for CppDeclType
     }
 }
 
-enum CppOperatorType
-{
+enum CppOperatorType {
     New,
     Add,
 }
 
-
-impl fmt::Display for CppOperatorType
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppOperatorType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             CppOperatorType::New => write!(f, "__nw"),
             CppOperatorType::Add => write!(f, "__pl"),
@@ -359,14 +350,12 @@ impl fmt::Display for CppOperatorType
     }
 }
 
-impl syn::parse::Parse for CppOperatorType
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for CppOperatorType {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let forked = input.fork();
-        if let Ok(_) = input.parse::<cpp_kws::new>() {
+        if input.parse::<cpp_kws::new>().is_ok() {
             Ok(CppOperatorType::New)
-        } else if let Ok(_) = input.parse::<Token![+]>() {
+        } else if input.parse::<Token![+]>().is_ok() {
             Ok(CppOperatorType::Add)
         } else {
             Err(forked.error("Invalid operator type"))
@@ -374,22 +363,19 @@ impl syn::parse::Parse for CppOperatorType
     }
 }
 
-struct CppPath(Punctuated<CppPathSegment, Token![::]>);// , Option<CppOperatorType>);
-impl syn::parse::Parse for CppPath
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
-        Ok(CppPath(Punctuated::<CppPathSegment, _>::parse_separated_nonempty(input)?))
+struct CppPath(Punctuated<CppPathSegment, Token![::]>); // , Option<CppOperatorType>);
+impl syn::parse::Parse for CppPath {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
+        Ok(CppPath(
+            Punctuated::<CppPathSegment, _>::parse_separated_nonempty(input)?,
+        ))
     }
 }
 
-impl fmt::Display for CppPath
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppPath {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if self.0.len() > 1 {
             write!(f, "Q{}", self.0.len())?;
-
         }
         for seg in self.0.iter() {
             write!(f, "{}", seg)?;
@@ -398,16 +384,13 @@ impl fmt::Display for CppPath
     }
 }
 
-struct CppPathSegment
-{
+struct CppPathSegment {
     id: syn::Ident,
     template_args: Option<CppTemplateArguments>,
 }
 
-impl syn::parse::Parse for CppPathSegment
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for CppPathSegment {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         Ok(CppPathSegment {
             id: input.parse()?,
             template_args: if input.peek(Token![<]) {
@@ -419,10 +402,8 @@ impl syn::parse::Parse for CppPathSegment
     }
 }
 
-impl fmt::Display for CppPathSegment
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppPathSegment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if let Some(template_args) = &self.template_args {
             if f.alternate() {
                 write!(f, "{}{}", self.id, template_args)
@@ -431,28 +412,23 @@ impl fmt::Display for CppPathSegment
                 let id_s = self.id.to_string();
                 write!(f, "{}{}{}", id_s.len() + ta_s.len(), id_s, ta_s)
             }
+        } else if f.alternate() {
+            write!(f, "{}", self.id)
         } else {
-            if f.alternate() {
-                write!(f, "{}", self.id)
-            } else {
-                let s = self.id.to_string();
-                write!(f, "{}{}", s.len(), s)
-            }
+            let s = self.id.to_string();
+            write!(f, "{}{}", s.len(), s)
         }
     }
 }
 
-struct CppTemplateArguments
-{
+struct CppTemplateArguments {
     _left_angle_bracket: Token![<],
     params: Punctuated<CppDeclType, Token![,]>,
     _right_angle_bracket: Token![>],
 }
 
-impl fmt::Display for CppTemplateArguments
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppTemplateArguments {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "<")?;
         write!(f, "{}", self.params.first().unwrap())?;
         for param in self.params.iter().skip(1) {
@@ -463,10 +439,8 @@ impl fmt::Display for CppTemplateArguments
     }
 }
 
-impl syn::parse::Parse for CppTemplateArguments
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for CppTemplateArguments {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         Ok(CppTemplateArguments {
             _left_angle_bracket: input.parse()?,
             params: Punctuated::parse_separated_nonempty(input)?,
@@ -475,17 +449,14 @@ impl syn::parse::Parse for CppTemplateArguments
     }
 }
 
-struct CppFuncName
-{
+struct CppFuncName {
     path: CppPath,
     last_seg: CppPathSegment,
     operator_type: Option<CppOperatorType>,
 }
 
-impl syn::parse::Parse for CppFuncName
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for CppFuncName {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let mut path: CppPath = input.parse()?;
         let last_seg = path.0.pop().unwrap().into_value();
         let operator_type = if last_seg.id == "operator" {
@@ -494,15 +465,15 @@ impl syn::parse::Parse for CppFuncName
             None
         };
         Ok(CppFuncName {
-            path, last_seg, operator_type,
+            path,
+            last_seg,
+            operator_type,
         })
     }
 }
 
-impl fmt::Display for CppFuncName
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppFuncName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if self.last_seg.id == "operator" {
             write!(f, "{}__{}", self.operator_type.as_ref().unwrap(), self.path)?;
         } else {
@@ -513,18 +484,15 @@ impl fmt::Display for CppFuncName
     }
 }
 
-struct CppFuncDecl
-{
+struct CppFuncDecl {
     func_name: CppFuncName,
     _paren_token: syn::token::Paren,
     arguments: Punctuated<CppDeclType, Token![,]>,
     maybe_const: Option<Token![const]>,
 }
 
-impl syn::parse::Parse for CppFuncDecl
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self>
-    {
+impl syn::parse::Parse for CppFuncDecl {
+    fn parse(input: syn::parse::ParseStream) -> syn::parse::Result<Self> {
         let content;
         Ok(CppFuncDecl {
             func_name: input.parse()?,
@@ -535,11 +503,8 @@ impl syn::parse::Parse for CppFuncDecl
     }
 }
 
-
-impl fmt::Display for CppFuncDecl
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for CppFuncDecl {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.func_name)?;
 
         if self.maybe_const.is_some() {
@@ -556,8 +521,7 @@ impl fmt::Display for CppFuncDecl
 }
 
 #[proc_macro_attribute]
-pub fn cw_link_name(attr: TokenStream, item: TokenStream) -> TokenStream
-{
+pub fn cw_link_name(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as syn::ForeignItemFn);
 
     let cpp_decl = parse_macro_input!(attr as CppFuncDecl);
@@ -566,12 +530,12 @@ pub fn cw_link_name(attr: TokenStream, item: TokenStream) -> TokenStream
     (quote! {
         #[link_name = #mangled_name]
         #func
-    }).into()
+    })
+    .into()
 }
 
 #[proc_macro_attribute]
-pub fn cpp_method(attr: TokenStream, fn_decl: TokenStream) -> TokenStream
-{
+pub fn cpp_method(attr: TokenStream, fn_decl: TokenStream) -> TokenStream {
     let func = parse_macro_input!(fn_decl as syn::ItemFn);
 
     let cpp_decl = parse_macro_input!(attr as CppFuncDecl);
@@ -591,11 +555,10 @@ pub fn cpp_method(attr: TokenStream, fn_decl: TokenStream) -> TokenStream
         ..(sig.clone())
     };
 
-    let param_names = sig.inputs.iter()
-        .map(|param| match param {
-            syn::FnArg::Receiver(_) => syn::parse_quote!(self),
-            syn::FnArg::Typed(pattype) => pattype.pat.clone(),
-        });
+    let param_names = sig.inputs.iter().map(|param| match param {
+        syn::FnArg::Receiver(_) => syn::parse_quote!(self),
+        syn::FnArg::Typed(pattype) => pattype.pat.clone(),
+    });
 
     (quote! {
         #[inline(always)]
@@ -607,5 +570,6 @@ pub fn cpp_method(attr: TokenStream, fn_decl: TokenStream) -> TokenStream
             }
             #extern_ident(#(#param_names,)*)
         }
-    }).into()
+    })
+    .into()
 }

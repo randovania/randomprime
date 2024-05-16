@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -9,7 +10,6 @@ lazy_static! {
         }
         map
     };
-
     pub static ref ROOM_BY_INTERNAL_ID: HashMap<u32, &'static RoomLookup> = {
         let mut map = HashMap::new();
         for room in ROOM_LOOKUP.iter() {
@@ -17,18 +17,19 @@ lazy_static! {
         }
         map
     };
-
     pub static ref ROOM_BY_NAME: HashMap<(String, String), &'static RoomLookup> = {
         let mut map = HashMap::new();
         for room in ROOM_LOOKUP.iter() {
-            map.insert((room.region_name.to_string(), room.room_name.to_string()), room);
+            map.insert(
+                (room.region_name.to_string(), room.room_name.to_string()),
+                room,
+            );
         }
         map
     };
 }
 
-pub struct RoomLookup
-{
+pub struct RoomLookup {
     pub mrea_id: u32,
     pub internal_id: u32,
     pub _area_index: u32,
@@ -44,7 +45,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 19,
         region_name: "End Cinema",
-        room_name: "End Cinema"
+        room_name: "End Cinema",
     },
     RoomLookup {
         mrea_id: 0xD1241219,
@@ -52,7 +53,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 5,
         region_name: "Frigate Orpheon",
-        room_name: "Exterior Docking Hangar"
+        room_name: "Exterior Docking Hangar",
     },
     RoomLookup {
         mrea_id: 0x07640602,
@@ -60,7 +61,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 1,
         layer_count: 3,
         region_name: "Frigate Orpheon",
-        room_name: "Air Lock"
+        room_name: "Air Lock",
     },
     RoomLookup {
         mrea_id: 0x624F493A,
@@ -68,7 +69,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 2,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Deck Alpha Access Hall"
+        room_name: "Deck Alpha Access Hall",
     },
     RoomLookup {
         mrea_id: 0xC8971E99,
@@ -76,7 +77,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 3,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Deck Alpha Mech Shaft"
+        room_name: "Deck Alpha Mech Shaft",
     },
     RoomLookup {
         mrea_id: 0x20E48216,
@@ -84,7 +85,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 4,
         layer_count: 2,
         region_name: "Frigate Orpheon",
-        room_name: "Emergency Evacuation Area"
+        room_name: "Emergency Evacuation Area",
     },
     RoomLookup {
         mrea_id: 0xAE1EC8BD,
@@ -92,7 +93,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 5,
         layer_count: 2,
         region_name: "Frigate Orpheon",
-        room_name: "Connection Elevator to Deck Alpha"
+        room_name: "Connection Elevator to Deck Alpha",
     },
     RoomLookup {
         mrea_id: 0xEE21C026,
@@ -100,7 +101,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 6,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Deck Alpha Umbilical Hall"
+        room_name: "Deck Alpha Umbilical Hall",
     },
     RoomLookup {
         mrea_id: 0xC5DE3C06,
@@ -108,7 +109,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 7,
         layer_count: 2,
         region_name: "Frigate Orpheon",
-        room_name: "Biotech Research Area 2"
+        room_name: "Biotech Research Area 2",
     },
     RoomLookup {
         mrea_id: 0xCDE604F0,
@@ -116,7 +117,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 8,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Map Facility"
+        room_name: "Map Facility",
     },
     RoomLookup {
         mrea_id: 0x1055715C,
@@ -124,7 +125,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 9,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Main Ventilation Shaft Section F"
+        room_name: "Main Ventilation Shaft Section F",
     },
     RoomLookup {
         mrea_id: 0x31C44B23,
@@ -132,7 +133,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Connection Elevator to Deck Beta"
+        room_name: "Connection Elevator to Deck Beta",
     },
     RoomLookup {
         mrea_id: 0x292DDC1C,
@@ -140,7 +141,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 11,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Main Ventilation Shaft Section E"
+        room_name: "Main Ventilation Shaft Section E",
     },
     RoomLookup {
         mrea_id: 0xA8813FB6,
@@ -148,7 +149,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 12,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Deck Beta Conduit Hall"
+        room_name: "Deck Beta Conduit Hall",
     },
     RoomLookup {
         mrea_id: 0x3E05B8DC,
@@ -156,7 +157,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 13,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Main Ventilation Shaft Section D"
+        room_name: "Main Ventilation Shaft Section D",
     },
     RoomLookup {
         mrea_id: 0x85578E54,
@@ -164,7 +165,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 14,
         layer_count: 2,
         region_name: "Frigate Orpheon",
-        room_name: "Biotech Research Area 1"
+        room_name: "Biotech Research Area 1",
     },
     RoomLookup {
         mrea_id: 0x5BDC869C,
@@ -172,7 +173,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 15,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Main Ventilation Shaft Section C"
+        room_name: "Main Ventilation Shaft Section C",
     },
     RoomLookup {
         mrea_id: 0x49C59925,
@@ -180,7 +181,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 16,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Deck Beta Security Hall"
+        room_name: "Deck Beta Security Hall",
     },
     RoomLookup {
         mrea_id: 0x6ED3231B,
@@ -188,7 +189,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Connection Elevator to Deck Beta"
+        room_name: "Connection Elevator to Deck Beta",
     },
     RoomLookup {
         mrea_id: 0x093500E4,
@@ -196,7 +197,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 18,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Subventilation Shaft Section A"
+        room_name: "Subventilation Shaft Section A",
     },
     RoomLookup {
         mrea_id: 0x4CF4E25C,
@@ -204,7 +205,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 19,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Main Ventilation Shaft Section B"
+        room_name: "Main Ventilation Shaft Section B",
     },
     RoomLookup {
         mrea_id: 0xD16B26D0,
@@ -212,7 +213,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 20,
         layer_count: 2,
         region_name: "Frigate Orpheon",
-        room_name: "Biohazard Containment"
+        room_name: "Biohazard Containment",
     },
     RoomLookup {
         mrea_id: 0xE667B605,
@@ -220,7 +221,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 21,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Deck Gamma Monitor Hall"
+        room_name: "Deck Gamma Monitor Hall",
     },
     RoomLookup {
         mrea_id: 0xC0BBB28A,
@@ -228,7 +229,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 22,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Subventilation Shaft Section B"
+        room_name: "Subventilation Shaft Section B",
     },
     RoomLookup {
         mrea_id: 0x758C4F1C,
@@ -236,7 +237,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 23,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Main Ventilation Shaft Section A"
+        room_name: "Main Ventilation Shaft Section A",
     },
     RoomLookup {
         mrea_id: 0x2CA2A263,
@@ -244,7 +245,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 24,
         layer_count: 1,
         region_name: "Frigate Orpheon",
-        room_name: "Deck Beta Transit Hall"
+        room_name: "Deck Beta Transit Hall",
     },
     RoomLookup {
         mrea_id: 0x87452DC1,
@@ -252,7 +253,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 25,
         layer_count: 3,
         region_name: "Frigate Orpheon",
-        room_name: "Reactor Core"
+        room_name: "Reactor Core",
     },
     RoomLookup {
         mrea_id: 0x6FF0FD62,
@@ -260,7 +261,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 26,
         layer_count: 3,
         region_name: "Frigate Orpheon",
-        room_name: "Cargo Freight Lift to Deck Gamma"
+        room_name: "Cargo Freight Lift to Deck Gamma",
     },
     RoomLookup {
         mrea_id: 0x3EA190EE,
@@ -268,7 +269,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 27,
         layer_count: 2,
         region_name: "Frigate Orpheon",
-        room_name: "Reactor Core Entrance"
+        room_name: "Reactor Core Entrance",
     },
     RoomLookup {
         mrea_id: 0x3E6B2BB7,
@@ -276,7 +277,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 2,
         region_name: "Chozo Ruins",
-        room_name: "Transport to Tallon Overworld North"
+        room_name: "Transport to Tallon Overworld North",
     },
     RoomLookup {
         mrea_id: 0xB7F1952A,
@@ -284,7 +285,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 1,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Ruins Entrance"
+        room_name: "Ruins Entrance",
     },
     RoomLookup {
         mrea_id: 0xD5CDB809,
@@ -292,7 +293,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 2,
         layer_count: 5,
         region_name: "Chozo Ruins",
-        room_name: "Main Plaza"
+        room_name: "Main Plaza",
     },
     RoomLookup {
         mrea_id: 0x560DBE38,
@@ -300,7 +301,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 3,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Ruined Fountain Access"
+        room_name: "Ruined Fountain Access",
     },
     RoomLookup {
         mrea_id: 0xDF746AE0,
@@ -308,7 +309,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 4,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Ruined Shrine Access"
+        room_name: "Ruined Shrine Access",
     },
     RoomLookup {
         mrea_id: 0x092D89FD,
@@ -316,7 +317,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 5,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Nursery Access"
+        room_name: "Nursery Access",
     },
     RoomLookup {
         mrea_id: 0x53359457,
@@ -324,7 +325,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 6,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Plaza Access"
+        room_name: "Plaza Access",
     },
     RoomLookup {
         mrea_id: 0x2B3F1CEE,
@@ -332,7 +333,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 7,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Piston Tunnel"
+        room_name: "Piston Tunnel",
     },
     RoomLookup {
         mrea_id: 0x165A4DE9,
@@ -340,7 +341,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 8,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Ruined Fountain"
+        room_name: "Ruined Fountain",
     },
     RoomLookup {
         mrea_id: 0x3C785450,
@@ -348,7 +349,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 9,
         layer_count: 5,
         region_name: "Chozo Ruins",
-        room_name: "Ruined Shrine"
+        room_name: "Ruined Shrine",
     },
     RoomLookup {
         mrea_id: 0xCB1E8A0B,
@@ -356,7 +357,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Eyon Tunnel"
+        room_name: "Eyon Tunnel",
     },
     RoomLookup {
         mrea_id: 0xEF069019,
@@ -364,7 +365,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 11,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Vault"
+        room_name: "Vault",
     },
     RoomLookup {
         mrea_id: 0x3F04F304,
@@ -372,7 +373,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 12,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Training Chamber"
+        room_name: "Training Chamber",
     },
     RoomLookup {
         mrea_id: 0x870B0525,
@@ -380,7 +381,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 13,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Arboretum Access"
+        room_name: "Arboretum Access",
     },
     RoomLookup {
         mrea_id: 0x282B16B4,
@@ -388,7 +389,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 14,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Meditation Fountain"
+        room_name: "Meditation Fountain",
     },
     RoomLookup {
         mrea_id: 0x59E0184E,
@@ -396,7 +397,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 15,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Tower of Light Access"
+        room_name: "Tower of Light Access",
     },
     RoomLookup {
         mrea_id: 0xC2576E4D,
@@ -404,7 +405,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 16,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Ruined Nursery"
+        room_name: "Ruined Nursery",
     },
     RoomLookup {
         mrea_id: 0xA5089191,
@@ -412,7 +413,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 17,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Vault Access"
+        room_name: "Vault Access",
     },
     RoomLookup {
         mrea_id: 0x18D186BB,
@@ -420,7 +421,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 18,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Training Chamber Access"
+        room_name: "Training Chamber Access",
     },
     RoomLookup {
         mrea_id: 0x18AB6106,
@@ -428,7 +429,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 19,
         layer_count: 5,
         region_name: "Chozo Ruins",
-        room_name: "Arboretum"
+        room_name: "Arboretum",
     },
     RoomLookup {
         mrea_id: 0x491BFABA,
@@ -436,7 +437,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 20,
         layer_count: 2,
         region_name: "Chozo Ruins",
-        room_name: "Magma Pool"
+        room_name: "Magma Pool",
     },
     RoomLookup {
         mrea_id: 0x0D72F1F7,
@@ -444,7 +445,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 21,
         layer_count: 2,
         region_name: "Chozo Ruins",
-        room_name: "Tower of Light"
+        room_name: "Tower of Light",
     },
     RoomLookup {
         mrea_id: 0x1D5E482C,
@@ -452,7 +453,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 22,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Save Station 1"
+        room_name: "Save Station 1",
     },
     RoomLookup {
         mrea_id: 0x46295CA0,
@@ -460,7 +461,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 23,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "North Atrium"
+        room_name: "North Atrium",
     },
     RoomLookup {
         mrea_id: 0x8316EDF5,
@@ -468,7 +469,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 24,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Transport to Magmoor Caverns North"
+        room_name: "Transport to Magmoor Caverns North",
     },
     RoomLookup {
         mrea_id: 0x3D238FCD,
@@ -476,7 +477,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 25,
         layer_count: 2,
         region_name: "Chozo Ruins",
-        room_name: "Sunchamber Lobby"
+        room_name: "Sunchamber Lobby",
     },
     RoomLookup {
         mrea_id: 0x95F2019E,
@@ -484,7 +485,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 26,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Gathering Hall Access"
+        room_name: "Gathering Hall Access",
     },
     RoomLookup {
         mrea_id: 0x11BD63B7,
@@ -492,7 +493,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 27,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Tower Chamber"
+        room_name: "Tower Chamber",
     },
     RoomLookup {
         mrea_id: 0xE34FD92B,
@@ -500,7 +501,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 28,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Ruined Gallery"
+        room_name: "Ruined Gallery",
     },
     RoomLookup {
         mrea_id: 0xDE161372,
@@ -508,7 +509,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 29,
         layer_count: 2,
         region_name: "Chozo Ruins",
-        room_name: "Sun Tower"
+        room_name: "Sun Tower",
     },
     RoomLookup {
         mrea_id: 0x3AD2120F,
@@ -516,7 +517,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 30,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Transport Access North"
+        room_name: "Transport Access North",
     },
     RoomLookup {
         mrea_id: 0x54C40995,
@@ -524,7 +525,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 31,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Sunchamber Access"
+        room_name: "Sunchamber Access",
     },
     RoomLookup {
         mrea_id: 0x47E73BC5,
@@ -532,7 +533,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 32,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Gathering Hall"
+        room_name: "Gathering Hall",
     },
     RoomLookup {
         mrea_id: 0xEA8A4073,
@@ -540,7 +541,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 33,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Totem Access"
+        room_name: "Totem Access",
     },
     RoomLookup {
         mrea_id: 0x1A5B2E16,
@@ -548,7 +549,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 34,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Map Station"
+        room_name: "Map Station",
     },
     RoomLookup {
         mrea_id: 0x41CC90EC,
@@ -556,7 +557,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 35,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Sun Tower Access"
+        room_name: "Sun Tower Access",
     },
     RoomLookup {
         mrea_id: 0xC8309DF6,
@@ -564,7 +565,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 36,
         layer_count: 5,
         region_name: "Chozo Ruins",
-        room_name: "Hive Totem"
+        room_name: "Hive Totem",
     },
     RoomLookup {
         mrea_id: 0x9A0A03EB,
@@ -572,7 +573,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 37,
         layer_count: 7,
         region_name: "Chozo Ruins",
-        room_name: "Sunchamber"
+        room_name: "Sunchamber",
     },
     RoomLookup {
         mrea_id: 0xEEEC837D,
@@ -580,7 +581,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 38,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Watery Hall Access"
+        room_name: "Watery Hall Access",
     },
     RoomLookup {
         mrea_id: 0xF7D8954E,
@@ -588,7 +589,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 39,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Save Station 2"
+        room_name: "Save Station 2",
     },
     RoomLookup {
         mrea_id: 0x713600E3,
@@ -596,7 +597,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 40,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "East Atrium"
+        room_name: "East Atrium",
     },
     RoomLookup {
         mrea_id: 0x492CBF4A,
@@ -604,7 +605,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 41,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Watery Hall"
+        room_name: "Watery Hall",
     },
     RoomLookup {
         mrea_id: 0x463D0D2E,
@@ -612,7 +613,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 42,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Energy Core Access"
+        room_name: "Energy Core Access",
     },
     RoomLookup {
         mrea_id: 0x0F403B07,
@@ -620,7 +621,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 43,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Dynamo Access"
+        room_name: "Dynamo Access",
     },
     RoomLookup {
         mrea_id: 0xC9D52BBC,
@@ -628,7 +629,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 44,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Energy Core"
+        room_name: "Energy Core",
     },
     RoomLookup {
         mrea_id: 0x04D6C285,
@@ -636,7 +637,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 45,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Dynamo"
+        room_name: "Dynamo",
     },
     RoomLookup {
         mrea_id: 0xEF7EB590,
@@ -644,7 +645,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 46,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Burn Dome Access"
+        room_name: "Burn Dome Access",
     },
     RoomLookup {
         mrea_id: 0xC2715A58,
@@ -652,7 +653,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 47,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "West Furnace Access"
+        room_name: "West Furnace Access",
     },
     RoomLookup {
         mrea_id: 0x4148F7B0,
@@ -660,7 +661,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 48,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Burn Dome"
+        room_name: "Burn Dome",
     },
     RoomLookup {
         mrea_id: 0x2E318473,
@@ -668,7 +669,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 49,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Furnace"
+        room_name: "Furnace",
     },
     RoomLookup {
         mrea_id: 0x44E528F6,
@@ -676,7 +677,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 50,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "East Furnace Access"
+        room_name: "East Furnace Access",
     },
     RoomLookup {
         mrea_id: 0xD9E78EB0,
@@ -684,7 +685,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 51,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Crossway Access West"
+        room_name: "Crossway Access West",
     },
     RoomLookup {
         mrea_id: 0xFB54A0CB,
@@ -692,7 +693,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 52,
         layer_count: 5,
         region_name: "Chozo Ruins",
-        room_name: "Hall of the Elders"
+        room_name: "Hall of the Elders",
     },
     RoomLookup {
         mrea_id: 0x13FFF119,
@@ -700,7 +701,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 53,
         layer_count: 2,
         region_name: "Chozo Ruins",
-        room_name: "Crossway"
+        room_name: "Crossway",
     },
     RoomLookup {
         mrea_id: 0x9D516D9D,
@@ -708,7 +709,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 54,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Reflecting Pool Access"
+        room_name: "Reflecting Pool Access",
     },
     RoomLookup {
         mrea_id: 0xE1CE5BD1,
@@ -716,7 +717,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 55,
         layer_count: 3,
         region_name: "Chozo Ruins",
-        room_name: "Elder Hall Access"
+        room_name: "Elder Hall Access",
     },
     RoomLookup {
         mrea_id: 0x675A297F,
@@ -724,7 +725,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 56,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Crossway Access South"
+        room_name: "Crossway Access South",
     },
     RoomLookup {
         mrea_id: 0xE1981EFC,
@@ -732,7 +733,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 57,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Elder Chamber"
+        room_name: "Elder Chamber",
     },
     RoomLookup {
         mrea_id: 0x361ECAAC,
@@ -740,7 +741,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 58,
         layer_count: 4,
         region_name: "Chozo Ruins",
-        room_name: "Reflecting Pool"
+        room_name: "Reflecting Pool",
     },
     RoomLookup {
         mrea_id: 0x188A23AF,
@@ -748,7 +749,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 59,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Save Station 3"
+        room_name: "Save Station 3",
     },
     RoomLookup {
         mrea_id: 0xA2F90C53,
@@ -756,7 +757,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 60,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Transport Access South"
+        room_name: "Transport Access South",
     },
     RoomLookup {
         mrea_id: 0xAFEFE677,
@@ -764,7 +765,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 61,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Antechamber"
+        room_name: "Antechamber",
     },
     RoomLookup {
         mrea_id: 0xA5FA69A1,
@@ -772,7 +773,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 62,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Transport to Tallon Overworld East"
+        room_name: "Transport to Tallon Overworld East",
     },
     RoomLookup {
         mrea_id: 0x236E1B0F,
@@ -780,7 +781,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 63,
         layer_count: 1,
         region_name: "Chozo Ruins",
-        room_name: "Transport to Tallon Overworld South"
+        room_name: "Transport to Tallon Overworld South",
     },
     RoomLookup {
         mrea_id: 0xC00E3781,
@@ -788,7 +789,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 2,
         region_name: "Phendrana Drifts",
-        room_name: "Transport to Magmoor Caverns West"
+        room_name: "Transport to Magmoor Caverns West",
     },
     RoomLookup {
         mrea_id: 0xC4107CD7,
@@ -796,7 +797,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 1,
         layer_count: 2,
         region_name: "Phendrana Drifts",
-        room_name: "Shoreline Entrance"
+        room_name: "Shoreline Entrance",
     },
     RoomLookup {
         mrea_id: 0xF7285979,
@@ -804,7 +805,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 2,
         layer_count: 6,
         region_name: "Phendrana Drifts",
-        room_name: "Phendrana Shorelines"
+        room_name: "Phendrana Shorelines",
     },
     RoomLookup {
         mrea_id: 0x85D9F399,
@@ -812,7 +813,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 3,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Temple Entryway"
+        room_name: "Temple Entryway",
     },
     RoomLookup {
         mrea_id: 0x0581699D,
@@ -820,7 +821,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 4,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Save Station B"
+        room_name: "Save Station B",
     },
     RoomLookup {
         mrea_id: 0x3C13643A,
@@ -828,7 +829,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 5,
         layer_count: 5,
         region_name: "Phendrana Drifts",
-        room_name: "Ruins Entryway"
+        room_name: "Ruins Entryway",
     },
     RoomLookup {
         mrea_id: 0xC8115292,
@@ -836,7 +837,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 6,
         layer_count: 5,
         region_name: "Phendrana Drifts",
-        room_name: "Plaza Walkway"
+        room_name: "Plaza Walkway",
     },
     RoomLookup {
         mrea_id: 0x4E85203C,
@@ -844,7 +845,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 7,
         layer_count: 4,
         region_name: "Phendrana Drifts",
-        room_name: "Ice Ruins Access"
+        room_name: "Ice Ruins Access",
     },
     RoomLookup {
         mrea_id: 0x6655F51E,
@@ -852,7 +853,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 8,
         layer_count: 4,
         region_name: "Phendrana Drifts",
-        room_name: "Chozo Ice Temple"
+        room_name: "Chozo Ice Temple",
     },
     RoomLookup {
         mrea_id: 0xB33A0620,
@@ -860,7 +861,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 9,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Ice Ruins West"
+        room_name: "Ice Ruins West",
     },
     RoomLookup {
         mrea_id: 0xDAFCC26F,
@@ -868,7 +869,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Ice Ruins East"
+        room_name: "Ice Ruins East",
     },
     RoomLookup {
         mrea_id: 0xEF674B4C,
@@ -876,7 +877,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 11,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Chapel Tunnel"
+        room_name: "Chapel Tunnel",
     },
     RoomLookup {
         mrea_id: 0xCFB8ABD1,
@@ -884,7 +885,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 12,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Courtyard Entryway"
+        room_name: "Courtyard Entryway",
     },
     RoomLookup {
         mrea_id: 0x034D8137,
@@ -892,7 +893,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 13,
         layer_count: 4,
         region_name: "Phendrana Drifts",
-        room_name: "Canyon Entryway"
+        room_name: "Canyon Entryway",
     },
     RoomLookup {
         mrea_id: 0x40C548E9,
@@ -900,7 +901,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 14,
         layer_count: 2,
         region_name: "Phendrana Drifts",
-        room_name: "Chapel of the Elders"
+        room_name: "Chapel of the Elders",
     },
     RoomLookup {
         mrea_id: 0x1921876D,
@@ -908,7 +909,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 15,
         layer_count: 6,
         region_name: "Phendrana Drifts",
-        room_name: "Ruined Courtyard"
+        room_name: "Ruined Courtyard",
     },
     RoomLookup {
         mrea_id: 0xA20A7455,
@@ -916,7 +917,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 16,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Phendrana Canyon"
+        room_name: "Phendrana Canyon",
     },
     RoomLookup {
         mrea_id: 0x5694A06B,
@@ -924,7 +925,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 17,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Save Station A"
+        room_name: "Save Station A",
     },
     RoomLookup {
         mrea_id: 0xD341D2DB,
@@ -932,7 +933,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 18,
         layer_count: 4,
         region_name: "Phendrana Drifts",
-        room_name: "Specimen Storage"
+        room_name: "Specimen Storage",
     },
     RoomLookup {
         mrea_id: 0xEAB320CF,
@@ -940,7 +941,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 19,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Quarantine Access"
+        room_name: "Quarantine Access",
     },
     RoomLookup {
         mrea_id: 0xB51FCE29,
@@ -948,7 +949,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 20,
         layer_count: 7,
         region_name: "Phendrana Drifts",
-        room_name: "Research Entrance"
+        room_name: "Research Entrance",
     },
     RoomLookup {
         mrea_id: 0x05E1962E,
@@ -956,7 +957,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 21,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "North Quarantine Tunnel"
+        room_name: "North Quarantine Tunnel",
     },
     RoomLookup {
         mrea_id: 0x83151B33,
@@ -964,7 +965,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 22,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Map Station"
+        room_name: "Map Station",
     },
     RoomLookup {
         mrea_id: 0x3947E047,
@@ -972,7 +973,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 23,
         layer_count: 2,
         region_name: "Phendrana Drifts",
-        room_name: "Hydra Lab Entryway"
+        room_name: "Hydra Lab Entryway",
     },
     RoomLookup {
         mrea_id: 0x70181194,
@@ -980,7 +981,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 24,
         layer_count: 5,
         region_name: "Phendrana Drifts",
-        room_name: "Quarantine Cave"
+        room_name: "Quarantine Cave",
     },
     RoomLookup {
         mrea_id: 0x43E4CC25,
@@ -988,7 +989,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 25,
         layer_count: 5,
         region_name: "Phendrana Drifts",
-        room_name: "Research Lab Hydra"
+        room_name: "Research Lab Hydra",
     },
     RoomLookup {
         mrea_id: 0x0035FDAD,
@@ -996,7 +997,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 26,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "South Quarantine Tunnel"
+        room_name: "South Quarantine Tunnel",
     },
     RoomLookup {
         mrea_id: 0x2191A05D,
@@ -1004,7 +1005,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 27,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Quarantine Monitor"
+        room_name: "Quarantine Monitor",
     },
     RoomLookup {
         mrea_id: 0x37BBB33C,
@@ -1012,7 +1013,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 28,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Observatory Access"
+        room_name: "Observatory Access",
     },
     RoomLookup {
         mrea_id: 0xDD0B0739,
@@ -1020,7 +1021,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 29,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Transport to Magmoor Caverns South"
+        room_name: "Transport to Magmoor Caverns South",
     },
     RoomLookup {
         mrea_id: 0x3FB4A34E,
@@ -1028,7 +1029,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 30,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Observatory"
+        room_name: "Observatory",
     },
     RoomLookup {
         mrea_id: 0xD695B958,
@@ -1036,7 +1037,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 31,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Transport Access"
+        room_name: "Transport Access",
     },
     RoomLookup {
         mrea_id: 0x1E48B18F,
@@ -1044,7 +1045,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 32,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "West Tower Entrance"
+        room_name: "West Tower Entrance",
     },
     RoomLookup {
         mrea_id: 0x715C31EE,
@@ -1052,7 +1053,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 33,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Save Station D"
+        room_name: "Save Station D",
     },
     RoomLookup {
         mrea_id: 0xD79EE805,
@@ -1060,7 +1061,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 34,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Frozen Pike"
+        room_name: "Frozen Pike",
     },
     RoomLookup {
         mrea_id: 0xD79D6B9F,
@@ -1068,7 +1069,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 35,
         layer_count: 2,
         region_name: "Phendrana Drifts",
-        room_name: "West Tower"
+        room_name: "West Tower",
     },
     RoomLookup {
         mrea_id: 0x760E731A,
@@ -1076,7 +1077,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 36,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Pike Access"
+        room_name: "Pike Access",
     },
     RoomLookup {
         mrea_id: 0x39C70FB9,
@@ -1084,7 +1085,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 37,
         layer_count: 2,
         region_name: "Phendrana Drifts",
-        room_name: "Frost Cave Access"
+        room_name: "Frost Cave Access",
     },
     RoomLookup {
         mrea_id: 0x20EA1D30,
@@ -1092,7 +1093,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 38,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Hunter Cave Access"
+        room_name: "Hunter Cave Access",
     },
     RoomLookup {
         mrea_id: 0xB3C33249,
@@ -1100,7 +1101,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 39,
         layer_count: 8,
         region_name: "Phendrana Drifts",
-        room_name: "Control Tower"
+        room_name: "Control Tower",
     },
     RoomLookup {
         mrea_id: 0xA49B2544,
@@ -1108,7 +1109,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 40,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Research Core"
+        room_name: "Research Core",
     },
     RoomLookup {
         mrea_id: 0x4C6F7773,
@@ -1116,7 +1117,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 41,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Frost Cave"
+        room_name: "Frost Cave",
     },
     RoomLookup {
         mrea_id: 0x1EC7951A,
@@ -1124,7 +1125,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 42,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Hunter Cave"
+        room_name: "Hunter Cave",
     },
     RoomLookup {
         mrea_id: 0x51091931,
@@ -1132,7 +1133,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 43,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "East Tower"
+        room_name: "East Tower",
     },
     RoomLookup {
         mrea_id: 0xD8E905DD,
@@ -1140,7 +1141,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 44,
         layer_count: 3,
         region_name: "Phendrana Drifts",
-        room_name: "Research Core Access"
+        room_name: "Research Core Access",
     },
     RoomLookup {
         mrea_id: 0xCEDDBA38,
@@ -1148,7 +1149,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 45,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Save Station C"
+        room_name: "Save Station C",
     },
     RoomLookup {
         mrea_id: 0x253E76B3,
@@ -1156,7 +1157,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 46,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Upper Edge Tunnel"
+        room_name: "Upper Edge Tunnel",
     },
     RoomLookup {
         mrea_id: 0x53801084,
@@ -1164,7 +1165,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 47,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Lower Edge Tunnel"
+        room_name: "Lower Edge Tunnel",
     },
     RoomLookup {
         mrea_id: 0xCA6CC052,
@@ -1172,7 +1173,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 48,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Chamber Access"
+        room_name: "Chamber Access",
     },
     RoomLookup {
         mrea_id: 0x89D7A0A6,
@@ -1180,7 +1181,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 49,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Lake Tunnel"
+        room_name: "Lake Tunnel",
     },
     RoomLookup {
         mrea_id: 0x98DCC321,
@@ -1188,7 +1189,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 50,
         layer_count: 2,
         region_name: "Phendrana Drifts",
-        room_name: "Aether Lab Entryway"
+        room_name: "Aether Lab Entryway",
     },
     RoomLookup {
         mrea_id: 0x21B4BFF6,
@@ -1196,7 +1197,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 51,
         layer_count: 6,
         region_name: "Phendrana Drifts",
-        room_name: "Research Lab Aether"
+        room_name: "Research Lab Aether",
     },
     RoomLookup {
         mrea_id: 0x54DEF128,
@@ -1204,7 +1205,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 52,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Phendrana's Edge"
+        room_name: "Phendrana's Edge",
     },
     RoomLookup {
         mrea_id: 0x49175472,
@@ -1212,7 +1213,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 53,
         layer_count: 4,
         region_name: "Phendrana Drifts",
-        room_name: "Gravity Chamber"
+        room_name: "Gravity Chamber",
     },
     RoomLookup {
         mrea_id: 0xF7C84340,
@@ -1220,7 +1221,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 54,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Storage Cave"
+        room_name: "Storage Cave",
     },
     RoomLookup {
         mrea_id: 0x3C9490E5,
@@ -1228,7 +1229,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 55,
         layer_count: 1,
         region_name: "Phendrana Drifts",
-        room_name: "Security Cave"
+        room_name: "Security Cave",
     },
     RoomLookup {
         mrea_id: 0xB2701146,
@@ -1236,7 +1237,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 3,
         region_name: "Tallon Overworld",
-        room_name: "Landing Site"
+        room_name: "Landing Site",
     },
     RoomLookup {
         mrea_id: 0x7B143499,
@@ -1244,7 +1245,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 1,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Gully"
+        room_name: "Gully",
     },
     RoomLookup {
         mrea_id: 0xEE209548,
@@ -1252,7 +1253,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 2,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Canyon Cavern"
+        room_name: "Canyon Cavern",
     },
     RoomLookup {
         mrea_id: 0x5B4E38F5,
@@ -1260,7 +1261,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 3,
         layer_count: 3,
         region_name: "Tallon Overworld",
-        room_name: "Temple Hall"
+        room_name: "Temple Hall",
     },
     RoomLookup {
         mrea_id: 0xC44E7A07,
@@ -1268,7 +1269,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 4,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Alcove"
+        room_name: "Alcove",
     },
     RoomLookup {
         mrea_id: 0xE76AD711,
@@ -1276,7 +1277,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 5,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Waterfall Cavern"
+        room_name: "Waterfall Cavern",
     },
     RoomLookup {
         mrea_id: 0x2043C96E,
@@ -1284,7 +1285,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 6,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Tallon Canyon"
+        room_name: "Tallon Canyon",
     },
     RoomLookup {
         mrea_id: 0xBDB1FCAC,
@@ -1292,7 +1293,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 7,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Temple Security Station"
+        room_name: "Temple Security Station",
     },
     RoomLookup {
         mrea_id: 0xB9ABCD56,
@@ -1300,7 +1301,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 8,
         layer_count: 5,
         region_name: "Tallon Overworld",
-        room_name: "Frigate Crash Site"
+        room_name: "Frigate Crash Site",
     },
     RoomLookup {
         mrea_id: 0x13D96D3D,
@@ -1308,7 +1309,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 9,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport Tunnel A"
+        room_name: "Transport Tunnel A",
     },
     RoomLookup {
         mrea_id: 0x404804D9,
@@ -1316,7 +1317,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Root Tunnel"
+        room_name: "Root Tunnel",
     },
     RoomLookup {
         mrea_id: 0x234762BE,
@@ -1324,7 +1325,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 11,
         layer_count: 2,
         region_name: "Tallon Overworld",
-        room_name: "Temple Lobby"
+        room_name: "Temple Lobby",
     },
     RoomLookup {
         mrea_id: 0xBB158C7E,
@@ -1332,7 +1333,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 12,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Frigate Access Tunnel"
+        room_name: "Frigate Access Tunnel",
     },
     RoomLookup {
         mrea_id: 0xCEA263E3,
@@ -1340,7 +1341,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 13,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Overgrown Cavern"
+        room_name: "Overgrown Cavern",
     },
     RoomLookup {
         mrea_id: 0x11A02448,
@@ -1348,7 +1349,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 14,
         layer_count: 3,
         region_name: "Tallon Overworld",
-        room_name: "Transport to Chozo Ruins West"
+        room_name: "Transport to Chozo Ruins West",
     },
     RoomLookup {
         mrea_id: 0xBD8C8625,
@@ -1356,7 +1357,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 15,
         layer_count: 2,
         region_name: "Tallon Overworld",
-        room_name: "Root Cave"
+        room_name: "Root Cave",
     },
     RoomLookup {
         mrea_id: 0x2398E906,
@@ -1364,7 +1365,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 16,
         layer_count: 23,
         region_name: "Tallon Overworld",
-        room_name: "Artifact Temple"
+        room_name: "Artifact Temple",
     },
     RoomLookup {
         mrea_id: 0x5E0EE592,
@@ -1372,7 +1373,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 17,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Main Ventilation Shaft Section C"
+        room_name: "Main Ventilation Shaft Section C",
     },
     RoomLookup {
         mrea_id: 0x85CA08AB,
@@ -1380,7 +1381,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 18,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport Tunnel C"
+        room_name: "Transport Tunnel C",
     },
     RoomLookup {
         mrea_id: 0xC7E821BA,
@@ -1388,7 +1389,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 19,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport Tunnel B"
+        room_name: "Transport Tunnel B",
     },
     RoomLookup {
         mrea_id: 0x24F8AFF3,
@@ -1396,7 +1397,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 20,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Arbor Chamber"
+        room_name: "Arbor Chamber",
     },
     RoomLookup {
         mrea_id: 0xAFD4E038,
@@ -1404,7 +1405,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 21,
         layer_count: 4,
         region_name: "Tallon Overworld",
-        room_name: "Main Ventilation Shaft Section B"
+        room_name: "Main Ventilation Shaft Section B",
     },
     RoomLookup {
         mrea_id: 0x8A31665E,
@@ -1412,7 +1413,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 22,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport to Chozo Ruins East"
+        room_name: "Transport to Chozo Ruins East",
     },
     RoomLookup {
         mrea_id: 0x15D6FF8B,
@@ -1420,7 +1421,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 23,
         layer_count: 3,
         region_name: "Tallon Overworld",
-        room_name: "Transport to Magmoor Caverns East"
+        room_name: "Transport to Magmoor Caverns East",
     },
     RoomLookup {
         mrea_id: 0x66CBE887,
@@ -1428,7 +1429,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 24,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Main Ventilation Shaft Section A"
+        room_name: "Main Ventilation Shaft Section A",
     },
     RoomLookup {
         mrea_id: 0xEE09629A,
@@ -1436,7 +1437,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 25,
         layer_count: 4,
         region_name: "Tallon Overworld",
-        room_name: "Reactor Core"
+        room_name: "Reactor Core",
     },
     RoomLookup {
         mrea_id: 0xFB427580,
@@ -1444,7 +1445,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 26,
         layer_count: 4,
         region_name: "Tallon Overworld",
-        room_name: "Reactor Access"
+        room_name: "Reactor Access",
     },
     RoomLookup {
         mrea_id: 0x37B3AFE6,
@@ -1452,7 +1453,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 27,
         layer_count: 4,
         region_name: "Tallon Overworld",
-        room_name: "Cargo Freight Lift to Deck Gamma"
+        room_name: "Cargo Freight Lift to Deck Gamma",
     },
     RoomLookup {
         mrea_id: 0xF0594C6D,
@@ -1460,7 +1461,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 28,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Savestation"
+        room_name: "Savestation",
     },
     RoomLookup {
         mrea_id: 0x4A96005E,
@@ -1468,7 +1469,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 29,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Deck Beta Transit Hall"
+        room_name: "Deck Beta Transit Hall",
     },
     RoomLookup {
         mrea_id: 0xAC2C58FE,
@@ -1476,7 +1477,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 30,
         layer_count: 5,
         region_name: "Tallon Overworld",
-        room_name: "Biohazard Containment"
+        room_name: "Biohazard Containment",
     },
     RoomLookup {
         mrea_id: 0x76F6E356,
@@ -1484,7 +1485,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 31,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Deck Beta Security Hall"
+        room_name: "Deck Beta Security Hall",
     },
     RoomLookup {
         mrea_id: 0x5F2EB7B6,
@@ -1492,7 +1493,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 32,
         layer_count: 4,
         region_name: "Tallon Overworld",
-        room_name: "Biotech Research Area 1"
+        room_name: "Biotech Research Area 1",
     },
     RoomLookup {
         mrea_id: 0xC3D44A6E,
@@ -1500,7 +1501,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 33,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Deck Beta Conduit Hall"
+        room_name: "Deck Beta Conduit Hall",
     },
     RoomLookup {
         mrea_id: 0xE47228EF,
@@ -1508,7 +1509,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 34,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Connection Elevator to Deck Beta"
+        room_name: "Connection Elevator to Deck Beta",
     },
     RoomLookup {
         mrea_id: 0xFFB4A966,
@@ -1516,7 +1517,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 35,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Hydro Access Tunnel"
+        room_name: "Hydro Access Tunnel",
     },
     RoomLookup {
         mrea_id: 0xF47DBE5B,
@@ -1524,7 +1525,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 36,
         layer_count: 3,
         region_name: "Tallon Overworld",
-        room_name: "Great Tree Hall"
+        room_name: "Great Tree Hall",
     },
     RoomLookup {
         mrea_id: 0xC5D6A597,
@@ -1532,7 +1533,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 37,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Great Tree Chamber"
+        room_name: "Great Tree Chamber",
     },
     RoomLookup {
         mrea_id: 0x1A932F64,
@@ -1540,7 +1541,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 38,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport Tunnel D"
+        room_name: "Transport Tunnel D",
     },
     RoomLookup {
         mrea_id: 0xB4FBBEF5,
@@ -1548,7 +1549,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 39,
         layer_count: 2,
         region_name: "Tallon Overworld",
-        room_name: "Life Grove Tunnel"
+        room_name: "Life Grove Tunnel",
     },
     RoomLookup {
         mrea_id: 0x9D330A07,
@@ -1556,7 +1557,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 40,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport Tunnel E"
+        room_name: "Transport Tunnel E",
     },
     RoomLookup {
         mrea_id: 0x0CA514F0,
@@ -1564,7 +1565,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 41,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport to Chozo Ruins South"
+        room_name: "Transport to Chozo Ruins South",
     },
     RoomLookup {
         mrea_id: 0x86EB2E02,
@@ -1572,7 +1573,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 42,
         layer_count: 3,
         region_name: "Tallon Overworld",
-        room_name: "Life Grove"
+        room_name: "Life Grove",
     },
     RoomLookup {
         mrea_id: 0x7D106670,
@@ -1580,7 +1581,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 43,
         layer_count: 1,
         region_name: "Tallon Overworld",
-        room_name: "Transport to Phazon Mines East"
+        room_name: "Transport to Phazon Mines East",
     },
     RoomLookup {
         mrea_id: 0x430E999C,
@@ -1588,7 +1589,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Transport to Tallon Overworld South"
+        room_name: "Transport to Tallon Overworld South",
     },
     RoomLookup {
         mrea_id: 0x68CC7758,
@@ -1596,7 +1597,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 1,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Quarry Access"
+        room_name: "Quarry Access",
     },
     RoomLookup {
         mrea_id: 0x643D038F,
@@ -1604,7 +1605,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 2,
         layer_count: 7,
         region_name: "Phazon Mines",
-        room_name: "Main Quarry"
+        room_name: "Main Quarry",
     },
     RoomLookup {
         mrea_id: 0x27A391B7,
@@ -1612,7 +1613,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 3,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Waste Disposal"
+        room_name: "Waste Disposal",
     },
     RoomLookup {
         mrea_id: 0x361D41B0,
@@ -1620,7 +1621,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 4,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Save Station Mines A"
+        room_name: "Save Station Mines A",
     },
     RoomLookup {
         mrea_id: 0xC7653A92,
@@ -1628,7 +1629,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 5,
         layer_count: 4,
         region_name: "Phazon Mines",
-        room_name: "Security Access A"
+        room_name: "Security Access A",
     },
     RoomLookup {
         mrea_id: 0x97D2B2F6,
@@ -1636,7 +1637,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 6,
         layer_count: 5,
         region_name: "Phazon Mines",
-        room_name: "Ore Processing"
+        room_name: "Ore Processing",
     },
     RoomLookup {
         mrea_id: 0x956F1552,
@@ -1644,7 +1645,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 7,
         layer_count: 6,
         region_name: "Phazon Mines",
-        room_name: "Mine Security Station"
+        room_name: "Mine Security Station",
     },
     RoomLookup {
         mrea_id: 0x4346A747,
@@ -1652,7 +1653,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 8,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Research Access"
+        room_name: "Research Access",
     },
     RoomLookup {
         mrea_id: 0xE39C342B,
@@ -1660,7 +1661,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 9,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Storage Depot B"
+        room_name: "Storage Depot B",
     },
     RoomLookup {
         mrea_id: 0x26219C01,
@@ -1668,7 +1669,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Elevator Access A"
+        room_name: "Elevator Access A",
     },
     RoomLookup {
         mrea_id: 0xA20201D4,
@@ -1676,7 +1677,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 11,
         layer_count: 3,
         region_name: "Phazon Mines",
-        room_name: "Security Access B"
+        room_name: "Security Access B",
     },
     RoomLookup {
         mrea_id: 0x35C5D736,
@@ -1684,7 +1685,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 12,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Storage Depot A"
+        room_name: "Storage Depot A",
     },
     RoomLookup {
         mrea_id: 0x8A97BB54,
@@ -1692,7 +1693,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 13,
         layer_count: 6,
         region_name: "Phazon Mines",
-        room_name: "Elite Research"
+        room_name: "Elite Research",
     },
     RoomLookup {
         mrea_id: 0x0146ED43,
@@ -1700,7 +1701,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 14,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Elevator A"
+        room_name: "Elevator A",
     },
     RoomLookup {
         mrea_id: 0x8988D1CB,
@@ -1708,7 +1709,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 15,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Elite Control Access"
+        room_name: "Elite Control Access",
     },
     RoomLookup {
         mrea_id: 0xC50AF17A,
@@ -1716,7 +1717,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 16,
         layer_count: 6,
         region_name: "Phazon Mines",
-        room_name: "Elite Control"
+        room_name: "Elite Control",
     },
     RoomLookup {
         mrea_id: 0xECEFEA8D,
@@ -1724,7 +1725,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 17,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Maintenance Tunnel"
+        room_name: "Maintenance Tunnel",
     },
     RoomLookup {
         mrea_id: 0x90709AAC,
@@ -1732,7 +1733,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 18,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Ventilation Shaft"
+        room_name: "Ventilation Shaft",
     },
     RoomLookup {
         mrea_id: 0xAD2E7EB9,
@@ -1740,7 +1741,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 19,
         layer_count: 4,
         region_name: "Phazon Mines",
-        room_name: "Phazon Processing Center"
+        room_name: "Phazon Processing Center",
     },
     RoomLookup {
         mrea_id: 0x3F375ECC,
@@ -1748,7 +1749,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 20,
         layer_count: 5,
         region_name: "Phazon Mines",
-        room_name: "Omega Research"
+        room_name: "Omega Research",
     },
     RoomLookup {
         mrea_id: 0x42C4AAF1,
@@ -1756,7 +1757,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 21,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Transport Access"
+        room_name: "Transport Access",
     },
     RoomLookup {
         mrea_id: 0xED6DE73B,
@@ -1764,7 +1765,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 22,
         layer_count: 4,
         region_name: "Phazon Mines",
-        room_name: "Processing Center Access"
+        room_name: "Processing Center Access",
     },
     RoomLookup {
         mrea_id: 0x198FF5DC,
@@ -1772,7 +1773,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 23,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Map Station Mines"
+        room_name: "Map Station Mines",
     },
     RoomLookup {
         mrea_id: 0xF517A1EA,
@@ -1780,7 +1781,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 24,
         layer_count: 4,
         region_name: "Phazon Mines",
-        room_name: "Dynamo Access"
+        room_name: "Dynamo Access",
     },
     RoomLookup {
         mrea_id: 0xE2C2CF38,
@@ -1788,7 +1789,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 25,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Transport to Magmoor Caverns South"
+        room_name: "Transport to Magmoor Caverns South",
     },
     RoomLookup {
         mrea_id: 0x3953C353,
@@ -1796,7 +1797,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 26,
         layer_count: 6,
         region_name: "Phazon Mines",
-        room_name: "Elite Quarters"
+        room_name: "Elite Quarters",
     },
     RoomLookup {
         mrea_id: 0xFEA372E2,
@@ -1804,7 +1805,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 27,
         layer_count: 6,
         region_name: "Phazon Mines",
-        room_name: "Central Dynamo"
+        room_name: "Central Dynamo",
     },
     RoomLookup {
         mrea_id: 0x71343C3F,
@@ -1812,7 +1813,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 28,
         layer_count: 3,
         region_name: "Phazon Mines",
-        room_name: "Elite Quarters Access"
+        room_name: "Elite Quarters Access",
     },
     RoomLookup {
         mrea_id: 0x5ABEEC20,
@@ -1820,7 +1821,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 29,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Quarantine Access A"
+        room_name: "Quarantine Access A",
     },
     RoomLookup {
         mrea_id: 0x7BD5E0BB,
@@ -1828,7 +1829,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 30,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Save Station Mines B"
+        room_name: "Save Station Mines B",
     },
     RoomLookup {
         mrea_id: 0xBB3AFC4E,
@@ -1836,7 +1837,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 31,
         layer_count: 6,
         region_name: "Phazon Mines",
-        room_name: "Metroid Quarantine B"
+        room_name: "Metroid Quarantine B",
     },
     RoomLookup {
         mrea_id: 0xFB051F5A,
@@ -1844,7 +1845,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 32,
         layer_count: 7,
         region_name: "Phazon Mines",
-        room_name: "Metroid Quarantine A"
+        room_name: "Metroid Quarantine A",
     },
     RoomLookup {
         mrea_id: 0x14530779,
@@ -1852,7 +1853,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 33,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Quarantine Access B"
+        room_name: "Quarantine Access B",
     },
     RoomLookup {
         mrea_id: 0x66D0D003,
@@ -1860,7 +1861,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 34,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Save Station Mines C"
+        room_name: "Save Station Mines C",
     },
     RoomLookup {
         mrea_id: 0x3FD9D766,
@@ -1868,7 +1869,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 35,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Elevator Access B"
+        room_name: "Elevator Access B",
     },
     RoomLookup {
         mrea_id: 0xEC47C242,
@@ -1876,7 +1877,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 36,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Fungal Hall B"
+        room_name: "Fungal Hall B",
     },
     RoomLookup {
         mrea_id: 0xE87957E0,
@@ -1884,7 +1885,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 37,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Elevator B"
+        room_name: "Elevator B",
     },
     RoomLookup {
         mrea_id: 0xB089331E,
@@ -1892,7 +1893,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 38,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Missile Station Mines"
+        room_name: "Missile Station Mines",
     },
     RoomLookup {
         mrea_id: 0xBBFA4AB3,
@@ -1900,7 +1901,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 39,
         layer_count: 1,
         region_name: "Phazon Mines",
-        room_name: "Phazon Mining Tunnel"
+        room_name: "Phazon Mining Tunnel",
     },
     RoomLookup {
         mrea_id: 0xDE9D71F5,
@@ -1908,7 +1909,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 40,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Fungal Hall Access"
+        room_name: "Fungal Hall Access",
     },
     RoomLookup {
         mrea_id: 0x0F5277D1,
@@ -1916,7 +1917,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 41,
         layer_count: 2,
         region_name: "Phazon Mines",
-        room_name: "Fungal Hall A"
+        room_name: "Fungal Hall A",
     },
     RoomLookup {
         mrea_id: 0x3BEAADC9,
@@ -1924,7 +1925,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 2,
         region_name: "Magmoor Caverns",
-        room_name: "Transport to Chozo Ruins North"
+        room_name: "Transport to Chozo Ruins North",
     },
     RoomLookup {
         mrea_id: 0x6D434F4E,
@@ -1932,7 +1933,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 1,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Burning Trail"
+        room_name: "Burning Trail",
     },
     RoomLookup {
         mrea_id: 0x79784D3D,
@@ -1940,7 +1941,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 2,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Lake Tunnel"
+        room_name: "Lake Tunnel",
     },
     RoomLookup {
         mrea_id: 0x09B3E01C,
@@ -1948,7 +1949,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 3,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Save Station Magmoor A"
+        room_name: "Save Station Magmoor A",
     },
     RoomLookup {
         mrea_id: 0xA4719C6A,
@@ -1956,7 +1957,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 4,
         layer_count: 5,
         region_name: "Magmoor Caverns",
-        room_name: "Lava Lake"
+        room_name: "Lava Lake",
     },
     RoomLookup {
         mrea_id: 0xDA2ECB94,
@@ -1964,7 +1965,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 5,
         layer_count: 2,
         region_name: "Magmoor Caverns",
-        room_name: "Pit Tunnel"
+        room_name: "Pit Tunnel",
     },
     RoomLookup {
         mrea_id: 0xBAD9EDBF,
@@ -1972,7 +1973,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 6,
         layer_count: 4,
         region_name: "Magmoor Caverns",
-        room_name: "Triclops Pit"
+        room_name: "Triclops Pit",
     },
     RoomLookup {
         mrea_id: 0x0DCC4BCC,
@@ -1980,7 +1981,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 7,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Monitor Tunnel"
+        room_name: "Monitor Tunnel",
     },
     RoomLookup {
         mrea_id: 0xADEF843E,
@@ -1988,7 +1989,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 8,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Storage Cavern"
+        room_name: "Storage Cavern",
     },
     RoomLookup {
         mrea_id: 0x0C57A641,
@@ -1996,7 +1997,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 9,
         layer_count: 4,
         region_name: "Magmoor Caverns",
-        room_name: "Monitor Station"
+        room_name: "Monitor Station",
     },
     RoomLookup {
         mrea_id: 0x47F2C087,
@@ -2004,7 +2005,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Transport Tunnel A"
+        room_name: "Transport Tunnel A",
     },
     RoomLookup {
         mrea_id: 0x89A6CB8D,
@@ -2012,7 +2013,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 11,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Warrior Shrine"
+        room_name: "Warrior Shrine",
     },
     RoomLookup {
         mrea_id: 0x901040DF,
@@ -2020,7 +2021,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 12,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Shore Tunnel"
+        room_name: "Shore Tunnel",
     },
     RoomLookup {
         mrea_id: 0xDCA9A28B,
@@ -2028,7 +2029,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 13,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Transport to Phendrana Drifts North"
+        room_name: "Transport to Phendrana Drifts North",
     },
     RoomLookup {
         mrea_id: 0xF5EF1862,
@@ -2036,7 +2037,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 14,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Fiery Shores"
+        room_name: "Fiery Shores",
     },
     RoomLookup {
         mrea_id: 0x3346C676,
@@ -2044,7 +2045,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 15,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Transport Tunnel B"
+        room_name: "Transport Tunnel B",
     },
     RoomLookup {
         mrea_id: 0x4C3D244C,
@@ -2052,7 +2053,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 16,
         layer_count: 2,
         region_name: "Magmoor Caverns",
-        room_name: "Transport to Tallon Overworld West"
+        room_name: "Transport to Tallon Overworld West",
     },
     RoomLookup {
         mrea_id: 0xE4A4462E,
@@ -2060,7 +2061,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 17,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Twin Fires Tunnel"
+        room_name: "Twin Fires Tunnel",
     },
     RoomLookup {
         mrea_id: 0x4C784BEA,
@@ -2068,7 +2069,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 18,
         layer_count: 3,
         region_name: "Magmoor Caverns",
-        room_name: "Twin Fires"
+        room_name: "Twin Fires",
     },
     RoomLookup {
         mrea_id: 0xA73BD0E0,
@@ -2076,7 +2077,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 19,
         layer_count: 2,
         region_name: "Magmoor Caverns",
-        room_name: "North Core Tunnel"
+        room_name: "North Core Tunnel",
     },
     RoomLookup {
         mrea_id: 0xC0498676,
@@ -2084,7 +2085,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 20,
         layer_count: 7,
         region_name: "Magmoor Caverns",
-        room_name: "Geothermal Core"
+        room_name: "Geothermal Core",
     },
     RoomLookup {
         mrea_id: 0x4CC18E5A,
@@ -2092,7 +2093,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 21,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Plasma Processing"
+        room_name: "Plasma Processing",
     },
     RoomLookup {
         mrea_id: 0x70D950B8,
@@ -2100,7 +2101,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 22,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "South Core Tunnel"
+        room_name: "South Core Tunnel",
     },
     RoomLookup {
         mrea_id: 0x8ABEB3C3,
@@ -2108,7 +2109,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 23,
         layer_count: 4,
         region_name: "Magmoor Caverns",
-        room_name: "Magmoor Workstation"
+        room_name: "Magmoor Workstation",
     },
     RoomLookup {
         mrea_id: 0x046D5649,
@@ -2116,7 +2117,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 24,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Workstation Tunnel"
+        room_name: "Workstation Tunnel",
     },
     RoomLookup {
         mrea_id: 0xD38FD611,
@@ -2124,7 +2125,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 25,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Transport Tunnel C"
+        room_name: "Transport Tunnel C",
     },
     RoomLookup {
         mrea_id: 0xEF2F1440,
@@ -2132,7 +2133,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 26,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Transport to Phazon Mines West"
+        room_name: "Transport to Phazon Mines West",
     },
     RoomLookup {
         mrea_id: 0xC1AC9233,
@@ -2140,7 +2141,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 27,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Transport to Phendrana Drifts South"
+        room_name: "Transport to Phendrana Drifts South",
     },
     RoomLookup {
         mrea_id: 0x7F56D921,
@@ -2148,7 +2149,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 28,
         layer_count: 1,
         region_name: "Magmoor Caverns",
-        room_name: "Save Station Magmoor B"
+        room_name: "Save Station Magmoor B",
     },
     RoomLookup {
         mrea_id: 0x93668996,
@@ -2156,7 +2157,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 0,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Crater Entry Point"
+        room_name: "Crater Entry Point",
     },
     RoomLookup {
         mrea_id: 0x49CB2363,
@@ -2164,7 +2165,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 1,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Crater Tunnel A"
+        room_name: "Crater Tunnel A",
     },
     RoomLookup {
         mrea_id: 0xBD946AC3,
@@ -2172,7 +2173,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 2,
         layer_count: 2,
         region_name: "Impact Crater",
-        room_name: "Phazon Core"
+        room_name: "Phazon Core",
     },
     RoomLookup {
         mrea_id: 0x4D446C3F,
@@ -2180,7 +2181,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 3,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Crater Missile Station"
+        room_name: "Crater Missile Station",
     },
     RoomLookup {
         mrea_id: 0x32D5A180,
@@ -2188,7 +2189,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 4,
         layer_count: 2,
         region_name: "Impact Crater",
-        room_name: "Crater Tunnel B"
+        room_name: "Crater Tunnel B",
     },
     RoomLookup {
         mrea_id: 0x67156A0D,
@@ -2196,7 +2197,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 5,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Phazon Infusion Chamber"
+        room_name: "Phazon Infusion Chamber",
     },
     RoomLookup {
         mrea_id: 0xDADF06C3,
@@ -2204,7 +2205,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 6,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Subchamber One"
+        room_name: "Subchamber One",
     },
     RoomLookup {
         mrea_id: 0x0749DF46,
@@ -2212,7 +2213,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 7,
         layer_count: 3,
         region_name: "Impact Crater",
-        room_name: "Subchamber Two"
+        room_name: "Subchamber Two",
     },
     RoomLookup {
         mrea_id: 0x7A3AD91E,
@@ -2220,7 +2221,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 8,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Subchamber Three"
+        room_name: "Subchamber Three",
     },
     RoomLookup {
         mrea_id: 0xA7AC009B,
@@ -2228,7 +2229,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 9,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Subchamber Four"
+        room_name: "Subchamber Four",
     },
     RoomLookup {
         mrea_id: 0x77714498,
@@ -2236,7 +2237,7 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 10,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Subchamber Five"
+        room_name: "Subchamber Five",
     },
     RoomLookup {
         mrea_id: 0x1A666C55,
@@ -2244,8 +2245,6 @@ const ROOM_LOOKUP: &[RoomLookup] = &[
         _area_index: 11,
         layer_count: 1,
         region_name: "Impact Crater",
-        room_name: "Metroid Prime Lair"
+        room_name: "Metroid Prime Lair",
     },
-    
-    
 ];

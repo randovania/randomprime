@@ -1,17 +1,18 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_structs::*;
-use crate::res_id:: *;
-use crate::scly_props::structs::{ActorParameters, DamageInfo, PatternedInfo, RidleyStruct1, RidleyStruct2};
+use crate::{
+    res_id::*,
+    scly_props::structs::{
+        ActorParameters, DamageInfo, PatternedInfo, RidleyStruct1, RidleyStruct2,
+    },
+    scly_structs::*,
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct RidleyV1<'r>
-{
+pub struct RidleyV1<'r> {
     #[auto_struct(expect = 48)]
     pub prop_count: u32,
 
@@ -59,9 +60,8 @@ pub struct RidleyV1<'r>
     pub damage_info8: DamageInfo,
 }
 
-use crate::{impl_position, impl_rotation, impl_scale, impl_patterned_info};
-impl<'r> SclyPropertyData for RidleyV1<'r>
-{
+use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+impl<'r> SclyPropertyData for RidleyV1<'r> {
     const OBJECT_TYPE: u8 = 0x7B;
     impl_position!();
     impl_rotation!();
@@ -72,36 +72,34 @@ impl<'r> SclyPropertyData for RidleyV1<'r>
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
         vec![
-            self.patterned_info.contact_damage.clone(),
-            self.damage_info1.clone(),
-            self.damage_info2.clone(),
-            self.damage_info3.clone(),
-            self.damage_info4.clone(),
-            self.damage_info5.clone(),
-            self.damage_info6.clone(),
-            self.damage_info7.clone(),
-            self.damage_info8.clone(),
+            self.patterned_info.contact_damage,
+            self.damage_info1,
+            self.damage_info2,
+            self.damage_info3,
+            self.damage_info4,
+            self.damage_info5,
+            self.damage_info6,
+            self.damage_info7,
+            self.damage_info8,
         ]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.patterned_info.contact_damage = x[0].clone();
-        self.damage_info1 = x[1].clone();
-        self.damage_info2 = x[2].clone();
-        self.damage_info3 = x[3].clone();
-        self.damage_info4 = x[4].clone();
-        self.damage_info5 = x[5].clone();
-        self.damage_info6 = x[6].clone();
-        self.damage_info7 = x[7].clone();
-        self.damage_info8 = x[8].clone();
+        self.patterned_info.contact_damage = x[0];
+        self.damage_info1 = x[1];
+        self.damage_info2 = x[2];
+        self.damage_info3 = x[3];
+        self.damage_info4 = x[4];
+        self.damage_info5 = x[5];
+        self.damage_info6 = x[6];
+        self.damage_info7 = x[7];
+        self.damage_info8 = x[8];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;
 
     fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
-        vec![
-            self.patterned_info.damage_vulnerability.clone(),
-        ]
+        vec![self.patterned_info.damage_vulnerability.clone()]
     }
 
     fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
@@ -111,9 +109,7 @@ impl<'r> SclyPropertyData for RidleyV1<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.patterned_info.health_info.clone()
-        ]
+        vec![self.patterned_info.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

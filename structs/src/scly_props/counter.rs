@@ -1,12 +1,11 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::CStr;
+
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Counter<'r>
-{
+pub struct Counter<'r> {
     #[auto_struct(expect = 5)]
     pub prop_count: u32,
 
@@ -18,7 +17,6 @@ pub struct Counter<'r>
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for Counter<'r>
-{
+impl<'r> SclyPropertyData for Counter<'r> {
     const OBJECT_TYPE: u8 = 0x06;
 }

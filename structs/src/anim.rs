@@ -1,24 +1,20 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{
+    generic_array::{typenum::*, GenericArray},
+    Readable, Reader, RoArray,
+};
 
-use reader_writer::{Readable, Reader, RoArray};
-use reader_writer::generic_array::{GenericArray, typenum:: *};
-
-use crate::ResId;
-use crate::res_id::*;
+use crate::{res_id::*, ResId};
 
 #[derive(Debug, Clone)]
-pub enum Anim<'r>
-{
+pub enum Anim<'r> {
     Uncompressed(AnimUncompressed<'r>),
     Compressed(AnimCompressed<'r>),
 }
 
-
-impl<'r> Readable<'r> for Anim<'r>
-{
+impl<'r> Readable<'r> for Anim<'r> {
     type Args = ();
-    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self {
         let kind: u32 = reader.read(());
         let res = match kind {
             0 => Anim::Uncompressed(reader.read(())),
@@ -28,12 +24,12 @@ impl<'r> Readable<'r> for Anim<'r>
         res
     }
 
-    fn size(&self) -> usize
-    {
-        u32::fixed_size().unwrap() + match self {
-            Anim::Uncompressed(ref i) => i.size(),
-            Anim::Compressed(ref i) => i.size(),
-        }
+    fn size(&self) -> usize {
+        u32::fixed_size().unwrap()
+            + match self {
+                Anim::Uncompressed(ref i) => i.size(),
+                Anim::Compressed(ref i) => i.size(),
+            }
     }
 }
 
@@ -52,8 +48,7 @@ impl<'r> Writable for Anim<'r>
 
 #[auto_struct(Readable)]
 #[derive(Debug, Clone)]
-pub struct AnimUncompressed<'r>
-{
+pub struct AnimUncompressed<'r> {
     duration: CharAnimTime,
     key_interval: CharAnimTime,
     key_count: u32,
@@ -82,11 +77,9 @@ pub struct AnimUncompressed<'r>
     evnt: ResId<EVNT>,
 }
 
-
 #[auto_struct(Readable)]
 #[derive(Debug, Clone)]
-pub struct AnimCompressed<'r>
-{
+pub struct AnimCompressed<'r> {
     scratch_size: u32,
     evnt: ResId<EVNT>,
 
@@ -110,7 +103,6 @@ pub struct AnimCompressed<'r>
     key_bitmap_array: RoArray<u32, 'r>,
 
     bone_channel_count_2: u32,
-
     // #[auto_struct(derive = bone_channel_descriptor_array.len() as u32)]
     // bone_channel_descriptor_count: u32,
     // #[auto_struct(init = (bone_channel_descriptor_count as usize, ()))]
@@ -142,8 +134,7 @@ pub struct AnimCompressed<'r>
 #[auto_struct(Readable, FixedSize)]
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct CharAnimTime
-{
+pub struct CharAnimTime {
     time: f32,
     differential_state: u32,
 }

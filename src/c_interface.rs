@@ -1,62 +1,44 @@
-
-
-
-use crate::patches;
-
-
-
-use crate::patch_config::PatchConfig;
-
 use std::{
     cell::Cell,
     ffi::{CStr, CString},
+    os::raw::c_char,
     panic,
     path::Path,
-    os::raw::c_char,
     time::Instant,
 };
 
-use serde::{Serialize};
+use serde::Serialize;
+
+use crate::{patch_config::PatchConfig, patches};
 
 #[derive(Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
-enum CbMessage<'a>
-{
+enum CbMessage<'a> {
     Success,
-    Error {
-        msg: &'a str,
-    },
-    Progress {
-        percent: f64,
-        msg: &'a str,
-    },
+    Error { msg: &'a str },
+    Progress { percent: f64, msg: &'a str },
 }
 
-impl<'a> CbMessage<'a>
-{
-    fn success_json() -> CString
-    {
+impl<'a> CbMessage<'a> {
+    fn success_json() -> CString {
         CString::new(serde_json::to_string(&CbMessage::Success).unwrap()).unwrap()
     }
 
-    fn error_json(msg: &str) -> CString
-    {
+    fn error_json(msg: &str) -> CString {
         let msg = CbMessage::fix_msg(msg);
         let cbmsg = CbMessage::Error { msg };
         CString::new(serde_json::to_string(&cbmsg).unwrap()).unwrap()
     }
 
-    fn progress_json(percent: f64, msg: &str) -> CString
-    {
+    fn progress_json(percent: f64, msg: &str) -> CString {
         let msg = CbMessage::fix_msg(msg);
         let cbmsg = CbMessage::Progress { percent, msg };
         CString::new(serde_json::to_string(&cbmsg).unwrap()).unwrap()
     }
 
     /// Remove all of the bytes after the first null byte
-    fn fix_msg(msg: &str) -> &str
-    {
+    fn fix_msg(msg: &str) -> &str {
         if let Some(pos) = msg.bytes().position(|i| i == b'\0') {
             &msg[..pos]
         } else {
@@ -65,51 +47,48 @@ impl<'a> CbMessage<'a>
     }
 }
 
-
-struct ProgressNotifier
-{
+struct ProgressNotifier {
     total_size: usize,
     bytes_so_far: usize,
     cb_data: *const (),
-    cb: extern fn(*const (), *const c_char)
+    cb: extern "C" fn(*const (), *const c_char),
 }
 
-impl ProgressNotifier
-{
-    fn new(cb_data: *const (), cb: extern fn(*const (), *const c_char))
-        -> ProgressNotifier
-    {
+impl ProgressNotifier {
+    fn new(cb_data: *const (), cb: extern "C" fn(*const (), *const c_char)) -> ProgressNotifier {
         ProgressNotifier {
             total_size: 0,
             bytes_so_far: 0,
-            cb, cb_data
+            cb,
+            cb_data,
         }
     }
 }
 
-impl structs::ProgressNotifier for ProgressNotifier
-{
-    fn notify_total_bytes(&mut self, total_size: usize)
-    {
+impl structs::ProgressNotifier for ProgressNotifier {
+    fn notify_total_bytes(&mut self, total_size: usize) {
         self.total_size = total_size
     }
 
-    fn notify_writing_file(&mut self, file_name: &reader_writer::CStr, file_bytes: usize)
-    {
+    fn notify_writing_file(&mut self, file_name: &reader_writer::CStr, file_bytes: usize) {
         let percent = self.bytes_so_far as f64 / self.total_size as f64 * 100.;
         let msg = format!("Writing file {:?}", file_name);
-        (self.cb)(self.cb_data, CbMessage::progress_json(percent, &msg).as_ptr());
+        (self.cb)(
+            self.cb_data,
+            CbMessage::progress_json(percent, &msg).as_ptr(),
+        );
         self.bytes_so_far += file_bytes;
     }
 
-    fn notify_writing_header(&mut self)
-    {
+    fn notify_writing_header(&mut self) {
         let percent = self.bytes_so_far as f64 / self.total_size as f64 * 100.;
-        (self.cb)(self.cb_data, CbMessage::progress_json(percent, "Writing ISO header").as_ptr());
+        (self.cb)(
+            self.cb_data,
+            CbMessage::progress_json(percent, "Writing ISO header").as_ptr(),
+        );
     }
 
-    fn notify_flushing_to_disk(&mut self)
-    {
+    fn notify_flushing_to_disk(&mut self) {
         (self.cb)(
             self.cb_data,
             CbMessage::progress_json(100., "Flushing written data to the disk").as_ptr(),
@@ -117,12 +96,15 @@ impl structs::ProgressNotifier for ProgressNotifier
     }
 }
 
-fn inner(config_json: *const c_char, cb_data: *const (), cb: extern fn(*const (), *const c_char))
-    -> Result<(), String>
-{
+fn inner(
+    config_json: *const c_char,
+    cb_data: *const (),
+    cb: extern "C" fn(*const (), *const c_char),
+) -> Result<(), String> {
     let start_time = Instant::now();
 
-    let config_json = unsafe { CStr::from_ptr(config_json) }.to_str()
+    let config_json = unsafe { CStr::from_ptr(config_json) }
+        .to_str()
         .map_err(|e| format!("JSON parse failed: {}", e))?;
 
     let patch_config = PatchConfig::from_json(config_json)?;
@@ -134,11 +116,13 @@ fn inner(config_json: *const c_char, cb_data: *const (), cb: extern fn(*const ()
 }
 
 #[no_mangle]
-pub extern fn randomprime_patch_iso(config_json: *const c_char , cb_data: *const (),
-                                    cb: extern fn(*const (), *const c_char))
-{
+pub extern "C" fn randomprime_patch_iso(
+    config_json: *const c_char,
+    cb_data: *const (),
+    cb: extern "C" fn(*const (), *const c_char),
+) {
     thread_local! {
-        static PANIC_DETAILS: Cell<Option<(String, u32)>> = Cell::new(None);
+        static PANIC_DETAILS: Cell<Option<(String, u32)>> = const { Cell::new(None) };
     }
     panic::set_hook(Box::new(|pinfo| {
         PANIC_DETAILS.with(|pd| {
@@ -158,11 +142,11 @@ pub extern fn randomprime_patch_iso(config_json: *const c_char , cb_data: *const
             if let Some(pd) = PANIC_DETAILS.with(|pd| pd.replace(None)) {
                 let path = Path::new(&pd.0);
                 let mut comp = path.components();
-                let found = path.components()
+                let found = path
+                    .components()
                     .skip(1)
                     .zip(&mut comp)
-                    .find(|(c, _)| c.as_os_str() == "randomprime")
-                    .is_some();
+                    .any(|(c, _)| c.as_os_str() == "randomprime");
                 // If possible, include the section of the path starting with the directory named
                 // "randomprime". If no such directoy exists, just use the file name.
                 let shortened_path = if found {

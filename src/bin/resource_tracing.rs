@@ -1,86 +1,84 @@
 //! This program traces the dependencies of each pickup in a Metroid Prime ISO.
 //! The location of the ISO should be provided as a command line argument.
 
-pub use randomprime::*;
-use randomprime::custom_assets::custom_asset_ids;
-use randomprime::pickup_meta::{PickupType, PickupModel, ScriptObjectLocation, pickup_model_for_pickup};
-
-use reader_writer::{FourCC, Reader, Readable, Writable};
-use structs::{Ancs, Cmdl, Evnt, Pickup, res_id, ResId, Resource, Scan};
-use resource_info_table::{resource_info, ResourceInfo};
-
 use std::{
-    mem,
-    env::args,
-    fs::File,
     borrow::Cow,
     collections::{HashMap, HashSet},
+    env::args,
     ffi::CStr,
-    str as stdstr,
+    fs::File,
+    mem, str as stdstr,
 };
+
+pub use randomprime::*;
+use randomprime::{
+    custom_assets::custom_asset_ids,
+    pickup_meta::{pickup_model_for_pickup, PickupModel, PickupType, ScriptObjectLocation},
+};
+use reader_writer::{FourCC, Readable, Reader, Writable};
+use resource_info_table::{resource_info, ResourceInfo};
+use structs::{res_id, Ancs, Cmdl, Evnt, Pickup, ResId, Resource, Scan};
 
 // Duplicated from pickup_meta. This version needs owned-lists instead of borrowed.
 #[derive(Clone, Debug)]
-pub struct PickupLocation
-{
+pub struct PickupLocation {
     location: ScriptObjectLocation,
     hudmemo: ScriptObjectLocation,
     attainment_audio: ScriptObjectLocation,
     memory_relay: ScriptObjectLocation,
     post_pickup_relay_connections: Vec<structs::Connection>,
-    position: [f32;3],
+    position: [f32; 3],
 }
 
 #[derive(Clone, Debug)]
-pub struct DoorLocation
-{
+pub struct DoorLocation {
     door_location: Option<ScriptObjectLocation>,
-    door_rotation: Option<[f32;3]>,
+    door_rotation: Option<[f32; 3]>,
     door_force_locations: Vec<ScriptObjectLocation>,
     door_shield_locations: Vec<ScriptObjectLocation>,
     dock_number: u32,
-    dock_position: [f32;3],
-    dock_scale: [f32;3],
+    dock_position: [f32; 3],
+    dock_scale: [f32; 3],
 }
 
-struct ResourceDb<'r>
-{
+struct ResourceDb<'r> {
     map: HashMap<ResourceKey, ResourceDbRecord<'r>>,
 }
 
 #[derive(Debug)]
-struct ResourceDbRecord<'r>
-{
+struct ResourceDbRecord<'r> {
     data: ResourceData<'r>,
     deps: Option<HashSet<ResourceKey>>,
 }
 
-impl<'r> ResourceDb<'r>
-{
-    fn new() -> ResourceDb<'r>
-    {
+impl<'r> ResourceDb<'r> {
+    fn new() -> ResourceDb<'r> {
         ResourceDb {
             map: HashMap::new(),
         }
     }
 
-    fn add_resource(&mut self, res: Resource<'r>)
-    {
+    fn add_resource(&mut self, res: Resource<'r>) {
         let key = ResourceKey::new(res.file_id, res.fourcc());
-        self.map.entry(key).or_insert_with(move || {
-            ResourceDbRecord {
+        self.map
+            .entry(key)
+            .or_insert_with(move || ResourceDbRecord {
                 data: ResourceData::new(&res),
                 deps: None,
-            }
-        });
+            });
     }
 
-    fn get_dependencies(&mut self, pickup: &Pickup) -> HashSet<ResourceKey>
-    {
+    fn get_dependencies(&mut self, pickup: &Pickup) -> HashSet<ResourceKey> {
         let base_resources = [
             (ResourceKey::from(pickup.cmdl), None),
-            (ResourceKey::from(pickup.ancs.file_id), Some(pickup.ancs.node_index)),
-            (ResourceKey::from(pickup.actor_params.scan_params.scan), None),
+            (
+                ResourceKey::from(pickup.ancs.file_id),
+                Some(pickup.ancs.node_index),
+            ),
+            (
+                ResourceKey::from(pickup.actor_params.scan_params.scan),
+                None,
+            ),
             (ResourceKey::from(pickup.actor_params.xray_cmdl), None),
             (ResourceKey::from(pickup.actor_params.xray_cskr), None),
             (ResourceKey::from(pickup.part), None),
@@ -88,7 +86,7 @@ impl<'r> ResourceDb<'r>
         let mut result = HashSet::new();
         for r in base_resources.iter() {
             self.extend_set_with_deps(&mut result, r.0, r.1);
-        };
+        }
         result
     }
 
@@ -96,12 +94,15 @@ impl<'r> ResourceDb<'r>
     // randomizer.
     // A few sections of code are commented out, indicating what appear to me to
     // be dependencies, but don't seem to match Claris's dependency lists.
-    fn get_resource_deps(&mut self, key: ResourceKey, ancs_node: Option<u32>) -> HashSet<ResourceKey>
-    {
+    fn get_resource_deps(
+        &mut self,
+        key: ResourceKey,
+        ancs_node: Option<u32>,
+    ) -> HashSet<ResourceKey> {
         let mut deps = HashSet::with_capacity(0);
 
         let data = {
-            let ref record = self.map[&key];
+            let record = &self.map[&key];
             if let Some(ref deps) = record.deps {
                 return deps.clone();
             };
@@ -115,8 +116,8 @@ impl<'r> ResourceDb<'r>
 
             if key.fourcc == b"SCAN".into() {
                 let scan: Scan = data.data.clone().read(());
-                extend_deps(scan.frme.to_u32(), b"FRME".into());
-                extend_deps(scan.strg.to_u32(), b"STRG".into());
+                extend_deps(scan.frme.to_u32(), b"FRME");
+                extend_deps(scan.strg.to_u32(), b"STRG");
             } else if key.fourcc == b"EVNT".into() {
                 let evnt: Evnt = data.data.clone().read(());
                 for effect in evnt.effect_events.iter() {
@@ -129,24 +130,23 @@ impl<'r> ResourceDb<'r>
                 // and then using the next word as the id of a PART.
                 for i in 0..(buf.len() - 8) {
                     if &buf[i..(i + 8)] == b"ICTSCNST" {
-                        let id : u32 = Reader::new(&buf[(i + 8)..(i+12)]).read(());
+                        let id: u32 = Reader::new(&buf[(i + 8)..(i + 12)]).read(());
                         if id != 0 {
                             extend_deps(id, b"PART");
                         }
                         // TODO: IITS and IDTS too?
                     } else if &buf[i..(i + 4)] == b"TEXR" {
                         if &buf[(i + 4)..(i + 8)] == b"ATEX" {
-                            let id : u32 = Reader::new(&buf[(i + 12)..(i + 16)]).read(());
+                            let id: u32 = Reader::new(&buf[(i + 12)..(i + 16)]).read(());
                             if id != 0 {
                                 extend_deps(id, b"TXTR");
                             }
                         }
                     } else if &buf[i..(i + 4)] == b"KSSM" && &buf[(i + 4)..(i + 8)] != b"NONE" {
-
-                        let kssm : structs::Kssm = Reader::new(&buf[(i + 8)..]).read(());
+                        let kssm: structs::Kssm = Reader::new(&buf[(i + 8)..]).read(());
                         for list in kssm.lists.iter() {
                             for item in list.items.iter() {
-                                extend_deps(item.part.to_u32(), b"PART".into());
+                                extend_deps(item.part.to_u32(), b"PART");
                             }
                         }
                     }
@@ -156,17 +156,22 @@ impl<'r> ResourceDb<'r>
                 let cmdl: Cmdl = Reader::new(&buf).read(());
                 for material in cmdl.material_sets.iter() {
                     for id in material.texture_ids.iter() {
-                        extend_deps((*id).to_u32(), b"TXTR".into());
+                        extend_deps((*id).to_u32(), b"TXTR");
                     }
                 }
             } else if key.fourcc == b"ANCS".into() {
                 let buf = data.decompress();
                 let ancs: Ancs = Reader::new(&buf).read(());
                 if let Some(ancs_node) = ancs_node {
-                    let char_info = ancs.char_set.char_info.iter().nth(ancs_node as usize).unwrap();
-                    extend_deps(char_info.cmdl.to_u32(), b"CMDL".into());
-                    extend_deps(char_info.cskr.to_u32(), b"CSKR".into());
-                    extend_deps(char_info.cinf.to_u32(), b"CINF".into());
+                    let char_info = ancs
+                        .char_set
+                        .char_info
+                        .iter()
+                        .nth(ancs_node as usize)
+                        .unwrap();
+                    extend_deps(char_info.cmdl.to_u32(), b"CMDL");
+                    extend_deps(char_info.cskr.to_u32(), b"CSKR");
+                    extend_deps(char_info.cinf.to_u32(), b"CINF");
                     // char_info.effects.map(|effects| for effect in effects.iter() {
                     //     for comp in effect.components.iter() {
                     //         extend_deps(ResourceKey::new(comp.file_id, comp.type_));
@@ -175,13 +180,15 @@ impl<'r> ResourceDb<'r>
                     // char_info.overlay_cmdl.map(|cmdl| extend_deps(cmdl, b"CMDL"));
                     // char_info.overlay_cskr.map(|cmdl| extend_deps(cmdl, b"CSKR"));
                     for part in char_info.particles.part_assets.iter() {
-                        extend_deps(*part, b"PART".into());
+                        extend_deps(*part, b"PART");
                     }
                 };
-                ancs.anim_set.animation_resources.map(|i| for anim_resource in i.iter() {
-                    extend_deps(anim_resource.anim.to_u32(), b"ANIM".into());
-                    extend_deps(anim_resource.evnt.to_u32(), b"EVNT".into());
-                });
+                if let Some(i) = ancs.anim_set.animation_resources {
+                    for anim_resource in i.iter() {
+                        extend_deps(anim_resource.anim.to_u32(), b"ANIM");
+                        extend_deps(anim_resource.evnt.to_u32(), b"EVNT");
+                    }
+                }
             }
         }
 
@@ -194,9 +201,12 @@ impl<'r> ResourceDb<'r>
         deps
     }
 
-    fn extend_set_with_deps(&mut self, set: &mut HashSet<ResourceKey>, key: ResourceKey,
-                                       ancs_node: Option<u32>)
-    {
+    fn extend_set_with_deps(
+        &mut self,
+        set: &mut HashSet<ResourceKey>,
+        key: ResourceKey,
+        ancs_node: Option<u32>,
+    ) {
         if key.file_id != u32::max_value() {
             set.insert(key);
             set.extend(self.get_resource_deps(key, ancs_node));
@@ -205,102 +215,78 @@ impl<'r> ResourceDb<'r>
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-struct ResourceKey
-{
+struct ResourceKey {
     file_id: u32,
-    fourcc: FourCC
+    fourcc: FourCC,
 }
 
-impl From<ResourceInfo> for ResourceKey
-{
-    fn from(res_info: ResourceInfo) -> ResourceKey
-    {
+impl From<ResourceInfo> for ResourceKey {
+    fn from(res_info: ResourceInfo) -> ResourceKey {
         ResourceKey::new(res_info.res_id, res_info.fourcc)
     }
 }
 
-impl<K: res_id::ResIdKind> From<ResId<K>> for ResourceKey
-{
-    fn from(_res_id: ResId<K>) -> ResourceKey
-    {
+impl<K: res_id::ResIdKind> From<ResId<K>> for ResourceKey {
+    fn from(_res_id: ResId<K>) -> ResourceKey {
         ResourceKey::new(_res_id.to_u32(), K::FOURCC)
     }
 }
 
-impl ResourceKey
-{
-    fn new(file_id: u32, fourcc: FourCC) -> ResourceKey
-    {
-        ResourceKey {
-            file_id: file_id,
-            fourcc: fourcc,
-        }
+impl ResourceKey {
+    fn new(file_id: u32, fourcc: FourCC) -> ResourceKey {
+        ResourceKey { file_id, fourcc }
     }
 }
 
-static CUT_SCENE_PICKUPS: &'static [(u32, u32)] = &[
-    (0x3C785450, 589860), // Morph Ball
-    (0x0D72F1F7, 1377077), // Wavebuster
-    (0x11BD63B7, 1769497), // Artifact of Lifegiver
-    (0xC8309DF6, 2359772), // Missile Launcher
-    (0x9A0A03EB, 2435310), // Varia Suit
+static CUT_SCENE_PICKUPS: &[(u32, u32)] = &[
+    (0x3C785450, 589860),    // Morph Ball
+    (0x0D72F1F7, 1377077),   // Wavebuster
+    (0x11BD63B7, 1769497),   // Artifact of Lifegiver
+    (0xC8309DF6, 2359772),   // Missile Launcher
+    (0x9A0A03EB, 2435310),   // Varia Suit
     (0x9A0A03EB, 405090173), // Artifact of Wild
-    (0x492CBF4A, 2687109), // Charge Beam
-    (0x4148F7B0, 3155850), // Morph Ball Bomb
-    (0xE1981EFC, 3735555), // Artifact of World
-    (0xAFEFE677, 3997699), // Ice Beam
-
+    (0x492CBF4A, 2687109),   // Charge Beam
+    (0x4148F7B0, 3155850),   // Morph Ball Bomb
+    (0xE1981EFC, 3735555),   // Artifact of World
+    (0xAFEFE677, 3997699),   // Ice Beam
     // XXX Doesn't normally have a cutscene. Skip?
-    (0x6655F51E, 524887), // Artifact of Sun
-
-    (0x40C548E9, 917592), // Wave Beam
+    (0x6655F51E, 524887),  // Artifact of Sun
+    (0x40C548E9, 917592),  // Wave Beam
     (0xA20A7455, 1048801), // Boost Ball
     (0x70181194, 1573322), // Spider Ball
     (0x3FB4A34E, 1966838), // Super Missile
-
     // XXX Doesn't normally have a cutscene. Skip?
-    (0xB3C33249, 2557135), // Artifact of Elder
-
+    (0xB3C33249, 2557135),  // Artifact of Elder
     (0xA49B2544, 69730588), // Thermal Visor
-    (0x49175472, 3473439), // Gravity Suit
-    (0xF7C84340, 3539113), // Artifact of Spirit
-    (0xC44E7A07, 262151), // Space Jump Boots
+    (0x49175472, 3473439),  // Gravity Suit
+    (0xF7C84340, 3539113),  // Artifact of Spirit
+    (0xC44E7A07, 262151),   // Space Jump Boots
     (0x2398E906, 68157908), // Artifact of Truth
-    (0x86EB2E02, 2752545), // X-Ray Visor
-
+    (0x86EB2E02, 2752545),  // X-Ray Visor
     // XXX Doesn't normally have a cutscene. Skip?
     (0x86EB2E02, 2753076), // Artifact of Chozo
-
-    (0xE39C342B, 589827), // Grapple Beam
-    (0x35C5D736, 786470), // Flamethrower !!!!
-
+    (0xE39C342B, 589827),  // Grapple Beam
+    (0x35C5D736, 786470),  // Flamethrower !!!!
     // XXX Doesn't normally have a cutscene. Skip?
     (0x8A97BB54, 852800), // Artifact of Warrior
-
     // XXX Doesn't normally have a cutscene. Skip?
     (0xBBFA4AB3, 2556031), // Artifact of Newborn
-
-    (0xA4719C6A, 272508), // Artifact of Nature
-
+    (0xA4719C6A, 272508),  // Artifact of Nature
     // XXX Doesn't normally have a cutscene. Skip?
-    (0x89A6CB8D, 720951), // Artifact of Strength
-
-    (0x901040DF, 786472), // Ice Spreader
+    (0x89A6CB8D, 720951),  // Artifact of Strength
+    (0x901040DF, 786472),  // Ice Spreader
     (0x4CC18E5A, 1376287), // Plasma Beam
 ];
 
-
 #[derive(Debug)]
-struct PickupData
-{
+struct PickupData {
     bytes: Vec<u8>,
     deps: HashSet<ResourceKey>,
     attainment_audio_file_name: Vec<u8>,
 }
 
 #[derive(Debug)]
-struct RoomInfo
-{
+struct RoomInfo {
     room_id: ResId<res_id::MREA>,
     name: String,
     name_id: ResId<res_id::STRG>,
@@ -311,8 +297,7 @@ struct RoomInfo
     size_index: f32,
 }
 
-fn build_scly_db<'r>(scly: &structs::Scly<'r>) -> HashMap<u32, (usize, structs::SclyObject<'r>)>
-{
+fn build_scly_db<'r>(scly: &structs::Scly<'r>) -> HashMap<u32, (usize, structs::SclyObject<'r>)> {
     let mut scly_db = HashMap::new();
     for (layer_num, scly_layer) in scly.layers.iter().enumerate() {
         for obj in scly_layer.objects.iter() {
@@ -326,43 +311,46 @@ fn build_scly_db<'r>(scly: &structs::Scly<'r>) -> HashMap<u32, (usize, structs::
 fn find_audio_attainment<'r>(
     obj: &structs::SclyObject<'r>,
     scly_db: &HashMap<u32, (usize, structs::SclyObject<'r>)>,
-) -> Option<structs::SclyObject<'r>>
-{
+) -> Option<structs::SclyObject<'r>> {
     let post_pickup_relay = search_for_scly_object(&obj.connections, scly_db, |o| {
-        o.property_data.as_relay()
+        o.property_data
+            .as_relay()
             .map(|i| i.name.to_bytes() == b"Relay Post Pickup")
             .unwrap_or(false)
     })?;
 
-    const ATTAINMENT_AUDIO_FILES: &'static [&'static [u8]] = &[
+    const ATTAINMENT_AUDIO_FILES: &[&[u8]] = &[
         b"/audio/itm_x_short_02.dsp",
         b"audio/jin_artifact.dsp",
         b"audio/jin_itemattain.dsp",
     ];
-    search_for_scly_object(&post_pickup_relay.connections, scly_db,
-        |obj| obj.property_data.as_streamed_audio()
+    search_for_scly_object(&post_pickup_relay.connections, scly_db, |obj| {
+        obj.property_data
+            .as_streamed_audio()
             .map(|sa| ATTAINMENT_AUDIO_FILES.contains(&sa.audio_file_name.to_bytes()))
             .unwrap_or(false)
-    )
+    })
 }
 
 fn extract_pickup_data<'r>(
     scly: &structs::Scly<'r>,
     obj: &structs::SclyObject<'r>,
-    res_db: &mut ResourceDb<'r>
-) -> PickupData
-{
+    res_db: &mut ResourceDb<'r>,
+) -> PickupData {
     let mut pickup = obj.property_data.as_pickup().unwrap().into_owned();
 
     // XXX It's important to collect the dependencies before we modify the pickup object
     let mut deps = res_db.get_dependencies(&pickup);
     patch_dependencies(pickup.kind, &mut deps);
 
-    let scly_db = build_scly_db(&scly);
+    let scly_db = build_scly_db(scly);
 
-    let attainment_audio_file_name = if let Some(aa) = find_audio_attainment(&obj, &scly_db) {
+    let attainment_audio_file_name = if let Some(aa) = find_audio_attainment(obj, &scly_db) {
         let streamed_audio = aa.property_data.as_streamed_audio().unwrap();
-        streamed_audio.audio_file_name.to_bytes_with_nul().to_owned()
+        streamed_audio
+            .audio_file_name
+            .to_bytes_with_nul()
+            .to_owned()
     } else {
         // The Phazon Suit is weird: the audio object isn't directly connected to the
         // Pickup. So, hardcode its location.
@@ -394,20 +382,20 @@ fn extract_pickup_location<'r>(
     scly: &structs::Scly<'r>,
     obj: &structs::SclyObject<'r>,
     obj_location: ScriptObjectLocation,
-) -> (PickupLocation, Vec<ScriptObjectLocation>)
-{
+) -> (PickupLocation, Vec<ScriptObjectLocation>) {
     let pickup = obj.property_data.as_pickup().unwrap();
 
     let scly_db = build_scly_db(scly);
 
-    let attainment_audio_location = if let Some(aa) = find_audio_attainment(&obj, &scly_db) {
+    let attainment_audio_location = if let Some(aa) = find_audio_attainment(obj, &scly_db) {
         ScriptObjectLocation {
             layer: scly_db[&aa.instance_id].0 as u32,
             instance_id: aa.instance_id,
         }
     } else {
         // Phazon suit override
-        if pickup.kind ==  23 { // phazon suit
+        if pickup.kind == 23 {
+            // phazon suit
             ScriptObjectLocation {
                 layer: 1,
                 instance_id: 68813644,
@@ -420,50 +408,55 @@ fn extract_pickup_location<'r>(
         }
     };
 
-    let hudmemo = search_for_scly_object(&obj.connections, &scly_db,
-        |obj| obj.property_data.as_hud_memo()
+    let hudmemo = search_for_scly_object(&obj.connections, &scly_db, |obj| {
+        obj.property_data
+            .as_hud_memo()
             .map(|hm| hm.name.to_str().unwrap().contains("Pickup"))
             .unwrap_or(false)
-    );
+    });
     let hudmemo_loc = if let Some(hudmemo) = hudmemo {
         ScriptObjectLocation {
             layer: scly_db[&hudmemo.instance_id].0 as u32,
             instance_id: hudmemo.instance_id,
         }
+    } else if pickup.kind == 23 {
+        // phazon suit
+        ScriptObjectLocation {
+            layer: scly_db[&68813640].0 as u32,
+            instance_id: 68813640,
+        }
     } else {
-        if pickup.kind ==  23 { // phazon suit
-            ScriptObjectLocation {
-                layer: scly_db[&68813640].0 as u32,
-                instance_id: 68813640,
-            }
-        } else {
-            ScriptObjectLocation {
-                layer: 0,
-                instance_id: 0xFFFFFFFF,
-            }
+        ScriptObjectLocation {
+            layer: 0,
+            instance_id: 0xFFFFFFFF,
         }
     };
 
     let mut removals = Vec::new();
     if pickup.kind >= 29 && pickup.kind <= 40 {
         // If this is an artifact...
-        let layer_switch_function = search_for_scly_object(&obj.connections, &scly_db,
-                |obj| obj.property_data.as_special_function()
-                    .map(|hm| hm.name.to_str().unwrap()
-                            == "SpecialFunction ScriptLayerController -- Stonehenge Totem")
-                    .unwrap_or(false),
-            ).unwrap();
+        let layer_switch_function = search_for_scly_object(&obj.connections, &scly_db, |obj| {
+            obj.property_data
+                .as_special_function()
+                .map(|hm| {
+                    hm.name.to_str().unwrap()
+                        == "SpecialFunction ScriptLayerController -- Stonehenge Totem"
+                })
+                .unwrap_or(false)
+        })
+        .unwrap();
         removals.push(ScriptObjectLocation {
             layer: scly_db[&layer_switch_function.instance_id].0 as u32,
             instance_id: layer_switch_function.instance_id,
         });
 
-        let pause_function = search_for_scly_object(&obj.connections, &scly_db,
-                |obj| obj.property_data.as_special_function()
-                    .map(|hm| hm.name.to_str().unwrap()
-                            == "SpecialFunction - Enter Logbook Screen")
-                    .unwrap_or(false),
-            ).unwrap();
+        let pause_function = search_for_scly_object(&obj.connections, &scly_db, |obj| {
+            obj.property_data
+                .as_special_function()
+                .map(|hm| hm.name.to_str().unwrap() == "SpecialFunction - Enter Logbook Screen")
+                .unwrap_or(false)
+        })
+        .unwrap();
         removals.push(ScriptObjectLocation {
             layer: scly_db[&pause_function.instance_id].0 as u32,
             instance_id: pause_function.instance_id,
@@ -471,11 +464,12 @@ fn extract_pickup_location<'r>(
     }
 
     // Remove the PlayerHint objects that disable control when collecting an item.
-    let player_hint = search_for_scly_object(&obj.connections, &scly_db,
-            |obj| obj.property_data.as_player_hint()
-                .map(|hm| hm.name.to_str().unwrap() == "Player Hint Disable Controls")
-                .unwrap_or(false),
-        );
+    let player_hint = search_for_scly_object(&obj.connections, &scly_db, |obj| {
+        obj.property_data
+            .as_player_hint()
+            .map(|hm| hm.name.to_str().unwrap() == "Player Hint Disable Controls")
+            .unwrap_or(false)
+    });
     if let Some(player_hint) = player_hint {
         removals.push(ScriptObjectLocation {
             layer: scly_db[&player_hint.instance_id].0 as u32,
@@ -486,22 +480,30 @@ fn extract_pickup_location<'r>(
     // Get the memory relay linked to the pickup
     // This memory relay is activated when getting the pickup
     // and deactivate the pickup when loading again the room
-    let memory_relay = search_for_scly_object(&obj.connections, &scly_db,
-        |obj| obj.property_data.as_memory_relay()
+    let memory_relay = search_for_scly_object(&obj.connections, &scly_db, |obj| {
+        obj.property_data
+            .as_memory_relay()
             .map(|hm| hm.name.to_str().unwrap() == "Memory Relay")
-            .unwrap_or(false),
-    );
+            .unwrap_or(false)
+    });
 
-    let memory_relay_id = if memory_relay.is_some() {
-        memory_relay.unwrap().instance_id
+    let memory_relay_id = if let Some(memory_relay) = memory_relay {
+        memory_relay.instance_id
     } else {
-        panic!("Couldn't find the memory relay for pickup {:X}", obj.instance_id)
+        panic!(
+            "Couldn't find the memory relay for pickup {:X}",
+            obj.instance_id
+        )
     };
 
     // If this is a pickup with an associated cutscene, find the connections we want to
     // preserve and the objects we want to remove.
     let post_pickup_relay_connections = if CUT_SCENE_PICKUPS.contains(&(mrea_id, obj.instance_id)) {
-        removals.push(find_cutscene_trigger_relay(pickup.kind, &obj.connections, &scly_db));
+        removals.push(find_cutscene_trigger_relay(
+            pickup.kind,
+            &obj.connections,
+            &scly_db,
+        ));
         build_skip_cutscene_relay_connections(pickup.kind, &obj.connections, &scly_db)
     } else {
         vec![]
@@ -509,17 +511,17 @@ fn extract_pickup_location<'r>(
 
     let location = PickupLocation {
         location: ScriptObjectLocation {
-            layer: obj_location.layer as u32,
+            layer: obj_location.layer,
             instance_id: obj.instance_id,
         },
         attainment_audio: attainment_audio_location,
         hudmemo: hudmemo_loc,
-        post_pickup_relay_connections: post_pickup_relay_connections,
+        post_pickup_relay_connections,
         memory_relay: ScriptObjectLocation {
             layer: memory_relay_id >> 26,
             instance_id: memory_relay_id,
         },
-        position: pickup.position.clone().into(),
+        position: pickup.position.into(),
     };
 
     (location, removals)
@@ -528,9 +530,10 @@ fn extract_pickup_location<'r>(
 fn search_for_scly_object<'r, F>(
     connections: &reader_writer::LazyArray<'r, structs::Connection>,
     scly_db: &HashMap<u32, (usize, structs::SclyObject<'r>)>,
-    f: F
+    f: F,
 ) -> Option<structs::SclyObject<'r>>
-    where F: Fn(&structs::SclyObject<'r>) -> bool
+where
+    F: Fn(&structs::SclyObject<'r>) -> bool,
 {
     let mut stack = Vec::new();
 
@@ -544,12 +547,12 @@ fn search_for_scly_object<'r, F>(
     }
 
     while let Some(id) = stack.pop() {
-        let obj = if let Some(&(_, ref obj)) = scly_db.get(&id) {
+        let obj = if let Some((_, obj)) = scly_db.get(&id) {
             obj
         } else {
             continue;
         };
-        if f(&obj) {
+        if f(obj) {
             return Some(obj.clone());
         }
         for c in obj.connections.iter() {
@@ -558,7 +561,7 @@ fn search_for_scly_object<'r, F>(
                 seen.insert(c.target_object_id);
             }
         }
-    };
+    }
     None
 }
 
@@ -566,13 +569,14 @@ fn build_skip_cutscene_relay_connections<'r>(
     pickup_type: u32,
     obj_connections: &reader_writer::LazyArray<'r, structs::Connection>,
     scly_db: &HashMap<u32, (usize, structs::SclyObject<'r>)>,
-) -> Vec<structs::Connection>
-{
+) -> Vec<structs::Connection> {
     let post_pickup_relay = search_for_scly_object(obj_connections, scly_db, |o| {
-        o.property_data.as_relay()
+        o.property_data
+            .as_relay()
             .map(|i| i.name.to_bytes() == b"Relay Post Pickup")
             .unwrap_or(false)
-    }).unwrap();
+    })
+    .unwrap();
 
     let mut connections = vec![];
     for conn in post_pickup_relay.connections.iter() {
@@ -580,36 +584,39 @@ fn build_skip_cutscene_relay_connections<'r>(
             &obj.1
         } else {
             connections.push(conn.into_owned());
-            continue
+            continue;
         };
         if let Some(timer) = connected_object.property_data.as_timer() {
-             let name = timer.name.to_bytes();
-             if name == b"Timer Jingle" {
-                 connections.extend(connected_object.connections.iter().map(|i| i.into_owned()));
-             } else if name == b"Timer HUD" {
-                 // We want to copy most of Timer HUD's connections, with a few exceptions
-                 for conn in connected_object.connections.iter() {
-                    let obj = if let Some(ref obj) = scly_db.get(&conn.target_object_id) {
+            let name = timer.name.to_bytes();
+            if name == b"Timer Jingle" {
+                connections.extend(connected_object.connections.iter().map(|i| i.into_owned()));
+            } else if name == b"Timer HUD" {
+                // We want to copy most of Timer HUD's connections, with a few exceptions
+                for conn in connected_object.connections.iter() {
+                    let obj = if let Some(obj) = scly_db.get(&conn.target_object_id) {
                         &obj.1
                     } else {
                         connections.push(conn.into_owned());
-                        continue
+                        continue;
                     };
 
-                    let is_log_screen_timer = obj.property_data.as_timer()
+                    let is_log_screen_timer = obj
+                        .property_data
+                        .as_timer()
                         .map(|i| i.name.to_bytes() == &b"Timer - Delay Enter Logbook Screen"[..])
                         .unwrap_or(false);
                     // Skip player hints and a artifact log screen timers
                     // Note the special case for the Artifact of Truth's timer
-                    if (is_log_screen_timer && obj.instance_id != 1049534) ||
-                        obj.property_data.as_player_hint().is_some() {
-                        continue
+                    if (is_log_screen_timer && obj.instance_id != 1049534)
+                        || obj.property_data.as_player_hint().is_some()
+                    {
+                        continue;
                     }
                     connections.push(conn.into_owned());
-                 }
-             } else {
-                 connections.push(conn.into_owned());
-             }
+                }
+            } else {
+                connections.push(conn.into_owned());
+            }
         } else if connected_object.property_data.as_player_hint().is_none() {
             // Skip the Player Hint objects.
             connections.push(conn.into_owned());
@@ -618,20 +625,23 @@ fn build_skip_cutscene_relay_connections<'r>(
 
     // Stop here if not the Varia Suit
     if pickup_type != 22 {
-        return connections
+        return connections;
     }
 
     // We need a special case for the Varia Suit to unlock the doors
     let unlock_doors_relay = search_for_scly_object(obj_connections, scly_db, |o| {
-        o.property_data.as_relay()
+        o.property_data
+            .as_relay()
             .map(|i| i.name.to_bytes() == &b"!Relay Local End Suit Attainment Cinematic"[..])
             .unwrap_or(false)
-    }).unwrap();
+    })
+    .unwrap();
 
     for conn in unlock_doors_relay.connections.iter() {
         let connected_object = &scly_db.get(&conn.target_object_id).unwrap().1;
-        if connected_object.property_data.as_dock().is_some() ||
-           connected_object.property_data.as_trigger().is_some() {
+        if connected_object.property_data.as_dock().is_some()
+            || connected_object.property_data.as_trigger().is_some()
+        {
             connections.push(conn.into_owned());
         }
     }
@@ -643,13 +653,12 @@ fn find_cutscene_trigger_relay<'r>(
     pickup_type: u32,
     obj_connections: &reader_writer::LazyArray<'r, structs::Connection>,
     scly_db: &HashMap<u32, (usize, structs::SclyObject<'r>)>,
-) -> ScriptObjectLocation
-{
+) -> ScriptObjectLocation {
     // We need to look for specific object names depending on the pickup type. This is mostly the
     // result of the non-cutscene artifacts, for which the relay we're looking for is simply titled
     // "Relay".
     // We need this seperate static in order to get static lifetimes. Its kinda awful.
-    static NAME_CANDIDATES: &'static [&'static [u8]] = &[
+    static NAME_CANDIDATES: &[&[u8]] = &[
         b"!Relay Start Suit Attainment Cinematic",
         b"!Relay Local Start Suit Attainment Cinematic",
         b"Relay-start of cinema",
@@ -658,15 +667,16 @@ fn find_cutscene_trigger_relay<'r>(
     let name_candidates: &[&[u8]] = match pickup_type {
         21 => &NAME_CANDIDATES[0..1],
         22 => &NAME_CANDIDATES[1..2],
-        29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40
-            => &NAME_CANDIDATES[2..4],
+        29..=40 => &NAME_CANDIDATES[2..4],
         _ => &NAME_CANDIDATES[2..3],
     };
     let obj = search_for_scly_object(obj_connections, scly_db, |o| {
-        o.property_data.as_relay()
+        o.property_data
+            .as_relay()
             .map(|i| name_candidates.contains(&i.name.to_bytes()))
             .unwrap_or(false)
-    }).unwrap();
+    })
+    .unwrap();
     ScriptObjectLocation {
         layer: scly_db[&obj.instance_id].0 as u32,
         instance_id: obj.instance_id,
@@ -675,8 +685,7 @@ fn find_cutscene_trigger_relay<'r>(
 
 // We can get pretty close to the Claris's dependecies for each pickup, but some
 // of them need custom modification to match exactly.
-fn patch_dependencies(pickup_kind: u32, deps: &mut HashSet<ResourceKey>)
-{
+fn patch_dependencies(pickup_kind: u32, deps: &mut HashSet<ResourceKey>) {
     // Don't ask me why; Claris seems to skip this one.
     deps.remove(&resource_info!("purple.PART").into());
 
@@ -701,13 +710,14 @@ fn patch_dependencies(pickup_kind: u32, deps: &mut HashSet<ResourceKey>)
     }
 }
 
-fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     // Special case for Nothing
     let mut nothing_bytes = Vec::new();
     {
-        let mut nothing_pickup: structs::Pickup = Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
-                                        .read::<Pickup>(()).clone();
+        let mut nothing_pickup: structs::Pickup =
+            Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
+                .read::<Pickup>(())
+                .clone();
         nothing_pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Nothing\0").unwrap());
         nothing_pickup.kind = PickupType::Missile.kind();
         nothing_pickup.max_increase = 0;
@@ -717,9 +727,10 @@ fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>)
         nothing_pickup.part = ResId::<res_id::PART>::invalid();
         nothing_pickup.write_to(&mut nothing_bytes).unwrap();
     }
-    let mut nothing_deps: HashSet<_> = pickup_table[&PickupModel::PhazonSuit].deps.iter()
-        .filter(|i| ![b"SCAN".into(), b"STRG".into(),
-                      b"CMDL".into()].contains(&i.fourcc))
+    let mut nothing_deps: HashSet<_> = pickup_table[&PickupModel::PhazonSuit]
+        .deps
+        .iter()
+        .filter(|i| ![b"SCAN".into(), b"STRG".into(), b"CMDL".into()].contains(&i.fourcc))
         .cloned()
         .collect();
     nothing_deps.extend(&[
@@ -729,19 +740,25 @@ fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>)
         ResourceKey::from(ResId::<res_id::CMDL>::new(0x2f976e86)), // Metroid
         ResourceKey::from(ResId::<res_id::TXTR>::new(0xBE4CD99D)), // white door
     ]);
-    assert!(pickup_table.insert(PickupModel::Nothing, PickupData {
-        bytes: nothing_bytes,
-        deps: nothing_deps,
-        attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::Nothing,
+            PickupData {
+                bytes: nothing_bytes,
+                deps: nothing_deps,
+                attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
-fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut bytes = Vec::new();
     {
-        let mut pickup: structs::Pickup = Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
-                                        .read::<Pickup>(()).clone();
+        let mut pickup: structs::Pickup =
+            Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
+                .read::<Pickup>(())
+                .clone();
         pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Gamecube\0").unwrap());
         pickup.kind = PickupType::Missile.kind();
         pickup.max_increase = 0;
@@ -752,9 +769,10 @@ fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>)
         pickup.write_to(&mut bytes).unwrap();
     }
 
-    let mut deps: HashSet<_> = pickup_table[&PickupModel::PhazonSuit].deps.iter()
-        .filter(|i| ![b"SCAN".into(), b"STRG".into(),
-                      b"CMDL".into()].contains(&i.fourcc))
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::PhazonSuit]
+        .deps
+        .iter()
+        .filter(|i| ![b"SCAN".into(), b"STRG".into(), b"CMDL".into()].contains(&i.fourcc))
         .cloned()
         .collect();
     deps.extend(&[
@@ -764,29 +782,46 @@ fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>)
         ResourceKey::from(custom_asset_ids::RANDOVANIA_GAMECUBE1_TXTR),
         ResourceKey::from(ResId::<res_id::TXTR>::new(0x6E3D2E18)),
     ]);
-    assert!(pickup_table.insert(PickupModel::RandovaniaGamecube, PickupData {
-        bytes: bytes,
-        deps: deps,
-        attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::RandovaniaGamecube,
+            PickupData {
+                bytes,
+                deps,
+                attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
-fn create_shiny_missile(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_shiny_missile(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut shiny_missile_bytes = Vec::new();
     {
         let mut shiny_missile = Reader::new(&pickup_table[&PickupModel::Missile].bytes)
-            .read::<Pickup>(()).clone();
+            .read::<Pickup>(())
+            .clone();
         shiny_missile.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Shiny Missile\0").unwrap());
         shiny_missile.cmdl = custom_asset_ids::SHINY_MISSILE_CMDL;
         shiny_missile.ancs.file_id = custom_asset_ids::SHINY_MISSILE_ANCS;
         shiny_missile.write_to(&mut shiny_missile_bytes).unwrap();
     }
 
-    let mut shiny_missile_deps: HashSet<_> = pickup_table[&PickupModel::Missile].deps.iter()
-        .filter(|i| ![b"SCAN".into(), b"STRG".into(), b"CMDL".into(),
-                      b"ANCS".into(), b"EVNT".into(), b"TXTR".into(),
-                      b"PART".into(), b"ANIM".into()].contains(&i.fourcc))
+    let mut shiny_missile_deps: HashSet<_> = pickup_table[&PickupModel::Missile]
+        .deps
+        .iter()
+        .filter(|i| {
+            ![
+                b"SCAN".into(),
+                b"STRG".into(),
+                b"CMDL".into(),
+                b"ANCS".into(),
+                b"EVNT".into(),
+                b"TXTR".into(),
+                b"PART".into(),
+                b"ANIM".into(),
+            ]
+            .contains(&i.fourcc)
+        })
         .cloned()
         .collect();
     shiny_missile_deps.extend(&[
@@ -800,90 +835,129 @@ fn create_shiny_missile(pickup_table: &mut HashMap<PickupModel, PickupData>)
         resource_info!("healthnew.PART").into(),
         resource_info!("AfterPick.PART").into(),
     ]);
-    assert!(pickup_table.insert(PickupModel::ShinyMissile, PickupData {
-        bytes: shiny_missile_bytes,
-        deps: shiny_missile_deps,
-        attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::ShinyMissile,
+            PickupData {
+                bytes: shiny_missile_bytes,
+                deps: shiny_missile_deps,
+                attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
-fn create_thermal_visor(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_thermal_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut bytes = Vec::new();
     {
         let mut visor = Reader::new(&pickup_table[&PickupModel::Visor].bytes)
-            .read::<Pickup>(()).clone();
-            visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Thermal Visor\0").unwrap());
+            .read::<Pickup>(())
+            .clone();
+        visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Thermal Visor\0").unwrap());
         visor.cmdl = custom_asset_ids::THERMAL_CMDL;
         visor.ancs.file_id = custom_asset_ids::THERMAL_ANCS;
         visor.write_to(&mut bytes).unwrap();
     }
 
-    let mut deps: HashSet<_> = pickup_table[&PickupModel::Visor].deps.iter()
-        .filter(|i| ![
-                b"SCAN".into(), b"STRG".into(), b"CMDL".into(),
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::Visor]
+        .deps
+        .iter()
+        .filter(|i| {
+            ![
+                b"SCAN".into(),
+                b"STRG".into(),
+                b"CMDL".into(),
                 b"ANCS".into(),
-            ].contains(&i.fourcc))
+            ]
+            .contains(&i.fourcc)
+        })
         .cloned()
         .collect();
-        deps.extend(&[
+    deps.extend(&[
         ResourceKey::from(custom_asset_ids::THERMAL_CMDL),
         ResourceKey::from(ResId::<res_id::TXTR>::new(0xFC095F6C)),
         ResourceKey::from(custom_asset_ids::THERMAL_ANCS),
     ]);
-    assert!(pickup_table.insert(PickupModel::ThermalVisor, PickupData {
-        bytes,
-        deps,
-        attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::ThermalVisor,
+            PickupData {
+                bytes,
+                deps,
+                attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
-fn create_xray_visor(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_xray_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut bytes = Vec::new();
     {
         let mut visor = Reader::new(&pickup_table[&PickupModel::Visor].bytes)
-            .read::<Pickup>(()).clone();
-            visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"X-Ray Visor\0").unwrap());
+            .read::<Pickup>(())
+            .clone();
+        visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"X-Ray Visor\0").unwrap());
         visor.cmdl = custom_asset_ids::XRAY_CMDL;
         visor.ancs.file_id = custom_asset_ids::XRAY_ANCS;
         visor.write_to(&mut bytes).unwrap();
     }
 
-    let mut deps: HashSet<_> = pickup_table[&PickupModel::Visor].deps.iter()
-        .filter(|i| ![
-                b"SCAN".into(), b"STRG".into(), b"CMDL".into(),
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::Visor]
+        .deps
+        .iter()
+        .filter(|i| {
+            ![
+                b"SCAN".into(),
+                b"STRG".into(),
+                b"CMDL".into(),
                 b"ANCS".into(),
-            ].contains(&i.fourcc))
+            ]
+            .contains(&i.fourcc)
+        })
         .cloned()
         .collect();
-        deps.extend(&[
+    deps.extend(&[
         ResourceKey::from(custom_asset_ids::XRAY_CMDL),
         ResourceKey::from(ResId::<res_id::TXTR>::new(0xBE4CD99D)),
         ResourceKey::from(custom_asset_ids::XRAY_ANCS),
     ]);
-    assert!(pickup_table.insert(PickupModel::XRayVisor, PickupData {
-        bytes,
-        deps,
-        attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::XRayVisor,
+            PickupData {
+                bytes,
+                deps,
+                attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
-fn create_flamethrower(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_flamethrower(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut bytes = Vec::new();
     {
         let mut pickup = Reader::new(&pickup_table[&PickupModel::Flamethrower].bytes)
-            .read::<Pickup>(()).clone();
+            .read::<Pickup>(())
+            .clone();
         pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Flamethrower\0").unwrap());
         pickup.cmdl = custom_asset_ids::FLAMETHROWER_PICKUP_CMDL;
         pickup.ancs.file_id = custom_asset_ids::FLAMETHROWER_PICKUP_ANCS;
         pickup.write_to(&mut bytes).unwrap();
     }
 
-    let mut deps: HashSet<_> = pickup_table[&PickupModel::Flamethrower].deps.iter()
-        .filter(|i| ![b"SCAN".into(), b"STRG".into(), b"CMDL".into(),
-                      b"ANCS".into(), b"TXTR".into()].contains(&i.fourcc))
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::Flamethrower]
+        .deps
+        .iter()
+        .filter(|i| {
+            ![
+                b"SCAN".into(),
+                b"STRG".into(),
+                b"CMDL".into(),
+                b"ANCS".into(),
+                b"TXTR".into(),
+            ]
+            .contains(&i.fourcc)
+        })
         .cloned()
         .collect();
 
@@ -896,46 +970,62 @@ fn create_flamethrower(pickup_table: &mut HashMap<PickupModel, PickupData>)
         ResourceKey::from(ResId::<res_id::TXTR>::new(0xB59EB7E6)),
     ]);
 
-    assert!(pickup_table.insert(PickupModel::FlamethrowerNew, PickupData {
-        bytes,
-        deps,
-        attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::FlamethrowerNew,
+            PickupData {
+                bytes,
+                deps,
+                attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
-fn create_combat_visor(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_combat_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut bytes = Vec::new();
     {
         let mut visor = Reader::new(&pickup_table[&PickupModel::Visor].bytes)
-            .read::<Pickup>(()).clone();
-            visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Combat Visor\0").unwrap());
+            .read::<Pickup>(())
+            .clone();
+        visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Combat Visor\0").unwrap());
         visor.cmdl = custom_asset_ids::COMBAT_CMDL;
         visor.ancs.file_id = custom_asset_ids::COMBAT_ANCS;
         visor.write_to(&mut bytes).unwrap();
     }
 
-    let mut deps: HashSet<_> = pickup_table[&PickupModel::Visor].deps.iter()
-        .filter(|i| ![
-                b"SCAN".into(), b"STRG".into(), b"CMDL".into(),
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::Visor]
+        .deps
+        .iter()
+        .filter(|i| {
+            ![
+                b"SCAN".into(),
+                b"STRG".into(),
+                b"CMDL".into(),
                 b"ANCS".into(),
-            ].contains(&i.fourcc))
+            ]
+            .contains(&i.fourcc)
+        })
         .cloned()
         .collect();
-        deps.extend(&[
+    deps.extend(&[
         ResourceKey::from(custom_asset_ids::COMBAT_CMDL),
         ResourceKey::from(ResId::<res_id::TXTR>::new(0x1D588B22)),
         ResourceKey::from(custom_asset_ids::COMBAT_ANCS),
     ]);
-    assert!(pickup_table.insert(PickupModel::CombatVisor, PickupData {
-        bytes,
-        deps,
-        attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::CombatVisor,
+            PickupData {
+                bytes,
+                deps,
+                attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
-fn main()
-{
+fn main() {
     let file = File::open(args().nth(1).unwrap()).unwrap();
     let mmap = unsafe { memmap::Mmap::map(&file).unwrap() };
     let mut reader = Reader::new(&mmap[..]);
@@ -971,17 +1061,23 @@ fn main()
             res_db.add_resource(res.into_owned());
         }
 
-        let mrea_name_strg_map: HashMap<_, _> = resources.iter()
+        let mrea_name_strg_map: HashMap<_, _> = resources
+            .iter()
             .find(|res| res.fourcc() == b"MLVL".into())
             .unwrap()
-            .kind.as_mlvl().unwrap()
-            .areas.iter()
+            .kind
+            .as_mlvl()
+            .unwrap()
+            .areas
+            .iter()
             .map(|area| (area.mrea, area.area_name_strg))
             .collect();
 
-        let mut mapw_res = resources.iter()
+        let mut mapw_res = resources
+            .iter()
             .find(|res| res.fourcc() == b"MAPW".into())
-            .unwrap().into_owned();
+            .unwrap()
+            .into_owned();
         let mut mapw = mapw_res.kind.as_mapw_mut().unwrap().area_maps.iter();
 
         locations.push(vec![]);
@@ -995,7 +1091,7 @@ fn main()
             let mut res = res.into_owned();
             let mrea = res.kind.as_mrea_mut().unwrap();
 
-            let model_count = mrea.world_model_count.clone();
+            let model_count = mrea.world_model_count;
 
             let scly = mrea.scly_section_mut();
 
@@ -1006,16 +1102,19 @@ fn main()
                 }
             }
 
-            let mut size_index = (model_count as f32 / 544.0 +  (total_object_size as f32 / 150536.0))/2.0;
+            let mut size_index =
+                (model_count as f32 / 544.0 + (total_object_size as f32 / 150536.0)) / 2.0;
 
             let mut room_locations = vec![];
             let mut room_removals = HashMap::new();
             let mut door_locations = vec![];
 
             let target_mapa_id = mapw.next().unwrap().into_owned();
-            let target_mapa = resources.iter()
+            let target_mapa = resources
+                .iter()
                 .find(|res| res.fourcc() == b"MAPA".into() && res.file_id == target_mapa_id)
-                .unwrap().into_owned();
+                .unwrap()
+                .into_owned();
             let mapa_id = &ResId::<res_id::MAPA>::new(target_mapa.file_id);
             let room_id = ResId::<res_id::MREA>::new(res.file_id);
 
@@ -1074,15 +1173,15 @@ fn main()
                     let mut door_shield_locations: Vec<ScriptObjectLocation> = Vec::new();
 
                     let mut door_loc: Option<ScriptObjectLocation> = None;
-                    let mut door_rotation: Option<[f32;3]> = None;
+                    let mut door_rotation: Option<[f32; 3]> = None;
 
                     for obj in scly_layer.objects.iter() {
                         if obj.property_data.is_actor() {
                             let actor = obj.property_data.as_actor().unwrap();
 
-                            if  f32::abs(actor.position[0] - dock.position[0]) > 4.0 ||
-                                f32::abs(actor.position[1] - dock.position[1]) > 4.0 ||
-                                f32::abs(actor.position[2] - dock.position[2]) > 4.0
+                            if f32::abs(actor.position[0] - dock.position[0]) > 4.0
+                                || f32::abs(actor.position[1] - dock.position[1]) > 4.0
+                                || f32::abs(actor.position[2] - dock.position[2]) > 4.0
                             {
                                 continue; // not associated with dock number
                             }
@@ -1090,26 +1189,23 @@ fn main()
                             let name = actor.name.to_str().unwrap();
                             if name.starts_with("Actor_DoorShield") && !name.contains("Key") {
                                 // unlock_shield
-                                door_shield_locations.push(
-                                    ScriptObjectLocation {
-                                        layer: layer_num as u32,
-                                        instance_id: obj.instance_id,
-                                    }
-                                );
+                                door_shield_locations.push(ScriptObjectLocation {
+                                    layer: layer_num as u32,
+                                    instance_id: obj.instance_id,
+                                });
                             } else if name.starts_with("Actor_DoorShield_Key") {
                                 // key_shield
-                                door_shield_locations.push(
-                                    ScriptObjectLocation {
-                                        layer: layer_num as u32,
-                                        instance_id: obj.instance_id,
-                                    }
-                                );
+                                door_shield_locations.push(ScriptObjectLocation {
+                                    layer: layer_num as u32,
+                                    instance_id: obj.instance_id,
+                                });
                             }
                         } else if obj.property_data.is_damageable_trigger() {
-                            let damageable_trigger = obj.property_data.as_damageable_trigger().unwrap();
-                            if  f32::abs(damageable_trigger.position[0] - dock.position[0]) > 4.0 ||
-                                f32::abs(damageable_trigger.position[1] - dock.position[1]) > 4.0 ||
-                                f32::abs(damageable_trigger.position[2] - dock.position[2]) > 4.0
+                            let damageable_trigger =
+                                obj.property_data.as_damageable_trigger().unwrap();
+                            if f32::abs(damageable_trigger.position[0] - dock.position[0]) > 4.0
+                                || f32::abs(damageable_trigger.position[1] - dock.position[1]) > 4.0
+                                || f32::abs(damageable_trigger.position[2] - dock.position[2]) > 4.0
                             {
                                 continue; // not associated with dock number
                             }
@@ -1117,26 +1213,22 @@ fn main()
                             let name = damageable_trigger.name.to_str().unwrap();
                             if name.contains("DoorUnlock") {
                                 // forceunlock
-                                door_force_locations.push(
-                                    ScriptObjectLocation {
-                                        layer: layer_num as u32,
-                                        instance_id: obj.instance_id,
-                                    }
-                                );
+                                door_force_locations.push(ScriptObjectLocation {
+                                    layer: layer_num as u32,
+                                    instance_id: obj.instance_id,
+                                });
                             } else if name.contains("DoorKey") {
                                 // forcekey
-                                door_force_locations.push(
-                                    ScriptObjectLocation {
-                                        layer: layer_num as u32,
-                                        instance_id: obj.instance_id,
-                                    }
-                                );
+                                door_force_locations.push(ScriptObjectLocation {
+                                    layer: layer_num as u32,
+                                    instance_id: obj.instance_id,
+                                });
                             }
                         } else if obj.property_data.is_door() {
                             let door = obj.property_data.as_door().unwrap();
-                            if  f32::abs(door.position[0] - dock.position[0]) > 4.0 ||
-                                f32::abs(door.position[1] - dock.position[1]) > 4.0 ||
-                                f32::abs(door.position[2] - dock.position[2]) > 4.0
+                            if f32::abs(door.position[0] - dock.position[0]) > 4.0
+                                || f32::abs(door.position[1] - dock.position[1]) > 4.0
+                                || f32::abs(door.position[2] - dock.position[2]) > 4.0
                             {
                                 continue; // not associated with dock number
                             }
@@ -1145,26 +1237,23 @@ fn main()
                                 panic!("multiple valid doors in 0x{:X}", room_id.to_u32());
                             }
 
-                            door_loc = Some(
-                                ScriptObjectLocation {
-                                    layer: layer_num as u32,
-                                    instance_id: obj.instance_id,
-                                }
-                            );
+                            door_loc = Some(ScriptObjectLocation {
+                                layer: layer_num as u32,
+                                instance_id: obj.instance_id,
+                            });
                             door_rotation = Some(door.rotation.into());
                         }
                     }
 
                     door_locations.push(DoorLocation {
-                            door_location: door_loc,
-                            door_rotation: door_rotation,
-                            door_force_locations,
-                            door_shield_locations,
-                            dock_number: dock.dock_index,
-                            dock_position: dock.position.into(),
-                            dock_scale: dock.scale.into(),
-                        }
-                    );
+                        door_location: door_loc,
+                        door_rotation,
+                        door_force_locations,
+                        door_shield_locations,
+                        dock_number: dock.dock_index,
+                        dock_position: dock.position.into(),
+                        dock_scale: dock.scale.into(),
+                    });
                 }
 
                 // trace pickup resources //
@@ -1173,29 +1262,29 @@ fn main()
                     let pickup = if let Some(pickup) = obj.property_data.as_pickup() {
                         pickup
                     } else {
-                        continue
+                        continue;
                     };
 
                     let pickup_model = if let Some(pm) = pickup_model_for_pickup(&pickup) {
                         pm
                     } else {
-                        continue
+                        continue;
                     };
 
-                    if pickup_model != PickupModel::HealthRefill && pickup_model != PickupModel::MissileRefill && pickup_model != PickupModel::PowerBombRefill {
+                    if pickup_model != PickupModel::HealthRefill
+                        && pickup_model != PickupModel::MissileRefill
+                        && pickup_model != PickupModel::PowerBombRefill
+                    {
                         let obj_loc = ScriptObjectLocation {
                             instance_id: obj.instance_id,
                             layer: layer_num as u32,
                         };
-                        let (pickup_loc, removals) = extract_pickup_location(
-                            res.file_id,
-                            &scly,
-                            &obj,
-                            obj_loc,
-                        );
+                        let (pickup_loc, removals) =
+                            extract_pickup_location(res.file_id, scly, &obj, obj_loc);
 
                         for loc in removals {
-                            room_removals.entry(loc.layer)
+                            room_removals
+                                .entry(loc.layer)
                                 .or_insert_with(Vec::new)
                                 .push(loc.instance_id);
                         }
@@ -1204,19 +1293,18 @@ fn main()
 
                     // XXX There's a couple of pickups where the first occurances don't have scans,
                     // so skip those for the pickup_table
-                    if (pickup_model == PickupModel::Missile || pickup_model == PickupModel::EnergyTank)
-                        && pickup.actor_params.scan_params.scan == 0xFFFFFFFF {
-                        continue
+                    if (pickup_model == PickupModel::Missile
+                        || pickup_model == PickupModel::EnergyTank)
+                        && pickup.actor_params.scan_params.scan == 0xFFFFFFFF
+                    {
+                        continue;
                     }
 
                     if pickup_table.contains_key(&pickup_model) {
-                        continue
+                        continue;
                     }
 
-                    pickup_table.insert(
-                        pickup_model,
-                        extract_pickup_data(&scly, &obj, &mut res_db)
-                    );
+                    pickup_table.insert(pickup_model, extract_pickup_data(scly, &obj, &mut res_db));
 
                     if pickup.cmdl != u32::max_value() {
                         // Add an aabb entry for this pickup's cmdl
@@ -1247,19 +1335,31 @@ fn main()
                     &"Metroid8.pak" => "End Cinema\0".to_string(),
                     _ => {
                         let strg: structs::Strg = res_db.map[&ResourceKey::from(strg_id)]
-                            .data.data.clone().read(());
+                            .data
+                            .data
+                            .clone()
+                            .read(());
                         let name = strg
-                            .string_tables.iter().next().unwrap()
-                            .strings.iter().next().unwrap()
-                            .into_owned().into_string();
+                            .string_tables
+                            .iter()
+                            .next()
+                            .unwrap()
+                            .strings
+                            .iter()
+                            .next()
+                            .unwrap()
+                            .into_owned()
+                            .into_string();
                         name
-                    },
+                    }
                 };
 
-                if vec![
+                if [
                     0x2398E906, // artifact temple
-                    0x5F2EB7B6, // biotech 1
-                ].contains(&res.file_id) {
+                    0x5F2EB7B6,
+                ]
+                .contains(&res.file_id)
+                {
                     size_index = 1.0;
                 }
 
@@ -1347,17 +1447,41 @@ fn main()
     }
 
     // Special case of custom CMDLs
-    let suit_aabb = *cmdl_aabbs.get(&ResId::<res_id::CMDL>::new(resource_info!("Node1_11.CMDL").res_id)).unwrap();
-    assert!(cmdl_aabbs.insert(custom_asset_ids::PHAZON_SUIT_CMDL, suit_aabb).is_none());
-    assert!(cmdl_aabbs.insert(custom_asset_ids::NOTHING_CMDL, suit_aabb).is_none());
+    let suit_aabb = *cmdl_aabbs
+        .get(&ResId::<res_id::CMDL>::new(
+            resource_info!("Node1_11.CMDL").res_id,
+        ))
+        .unwrap();
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::PHAZON_SUIT_CMDL, suit_aabb)
+        .is_none());
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::NOTHING_CMDL, suit_aabb)
+        .is_none());
 
-    let missile_aabb = *cmdl_aabbs.get(&ResId::<res_id::CMDL>::new(resource_info!("Node1_36_0.CMDL").res_id)).unwrap();
-    assert!(cmdl_aabbs.insert(custom_asset_ids::SHINY_MISSILE_CMDL, missile_aabb).is_none());
+    let missile_aabb = *cmdl_aabbs
+        .get(&ResId::<res_id::CMDL>::new(
+            resource_info!("Node1_36_0.CMDL").res_id,
+        ))
+        .unwrap();
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::SHINY_MISSILE_CMDL, missile_aabb)
+        .is_none());
 
-    let visor_aabb = *cmdl_aabbs.get(&ResId::<res_id::CMDL>::new(resource_info!("Node1_39_1.CMDL").res_id)).unwrap();
-    assert!(cmdl_aabbs.insert(custom_asset_ids::THERMAL_CMDL, visor_aabb).is_none());
-    assert!(cmdl_aabbs.insert(custom_asset_ids::XRAY_CMDL, visor_aabb).is_none());
-    assert!(cmdl_aabbs.insert(custom_asset_ids::COMBAT_CMDL, visor_aabb).is_none());
+    let visor_aabb = *cmdl_aabbs
+        .get(&ResId::<res_id::CMDL>::new(
+            resource_info!("Node1_39_1.CMDL").res_id,
+        ))
+        .unwrap();
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::THERMAL_CMDL, visor_aabb)
+        .is_none());
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::XRAY_CMDL, visor_aabb)
+        .is_none());
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::COMBAT_CMDL, visor_aabb)
+        .is_none());
 
     create_gamecube(&mut pickup_table);
     create_nothing(&mut pickup_table);
@@ -1369,8 +1493,8 @@ fn main()
     // create_power_beam(&mut pickup_table);
 
     println!("// This file is generated by bin/resource_tracing.rs");
-    println!("");
-    println!("");
+    println!();
+    println!();
 
     println!("pub const ROOM_INFO: &[(&str, &[RoomInfo]); 8] = &[");
     for (fname, locations) in filenames.iter().zip(locations.into_iter()) {
@@ -1378,20 +1502,38 @@ fn main()
         println!("    ({:?}, &[", fname);
         for room_info in locations {
             println!("        RoomInfo {{");
-            println!("            room_id: ResId::<res_id::MREA>::new(0x{:08X}),", room_info.room_id.to_u32());
-            println!("            name: {:?},", &room_info.name[..(room_info.name.len() - 1)]);
-            println!("            name_id: ResId::<res_id::STRG>::new(0x{:08X}),", room_info.name_id.to_u32());
-            println!("            mapa_id: ResId::<res_id::MAPA>::new(0x{:08X}),", room_info.mapa_id.to_u32());
+            println!(
+                "            room_id: ResId::<res_id::MREA>::new(0x{:08X}),",
+                room_info.room_id.to_u32()
+            );
+            println!(
+                "            name: {:?},",
+                &room_info.name[..(room_info.name.len() - 1)]
+            );
+            println!(
+                "            name_id: ResId::<res_id::STRG>::new(0x{:08X}),",
+                room_info.name_id.to_u32()
+            );
+            println!(
+                "            mapa_id: ResId::<res_id::MAPA>::new(0x{:08X}),",
+                room_info.mapa_id.to_u32()
+            );
             println!("            size_index: {:.4},", room_info.size_index);
             println!("            pickup_locations: &[");
             for location in room_info.pickups {
                 println!("                PickupLocation {{");
                 println!("                    location: {:?},", location.location);
-                println!("                    attainment_audio: {:?},", location.attainment_audio);
+                println!(
+                    "                    attainment_audio: {:?},",
+                    location.attainment_audio
+                );
                 println!("                    hudmemo: {:?},", location.hudmemo);
-                println!("                    memory_relay: {:?},", location.memory_relay);
+                println!(
+                    "                    memory_relay: {:?},",
+                    location.memory_relay
+                );
                 println!("                    position: {:?},", location.position);
-                if location.post_pickup_relay_connections.len() == 0 {
+                if location.post_pickup_relay_connections.is_empty() {
                     println!("                    post_pickup_relay_connections: &[]");
                 } else {
                     println!("                    post_pickup_relay_connections: &[");
@@ -1399,8 +1541,10 @@ fn main()
                         println!("                        Connection {{");
                         println!("                            state: {:?},", conn.state);
                         println!("                            message: {:?},", conn.message);
-                        println!("                            target_object_id: 0x{:x},",
-                                 conn.target_object_id);
+                        println!(
+                            "                            target_object_id: 0x{:x},",
+                            conn.target_object_id
+                        );
                         println!("                        }},");
                     }
                     println!("                    ],");
@@ -1411,18 +1555,33 @@ fn main()
             println!("            door_locations: &[");
             for door in room_info.doors {
                 println!("                DoorLocation {{");
-                println!("                    door_location: {:?},", door.door_location);
-                println!("                    door_rotation: {:?},", door.door_rotation);
-                println!("                    door_force_locations: &{:?},", door.door_force_locations);
-                println!("                    door_shield_locations: &{:?},", door.door_shield_locations);
+                println!(
+                    "                    door_location: {:?},",
+                    door.door_location
+                );
+                println!(
+                    "                    door_rotation: {:?},",
+                    door.door_rotation
+                );
+                println!(
+                    "                    door_force_locations: &{:?},",
+                    door.door_force_locations
+                );
+                println!(
+                    "                    door_shield_locations: &{:?},",
+                    door.door_shield_locations
+                );
                 println!("                    dock_number: {:?},", door.dock_number);
-                println!("                    dock_position: {:?},", door.dock_position);
+                println!(
+                    "                    dock_position: {:?},",
+                    door.dock_position
+                );
                 println!("                    dock_scale: {:?},", door.dock_scale);
                 println!("                }},");
             }
             println!("            ],");
 
-            if room_info.objects_to_remove.len() == 0 {
+            if room_info.objects_to_remove.is_empty() {
                 println!("            objects_to_remove: &[],");
             } else {
                 println!("            objects_to_remove: &[");
@@ -1445,23 +1604,33 @@ fn main()
     let mut cmdl_aabbs: Vec<_> = cmdl_aabbs.iter().collect();
 
     let ice_trab_cmdl = ResId::<res_id::CMDL>::new(0xA3108E43);
-    let ice_trap_aabb =
-        [
-            f32::from_bits(0xBF09348B),
-            f32::from_bits(0xBFB99CD0),
-            f32::from_bits(0xBEAA8B6E),
-            f32::from_bits(0x3F08ADAC),
-            f32::from_bits(0x3EDC6CFC),
-            f32::from_bits(0x3F003E64),
-        ];
+    let ice_trap_aabb = [
+        f32::from_bits(0xBF09348B),
+        f32::from_bits(0xBFB99CD0),
+        f32::from_bits(0xBEAA8B6E),
+        f32::from_bits(0x3F08ADAC),
+        f32::from_bits(0x3EDC6CFC),
+        f32::from_bits(0x3F003E64),
+    ];
 
     cmdl_aabbs.push((&ice_trab_cmdl, &ice_trap_aabb));
     cmdl_aabbs.sort_by_key(|&(k, _)| k);
-    println!("const PICKUP_CMDL_AABBS: [(u32, [u32; 6]); {}] = [", cmdl_aabbs.len());
+    println!(
+        "const PICKUP_CMDL_AABBS: [(u32, [u32; 6]); {}] = [",
+        cmdl_aabbs.len()
+    );
     for (cmdl_id, aabb) in cmdl_aabbs {
         let aabb: [u32; 6] = unsafe { mem::transmute(*aabb) };
-        println!("    (0x{:08X}, [0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}]),",
-                    cmdl_id.to_u32(), aabb[0], aabb[1], aabb[2], aabb[3], aabb[4], aabb[5]);
+        println!(
+            "    (0x{:08X}, [0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}]),",
+            cmdl_id.to_u32(),
+            aabb[0],
+            aabb[1],
+            aabb[2],
+            aabb[3],
+            aabb[4],
+            aabb[5]
+        );
     }
     println!("];");
 
@@ -1493,9 +1662,7 @@ fn main()
     println!("        match self {{");
     for pm in PickupModel::iter() {
         if pm == PickupModel::IceTrap {
-
-            let string =
-            "PickupModel::IceTrap => {
+            let string = "PickupModel::IceTrap => {
                 const DATA: &[(u32, FourCC)] = &[
                     (0x1544D478, FourCC::from_bytes(b\"TXTR\")),
                     (0x394D3877, FourCC::from_bytes(b\"ANIM\")),
@@ -1545,8 +1712,7 @@ fn main()
         for dep in deps {
             println!(
                 "                    (0x{:08X}, FourCC::from_bytes(b\"{}\")),",
-                dep.file_id,
-                dep.fourcc
+                dep.file_id, dep.fourcc
             );
         }
         println!("                ];");
@@ -1562,8 +1728,7 @@ fn main()
     println!("        match self {{");
     for pm in PickupModel::iter() {
         if pm == PickupModel::IceTrap {
-            let string =
-"           PickupModel::IceTrap => &[
+            let string = "           PickupModel::IceTrap => &[
                 0x00, 0x00, 0x00, 0x12, 0x49, 0x63, 0x65, 0x20,
                 0x54, 0x72, 0x61, 0x70, 0x00, 0xC3, 0x18, 0x19,
                 0x25, 0x41, 0xCB, 0xC3, 0x2E, 0xC3, 0x0C, 0xB0,
@@ -1609,7 +1774,7 @@ fn main()
             for x in 0..len {
                 print!(" 0x{:02X},", pickup_bytes[y * BYTES_PER_LINE + x]);
             }
-            println!("");
+            println!();
         }
         println!("            ],");
     }

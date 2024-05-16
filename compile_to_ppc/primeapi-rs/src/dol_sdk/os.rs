@@ -1,6 +1,5 @@
 #[repr(C)]
-pub struct OSModuleInfo
-{
+pub struct OSModuleInfo {
     pub id: u32,
     pub next: *mut OSModuleInfo,
     pub prev: *mut OSModuleInfo,
@@ -13,15 +12,13 @@ pub struct OSModuleInfo
 }
 
 #[repr(C)]
-pub union OffsetOrFuncPointer
-{
+pub union OffsetOrFuncPointer {
     pub offset: u32,
     pub func_ptr: Option<unsafe extern "C" fn()>,
 }
 
 #[repr(C)]
-pub struct OSModuleHeader
-{
+pub struct OSModuleHeader {
     pub mod_info: OSModuleInfo,
     pub bss_size: u32,
 
@@ -44,12 +41,9 @@ extern "C" {
 }
 
 #[allow(non_snake_case)]
-pub fn OSGetTime() -> u64
-{
+pub fn OSGetTime() -> u64 {
     extern "C" {
         fn OSGetTime() -> u64;
     }
-    unsafe {
-        OSGetTime()
-    }
+    unsafe { OSGetTime() }
 }

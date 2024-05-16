@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Dock<'r>
-{
+pub struct Dock<'r> {
     #[auto_struct(expect = 7)]
     prop_count: u32,
 
@@ -23,8 +20,7 @@ pub struct Dock<'r>
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for Dock<'r>
-{
+impl<'r> SclyPropertyData for Dock<'r> {
     const OBJECT_TYPE: u8 = 0x0B;
 
     impl_position!();

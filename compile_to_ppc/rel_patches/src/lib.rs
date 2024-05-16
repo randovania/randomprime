@@ -1,20 +1,21 @@
-#![feature(default_alloc_error_handler)]
 #![no_std]
 
 extern crate alloc;
 
-use linkme::distributed_slice;
-
-use primeapi::{patch_fn, prolog_fn, GameVersion};
-use primeapi::alignment_utils::Aligned32;
-use primeapi::dol_sdk::dvd::DVDFileInfo;
-use primeapi::mp1::{
-    CArchitectureQueue, CGameState, CGuiFrame, CGuiTextSupport, CGuiTextPane, CGuiWidget,
-    CMainFlow, CStringTable, CWorldState,
-};
-use primeapi::rstl::WString;
-
 use core::mem::MaybeUninit;
+
+use linkme::distributed_slice;
+use primeapi::{
+    alignment_utils::Aligned32,
+    dol_sdk::dvd::DVDFileInfo,
+    mp1::{
+        CArchitectureQueue, CGameState, CGuiFrame, CGuiTextPane, CGuiTextSupport, CGuiWidget,
+        CMainFlow, CStringTable, CWorldState,
+    },
+    patch_fn, prolog_fn,
+    rstl::WString,
+    GameVersion,
+};
 
 include!("../../patches_config.rs");
 static mut REL_CONFIG: RelConfig = RelConfig {
@@ -23,8 +24,7 @@ static mut REL_CONFIG: RelConfig = RelConfig {
 };
 
 #[prolog_fn]
-unsafe extern "C" fn setup_global_state()
-{
+unsafe extern "C" fn setup_global_state() {
     {
         let mut fi = if let Some(fi) = DVDFileInfo::new(b"rel_config.bin\0") {
             fi
@@ -39,11 +39,10 @@ unsafe extern "C" fn setup_global_state()
             let _ = fi.read_async(recv_buf, 0, 0);
         }
         REL_CONFIG = ssmarshal::deserialize(&recv_buf[..config_size].assume_init())
-            .unwrap().0;
+            .unwrap()
+            .0;
     }
-
 }
-
 
 #[patch_fn(kind = call,
            target = "FinishedLoading__19SNewFileSelectFrame" + 0x2c,
@@ -63,9 +62,10 @@ unsafe extern "C" fn setup_global_state()
 #[patch_fn(kind = call,
            target = "FinishedLoading__19SNewFileSelectFrame" + 0x34,
            version = Pal)]
-unsafe extern "C" fn update_main_menu_text(frame: *mut CGuiFrame, widget_name: *const u8)
-    -> *mut CGuiWidget
-{
+unsafe extern "C" fn update_main_menu_text(
+    frame: *mut CGuiFrame,
+    widget_name: *const u8,
+) -> *mut CGuiWidget {
     let res = CGuiFrame::find_widget(frame, widget_name);
 
     let version = GameVersion::current();
@@ -77,7 +77,10 @@ unsafe extern "C" fn update_main_menu_text(frame: *mut CGuiFrame, widget_name: *
     let raw_string = CStringTable::get_string(CStringTable::main_string_table(), str_idx);
     let s = WString::from_ucs2_str(raw_string);
 
-    for name in &[b"textpane_identifier\0".as_ptr(), b"textpane_identifierb\0".as_ptr()] {
+    for name in &[
+        b"textpane_identifier\0".as_ptr(),
+        b"textpane_identifierb\0".as_ptr(),
+    ] {
         let widget = CGuiFrame::find_widget(frame, *name);
         let text_support = CGuiTextPane::text_support_mut(widget as *mut CGuiTextPane);
         CGuiTextSupport::set_text(text_support, &s);
@@ -92,11 +95,10 @@ unsafe extern "C" fn update_main_menu_text(frame: *mut CGuiFrame, widget_name: *
            target = "OnMessage__9CMainFlowFRC20CArchitectureMessageR18CArchitectureQueue" + 72)]
 unsafe extern "C" fn quickplay_hook_advance_game_state(
     flow: *mut CMainFlow,
-    q: *mut CArchitectureQueue
-)
-{
+    q: *mut CArchitectureQueue,
+) {
     static mut INIT: bool = false;
-    if CMainFlow::game_state(flow) == CMainFlow::CLIENT_FLOW_STATE_PRE_FRONT_END  && !INIT {
+    if CMainFlow::game_state(flow) == CMainFlow::CLIENT_FLOW_STATE_PRE_FRONT_END && !INIT {
         INIT = true;
         if REL_CONFIG.quickplay_mlvl != 0xFFFFFFFF {
             let game_state = CGameState::global_instance();

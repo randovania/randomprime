@@ -1,15 +1,16 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::{DamageVulnerability, AnimationParameters,ActorParameters, HealthInfo, DamageInfo};
+use crate::{
+    scly_props::structs::{
+        ActorParameters, AnimationParameters, DamageInfo, DamageVulnerability, HealthInfo,
+    },
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ActorContraption<'r>
-{
+pub struct ActorContraption<'r> {
     #[auto_struct(expect = 15)]
     pub prop_count: u32,
 
@@ -30,8 +31,7 @@ pub struct ActorContraption<'r>
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for ActorContraption<'r>
-{
+impl<'r> SclyPropertyData for ActorContraption<'r> {
     const OBJECT_TYPE: u8 = 0x6E;
 
     impl_position!();
@@ -41,21 +41,17 @@ impl<'r> SclyPropertyData for ActorContraption<'r>
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
-        vec![
-            self.damage_info.clone()
-        ]
+        vec![self.damage_info]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.damage_info = x[0].clone();
+        self.damage_info = x[0];
     }
 
     const SUPPORTS_VULNERABILITIES: bool = true;
 
     fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
-        vec![
-            self.damage_vulnerability.clone(),
-        ]
+        vec![self.damage_vulnerability.clone()]
     }
 
     fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
@@ -65,9 +61,7 @@ impl<'r> SclyPropertyData for ActorContraption<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.health_info.clone()
-        ]
+        vec![self.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

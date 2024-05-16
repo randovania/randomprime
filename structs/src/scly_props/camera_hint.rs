@@ -1,16 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::U3, CStr};
 
-use reader_writer::{
-    CStr,
-    generic_array::GenericArray,
-    typenum::U3,
-};
-use crate::SclyPropertyData; 
+use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct CameraHintParameters
-{
+pub struct CameraHintParameters {
     #[auto_struct(expect = 15)]
     prop_count: u32,
     pub calculate_cam_pos: u8,
@@ -39,24 +34,21 @@ pub struct CameraHintParameters
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct BoolFloat
-{
+pub struct BoolFloat {
     pub active: u8,
     pub value: f32,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct BoolVec3
-{
+pub struct BoolVec3 {
     pub active: u8,
     pub value: GenericArray<f32, U3>,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct CameraHint<'r>
-{
+pub struct CameraHint<'r> {
     #[auto_struct(expect = 9)]
     prop_count: u32,
 
@@ -94,7 +86,6 @@ pub struct CameraHint<'r>
 }
 
 // cannot implement position/rotation until the size of this struct is corrected
-impl<'r> SclyPropertyData for CameraHint<'r>
-{
+impl<'r> SclyPropertyData for CameraHint<'r> {
     const OBJECT_TYPE: u8 = 0x10;
 }

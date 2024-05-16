@@ -1,42 +1,28 @@
 use std::{
-    ffi::CStr,
     collections::{HashMap, HashSet},
+    ffi::CStr,
+    fmt, fs,
     fs::{File, OpenOptions},
-    fs,
-    fmt,
     str::FromStr,
 };
 
-use clap::{
-    Arg,
-    App,
-    crate_version,
-};
-
-use serde::{Serialize, Deserialize};
-
-use crate::{
-    starting_items::StartingItems,
-    pickup_meta::PickupType,
-    custom_assets::custom_asset_ids, door_meta::DoorType,
-    room_lookup::ROOM_BY_INTERNAL_ID,
-};
-
-use reader_writer::{FourCC, Reader};
-
-use structs::{res_id, ResId, MapaObjectVisibilityMode};
-
+use clap::{crate_version, App, Arg};
 use json_data::*;
 use json_strip::strip_jsonc_comments;
+use reader_writer::{FourCC, Reader};
+use serde::{Deserialize, Serialize};
+use structs::{res_id, MapaObjectVisibilityMode, ResId};
 
-use crate::elevators::World;
+use crate::{
+    custom_assets::custom_asset_ids, door_meta::DoorType, elevators::World,
+    pickup_meta::PickupType, room_lookup::ROOM_BY_INTERNAL_ID, starting_items::StartingItems,
+};
 
 /*** Parsed Config (fn patch_iso) ***/
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub enum RunMode
-{
+pub enum RunMode {
     CreateIso,
     ExportLogbook,
     ExportAssets,
@@ -44,8 +30,7 @@ pub enum RunMode
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
-pub enum IsoFormat
-{
+pub enum IsoFormat {
     Iso,
     Gcz,
     Ciso,
@@ -53,8 +38,7 @@ pub enum IsoFormat
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 #[serde(deny_unknown_fields)]
-pub enum ArtifactHintBehavior
-{
+pub enum ArtifactHintBehavior {
     Default,
     None,
     All,
@@ -62,8 +46,7 @@ pub enum ArtifactHintBehavior
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 #[serde(deny_unknown_fields)]
-pub enum CutsceneMode
-{
+pub enum CutsceneMode {
     Original,
     Skippable,
     SkippableCompetitive,
@@ -74,8 +57,7 @@ pub enum CutsceneMode
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 #[serde(deny_unknown_fields)]
-pub enum Visor
-{
+pub enum Visor {
     Combat,
     XRay,
     Scan,
@@ -84,8 +66,7 @@ pub enum Visor
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 #[serde(deny_unknown_fields)]
-pub enum Beam
-{
+pub enum Beam {
     Power,
     Ice,
     Wave,
@@ -94,8 +75,7 @@ pub enum Beam
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GameBanner
-{
+pub struct GameBanner {
     pub game_name: Option<String>,
     pub game_name_full: Option<String>,
     pub developer: Option<String>,
@@ -105,10 +85,9 @@ pub struct GameBanner
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PickupConfig
-{
+pub struct PickupConfig {
     pub id: Option<u32>,
-    #[serde(alias  = "type")]
+    #[serde(alias = "type")]
     pub pickup_type: String,
     pub curr_increase: Option<i32>,
     pub max_increase: Option<i32>,
@@ -116,7 +95,7 @@ pub struct PickupConfig
     pub scan_text: Option<String>,
     pub hudmemo_text: Option<String>,
     pub respawn: Option<bool>,
-    pub position: Option<[f32;3]>,
+    pub position: Option<[f32; 3]>,
     pub modal_hudmemo: Option<bool>,
     pub jumbo_scan: Option<bool>,
     pub destination: Option<String>,
@@ -128,11 +107,10 @@ pub struct PickupConfig
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ScanConfig
-{
+pub struct ScanConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
-    pub position: [f32;3],
+    pub position: [f32; 3],
     pub combat_visible: Option<bool>,
     pub rotation: Option<f32>,
     pub is_red: Option<bool>,
@@ -143,17 +121,15 @@ pub struct ScanConfig
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct DoorDestination
-{
+pub struct DoorDestination {
     pub room_name: String,
     pub dock_num: u32,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct DoorConfig
-{
-    #[serde(alias  = "type")]
+pub struct DoorConfig {
+    #[serde(alias = "type")]
     pub shield_type: Option<String>,
     pub blast_shield_type: Option<String>,
     pub destination: Option<DoorDestination>, // Must be in same area. Ex: "destination":"Main Plaza"
@@ -161,8 +137,7 @@ pub struct DoorConfig
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SuitColors
-{
+pub struct SuitColors {
     pub power_deg: Option<i16>,
     pub varia_deg: Option<i16>,
     pub gravity_deg: Option<i16>,
@@ -171,8 +146,7 @@ pub struct SuitColors
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct DefaultGameOptions
-{
+pub struct DefaultGameOptions {
     pub screen_brightness: Option<u32>,
     pub screen_offset_x: Option<i32>,
     pub screen_offset_y: Option<i32>,
@@ -190,21 +164,19 @@ pub struct DefaultGameOptions
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WaterConfig
-{
+pub struct WaterConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub active: Option<bool>,
     #[serde(alias = "type")]
     pub liquid_type: String,
-    pub position: [f32;3],
-    pub scale: [f32;3],
+    pub position: [f32; 3],
+    pub scale: [f32; 3],
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 #[serde(deny_unknown_fields)]
-pub enum PlatformType
-{
+pub enum PlatformType {
     Metal,
     Snow,
     Block,
@@ -216,13 +188,12 @@ pub enum PlatformType
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PlatformConfig
-{
+pub struct PlatformConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub active: Option<bool>,
-    pub position: [f32;3],
-    pub rotation: Option<[f32;3]>,
+    pub position: [f32; 3],
+    pub rotation: Option<[f32; 3]>,
     pub alt_platform: Option<bool>, // deprecated
     #[serde(alias = "type")]
     pub platform_type: Option<PlatformType>,
@@ -232,44 +203,40 @@ pub struct PlatformConfig
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 #[serde(deny_unknown_fields)]
-pub enum GenericTexture
-{
-    #[serde(alias="grass", alias="GRASS")]
-    Grass,     // TXTR_BE288047
-    #[serde(alias="crater", alias="CRATER")]
-    Crater,    // TXTR_8E899523
-    #[serde(alias="mine", alias="MINE")]
-    Mine,      // TXTR_7D77CEE0
-    #[serde(alias="snow", alias="SNOW")]
-    Snow,      // TXTR_2E6E5FC1
-    #[serde(alias="sandstone", alias="SANDSTONE")]
+pub enum GenericTexture {
+    #[serde(alias = "grass", alias = "GRASS")]
+    Grass, // TXTR_BE288047
+    #[serde(alias = "crater", alias = "CRATER")]
+    Crater, // TXTR_8E899523
+    #[serde(alias = "mine", alias = "MINE")]
+    Mine, // TXTR_7D77CEE0
+    #[serde(alias = "snow", alias = "SNOW")]
+    Snow, // TXTR_2E6E5FC1
+    #[serde(alias = "sandstone", alias = "SANDSTONE")]
     Sandstone, // TXTR_AA452C33
 }
 
-impl GenericTexture
-{
-    pub fn txtr(self) -> ResId::<res_id::TXTR> {
+impl GenericTexture {
+    pub fn txtr(self) -> ResId<res_id::TXTR> {
         let id = match self {
-            GenericTexture::Grass     => 0xBE288047,
-            GenericTexture::Crater    => 0x8E899523,
-            GenericTexture::Mine      => 0x7D77CEE0,
-            GenericTexture::Snow      => 0x2E6E5FC1,
+            GenericTexture::Grass => 0xBE288047,
+            GenericTexture::Crater => 0x8E899523,
+            GenericTexture::Mine => 0x7D77CEE0,
+            GenericTexture::Snow => 0x2E6E5FC1,
             GenericTexture::Sandstone => 0xAA452C33,
         };
 
         ResId::new(id)
     }
 
-    pub fn cmdl(self) -> ResId::<res_id::CMDL> {
-        let id = match self {
-            GenericTexture::Grass     => custom_asset_ids::BLOCK_COLOR_0,
-            GenericTexture::Crater    => custom_asset_ids::BLOCK_COLOR_1,
-            GenericTexture::Mine      => custom_asset_ids::BLOCK_COLOR_2,
-            GenericTexture::Snow      => custom_asset_ids::BLOCK_COLOR_3,
+    pub fn cmdl(self) -> ResId<res_id::CMDL> {
+        match self {
+            GenericTexture::Grass => custom_asset_ids::BLOCK_COLOR_0,
+            GenericTexture::Crater => custom_asset_ids::BLOCK_COLOR_1,
+            GenericTexture::Mine => custom_asset_ids::BLOCK_COLOR_2,
+            GenericTexture::Snow => custom_asset_ids::BLOCK_COLOR_3,
             GenericTexture::Sandstone => custom_asset_ids::BLOCK_COLOR_4,
-        };
-
-        id
+        }
     }
 
     pub fn dependencies(self) -> Vec<(u32, FourCC)> {
@@ -279,79 +246,76 @@ impl GenericTexture
         ]
     }
 
-    pub fn iter() -> impl Iterator<Item = GenericTexture>
-    {
+    pub fn iter() -> impl Iterator<Item = GenericTexture> {
         [
             GenericTexture::Grass,
             GenericTexture::Crater,
             GenericTexture::Mine,
             GenericTexture::Snow,
             GenericTexture::Sandstone,
-        ].iter().map(|i| *i)
+        ]
+        .iter()
+        .copied()
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BlockConfig
-{
+pub struct BlockConfig {
     pub id: Option<u32>,
     pub active: Option<bool>,
     pub layer: Option<u32>,
-    pub position: [f32;3],
-    pub scale: Option<[f32;3]>,
+    pub position: [f32; 3],
+    pub scale: Option<[f32; 3]>,
     pub texture: Option<GenericTexture>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EscapeSequenceConfig
-{
+pub struct EscapeSequenceConfig {
     pub time: Option<f32>,
-    pub start_trigger_pos: [f32;3],
-    pub start_trigger_scale: [f32;3],
-    pub stop_trigger_pos: [f32;3],
-    pub stop_trigger_scale: [f32;3],
+    pub start_trigger_pos: [f32; 3],
+    pub start_trigger_scale: [f32; 3],
+    pub stop_trigger_pos: [f32; 3],
+    pub stop_trigger_scale: [f32; 3],
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CameraHintConfig
-{
+pub struct CameraHintConfig {
     pub layer: Option<u32>,
     pub trigger_id: Option<u32>,
-    pub trigger_pos: [f32;3],
-    pub trigger_scale: [f32;3],
+    pub trigger_pos: [f32; 3],
+    pub trigger_scale: [f32; 3],
     pub camera_id: Option<u32>,
-    pub camera_pos: [f32;3],
-    pub camera_rot: [f32;3],
+    pub camera_pos: [f32; 3],
+    pub camera_rot: [f32; 3],
 
     /**
-        enum class EBallCameraBehaviour {
-            Default,
-            FreezeLookPosition, // Unused
-            HintBallToCam,
-            HintInitializePosition,
-            HintFixedPosition,
-            HintFixedTransform,
-            PathCameraDesiredPos, // Unused
-            PathCamera,
-            SpindleCamera
-        };
-     */
+       enum class EBallCameraBehaviour {
+           Default,
+           FreezeLookPosition, // Unused
+           HintBallToCam,
+           HintInitializePosition,
+           HintFixedPosition,
+           HintFixedTransform,
+           PathCameraDesiredPos, // Unused
+           PathCamera,
+           SpindleCamera
+       };
+    */
     pub behavior: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LockOnPoint
-{
+pub struct LockOnPoint {
     pub id1: Option<u32>,
     pub layer: Option<u32>,
     pub active1: Option<bool>,
     pub id2: Option<u32>,
     pub active2: Option<bool>,
-    pub position: [f32;3],
+    pub position: [f32; 3],
     pub is_grapple: Option<bool>,
     pub no_lock: Option<bool>,
 }
@@ -359,44 +323,43 @@ pub struct LockOnPoint
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum DamageType {
-    #[serde(alias="power", alias="POWER")]
+    #[serde(alias = "power", alias = "POWER")]
     Power,
-    #[serde(alias="ice", alias="ICE")]
+    #[serde(alias = "ice", alias = "ICE")]
     Ice,
-    #[serde(alias="wave", alias="WAVE")]
+    #[serde(alias = "wave", alias = "WAVE")]
     Wave,
-    #[serde(alias="plasma", alias="PLASMA")]
+    #[serde(alias = "plasma", alias = "PLASMA")]
     Plasma,
-    #[serde(alias="bomb", alias="BOMB")]
+    #[serde(alias = "bomb", alias = "BOMB")]
     Bomb,
-    #[serde(alias="powerbomb", alias="POWERBOMB")]
+    #[serde(alias = "powerbomb", alias = "POWERBOMB")]
     PowerBomb,
-    #[serde(alias="missile", alias="MISSILE")]
+    #[serde(alias = "missile", alias = "MISSILE")]
     Missile,
-    #[serde(alias="boostball", alias="BOOSTBALL")]
+    #[serde(alias = "boostball", alias = "BOOSTBALL")]
     BoostBall,
-    #[serde(alias="phazon", alias="PHAZON")]
+    #[serde(alias = "phazon", alias = "PHAZON")]
     Phazon,
-    #[serde(alias="ai", alias="AI")]
+    #[serde(alias = "ai", alias = "AI")]
     Ai,
-    #[serde(alias="poisonwater", alias="POISONWATER")]
+    #[serde(alias = "poisonwater", alias = "POISONWATER")]
     PoisonWater,
-    #[serde(alias="lava", alias="LAVA")]
+    #[serde(alias = "lava", alias = "LAVA")]
     Lava,
-    #[serde(alias="hot", alias="HOT")]
+    #[serde(alias = "hot", alias = "HOT")]
     Hot,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TriggerConfig
-{
+pub struct TriggerConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub active: Option<bool>,
-    pub position: Option<[f32;3]>,
-    pub scale: Option<[f32;3]>,
-    pub force: Option<[f32;3]>,
+    pub position: Option<[f32; 3]>,
+    pub scale: Option<[f32; 3]>,
+    pub force: Option<[f32; 3]>,
     pub damage_type: Option<DamageType>,
     pub damage_amount: Option<f32>,
     pub flags: Option<u32>,
@@ -408,83 +371,82 @@ pub struct TriggerConfig
 #[serde(deny_unknown_fields)]
 pub enum SpecialFunctionType {
     What = 0,
-    #[serde(alias="playerFollowLocator", alias="PLAYERFOLLOWLOCATOR")]
+    #[serde(alias = "playerFollowLocator", alias = "PLAYERFOLLOWLOCATOR")]
     PlayerFollowLocator,
-    #[serde(alias="spinnerController", alias="SPINNERCONTROLLER")]
+    #[serde(alias = "spinnerController", alias = "SPINNERCONTROLLER")]
     SpinnerController,
-    #[serde(alias="objectFollowLocator", alias="OBJECTFOLLOWLOCATOR")]
+    #[serde(alias = "objectFollowLocator", alias = "OBJECTFOLLOWLOCATOR")]
     ObjectFollowLocator,
-    #[serde(alias="chaffTarget", alias="CHAFFTARGET")]
+    #[serde(alias = "chaffTarget", alias = "CHAFFTARGET")]
     ChaffTarget,
-    #[serde(alias="inventoryActivator", alias="INVENTORYACTIVATOR")]
+    #[serde(alias = "inventoryActivator", alias = "INVENTORYACTIVATOR")]
     InventoryActivator,
-    #[serde(alias="mapStation", alias="MAPSTATION")]
+    #[serde(alias = "mapStation", alias = "MAPSTATION")]
     MapStation,
-    #[serde(alias="saveStation", alias="SAVESTATION")]
+    #[serde(alias = "saveStation", alias = "SAVESTATION")]
     SaveStation,
-    #[serde(alias="introBossRingController", alias="INTROBOSSRINGCONTROLLER")]
+    #[serde(alias = "introBossRingController", alias = "INTROBOSSRINGCONTROLLER")]
     IntroBossRingController,
-    #[serde(alias="viewFrustumTest", alias="VIEWFRUSTUMTEST")]
+    #[serde(alias = "viewFrustumTest", alias = "VIEWFRUSTUMTEST")]
     ViewFrustumTest,
-    #[serde(alias="shotSpinnerController", alias="SHOTSPINNERCONTROLLER")]
+    #[serde(alias = "shotSpinnerController", alias = "SHOTSPINNERCONTROLLER")]
     ShotSpinnerController,
-    #[serde(alias="escapeSequence", alias="ESCAPESEQUENCE")]
+    #[serde(alias = "escapeSequence", alias = "ESCAPESEQUENCE")]
     EscapeSequence,
-    #[serde(alias="bossEnergyBar", alias="BOSSENERGYBAR")]
+    #[serde(alias = "bossEnergyBar", alias = "BOSSENERGYBAR")]
     BossEnergyBar,
-    #[serde(alias="endGame", alias="ENDGAME")]
+    #[serde(alias = "endGame", alias = "ENDGAME")]
     EndGame,
-    #[serde(alias="hUDFadeIn", alias="HUDFADEIN")]
+    #[serde(alias = "hUDFadeIn", alias = "HUDFADEIN")]
     HUDFadeIn,
-    #[serde(alias="cinematicSkip", alias="CINEMATICSKIP")]
+    #[serde(alias = "cinematicSkip", alias = "CINEMATICSKIP")]
     CinematicSkip,
-    #[serde(alias="scriptLayerController", alias="SCRIPTLAYERCONTROLLER")]
+    #[serde(alias = "scriptLayerController", alias = "SCRIPTLAYERCONTROLLER")]
     ScriptLayerController,
-    #[serde(alias="rainSimulator", alias="RAINSIMULATOR")]
+    #[serde(alias = "rainSimulator", alias = "RAINSIMULATOR")]
     RainSimulator,
-    #[serde(alias="areaDamage", alias="AREADAMAGE")]
+    #[serde(alias = "areaDamage", alias = "AREADAMAGE")]
     AreaDamage,
-    #[serde(alias="objectFollowObject", alias="OBJECTFOLLOWOBJECT")]
+    #[serde(alias = "objectFollowObject", alias = "OBJECTFOLLOWOBJECT")]
     ObjectFollowObject,
-    #[serde(alias="hintSystem", alias="HINTSYSTEM")]
+    #[serde(alias = "hintSystem", alias = "HINTSYSTEM")]
     HintSystem,
-    #[serde(alias="dropBomb", alias="DROPBOMB")]
+    #[serde(alias = "dropBomb", alias = "DROPBOMB")]
     DropBomb,
-    #[serde(alias="scaleActor", alias="SCALEACTOR")]
+    #[serde(alias = "scaleActor", alias = "SCALEACTOR")]
     ScaleActor,
-    #[serde(alias="missileStation", alias="MISSILESTATION")]
+    #[serde(alias = "missileStation", alias = "MISSILESTATION")]
     MissileStation,
-    #[serde(alias="billboard", alias="BILLBOARD")]
+    #[serde(alias = "billboard", alias = "BILLBOARD")]
     Billboard,
-    #[serde(alias="playerInAreaRelay", alias="PLAYERINAREARELAY")]
+    #[serde(alias = "playerInAreaRelay", alias = "PLAYERINAREARELAY")]
     PlayerInAreaRelay,
-    #[serde(alias="hUDTarget", alias="HUDTARGET")]
+    #[serde(alias = "hUDTarget", alias = "HUDTARGET")]
     HUDTarget,
-    #[serde(alias="fogFader", alias="FOGFADER")]
+    #[serde(alias = "fogFader", alias = "FOGFADER")]
     FogFader,
-    #[serde(alias="enterLogbook", alias="ENTERLOGBOOK")]
+    #[serde(alias = "enterLogbook", alias = "ENTERLOGBOOK")]
     EnterLogbook,
-    #[serde(alias="powerBombStation", alias="POWERBOMBSTATION")]
+    #[serde(alias = "powerBombStation", alias = "POWERBOMBSTATION")]
     PowerBombStation,
-    #[serde(alias="ending", alias="ENDING")]
+    #[serde(alias = "ending", alias = "ENDING")]
     Ending,
-    #[serde(alias="fusionRelay", alias="FUSIONRELAY")]
+    #[serde(alias = "fusionRelay", alias = "FUSIONRELAY")]
     FusionRelay,
-    #[serde(alias="weaponSwitch", alias="WEAPONSWITCH")]
+    #[serde(alias = "weaponSwitch", alias = "WEAPONSWITCH")]
     WeaponSwitch,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SpecialFunctionConfig
-{
+pub struct SpecialFunctionConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
 
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
 
-    #[serde(alias  = "type")]
+    #[serde(alias = "type")]
     pub type_: SpecialFunctionType,
 
     pub unknown1: Option<String>,
@@ -507,8 +469,7 @@ pub struct SpecialFunctionConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ActorRotateConfig
-{
+pub struct ActorRotateConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub rotation: [f32; 3],
@@ -520,8 +481,7 @@ pub struct ActorRotateConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct StreamedAudioConfig
-{
+pub struct StreamedAudioConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -536,21 +496,20 @@ pub struct StreamedAudioConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EditObjConfig
-{
+pub struct EditObjConfig {
     pub layer: Option<u32>,
-    pub position: Option<[f32;3]>,
-    pub rotation: Option<[f32;3]>,
-    pub scale: Option<[f32;3]>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub scale: Option<[f32; 3]>,
     pub size: Option<f32>,
     pub speed: Option<f32>,
     pub damage: Option<f32>,
     pub detection_range: Option<f32>,
     pub attack_range: Option<f32>,
     pub vulnerability: Option<String>, // maps to DoorType
-    pub vulnerabilities: Option<HashMap<u32,String>>,
+    pub vulnerabilities: Option<HashMap<u32, String>>,
     pub health: Option<f32>,
-    pub healths: Option<HashMap<u32,f32>>,
+    pub healths: Option<HashMap<u32, f32>>,
 }
 
 // None = 0,
@@ -567,23 +526,21 @@ pub struct EditObjConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct FogConfig
-{
+pub struct FogConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub active: Option<bool>,
     pub mode: Option<u32>,
     pub explicit: Option<bool>,
-    pub color: Option<[f32;4]>, // RGBA
-    pub range: Option<[f32;2]>, // X, Y
+    pub color: Option<[f32; 4]>, // RGBA
+    pub range: Option<[f32; 2]>, // X, Y
     pub color_delta: Option<f32>,
-    pub range_delta: Option<[f32;2]>,
+    pub range_delta: Option<[f32; 2]>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BombSlotConfig
-{
+pub struct BombSlotConfig {
     pub damageable_trigger_id: u32,
     pub platform_id: Option<u32>,
     pub actor_id: Option<u32>,
@@ -599,8 +556,7 @@ pub struct BombSlotConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PlayerActorConfig
-{
+pub struct PlayerActorConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -610,18 +566,16 @@ pub struct PlayerActorConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RepositionConfig
-{
-    pub trigger_position: [f32;3],
-    pub trigger_scale: [f32;3],
-    pub destination_position: [f32;3],
+pub struct RepositionConfig {
+    pub trigger_position: [f32; 3],
+    pub trigger_scale: [f32; 3],
+    pub destination_position: [f32; 3],
     pub destination_rotation: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct HudmemoConfig
-{
+pub struct HudmemoConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -632,12 +586,11 @@ pub struct HudmemoConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WaypointConfig
-{
+pub struct WaypointConfig {
     pub id: u32,
     pub layer: Option<u32>,
-    pub position: Option<[f32;3]>,
-    pub rotation: Option<[f32;3]>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
     pub active: Option<bool>,
     pub speed: Option<f32>,
     pub pause: Option<f32>,
@@ -652,8 +605,7 @@ pub struct WaypointConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CounterConfig
-{
+pub struct CounterConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -664,8 +616,7 @@ pub struct CounterConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SwitchConfig
-{
+pub struct SwitchConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -675,8 +626,7 @@ pub struct SwitchConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PlayerHintConfig
-{
+pub struct PlayerHintConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -783,8 +733,7 @@ pub enum ControllerActionType {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ControllerActionConfig
-{
+pub struct ControllerActionConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -794,8 +743,9 @@ pub struct ControllerActionConfig
     pub one_shot: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
+#[repr(u32)]
 pub enum ConnectionState {
     ANY = 0xFFFFFFFF,
     ACTIVE = 0x0,
@@ -832,8 +782,9 @@ pub enum ConnectionState {
     INHERIT_BOUNDS = 0x20,
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
+#[repr(u32)]
 pub enum ConnectionMsg {
     NONE = 0xFFFFFFFF,
     UNKM0 = 0x0,
@@ -889,8 +840,7 @@ pub enum ConnectionMsg {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ConnectionConfig
-{
+pub struct ConnectionConfig {
     pub sender_id: u32,
     pub target_id: u32,
     pub state: ConnectionState,
@@ -899,8 +849,7 @@ pub struct ConnectionConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RelayConfig
-{
+pub struct RelayConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -908,8 +857,7 @@ pub struct RelayConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TimerConfig
-{
+pub struct TimerConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -921,8 +869,7 @@ pub struct TimerConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ActorKeyFrameConfig
-{
+pub struct ActorKeyFrameConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -935,13 +882,12 @@ pub struct ActorKeyFrameConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SpawnPointConfig
-{
+pub struct SpawnPointConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
-    pub position: [f32;3],
-    pub rotation: Option<[f32;3]>,
+    pub position: [f32; 3],
+    pub rotation: Option<[f32; 3]>,
     pub default_spawn: Option<bool>,
     pub morphed: Option<bool>,
     pub items: Option<StartingItems>,
@@ -949,8 +895,7 @@ pub struct SpawnPointConfig
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorldLightFaderConfig
-{
+pub struct WorldLightFaderConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
@@ -960,19 +905,18 @@ pub struct WorldLightFaderConfig
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RoomConfig
-{
+pub struct RoomConfig {
     pub superheated: Option<bool>,
     pub remove_water: Option<bool>,
     pub submerge: Option<bool>,
-	pub map_default_state: Option<MapaObjectVisibilityMode>,
+    pub map_default_state: Option<MapaObjectVisibilityMode>,
     pub liquids: Option<Vec<WaterConfig>>,
     pub pickups: Option<Vec<PickupConfig>>,
     pub extra_scans: Option<Vec<ScanConfig>>,
     pub doors: Option<HashMap<u32, DoorConfig>>,
-    pub spawn_position_override: Option<[f32;3]>,
-    pub bounding_box_offset: Option<[f32;3]>,
-    pub bounding_box_scale: Option<[f32;3]>,
+    pub spawn_position_override: Option<[f32; 3]>,
+    pub bounding_box_offset: Option<[f32; 3]>,
+    pub bounding_box_scale: Option<[f32; 3]>,
     pub platforms: Option<Vec<PlatformConfig>>,
     pub camera_hints: Option<Vec<CameraHintConfig>>,
     pub blocks: Option<Vec<BlockConfig>>,
@@ -1016,8 +960,7 @@ pub struct RoomConfig
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LevelConfig
-{
+pub struct LevelConfig {
     #[serde(default)]
     pub transports: HashMap<String, String>,
 
@@ -1027,8 +970,7 @@ pub struct LevelConfig
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CtwkConfig
-{
+pub struct CtwkConfig {
     pub fov: Option<f32>,
     pub player_size: Option<f32>,
     pub morph_ball_size: Option<f32>,
@@ -1073,7 +1015,7 @@ pub struct CtwkConfig
     pub impulse_space_jump: Option<bool>,
 
     // PlayerGun.CTWK
-    pub gun_position: Option<[f32;3]>, // offset
+    pub gun_position: Option<[f32; 3]>, // offset
     pub gun_damage: Option<f32>,
     pub gun_cooldown: Option<f32>,
 
@@ -1095,7 +1037,7 @@ pub struct CtwkConfig
     pub boost_incremental_speed2: Option<f32>,
 
     // GuiColors.CTWK
-    pub hud_color: Option<[f32;3]>, // RGB, 0 - 1.0
+    pub hud_color: Option<[f32; 3]>, // RGB, 0 - 1.0
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -1124,26 +1066,24 @@ pub struct HallOfTheEldersBombSlotCoversConfig {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum BombSlotCover {
-    #[serde(alias="wave", alias="WAVE")]
+    #[serde(alias = "wave", alias = "WAVE")]
     Wave,
-    #[serde(alias="ice", alias="ICE")]
+    #[serde(alias = "ice", alias = "ICE")]
     Ice,
-    #[serde(alias="plasma", alias="PLASMA")]
+    #[serde(alias = "plasma", alias = "PLASMA")]
     Plasma,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 #[serde(deny_unknown_fields)]
-pub enum PhazonDamageModifier
-{
+pub enum PhazonDamageModifier {
     Default,
     LinearDelayed, // Default but the damages don't increase over time
     Linear,        // Starts directly and deals linear damages
 }
 
 #[derive(Serialize, Debug, PartialEq, Copy, Clone)]
-pub enum Version
-{
+pub enum Version {
     NtscU0_00,
     NtscU0_01,
     NtscU0_02,
@@ -1156,50 +1096,45 @@ pub enum Version
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Copy, Clone)]
-pub enum DoorOpenMode
-{
-    Original, // Doors always stay the same color after opening
+pub enum DoorOpenMode {
+    Original,           // Doors always stay the same color after opening
     PrimaryBlastShield, // Doors under blast shields downgrade their vulnerability to Blue/Wave/Ice/Plasma from vulnerabilities with more requirements after opening
     // PrimaryAll, // All doors downgrade their vulnerability to Blue/Wave/Ice/Plasma from vulnerabilities with more requirements after opening
     BlueBlastShield, // Doors under blast shields downgrade to Blue doors after opening
-    // BlueAll, // All Doors downgrade to Blue after opening
+                     // BlueAll, // All Doors downgrade to Blue after opening
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Copy, Clone)]
-pub enum DifficultyBehavior
-{
+pub enum DifficultyBehavior {
     Either,
     NormalOnly,
     HardOnly,
 }
 
-impl fmt::Display for Version
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error>
-    {
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-            Version::NtscU0_00    => write!(f, "1.00"),
-            Version::NtscU0_01    => write!(f, "1.01"),
-            Version::NtscU0_02    => write!(f, "1.02"),
-            Version::NtscK        => write!(f, "kor"),
-            Version::NtscJ        => write!(f, "jpn"),
-            Version::Pal          => write!(f, "pal"),
+            Version::NtscU0_00 => write!(f, "1.00"),
+            Version::NtscU0_01 => write!(f, "1.01"),
+            Version::NtscU0_02 => write!(f, "1.02"),
+            Version::NtscK => write!(f, "kor"),
+            Version::NtscJ => write!(f, "jpn"),
+            Version::Pal => write!(f, "pal"),
             Version::NtscUTrilogy => write!(f, "trilogy_ntsc_u"),
             Version::NtscJTrilogy => write!(f, "trilogy_ntsc_j"),
-            Version::PalTrilogy   => write!(f, "trilogy_pal"),
+            Version::PalTrilogy => write!(f, "trilogy_pal"),
         }
     }
 }
 
 #[derive(Debug, Serialize)]
-pub struct PatchConfig
-{
+pub struct PatchConfig {
     pub run_mode: RunMode,
     pub logbook_filename: Option<String>,
     pub export_asset_dir: Option<String>,
     pub extern_assets_dir: Option<String>,
     pub seed: u64,
-    pub uuid: Option<[u8;16]>,
+    pub uuid: Option<[u8; 16]>,
 
     pub force_vanilla_layout: bool,
 
@@ -1294,11 +1229,11 @@ pub struct PatchConfig
 
     pub credits_string: Option<String>,
     pub results_string: Option<String>,
-    pub artifact_hints: Option<HashMap<String,String>>, // e.g. "Strength":"This item can be found in Ruined Fountain"
+    pub artifact_hints: Option<HashMap<String, String>>, // e.g. "Strength":"This item can be found in Ruined Fountain"
     pub required_artifact_count: Option<u32>,
-    pub artifact_temple_layer_overrides: Option<HashMap<String,bool>>,
+    pub artifact_temple_layer_overrides: Option<HashMap<String, bool>>,
     pub no_doors: bool,
-    pub boss_sizes: HashMap<String,f32>,
+    pub boss_sizes: HashMap<String, f32>,
     pub shoot_in_grapple: bool,
     pub difficulty_behavior: DifficultyBehavior,
     pub legacy_block_size: bool,
@@ -1310,8 +1245,7 @@ pub struct PatchConfig
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Preferences
-{
+struct Preferences {
     skip_splash_screens: Option<bool>,
     default_game_options: Option<DefaultGameOptions>,
     suit_colors: Option<SuitColors>,
@@ -1338,8 +1272,7 @@ struct Preferences
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GameConfig
-{
+struct GameConfig {
     starting_room: Option<String>,
     starting_memo: Option<String>,
     spring_ball: Option<bool>,
@@ -1371,7 +1304,7 @@ struct GameConfig
     door_open_mode: Option<DoorOpenMode>,
 
     etank_capacity: Option<u32>,
-    item_max_capacity: Option<HashMap<String,u32>>,
+    item_max_capacity: Option<HashMap<String, u32>>,
 
     phazon_elite_without_dynamo: Option<bool>,
     main_plaza_door: Option<bool>,
@@ -1394,11 +1327,11 @@ struct GameConfig
 
     credits_string: Option<String>,
     results_string: Option<String>,
-    artifact_hints: Option<HashMap<String,String>>, // e.g. "Strength":"This item can be found in Ruined Fountain"
-    artifact_temple_layer_overrides: Option<HashMap<String,bool>>,
+    artifact_hints: Option<HashMap<String, String>>, // e.g. "Strength":"This item can be found in Ruined Fountain"
+    artifact_temple_layer_overrides: Option<HashMap<String, bool>>,
     required_artifact_count: Option<u32>,
     no_doors: Option<bool>, // Remove every door from the game
-    boss_sizes: Option<HashMap<String,f32>>,
+    boss_sizes: Option<HashMap<String, f32>>,
     shoot_in_grapple: Option<bool>,
     difficulty_behavior: Option<DifficultyBehavior>,
     legacy_block_size: Option<bool>,
@@ -1407,8 +1340,7 @@ struct GameConfig
 
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct PatchConfigPrivate
-{
+struct PatchConfigPrivate {
     #[serde(alias = "$schema")]
     _schema: Option<String>,
 
@@ -1420,7 +1352,7 @@ struct PatchConfigPrivate
     force_vanilla_layout: Option<bool>,
     extern_assets_dir: Option<String>,
     seed: Option<u64>,
-    uuid: Option<[u8;16]>,
+    uuid: Option<[u8; 16]>,
 
     #[serde(default)]
     preferences: Preferences,
@@ -1467,27 +1399,24 @@ macro_rules! merge_optional {
                     if self_value != other_value {
                         panic!("Conflict in {}'s editObjs", $room_name);
                     }
-                },
+                }
                 None => {
                     $self.$label = Some(other_value);
-                },
+                }
             }
         }
     };
 }
 
-impl PatchConfig
-{
-    pub fn from_json(json: &str) -> Result<Self, String>
-    {
+impl PatchConfig {
+    pub fn from_json(json: &str) -> Result<Self, String> {
         let result = strip_jsonc_comments(json, true);
         let result = serde_json::from_str(result.as_str());
         let result: PatchConfigPrivate = result.map_err(|e| format!("JSON parse failed: {}", e))?;
         result.parse()
     }
 
-    pub fn from_cli_options() -> Result<Self, String>
-    {
+    pub fn from_cli_options() -> Result<Self, String> {
         let matches = App::new("randomprime ISO patcher")
             .version(crate_version!())
             .arg(Arg::with_name("input iso path")
@@ -1618,9 +1547,10 @@ impl PatchConfig
         let mut patch_config = if matches.is_present("profile json path") {
             let json_path = matches.value_of("profile json path").unwrap();
             let cli_json_config_raw: &str = &fs::read_to_string(json_path)
-                .map_err(|e| format!("Could not read JSON file: {}", e)).unwrap();
+                .map_err(|e| format!("Could not read JSON file: {}", e))
+                .unwrap();
 
-            serde_json::from_str( strip_jsonc_comments(cli_json_config_raw, true).as_str())
+            serde_json::from_str(strip_jsonc_comments(cli_json_config_raw, true).as_str())
                 .map_err(|e| format!("JSON parse failed: {}", e))?
         } else {
             PatchConfigPrivate::default()
@@ -1655,7 +1585,7 @@ impl PatchConfig
 
         // string
         if let Some(input_iso_path) = matches.value_of("input iso path") {
-            patch_config.input_iso  = Some(input_iso_path.to_string());
+            patch_config.input_iso = Some(input_iso_path.to_string());
         }
         if let Some(output_iso_path) = matches.value_of("output iso path") {
             patch_config.output_iso = Some(output_iso_path.to_string());
@@ -1702,27 +1632,27 @@ impl PatchConfig
             patch_config.game_config.etank_capacity = Some(etank_capacity.parse::<u32>().unwrap());
         }
         if let Some(warp_to_start_delay_s) = matches.value_of("warp to start delay") {
-            patch_config.game_config.warp_to_start_delay_s = Some(warp_to_start_delay_s.parse::<f32>().unwrap());
+            patch_config.game_config.warp_to_start_delay_s =
+                Some(warp_to_start_delay_s.parse::<f32>().unwrap());
         }
 
         // custom
         if let Some(starting_items_str) = matches.value_of("starting items") {
-            patch_config.game_config.starting_items = Some(
-                StartingItems::from_u64(starting_items_str.parse::<u64>().unwrap())
-            );
+            patch_config.game_config.starting_items = Some(StartingItems::from_u64(
+                starting_items_str.parse::<u64>().unwrap(),
+            ));
         }
         if let Some(item_loss_items_str) = matches.value_of("item loss items") {
-            patch_config.game_config.item_loss_items = Some(
-                StartingItems::from_u64(item_loss_items_str.parse::<u64>().unwrap())
-            );
+            patch_config.game_config.item_loss_items = Some(StartingItems::from_u64(
+                item_loss_items_str.parse::<u64>().unwrap(),
+            ));
         }
 
         patch_config.parse()
     }
 }
 
-fn merge_json(config: &mut PatchConfigPrivate, text: &'static str) -> Result<(), String>
-{
+fn merge_json(config: &mut PatchConfigPrivate, text: &'static str) -> Result<(), String> {
     let data = serde_json::from_str(text);
     let data: PatchConfigPrivate = data.map_err(|e| format!("JSON parse failed: {}", e))?;
     config.merge(data);
@@ -1730,11 +1660,9 @@ fn merge_json(config: &mut PatchConfigPrivate, text: &'static str) -> Result<(),
     Ok(())
 }
 
-impl PatchConfigPrivate
-{
+impl PatchConfigPrivate {
     // returns all non-vanilla game layers which this config modifies
-    fn layers(self: &Self) -> HashMap<u32, HashSet<u32>>
-    {
+    fn layers(&self) -> HashMap<u32, HashSet<u32>> {
         let mut layers = HashMap::new();
 
         for world in World::iter() {
@@ -1745,14 +1673,17 @@ impl PatchConfigPrivate
             }
             let rooms = &level_config.unwrap().rooms;
 
-            for (_, room_config) in rooms {
+            for room_config in rooms.values() {
                 if room_config.special_functions.is_none() {
                     continue;
                 }
 
                 let special_functions = room_config.special_functions.as_ref().unwrap();
                 for special_function in special_functions {
-                    if special_function.type_ != SpecialFunctionType::ScriptLayerController || special_function.layer_change_room_id.is_none() || special_function.layer_change_layer_id.is_none() {
+                    if special_function.type_ != SpecialFunctionType::ScriptLayerController
+                        || special_function.layer_change_room_id.is_none()
+                        || special_function.layer_change_layer_id.is_none()
+                    {
                         continue; // not a layer change special function
                     }
 
@@ -1765,9 +1696,9 @@ impl PatchConfigPrivate
                         continue; // This is modifying a vanilla layer, so skip
                     }
 
-                    if !layers.contains_key(&room_lookup.mrea_id) {
-                        layers.insert(room_lookup.mrea_id, HashSet::new());
-                    }
+                    layers
+                        .entry(room_lookup.mrea_id)
+                        .or_insert_with(HashSet::new);
 
                     let room = layers.get_mut(&room_lookup.mrea_id).unwrap();
                     room.insert(layer);
@@ -1779,8 +1710,7 @@ impl PatchConfigPrivate
     }
 
     /* Extends the "stuff" added/edited in each room */
-    pub fn merge(self: &mut Self, other: Self)
-    {
+    pub fn merge(&mut self, other: Self) {
         /* First check if there for any conflicts when adding new layers */
         let self_layers = self.layers();
         let other_layers = other.layers();
@@ -1793,7 +1723,10 @@ impl PatchConfigPrivate
             let self_room_layers = self_layers.get(&mrea_id).unwrap();
 
             if !self_room_layers.is_disjoint(&other_room_layers) {
-                let subset: HashSet<_> = self_room_layers.intersection(&other_room_layers).cloned().collect();
+                let subset: HashSet<_> = self_room_layers
+                    .intersection(&other_room_layers)
+                    .cloned()
+                    .collect();
                 panic!("Room 0x{:X} contains conflicting usage of new layers. The following layer IDs must not be used to resolve this conflict: {:?}", mrea_id, subset);
             }
         }
@@ -1807,7 +1740,8 @@ impl PatchConfigPrivate
             }
 
             if !self.level_data.contains_key(world_key) {
-                self.level_data.insert(world_key.to_string(), LevelConfig::default());
+                self.level_data
+                    .insert(world_key.to_string(), LevelConfig::default());
             }
 
             let self_rooms = &mut self.level_data.get_mut(world_key).unwrap().rooms;
@@ -1820,36 +1754,36 @@ impl PatchConfigPrivate
 
                 let self_room_config = self_rooms.get_mut(room_name).unwrap();
 
-                extend_option_vec!(liquids           , self_room_config, other_room_config);
-                extend_option_vec!(pickups           , self_room_config, other_room_config);
-                extend_option_vec!(extra_scans       , self_room_config, other_room_config);
-                extend_option_vec!(platforms         , self_room_config, other_room_config);
-                extend_option_vec!(camera_hints      , self_room_config, other_room_config);
-                extend_option_vec!(blocks            , self_room_config, other_room_config);
-                extend_option_vec!(lock_on_points    , self_room_config, other_room_config);
-                extend_option_vec!(escape_sequences  , self_room_config, other_room_config);
-                extend_option_vec!(repositions       , self_room_config, other_room_config);
-                extend_option_vec!(hudmemos          , self_room_config, other_room_config);
-                extend_option_vec!(delete_ids        , self_room_config, other_room_config);
-                extend_option_vec!(add_connections   , self_room_config, other_room_config);
+                extend_option_vec!(liquids, self_room_config, other_room_config);
+                extend_option_vec!(pickups, self_room_config, other_room_config);
+                extend_option_vec!(extra_scans, self_room_config, other_room_config);
+                extend_option_vec!(platforms, self_room_config, other_room_config);
+                extend_option_vec!(camera_hints, self_room_config, other_room_config);
+                extend_option_vec!(blocks, self_room_config, other_room_config);
+                extend_option_vec!(lock_on_points, self_room_config, other_room_config);
+                extend_option_vec!(escape_sequences, self_room_config, other_room_config);
+                extend_option_vec!(repositions, self_room_config, other_room_config);
+                extend_option_vec!(hudmemos, self_room_config, other_room_config);
+                extend_option_vec!(delete_ids, self_room_config, other_room_config);
+                extend_option_vec!(add_connections, self_room_config, other_room_config);
                 extend_option_vec!(remove_connections, self_room_config, other_room_config);
-                extend_option_vec!(relays            , self_room_config, other_room_config);
-                extend_option_vec!(cutscene_skip_fns , self_room_config, other_room_config);
-                extend_option_vec!(timers            , self_room_config, other_room_config);
-                extend_option_vec!(actor_keyframes   , self_room_config, other_room_config);
-                extend_option_vec!(spawn_points      , self_room_config, other_room_config);
-                extend_option_vec!(triggers          , self_room_config, other_room_config);
-                extend_option_vec!(special_functions , self_room_config, other_room_config);
-                extend_option_vec!(actor_rotates     , self_room_config, other_room_config);
-                extend_option_vec!(streamed_audios   , self_room_config, other_room_config);
-                extend_option_vec!(waypoints         , self_room_config, other_room_config);
-                extend_option_vec!(counters          , self_room_config, other_room_config);
-                extend_option_vec!(switches          , self_room_config, other_room_config);
-                extend_option_vec!(player_hints      , self_room_config, other_room_config);
-                extend_option_vec!(distance_fogs     , self_room_config, other_room_config);
-                extend_option_vec!(bomb_slots        , self_room_config, other_room_config);
+                extend_option_vec!(relays, self_room_config, other_room_config);
+                extend_option_vec!(cutscene_skip_fns, self_room_config, other_room_config);
+                extend_option_vec!(timers, self_room_config, other_room_config);
+                extend_option_vec!(actor_keyframes, self_room_config, other_room_config);
+                extend_option_vec!(spawn_points, self_room_config, other_room_config);
+                extend_option_vec!(triggers, self_room_config, other_room_config);
+                extend_option_vec!(special_functions, self_room_config, other_room_config);
+                extend_option_vec!(actor_rotates, self_room_config, other_room_config);
+                extend_option_vec!(streamed_audios, self_room_config, other_room_config);
+                extend_option_vec!(waypoints, self_room_config, other_room_config);
+                extend_option_vec!(counters, self_room_config, other_room_config);
+                extend_option_vec!(switches, self_room_config, other_room_config);
+                extend_option_vec!(player_hints, self_room_config, other_room_config);
+                extend_option_vec!(distance_fogs, self_room_config, other_room_config);
+                extend_option_vec!(bomb_slots, self_room_config, other_room_config);
                 extend_option_vec!(controller_actions, self_room_config, other_room_config);
-                extend_option_vec!(player_actors     , self_room_config, other_room_config);
+                extend_option_vec!(player_actors, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
@@ -1861,12 +1795,15 @@ impl PatchConfigPrivate
                         match self_layers.get_mut(layer) {
                             Some(self_state) => {
                                 if self_state != other_state {
-                                    panic!("Conflicting enable/disable state for Layer {} in {} - {}", layer, world_key, room_name);
+                                    panic!(
+                                        "Conflicting enable/disable state for Layer {} in {} - {}",
+                                        layer, world_key, room_name
+                                    );
                                 }
-                            },
+                            }
                             None => {
                                 self_layers.insert(*layer, *other_state);
-                            },
+                            }
                         }
                     }
                 }
@@ -1889,20 +1826,28 @@ impl PatchConfigPrivate
                                 merge_optional!(size, self_config, other_config, room_name);
                                 merge_optional!(speed, self_config, other_config, room_name);
                                 merge_optional!(damage, self_config, other_config, room_name);
-                                merge_optional!(detection_range, self_config, other_config, room_name);
+                                merge_optional!(
+                                    detection_range,
+                                    self_config,
+                                    other_config,
+                                    room_name
+                                );
                                 merge_optional!(attack_range, self_config, other_config, room_name);
                                 merge_optional!(health, self_config, other_config, room_name);
 
                                 if let Some(other_vuln) = &other_config.vulnerability {
                                     match &self_config.vulnerability {
                                         Some(self_vuln) => {
-                                            if DoorType::from_string(other_vuln.to_string()) != DoorType::from_string(self_vuln.to_string()) {
+                                            if DoorType::from_string(other_vuln.to_string())
+                                                != DoorType::from_string(self_vuln.to_string())
+                                            {
                                                 panic!("Conflict in {}'s editObjs", room_name);
                                             }
-                                        },
+                                        }
                                         None => {
-                                            self_config.vulnerability = Some(other_vuln.to_string());
-                                        },
+                                            self_config.vulnerability =
+                                                Some(other_vuln.to_string());
+                                        }
                                     }
                                 }
 
@@ -1912,19 +1857,27 @@ impl PatchConfigPrivate
                                             for (idx, other_vuln) in other_vulns {
                                                 match self_vulns.get_mut(idx) {
                                                     Some(self_vuln) => {
-                                                        if DoorType::from_string(other_vuln.to_string()) != DoorType::from_string(self_vuln.to_string()) {
-                                                            panic!("Conflict in {}'s editObjs", room_name);
+                                                        if DoorType::from_string(
+                                                            other_vuln.to_string(),
+                                                        ) != DoorType::from_string(
+                                                            self_vuln.to_string(),
+                                                        ) {
+                                                            panic!(
+                                                                "Conflict in {}'s editObjs",
+                                                                room_name
+                                                            );
                                                         }
-                                                    },
+                                                    }
                                                     None => {
-                                                        self_vulns.insert(*idx, other_vuln.to_string());
-                                                    },
+                                                        self_vulns
+                                                            .insert(*idx, other_vuln.to_string());
+                                                    }
                                                 }
                                             }
-                                        },
+                                        }
                                         None => {
                                             self_config.vulnerabilities = Some(other_vulns.clone());
-                                        },
+                                        }
                                     }
                                 }
 
@@ -1935,25 +1888,28 @@ impl PatchConfigPrivate
                                                 match self_healths.get_mut(idx) {
                                                     Some(self_health) => {
                                                         if self_health != other_health {
-                                                            panic!("Conflict in {}'s editObjs", room_name);
+                                                            panic!(
+                                                                "Conflict in {}'s editObjs",
+                                                                room_name
+                                                            );
                                                         }
-                                                    },
+                                                    }
                                                     None => {
                                                         self_healths.insert(*idx, *other_health);
-                                                    },
+                                                    }
                                                 }
                                             }
-                                        },
+                                        }
                                         None => {
                                             self_config.healths = Some(other_healths.clone());
-                                        },
+                                        }
                                     }
                                 }
-                            },
+                            }
                             None => {
                                 // copy
                                 self_edit_objs.insert(*id, other_config.clone());
-                            },
+                            }
                         }
                     }
                 }
@@ -1962,15 +1918,14 @@ impl PatchConfigPrivate
     }
 
     // parse and then handle configuration macros (e.g. a bool loading in several pages of JSON changes)
-    fn parse(&self) -> Result<PatchConfig, String>
-    {
+    fn parse(&self) -> Result<PatchConfig, String> {
         // Parse version
         let version = {
             let input_iso_path = self.input_iso.as_deref().unwrap_or("prime.iso");
             let input_iso_file = File::open(input_iso_path.trim())
                 .map_err(|e| format!("Failed to open {}: {}", input_iso_path, e))?;
             let input_iso = unsafe { memmap::Mmap::map(&input_iso_file) }
-                .map_err(|e| format!("Failed to open {}: {}", input_iso_path,  e))?;
+                .map_err(|e| format!("Failed to open {}: {}", input_iso_path, e))?;
 
             let mut reader = Reader::new(&input_iso[..]);
             let gc_disc: structs::GcDisc = reader.read(());
@@ -1996,13 +1951,26 @@ impl PatchConfigPrivate
 
         let mut result = self.clone();
 
-        let mode = result.preferences.qol_cutscenes.as_ref().unwrap_or(&"original".to_string()).to_lowercase();
+        let mode = result
+            .preferences
+            .qol_cutscenes
+            .as_ref()
+            .unwrap_or(&"original".to_string())
+            .to_lowercase();
         let mode = mode.trim();
 
-        if vec!["skippable", "skippablecompetitive"].contains(&mode) {
+        if ["skippable", "skippablecompetitive"].contains(&mode) {
             merge_json(&mut result, SKIPPABLE_CUTSCENES)?;
 
-            if [Version::NtscJ, Version::Pal, Version::NtscUTrilogy, Version::NtscJTrilogy, Version::PalTrilogy].contains(&version) {
+            if [
+                Version::NtscJ,
+                Version::Pal,
+                Version::NtscUTrilogy,
+                Version::NtscJTrilogy,
+                Version::PalTrilogy,
+            ]
+            .contains(&version)
+            {
                 merge_json(&mut result, SKIPPABLE_CUTSCENES_PAL)?;
             }
 
@@ -2011,22 +1979,25 @@ impl PatchConfigPrivate
             }
         }
 
-        if self.preferences.qol_general.unwrap_or(!force_vanilla_layout) {
+        if self
+            .preferences
+            .qol_general
+            .unwrap_or(!force_vanilla_layout)
+        {
             merge_json(&mut result, QOL)?;
         }
 
         result.parse_inner(version)
     }
 
-    fn parse_inner(&self, version: Version) -> Result<PatchConfig, String>
-    {
+    fn parse_inner(&self, version: Version) -> Result<PatchConfig, String> {
         let run_mode = {
             if self.run_mode.is_some() {
                 match self.run_mode.as_ref().unwrap().to_lowercase().trim() {
                     "create_iso" => RunMode::CreateIso,
                     "export_logbook" => RunMode::ExportLogbook,
                     "export_assets" => RunMode::ExportAssets,
-                    _ => panic!("Unsupported run mode: {}", self.run_mode.as_ref().unwrap())
+                    _ => panic!("Unsupported run mode: {}", self.run_mode.as_ref().unwrap()),
                 }
             } else {
                 RunMode::CreateIso
@@ -2038,7 +2009,7 @@ impl PatchConfigPrivate
             .map_err(|e| format!("Failed to open {}: {}", input_iso_path, e))?;
 
         let input_iso = unsafe { memmap::Mmap::map(&input_iso_file) }
-            .map_err(|e| format!("Failed to open {}: {}", input_iso_path,  e))?;
+            .map_err(|e| format!("Failed to open {}: {}", input_iso_path, e))?;
 
         let output_iso_path = self.output_iso.as_deref().unwrap_or("prime_out.iso");
 
@@ -2046,7 +2017,7 @@ impl PatchConfigPrivate
             .write(true)
             .create(true)
             .truncate(true)
-            .open(&output_iso_path)
+            .open(output_iso_path)
             .map_err(|e| format!("Failed to open {}: {}", output_iso_path, e))?;
 
         let iso_format = if output_iso_path.ends_with(".gcz") {
@@ -2060,7 +2031,9 @@ impl PatchConfigPrivate
         let force_vanilla_layout = self.force_vanilla_layout.unwrap_or(false);
 
         let artifact_hint_behavior = {
-            let artifact_hint_behavior_string = self.preferences.artifact_hint_behavior
+            let artifact_hint_behavior_string = self
+                .preferences
+                .artifact_hint_behavior
                 .as_deref()
                 .unwrap_or("all")
                 .trim()
@@ -2080,63 +2053,84 @@ impl PatchConfigPrivate
         };
 
         let map_default_state = {
-            let map_default_state_string = self.preferences.map_default_state
+            let map_default_state_string = self
+                .preferences
+                .map_default_state
                 .as_deref()
                 .unwrap_or("default")
                 .trim()
                 .to_lowercase();
 
-            MapaObjectVisibilityMode::from_str(
-                    map_default_state_string.as_str()
-                )
+            MapaObjectVisibilityMode::from_str(map_default_state_string.as_str())
                 .ok()
-                .expect(
-                    format!("Invalid mapDefaultState '{}'", map_default_state_string)
-                    .as_str()
-                )
+                .unwrap_or_else(|| panic!("Invalid mapDefaultState '{}'", map_default_state_string))
         };
 
-        let flaahgra_music_files = self.preferences.trilogy_disc_path.as_ref()
+        let flaahgra_music_files = self
+            .preferences
+            .trilogy_disc_path
+            .as_ref()
             .map(|path| extract_flaahgra_music_files(path))
             .transpose()?;
 
         let mut item_max_capacity = match &self.game_config.item_max_capacity {
-            Some(max_capacity) => {
-                max_capacity.iter()
-                    .map(|(name, capacity) | (PickupType::from_str(name), *capacity))
-                    .collect()
-            },
+            Some(max_capacity) => max_capacity
+                .iter()
+                .map(|(name, capacity)| (PickupType::from_str(name), *capacity))
+                .collect(),
             None => HashMap::new(),
         };
         if !item_max_capacity.contains_key(&PickupType::EnergyTank) && !force_vanilla_layout {
             item_max_capacity.insert(PickupType::EnergyTank, 200);
         }
 
-        if item_max_capacity.contains_key(&PickupType::Nothing) || item_max_capacity.contains_key(&PickupType::FloatyJump) || item_max_capacity.contains_key(&PickupType::IceTrap)
+        if item_max_capacity.contains_key(&PickupType::Nothing)
+            || item_max_capacity.contains_key(&PickupType::FloatyJump)
+            || item_max_capacity.contains_key(&PickupType::IceTrap)
         {
             panic!("Illegal pickup name in 'itemMaxCapacity'");
         }
 
-        let qol_game_breaking = self.preferences.qol_game_breaking.unwrap_or(!force_vanilla_layout);
-        let qol_cosmetic = self.preferences.qol_cosmetic.unwrap_or(!force_vanilla_layout);
-        let qol_pickup_scans = self.preferences.qol_pickup_scans.unwrap_or(!force_vanilla_layout);
-        let qol_general = self.preferences.qol_general.unwrap_or(!force_vanilla_layout);
-        let qol_cutscenes = match self.preferences.qol_cutscenes.as_ref().unwrap_or(&"original".to_string()).to_lowercase().trim() {
+        let qol_game_breaking = self
+            .preferences
+            .qol_game_breaking
+            .unwrap_or(!force_vanilla_layout);
+        let qol_cosmetic = self
+            .preferences
+            .qol_cosmetic
+            .unwrap_or(!force_vanilla_layout);
+        let qol_pickup_scans = self
+            .preferences
+            .qol_pickup_scans
+            .unwrap_or(!force_vanilla_layout);
+        let qol_general = self
+            .preferences
+            .qol_general
+            .unwrap_or(!force_vanilla_layout);
+        let qol_cutscenes = match self
+            .preferences
+            .qol_cutscenes
+            .as_ref()
+            .unwrap_or(&"original".to_string())
+            .to_lowercase()
+            .trim()
+        {
             "original" => CutsceneMode::Original,
             "competitive" => CutsceneMode::Competitive,
             "skippable" => CutsceneMode::Skippable,
             "skippablecompetitive" => CutsceneMode::SkippableCompetitive,
             "minor" => CutsceneMode::Minor,
             "major" => CutsceneMode::Major,
-            _ => panic!("Unknown cutscene mode {}", self.preferences.qol_cutscenes.as_ref().unwrap()),
+            _ => panic!(
+                "Unknown cutscene mode {}",
+                self.preferences.qol_cutscenes.as_ref().unwrap()
+            ),
         };
 
         let starting_room = {
             let room = self.game_config.starting_room.as_ref();
             match room {
-                Some(room) => {
-                    room.to_string()
-                },
+                Some(room) => room.to_string(),
                 None => {
                     if force_vanilla_layout {
                         "Frigate:Exterior Docking Hangar".to_string()
@@ -2151,9 +2145,7 @@ impl PatchConfigPrivate
             let items = self.game_config.starting_items.as_ref();
 
             match items {
-                Some(items) => {
-                    items.clone()
-                },
+                Some(items) => items.clone(),
                 None => {
                     if force_vanilla_layout {
                         StartingItems::from_u64(2188378143)
@@ -2170,18 +2162,26 @@ impl PatchConfigPrivate
             "thermal"
         } else if starting_items.xray {
             "xray"
-        } else if starting_items.scan_visor {
-            "scan"
         } else {
             "scan"
         };
 
-        let starting_visor =match self.game_config.starting_visor.as_ref().unwrap_or(&default_starting_visor.to_string()).to_lowercase().trim() {
+        let starting_visor = match self
+            .game_config
+            .starting_visor
+            .as_ref()
+            .unwrap_or(&default_starting_visor.to_string())
+            .to_lowercase()
+            .trim()
+        {
             "combat" => Visor::Combat,
             "scan" => Visor::Scan,
             "thermal" => Visor::Thermal,
             "xray" => Visor::XRay,
-            _ => panic!("Unknown starting visor {}", self.game_config.starting_visor.as_ref().unwrap()),
+            _ => panic!(
+                "Unknown starting visor {}",
+                self.game_config.starting_visor.as_ref().unwrap()
+            ),
         };
 
         let default_starting_beam = if starting_items.power_beam {
@@ -2196,12 +2196,22 @@ impl PatchConfigPrivate
             "power"
         };
 
-        let starting_beam =match self.game_config.starting_beam.as_ref().unwrap_or(&default_starting_beam.to_string()).to_lowercase().trim() {
+        let starting_beam = match self
+            .game_config
+            .starting_beam
+            .as_ref()
+            .unwrap_or(&default_starting_beam.to_string())
+            .to_lowercase()
+            .trim()
+        {
             "power" => Beam::Power,
             "ice" => Beam::Ice,
             "wave" => Beam::Wave,
             "plasma" => Beam::Plasma,
-            _ => panic!("Unknown starting beam {}", self.game_config.starting_beam.as_ref().unwrap()),
+            _ => panic!(
+                "Unknown starting beam {}",
+                self.game_config.starting_beam.as_ref().unwrap()
+            ),
         };
 
         let spring_ball = self.game_config.spring_ball.unwrap_or(false);
@@ -2210,9 +2220,7 @@ impl PatchConfigPrivate
             let message = self.game_config.main_menu_message.as_ref();
 
             match message {
-                Some(message) => {
-                    message.to_string()
-                },
+                Some(message) => message.to_string(),
                 None => {
                     if force_vanilla_layout {
                         "".to_string()
@@ -2227,9 +2235,7 @@ impl PatchConfigPrivate
             let message = self.game_config.credits_string.as_ref();
 
             match message {
-                Some(message) => {
-                    Some(message.to_string())
-                },
+                Some(message) => Some(message.to_string()),
                 None => {
                     if force_vanilla_layout {
                         Some("".to_string())
@@ -2244,9 +2250,7 @@ impl PatchConfigPrivate
             let message = self.game_config.results_string.as_ref();
 
             match message {
-                Some(message) => {
-                    Some(message.to_string())
-                },
+                Some(message) => Some(message.to_string()),
                 None => {
                     if force_vanilla_layout {
                         Some("".to_string())
@@ -2258,11 +2262,13 @@ impl PatchConfigPrivate
         };
 
         let phazon_damage_modifier = {
-            let map_default_state_string = self.game_config.phazon_damage_modifier
-                                            .as_deref()
-                                            .unwrap_or("default")
-                                            .trim()
-                                            .to_lowercase();
+            let map_default_state_string = self
+                .game_config
+                .phazon_damage_modifier
+                .as_deref()
+                .unwrap_or("default")
+                .trim()
+                .to_lowercase();
             match &map_default_state_string[..] {
                 "default" => PhazonDamageModifier::Default,
                 "linear_delayed" => PhazonDamageModifier::LinearDelayed,
@@ -2285,7 +2291,7 @@ impl PatchConfigPrivate
             force_vanilla_layout,
 
             seed: self.seed.unwrap_or(123),
-            uuid: self.uuid.clone(),
+            uuid: self.uuid,
             extern_assets_dir: self.extern_assets_dir.clone(),
 
             level_data: self.level_data.clone(),
@@ -2297,32 +2303,43 @@ impl PatchConfigPrivate
             qol_pickup_scans,
             qol_general,
 
-            phazon_elite_without_dynamo: self.game_config.phazon_elite_without_dynamo.unwrap_or(true),
+            phazon_elite_without_dynamo: self
+                .game_config
+                .phazon_elite_without_dynamo
+                .unwrap_or(true),
             main_plaza_door: self.game_config.main_plaza_door.unwrap_or(true),
             backwards_labs: self.game_config.backwards_labs.unwrap_or(true),
             backwards_frigate: self.game_config.backwards_frigate.unwrap_or(true),
             backwards_upper_mines: self.game_config.backwards_upper_mines.unwrap_or(true),
             backwards_lower_mines: self.game_config.backwards_lower_mines.unwrap_or(false),
             patch_power_conduits: self.game_config.patch_power_conduits.unwrap_or(false),
-            remove_mine_security_station_locks: self.game_config.remove_mine_security_station_locks.unwrap_or(false),
+            remove_mine_security_station_locks: self
+                .game_config
+                .remove_mine_security_station_locks
+                .unwrap_or(false),
             remove_hive_mecha: self.game_config.remove_hive_mecha.unwrap_or(false),
-            power_bomb_arboretum_sandstone: self.game_config.power_bomb_arboretum_sandstone.unwrap_or(false),
+            power_bomb_arboretum_sandstone: self
+                .game_config
+                .power_bomb_arboretum_sandstone
+                .unwrap_or(false),
 
             incinerator_drone_config: self.game_config.incinerator_drone_config.clone(),
             maze_seeds: self.game_config.maze_seeds.clone(),
             hall_of_the_elders_bomb_slot_covers: self
                 .game_config
-                .hall_of_the_elders_bomb_slot_covers
-                .clone(),
-
+                .hall_of_the_elders_bomb_slot_covers,
             automatic_crash_screen: self.preferences.automatic_crash_screen.unwrap_or(true),
             visible_bounding_box: self.preferences.visible_bounding_box.unwrap_or(false),
             door_destination_scans: self.preferences.door_destination_scans.unwrap_or(true),
             artifact_hint_behavior,
             flaahgra_music_files,
             suit_colors: self.preferences.suit_colors.clone(),
-            force_fusion: self.preferences.force_fusion.clone().unwrap_or(false),
-            cache_dir: self.preferences.cache_dir.clone().unwrap_or("cache".to_string()),
+            force_fusion: self.preferences.force_fusion.unwrap_or(false),
+            cache_dir: self
+                .preferences
+                .cache_dir
+                .clone()
+                .unwrap_or("cache".to_string()),
             skip_splash_screens: self.preferences.skip_splash_screens.unwrap_or(false),
             default_game_options: self.preferences.default_game_options.clone(),
             quiet: self.preferences.quiet.unwrap_or(false),
@@ -2336,8 +2353,14 @@ impl PatchConfigPrivate
             warp_to_start_delay_s: self.game_config.warp_to_start_delay_s.unwrap_or(0.0),
 
             shuffle_pickup_position: self.game_config.shuffle_pickup_position.unwrap_or(false),
-            shuffle_pickup_pos_all_rooms: self.game_config.shuffle_pickup_pos_all_rooms.unwrap_or(false),
-            remove_vanilla_blast_shields: self.game_config.remove_vanilla_blast_shields.unwrap_or(false),
+            shuffle_pickup_pos_all_rooms: self
+                .game_config
+                .shuffle_pickup_pos_all_rooms
+                .unwrap_or(false),
+            remove_vanilla_blast_shields: self
+                .game_config
+                .remove_vanilla_blast_shields
+                .unwrap_or(false),
             nonvaria_heat_damage: self.game_config.nonvaria_heat_damage.unwrap_or(false),
             staggered_suit_damage: self.game_config.staggered_suit_damage.unwrap_or(false),
             heat_damage_per_sec: self.game_config.heat_damage_per_sec.unwrap_or(10.0),
@@ -2348,42 +2371,52 @@ impl PatchConfigPrivate
             skip_ridley: self.game_config.skip_ridley.unwrap_or(false),
             multiworld_dol_patches: self.game_config.multiworld_dol_patches.unwrap_or(false),
             update_hint_state_replacement: self.game_config.update_hint_state_replacement.clone(),
-            artifact_temple_layer_overrides: self.game_config.artifact_temple_layer_overrides.clone(),
+            artifact_temple_layer_overrides: self
+                .game_config
+                .artifact_temple_layer_overrides
+                .clone(),
             no_doors: self.game_config.no_doors.unwrap_or(false),
-            boss_sizes: self.game_config.boss_sizes.clone().unwrap_or(HashMap::new()),
+            boss_sizes: self.game_config.boss_sizes.clone().unwrap_or_default(),
             shoot_in_grapple: self.game_config.shoot_in_grapple.unwrap_or(false),
-            difficulty_behavior: self.game_config.difficulty_behavior.unwrap_or(DifficultyBehavior::Either),
+            difficulty_behavior: self
+                .game_config
+                .difficulty_behavior
+                .unwrap_or(DifficultyBehavior::Either),
             legacy_block_size: self.game_config.legacy_block_size.unwrap_or(false),
             patch_wallcrawling: self.game_config.patch_wallcrawling.unwrap_or(false),
             map_default_state,
 
             starting_items,
-            item_loss_items: self.game_config.item_loss_items.clone()
-            .unwrap_or_else(|| StartingItems::from_u64(1)),
+            item_loss_items: self
+                .game_config
+                .item_loss_items
+                .clone()
+                .unwrap_or_else(|| StartingItems::from_u64(1)),
             disable_item_loss: self.game_config.disable_item_loss.unwrap_or(true),
             escape_sequence_counts_up: self.game_config.escape_sequence_counts_up.unwrap_or(false),
             enable_ice_traps: self.game_config.enable_ice_traps.unwrap_or(false),
             missile_station_pb_refill: self.game_config.missile_station_pb_refill.unwrap_or(false),
-            door_open_mode: self.game_config.door_open_mode.unwrap_or(DoorOpenMode::Original),
+            door_open_mode: self
+                .game_config
+                .door_open_mode
+                .unwrap_or(DoorOpenMode::Original),
             starting_visor,
             starting_beam,
 
             etank_capacity: self.game_config.etank_capacity.unwrap_or(100),
-            item_max_capacity: item_max_capacity,
+            item_max_capacity,
 
             game_banner: self.game_config.game_banner.clone().unwrap_or_default(),
-            comment: self.game_config.comment.clone().unwrap_or(String::new()),
+            comment: self.game_config.comment.clone().unwrap_or_default(),
             main_menu_message,
 
             credits_string,
             results_string,
             artifact_hints: self.game_config.artifact_hints.clone(),
-            required_artifact_count: self.game_config.required_artifact_count.clone(),
+            required_artifact_count: self.game_config.required_artifact_count,
 
             ctwk_config: self.tweaks.clone(),
         };
-
-
 
         Ok(result)
     }
@@ -2391,8 +2424,9 @@ impl PatchConfigPrivate
 
 /*** Helper Methods ***/
 
-pub fn extract_flaahgra_music_files(iso_path: &str) -> Result<[nod_wrapper::FileWrapper; 2], String>
-{
+pub fn extract_flaahgra_music_files(
+    iso_path: &str,
+) -> Result<[nod_wrapper::FileWrapper; 2], String> {
     let res = (|| {
         let dw = nod_wrapper::DiscWrapper::new(iso_path)?;
         Ok([

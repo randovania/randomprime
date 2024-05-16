@@ -1,5 +1,3 @@
-extern crate reader_writer;
-
 mod ancs;
 mod bnr;
 mod cmdl;
