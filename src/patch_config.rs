@@ -1,8 +1,8 @@
 use std::{
     collections::{HashMap, HashSet},
-    ffi::CStr,
-    fmt, fs,
-    fs::{File, OpenOptions},
+    fmt,
+    fs::{self, File, OpenOptions},
+    io::Read,
     str::FromStr,
 };
 
@@ -1212,7 +1212,7 @@ pub struct PatchConfig {
     pub artifact_hint_behavior: ArtifactHintBehavior,
 
     #[serde(skip_serializing)]
-    pub flaahgra_music_files: Option<[nod_wrapper::FileWrapper; 2]>,
+    pub flaahgra_music_files: Option<[Vec<u8>; 2]>,
 
     pub skip_splash_screens: bool,
     pub default_game_options: Option<DefaultGameOptions>,
@@ -2424,15 +2424,30 @@ impl PatchConfigPrivate {
 
 /*** Helper Methods ***/
 
-pub fn extract_flaahgra_music_files(
-    iso_path: &str,
-) -> Result<[nod_wrapper::FileWrapper; 2], String> {
+pub fn extract_flaahgra_music_files(iso_path: &str) -> Result<[Vec<u8>; 2], String> {
     let res = (|| {
-        let dw = nod_wrapper::DiscWrapper::new(iso_path)?;
-        Ok([
-            dw.open_file(CStr::from_bytes_with_nul(b"rui_flaaghraR.dsp\0").unwrap())?,
-            dw.open_file(CStr::from_bytes_with_nul(b"rui_flaaghraL.dsp\0").unwrap())?,
-        ])
+        let dw = nod::Disc::new(iso_path)?;
+        let mut partition = dw.open_partition(1)?;
+        let meta = partition.meta()?;
+        let fst = meta.fst()?;
+        let file_r = read_file(partition.as_mut(), &fst, "MP1/Audio/rui_flaaghraR.dsp")?;
+        let file_l = read_file(partition.as_mut(), &fst, "MP1/Audio/rui_flaaghraL.dsp")?;
+        Ok([file_r, file_l])
     })();
-    res.map_err(|s: String| format!("Failed to extract Flaahgra music files: {}", s))
+    res.map_err(|err: Box<dyn std::error::Error>| {
+        format!("Failed to extract Flaahgra music files: {}", err)
+    })
+}
+
+fn read_file(
+    partition: &mut dyn nod::PartitionBase,
+    fst: &nod::Fst,
+    path: &str,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let (_, node) = fst
+        .find(path)
+        .ok_or_else(|| format!("\"{path}\" not found"))?;
+    let mut buf = Vec::new();
+    partition.open_file(node)?.read_to_end(&mut buf)?;
+    Ok(buf)
 }
