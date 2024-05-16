@@ -168,7 +168,7 @@ where
                 if pickup_type.kind() >= PickupType::ArtifactOfTruth.kind()
                     && pickup_type.kind() <= PickupType::ArtifactOfNewborn.kind()
                 {
-                    artifact_locations.push((&room_name.as_str(), pickup_type));
+                    artifact_locations.push(((room_name.as_str()), pickup_type));
                 }
             }
         }
@@ -244,7 +244,7 @@ where
     // Set a default value for any artifacts that we didn't find.
     for scan_text in scan_text.iter_mut() {
         if scan_text.is_empty() {
-            *scan_text = "Artifact not present. This layout may not be completable.\0".to_owned();
+            "Artifact not present. This layout may not be completable.\0".clone_into(scan_text);
         }
     }
 
@@ -2494,7 +2494,7 @@ fn patch_add_item<'r>(
 
     let pickup_obj_id = match pickup_config.id {
         Some(id) => id,
-        None => area.new_object_id_from_layer_id(new_layer_idx as usize),
+        None => area.new_object_id_from_layer_id(new_layer_idx),
     };
 
     let mut pickup_obj = structs::SclyObject {
@@ -2732,7 +2732,7 @@ fn patch_add_item<'r>(
     }
 
     if shuffle_position || *pickup_config.jumbo_scan.as_ref().unwrap_or(&false) {
-        layers[new_layer_idx as usize]
+        layers[new_layer_idx]
             .objects
             .as_mut_vec()
             .push(structs::SclyObject {
@@ -2764,7 +2764,7 @@ fn patch_add_item<'r>(
     if (29..=40).contains(&pickup_kind) {
         let function =
             artifact_layer_change_template(special_fn_artifact_layer_change_id, pickup_kind);
-        layers[new_layer_idx as usize]
+        layers[new_layer_idx]
             .objects
             .as_mut_vec()
             .push(function);
@@ -2817,7 +2817,7 @@ fn patch_add_item<'r>(
                 target_object_id: special_function_id,
             });
 
-        layers[new_layer_idx as usize]
+        layers[new_layer_idx]
             .objects
             .as_mut_vec()
             .push(special_function);
@@ -2829,21 +2829,21 @@ fn patch_add_item<'r>(
             .as_mut_vec()
             .extend_from_slice(&add_world_teleporter(
                 four_ids,
-                layers[new_layer_idx as usize].objects.as_mut_vec(),
+                layers[new_layer_idx].objects.as_mut_vec(),
                 &pickup_config.destination.clone().unwrap(),
                 version,
             ));
     }
 
-    layers[new_layer_idx as usize]
+    layers[new_layer_idx]
         .objects
         .as_mut_vec()
         .push(hudmemo);
-    layers[new_layer_idx as usize]
+    layers[new_layer_idx]
         .objects
         .as_mut_vec()
         .push(attainment_audio);
-    layers[new_layer_idx as usize]
+    layers[new_layer_idx]
         .objects
         .as_mut_vec()
         .push(pickup_obj);
