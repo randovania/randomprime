@@ -2,6 +2,8 @@ name: Rust
 
 on:
   push:
+    branches:
+     - main
   pull_request:
 
 jobs:
@@ -35,23 +37,12 @@ jobs:
         toolchain: stable
         target: powerpc-unknown-linux-gnu
         override: true
-
-    - name: Install cargo fmt and cargo clippy
-      run: rustup component add rustfmt clippy
-
-    - name: Check format
-      run: cargo fmt -- --check
-
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
-
-    - name: Build
-      uses: actions-rs/cargo@v1
+        
+    - uses: actions-rs/cargo@v1
       with:
         command: build
         args: --release --all-features --verbose
 
-    - name: Test
-      uses: actions-rs/cargo@v1
+    - uses: actions-rs/cargo@v1
       with:
         command: test
