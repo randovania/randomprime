@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
-use libsquish_wrapper::{compress_dxt1gcn_block, decompress_dxt1gcn_block};
 use resource_info_table::{resource_info, ResourceInfo};
+use texpresso::Format;
 
 // 0 - Power
 // 1 - Gravity
@@ -186,8 +186,7 @@ impl Iterator for CmprPixelIter {
 pub fn cmpr_decompress(compressed: &[u8], width: usize, height: usize, decompressed: &mut [u8]) {
     let cmpr_iter = CmprPixelIter::new(width, height);
     for (chunk, (first_pixel_x, first_pixel_y)) in compressed.chunks_exact(8).zip(cmpr_iter) {
-        let mut decompressed_pixels = [[0u8; 4]; 16];
-        decompress_dxt1gcn_block(&mut decompressed_pixels, chunk.try_into().unwrap());
+        let decompressed_pixels = decompress_dxt1gcn_block(chunk);
         for y in 0..4 {
             for x in 0..4 {
                 let pixel_x = first_pixel_x + x;
@@ -216,7 +215,7 @@ pub fn cmpr_compress(uncompressed: &[u8], width: usize, height: usize, compresse
             }
         }
 
-        compress_dxt1gcn_block(&uncompressed_pixels, chunk.try_into().unwrap());
+        compress_dxt1gcn_block(uncompressed_pixels, chunk);
     }
 }
 
@@ -265,4 +264,37 @@ pub fn huerotate_in_place(image: &mut [u8], width: usize, height: usize, matrix:
             pixel.copy_from_slice(&outpixel[..]);
         }
     }
+}
+
+pub fn compress_dxt1gcn_block(rgba: [[u8; 4]; 16], block: &mut [u8]) {
+    Format::Bc1.compress_block_masked(
+        rgba,
+        0xFFFF,
+        texpresso::Params {
+            algorithm: texpresso::Algorithm::IterativeClusterFit,
+            ..Default::default()
+        },
+        block,
+    );
+    block.swap(0, 1);
+    block.swap(2, 3);
+    for byte in block[4..8].iter_mut() {
+        *byte = reverse_byte(*byte);
+    }
+}
+
+pub fn decompress_dxt1gcn_block(block: &[u8]) -> [[u8; 4]; 16] {
+    let mut compressed = [0u8; 8];
+    compressed[0] = block[1];
+    compressed[1] = block[0];
+    compressed[2] = block[3];
+    compressed[3] = block[4];
+    for (byte, val) in compressed[4..8].iter_mut().zip(block[4..8].iter()) {
+        *byte = reverse_byte(*val);
+    }
+    Format::Bc1.decompress_block(&compressed)
+}
+
+fn reverse_byte(byte: u8) -> u8 {
+    (byte & 0b11 << 6) | (byte & 0b1100 << 2) | (byte & 0b110000 >> 2) | (byte & 0b11000000 >> 6)
 }
