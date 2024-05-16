@@ -37,6 +37,24 @@ Updates to this program are documented as part of the [py-randomprime Release Pr
 
 That should create a standalone executable in `./randomprime/target/debug/randomprime_patcher.exe`.
 
+Occasionally run `rustup update` to keep your toolchain version up-to-date.
+
+## Contributing
+
+In order to pass this project's Pull Request requirements, your proposed change must pass the following checks:
+
+```sh
+cargo fmt --check
+cargo clippy -- -D warnings
+```
+
+You can use these commands to fix most issues automatically:
+
+```sh
+cargo fmt
+cargo clippy --fix --allow-dirty
+```
+
 ## Resources
 
 Some helpful resources for those starting out with modding Metroid Prime can be found in the [Metroid Prime Fanhacks](https://github.com/toasterparty/metroid-prime-fanhacks/tree/main/doc#resources) repository. Furthermore there's:
