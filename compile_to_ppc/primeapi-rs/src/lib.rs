@@ -117,6 +117,7 @@ fn halt() -> ! {
     // unsafe {
     //     PPCHalt()
     // }
+    #![allow(clippy::empty_loop)]
     loop {}
 }
 
