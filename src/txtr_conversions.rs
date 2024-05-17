@@ -288,7 +288,7 @@ pub fn decompress_dxt1gcn_block(block: &[u8]) -> [[u8; 4]; 16] {
     compressed[0] = block[1];
     compressed[1] = block[0];
     compressed[2] = block[3];
-    compressed[3] = block[4];
+    compressed[3] = block[2];
     for (byte, val) in compressed[4..8].iter_mut().zip(block[4..8].iter()) {
         *byte = reverse_byte(*val);
     }
