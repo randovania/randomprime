@@ -44,7 +44,7 @@ use crate::{
         CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode, FogConfig,
         GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat, LevelConfig,
         PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType, RoomConfig,
-        RunMode, SpecialFunctionType, Version, Visor,
+        RunMode, SpecialFunctionType, SuitDamageReduction, Version, Visor,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -10546,33 +10546,70 @@ fn patch_dol(
         dol_patcher.ppcasm_patch(&heat_damage_patch)?;
     }
 
-    if config.staggered_suit_damage {
-        let (patch_offset, jump_offset) = if version == Version::Pal || version == Version::NtscJ {
-            (0x11c, 0x1b8)
-        } else {
-            (0x128, 0x1c4)
-        };
-
-        let staggered_suit_damage_patch = ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + patch_offset, {
-                lwz     r3, 0x8b8(r25);
-                lwz     r3, 0(r3);
-                lwz     r4, 220(r3);
-                lwz     r5, 212(r3);
-                addc    r4, r4, r5;
-                lwz     r5, 228(r3);
-                addc    r4, r4, r5;
-                rlwinm  r4, r4, 2, 0, 29;
-                lis     r6, data@h;
-                addi    r6, r6, data@l;
-                lfsx    f0, r4, r6;
-                b       { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jump_offset };
-            data:
-                .float 0.0;
-                .float 0.1;
-                .float 0.2;
-                .float 0.5;
-        });
-        dol_patcher.ppcasm_patch(&staggered_suit_damage_patch)?;
+    match config.staggered_suit_damage {
+        SuitDamageReduction::Progressive => {
+            let (patch_offset, jump_offset) =
+                if version == Version::Pal || version == Version::NtscJ {
+                    (0x11c, 0x1b8)
+                } else {
+                    (0x128, 0x1c4)
+                };
+            let staggered_suit_damage_patch = ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + patch_offset, {
+                    lwz     r3, 0x8b8(r25);
+                    lwz     r3, 0(r3);
+                    lwz     r4, 220(r3);
+                    lwz     r5, 212(r3);
+                    addc    r4, r4, r5;
+                    lwz     r5, 228(r3);
+                    addc    r4, r4, r5;
+                    rlwinm  r4, r4, 2, 0, 29;
+                    lis     r6, data@h;
+                    addi    r6, r6, data@l;
+                    lfsx    f0, r4, r6;
+                    b       { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jump_offset };
+                data:
+                    .float 0.0;
+                    .float 0.1;
+                    .float 0.2;
+                    .float 0.5;
+            });
+            dol_patcher.ppcasm_patch(&staggered_suit_damage_patch)?;
+        }
+        SuitDamageReduction::Additive => {
+            let (patch_offset, jump_offset) =
+                if version == Version::Pal || version == Version::NtscJ {
+                    (0x11c, 0x1b8)
+                } else {
+                    (0x128, 0x1c4)
+                };
+            let staggered_suit_damage_patch = ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + patch_offset, {
+                    lwz     r3, 0x8b8(r25);
+                    lwz     r3, 0(r3);
+                    lwz     r4, 220(r3);
+                    lwz     r5, 212(r3);
+                    slwi    r5, r5, 1;
+                    or      r4, r4, r5;
+                    lwz     r5, 228(r3);
+                    slwi    r5, r5, 2;
+                    or      r4, r4, r5;
+                    rlwinm  r4, r4, 2, 0, 29;
+                    lis     r6, data@h;
+                    addi    r6, r6, data@l;
+                    lfsx    f0, r4, r6;
+                    b       { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jump_offset };
+                data:
+                    .float 0.0; // 000 - Power Suit
+                    .float 0.1; // 001 - Varia Suit
+                    .float 0.1; // 010 - Gravity Suit
+                    .float 0.2; // 011 - Varia + Gravity Suit
+                    .float 0.3; // 100 - Phazon Suit
+                    .float 0.4; // 101 - Phazon + Varia Suit
+                    .float 0.4; // 110 - Phazon + Gravity Suit
+                    .float 0.5; // 111 - All Suits
+            });
+            dol_patcher.ppcasm_patch(&staggered_suit_damage_patch)?;
+        }
+        _ => {}
     }
 
     for (pickup_type, value) in &config.item_max_capacity {
