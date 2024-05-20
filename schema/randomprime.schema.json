@@ -358,9 +358,14 @@
                     "default": false
                 },
                 "staggeredSuitDamage": {
-                    "description": "Damage reduction depends on how many suits you have, not which.",
-                    "type": "boolean",
-                    "default": false
+                    "description": "Configure how suit damage reduction is calculated.\n`Default`: Based on strongest suit.\n`Progressive`: Based on number of suits.\n`Additive`: Individual suits provide added damage reduction.",
+                    "type": "string",
+                    "enum": [
+                        "Default",
+                        "Progressive",
+                        "Additive"
+                    ],
+                    "default": "Default"
                 },
                 "heatDamagePerSec": {
                     "description": "Configure how much damage per second you take in heated rooms when you don't have the proper protection.",
