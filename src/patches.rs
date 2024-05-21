@@ -10609,7 +10609,7 @@ fn patch_dol(
             });
             dol_patcher.ppcasm_patch(&staggered_suit_damage_patch)?;
         }
-        _ => {}
+        SuitDamageReduction::Default => {}
     }
 
     for (pickup_type, value) in &config.item_max_capacity {
