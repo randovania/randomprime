@@ -430,31 +430,7 @@
                             "targetId": 524322, // [Parasite] Parasite
                             "state": "ZERO",
                             "message": "DEACTIVATE"
-                        }/*
-                        {
-                            "senderId": 524302, // [Relay] Relay End of Cinematic
-                            "targetId": 524342, // [Timer] 2 Frame delay for some god forsaken reason
-                            "state": "ZERO",
-                            "message": "START"
-                        },
-                        {
-                            "senderId": 524342, // [Timer] 2 Frame delay for some god forsaken reason
-                            "targetId": 524320, // [Parasite] Parasite
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 524342, // [Timer] 2 Frame delay for some god forsaken reason
-                            "targetId": 524322, // [Parasite] Parasite
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
                         }
-                    ],
-                    "timers": [
-                        {
-                            "id": 524342, // [Timer] 2 Frame delay for some god forsaken reason
-                            "time": 0.02
-                        }*/
                     ],
                     "relays": [
                         {
