@@ -10075,12 +10075,6 @@
                             "targetId": 1572884, // [Relay] Faulty Relay - End Arriving Cinematic
                             "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 666666, // [Camera] Cinematic Camera Hold
-                            "targetId": 1572900, // [SpawnPoint] Spawn point - Arrival Spawnpoint
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "spawnPoints": [
@@ -19984,22 +19978,10 @@
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 1507367, // [Camera] Cinematic Camera - Arriving Cinematic 2
-                            "targetId": 1507343, // [SpecialFunction] Arrival Cinematic Skip
-                            "state": "ACTIVE",
-                            "message": "DECREMENT"
-                        },
-                        {
                             "senderId": 1507343, // [SpecialFunction] Arrival Cinematic Skip
                             "targetId": 1507432, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
                             "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 666666, // [Camera] Cinematic Camera Hold
-                            "targetId": 1507375, // [SpawnPoint] Spawn point - Arrival Spawnpoint
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "spawnPoints": [
@@ -20247,12 +20229,6 @@
                             "targetId": 2818072, // [Camera] Cinematic Camera - Arriving Cinematic 2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2818072, // [Camera] Cinematic Camera - Arriving Cinematic 2
-                            "targetId": 2818117, // [SpecialFunction] Arrival Cinematic Skip
-                            "state": "ACTIVE",
-                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 2818117, // [SpecialFunction] Arrival Cinematic Skip
@@ -24935,12 +24911,6 @@
                             "targetId": 82, // [SpecialFunction] Departure Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 82, // [SpecialFunction] Departure Cinematic Skip
-                            "targetId": 20, // [Relay] Faulty Relay - End Leaving Cinematic
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 82, // [SpecialFunction] Departure Cinematic Skip
