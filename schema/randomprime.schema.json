@@ -358,8 +358,11 @@
                     "default": false
                 },
                 "staggeredSuitDamage": {
-                    "description": "Configure how suit damage reduction is calculated.\n`Default`: Based on strongest suit.\n`Progressive`: Based on number of suits.\n`Additive`: Individual suits provide added damage reduction.",
-                    "type": "string",
+                    "description": "Configure how suit damage reduction is calculated.\n- `Default` or `false`: Based on strongest suit.\n- `Progressive` or `true`: Based on number of suits.\n- `Additive`: Individual suits provide added damage reduction.\nNOTE: boolean values are deprecated.",
+                    "type": [
+                        "string",
+                        "boolean"
+                    ],
                     "enum": [
                         "Default",
                         "Progressive",
