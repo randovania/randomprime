@@ -2,7 +2,6 @@
     "$schema": "../../schema/randomprime.schema.json",
     "levelData": {
         "Frigate Orpheon": {
-            "transports": {},
             "rooms": {
                 "Air Lock": {
                     "layers": {
@@ -410,7 +409,7 @@
                     "streamedAudios": [
                         {
                             "id": 131121, // [StreamedAudio] StreamedAudio - Intro Space SW
-                            "audioFileName": "/audio/int_spaceL.dsp|audio/int_spaceR.dsp",
+                            "audioFileName": "audio/int_spaceL.dsp|audio/int_spaceR.dsp",
                             "volume": 70,
                             "isMusic": true,
                             "layer": 1 // Pre Escape
@@ -747,6 +746,7 @@
                 "Exterior Docking Hangar": {
                     // Disable tutorial hudmemos
                     "deleteIds": [
+                        933, // Trigger - Add Samus to cut scene
                         669,
                         1089,
                         676,
@@ -796,6 +796,12 @@
                             "targetId": 868, // [Trigger] Trigger_DoorOpen Inside
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 934, // [Relay] Relay - add model and spawn
+                            "active": true
                         }
                     ],
                     "specialFunctions": [
@@ -1749,6 +1755,13 @@
                         {
                             "id": 6838610 // [Relay] Swap Room Layers for Escape Music
                         }
+                    ],
+                    "streamedAudios": [
+                        {
+                            "id": 1638686, // [StreamedAudio] StreamedAudio - Intro Escape SW
+                            "isMusic": true,
+                            "audioFileName": "/audio/int_escapeL.dsp|audio/int_escapeR.dsp"
+                        }
                     ]
                 },
                 "Reactor Core Entrance": {
@@ -1849,7 +1862,6 @@
             }
         },
         "Chozo Ruins": {
-            "transports": {},
             "rooms": {
                 "Antechamber": {
                     "addConnections": [
@@ -2585,108 +2597,128 @@
                         3212052,
                         3212051
                     ],
-                    "addConnections": [
+                    "removeConnections": [
                         {
-                            "senderId": 3211267, // [SpecialFunction] Music Player For Area
-                            "targetId": 3211857, // [Trigger] Trigger_Ghosttest
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3211267, // [SpecialFunction] Music Player For Area
-                            "targetId": 3211270, // [Relay] Play Chozo Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 3211267, // [SpecialFunction] Music Player For Area
-                            "targetId": 3211271, // [Relay] Ghosts Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 3211270, // [Relay] Play Chozo Music
-                            "targetId": 3212049, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 3211271, // [Relay] Ghosts Music
+                            "senderId": 3211876, // [Relay] Relay - [IN] Make Chozoghost Appear
                             "targetId": 3212048, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
                             "state": "ZERO",
                             "message": "PLAY"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 3211267, // [SpecialFunction] Music Player For Area
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 3211270, // [Switchv] OPEN: Chozo Music / CLOSED: Ghost Music
+                            "targetId": 3212049, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
+                            "targetId": 3212048, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "state": "CLOSED",
+                            "message": "PLAY"
                         },
                         {
                             "senderId": 3211857, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211270, // [Relay] Play Chozo Music
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3211857, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211271, // [Relay] Ghosts Music
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 3211879, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211270, // [Relay] Play Chozo Music
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3211879, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211271, // [Relay] Ghosts Music
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 3211874, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211270, // [Relay] Play Chozo Music
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
-                            "senderId": 3211874, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211271, // [Relay] Ghosts Music
+                            "senderId": 3212043, // [Trigger] Trigger - Play Music Morphball Battle 2
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
+                            "state": "ENTERED",
+                            "message": "CLOSE"
+                        },
+                        {
+                            "senderId": 3212043, // [Trigger] Trigger - Play Music Morphball Battle 2
+                            "targetId": 3211878, // [ChozoGhost] ChozoGhost
                             "state": "ENTERED",
                             "message": "ACTIVATE"
                         },
                         {
                             "senderId": 3212043, // [Trigger] Trigger - Play Music Morphball Battle 2
-                            "targetId": 3211270, // [Relay] Play Chozo Music
+                            "targetId": 3211877, // [ChozoGhost] ChozoGhost
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 3212043, // [Trigger] Trigger - Play Music Morphball Battle 2
-                            "targetId": 3211271, // [Relay] Ghosts Music
+                            "targetId": 3211871, // [Timer] Timer - Delay Chozoghost Alert
                             "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 3212043, // [Trigger] Trigger - Play Music Morphball Battle 2
+                            "targetId": 3211865, // [Timer] Timer - Delay Chozoghost Alert
+                            "state": "ENTERED",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 3212043, // [Trigger] Trigger - Play Music Morphball Battle 2
+                            "targetId": 3211859, // [WorldLightFader] World Light Fader - darkener
+                            "state": "ENTERED",
+                            "message": "ACTION"
                         },
                         {
                             "senderId": 3212042, // [Trigger] Trigger - Play Music Morphball Battle Samus
-                            "targetId": 3211270, // [Relay] Play Chozo Music
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
                             "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 3212042, // [Trigger] Trigger - Play Music Morphball Battle Samus
-                            "targetId": 3211271, // [Relay] Ghosts Music
+                            "targetId": 3211878, // [ChozoGhost] ChozoGhost
                             "state": "ENTERED",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 3211860, // [Counter] Counter - Ghost death counter to bring lights on
-                            "targetId": 3211270, // [Relay] Play Chozo Music
-                            "state": "MAX_REACHED",
-                            "message": "ACTIVATE"
+                            "senderId": 3212042, // [Trigger] Trigger - Play Music Morphball Battle Samus
+                            "targetId": 3211877, // [ChozoGhost] ChozoGhost
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 3212042, // [Trigger] Trigger - Play Music Morphball Battle Samus
+                            "targetId": 3211871, // [Timer] Timer - Delay Chozoghost Alert
+                            "state": "ENTERED",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 3212042, // [Trigger] Trigger - Play Music Morphball Battle Samus
+                            "targetId": 3211865, // [Timer] Timer - Delay Chozoghost Alert
+                            "state": "ENTERED",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 3212042, // [Trigger] Trigger - Play Music Morphball Battle Samus
+                            "targetId": 3211858, // [WorldLightFader] World Light Fader - lightener
+                            "state": "ENTERED",
+                            "message": "ACTION"
                         },
                         {
                             "senderId": 3211860, // [Counter] Counter - Ghost death counter to bring lights on
-                            "targetId": 3211271, // [Relay] Ghosts Music
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
                             "state": "MAX_REACHED",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         }
                     ],
                     "specialFunctions": [
@@ -2705,30 +2737,10 @@
                             "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 3211270 // [Relay] Play Chozo Music
-                        },
-                        {
-                            "id": 3211271, // [Relay] Ghosts Music
-                            "active": false
-                        }
-                    ],
-                    "triggers": [
-                        {
-                            "id": 3211857, // [Trigger] Trigger_Ghosttest
-                            "position": [
-                                717.304321,
-                                -196.664993,
-                                52.473732
-                            ],
-                            "scale": [
-                                4.250977,
-                                7.858002,
-                                6.526001
-                            ],
-                            "active": false,
-                            "deactivateOnEnter": true
+                            "id": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
+                            "open": true
                         }
                     ]
                 },
@@ -3588,7 +3600,7 @@
                         600483,
                         600282,
                         600284,
-                        600506, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                        779889,
                         600505, // [Trigger] Trigger - Play Music x02 Samus
                         600504, // [Trigger] Trigger - Play Music x02 Battle 2
                         600502, // [Trigger] Trigger - Play Music x01 Samus
@@ -3600,6 +3612,80 @@
                         600070, // [SpecialFunction] SpecialFunction 1_Savestation Naka OFF
                         600500, // [SpecialFunction] SpecialFunction Mapstation Decrement Music Before Morphball
                         600501 // [SpecialFunction] SpecialFunction Mapstation Increment After Morphball
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 589860, // [Pickup] p_morphball_01
+                            "targetId": 599872, // [SpecialFunction] SpecialFunction-generic_x04 music
+                            "state": "ARRIVED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589860, // [Pickup] p_morphball_01
+                            "targetId": 599871, // [SpecialFunction] SpecialFunction-0q_connect music
+                            "state": "ARRIVED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589860, // [Pickup] p_morphball_01
+                            "targetId": 599916, // [SpecialFunction] SpecialFunction Elev_Over_A
+                            "state": "ARRIVED",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 589860, // [Pickup] p_morphball_01
+                            "targetId": 600070, // [SpecialFunction] SpecialFunction 1_Savestation Naka OFF
+                            "state": "ARRIVED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589860, // [Pickup] p_morphball_01
+                            "targetId": 600069, // [SpecialFunction] SpecialFunction 1_Savestation Samus ON
+                            "state": "ARRIVED",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 589860, // [Pickup] p_morphball_01
+                            "targetId": 600500, // [SpecialFunction] SpecialFunction Mapstation Decrement Music Before Morphball
+                            "state": "ARRIVED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589860, // [Pickup] p_morphball_01
+                            "targetId": 600501, // [SpecialFunction] SpecialFunction Mapstation Increment After Morphball
+                            "state": "ARRIVED",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 600165, // [Relay] Relay - [IN] Make Chozoghost Appear
+                            "targetId": 600502, // [Trigger] Trigger - Play Music x01 Samus
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 600165, // [Relay] Relay - [IN] Make Chozoghost Appear
+                            "targetId": 600505, // [Trigger] Trigger - Play Music x02 Samus
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 600142, // [Counter] Counter - Ghost death counter to bring lights on
+                            "targetId": 600502, // [Trigger] Trigger - Play Music x02 Samus
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 600142, // [Counter] Counter - Ghost death counter to bring lights on
+                            "targetId": 600503, // [Trigger] Trigger - Play Music x01 Battle 2
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 600142, // [Counter] Counter - Ghost death counter to bring lights on
+                            "targetId": 600505, // [Trigger] Trigger - Play Music x02 Samus
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        }
                     ],
                     "addConnections": [
                         {
@@ -3628,7 +3714,7 @@
                         },
                         {
                             "senderId": 689878, // [Relay] Chozo Music
-                            "targetId": 599956, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "targetId": 600506, // [StreamedAudio] StreamedAudio - Ruins Samus SW
                             "state": "ZERO",
                             "message": "PLAY"
                         },
@@ -3736,7 +3822,7 @@
                         },
                         {
                             "senderId": 600482, // [Relay] Relay
-                            "targetId": 779889, // [Switch] SENDER - Active Music
+                            "targetId": 779889, // External: 000BE671
                             "state": "ZERO",
                             "message": "OPEN"
                         },
@@ -4037,7 +4123,7 @@
                     ],
                     "streamedAudios": [
                         {
-                            "id": 599956, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "id": 600506, // [StreamedAudio] StreamedAudio - Ruins Samus SW
                             "layer": 0,
                             "volume": 70,
                             "isMusic": true,
@@ -4072,13 +4158,6 @@
                     ],
                     "timers": [
                         {
-                            "id": 689863, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
-                        },
-                        {
                             "id": 789863, // [Timer] 1st Pass Check
                             "time": 0.001,
                             "layer": 1,
@@ -4088,7 +4167,7 @@
                     ],
                     "switches": [
                         {
-                            "id": 779889 // [Switch] SENDER - Active Music
+                            "id": 779889
                         }
                     ],
                     "relays": [
@@ -5220,6 +5299,24 @@
                         1572948, // [Trigger] Trigger - Play Music 2
                         1572963 // [StreamedAudio] StreamedAudio - Ruins Samus SW
                     ],
+                    // make cutscene samus actually face where player ends up at
+                    "editObjs": {
+                        "1572919":{"rotation": [0, 0, -180]},
+                        "1572886":{"rotation": [0, 0, -180]},
+                        "1572942":{"position": [179.690704, 345.424805, 6.687231]},
+                        "1572910":{"position": [179.58049, 335.199585, 9.096786]},
+                        "1572911":{"position": [183.96344, 336.66745, 9.598896]},
+                        "1572912":{"position": [187.545197, 340.207611, 9.86292]},
+                        "1572895":{"position": [179.766296, 344.599121, 8.810493]},
+                        "1572893":{"position": [181.67688, 339.75473, 8.594822]},
+                        "1572918":{"position": [182.075089, 340.505463, 5.9399]},
+                        "1572894":{"position": [184.302887, 343.750854, 7.964807]},
+                        "1572887":{"position": [187.664658, 337.602142, 11.874155]},
+                        "1572888":{"position": [184.63945, 334.809814, 8.853821]},
+                        "1572889":{"position": [179.867706, 332.885712, 8.124104]},
+                        "1572920":{"position": [179.741943, 344.743195, 7.638664]},
+                        "1572921":{"position": [179.741943, 344.743195, -1.03509]}
+                    },
                     "addConnections": [
                         {
                             "senderId": 1572950, // [SpecialFunction] Music Player For Area
@@ -5421,7 +5518,6 @@
             }
         },
         "Phendrana Drifts": {
-            "transports": {},
             "rooms": {
                 "Aether Lab Entryway": {
                     "addConnections": [
@@ -5635,13 +5731,7 @@
                                 -401.693207,
                                 -172.594421,
                                 46.544167
-                            ],
-                            "scale": [
-                                5.0,
-                                30.0,
-                                25.0
-                            ],
-                            "deactivateOnEnter": true
+                            ]
                         },
                         {
                             "id": 917519, // [Trigger] Sheegoth Trigger
@@ -5835,15 +5925,15 @@
                         }
                     },
                     "deleteIds": [
+                        2557207, // [Trigger] Trigger - Play Music 1
+                        2557209, // [Trigger] Trigger - Play Music 1
+                        2557210, // [Trigger] Trigger - Play Music 2
+                        2557208, // [Trigger] Trigger - Play Music 2
                         2557275, // [Trigger] Trigger - Fallen Tower - outside_hole_fixed_deactivate
                         // Remove White Flashes from Explosions
                         2556985,
                         2556990,
-                        2556986,
-                        2557207, // [Trigger] Trigger - Play Music 1
-                        2557209, // [Trigger] Trigger - Play Music 1
-                        2557210, // [Trigger] Trigger - Play Music 2
-                        2557208 // [Trigger] Trigger - Play Music 2
+                        2556986
                     ],
                     "addConnections": [
                         {
@@ -6898,12 +6988,26 @@
                         1049573,
                         1049574
                     ],
+                    "removeConnections": [
+                        {
+                            "senderId": 1049595, // [Relay] Relay
+                            "targetId": 1049594, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        }
+                    ],
                     "addConnections": [
                         {
                             "senderId": 1048577, // [SpecialFunction] Music Player For Area
                             "targetId": 1048582, // [StreamedAudio] StreamedAudio - Ice Main SW
                             "state": "ENTERED",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1049595, // [Relay] Relay
+                            "targetId": 1049594, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "specialFunctions": [
@@ -6920,6 +7024,13 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/ice_worldmainL.dsp|/audio/ice_worldmainR.dsp"
+                        }
+                    ],
+                    "spawnPoints": [
+                        {
+                            "id": 1049594, // Spawn point
+                            "position": [-254.896194, -311.675629, 0.888505],
+                            "rotation": [0.0, 0.0, 150.413391]
                         }
                     ]
                 },
@@ -9123,7 +9234,6 @@
             }
         },
         "Tallon Overworld": {
-            "transports": {},
             "rooms": {
                 "Alcove": {
                     "layers": {
@@ -11354,7 +11464,6 @@
             }
         },
         "Phazon Mines": {
-            "transports": {},
             "rooms": {
                 "Central Dynamo": {
                     "deleteIds": [
@@ -13224,7 +13333,6 @@
             }
         },
         "Magmoor Caverns": {
-            "transports": {},
             "rooms": {
                 "Burning Trail": {
                     "addConnections": [
@@ -14439,7 +14547,6 @@
             }
         },
         "Impact Crater": {
-            "transports": {},
             "rooms": {
                 "Crater Entry Point": {
                     "deleteIds": [
