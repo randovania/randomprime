@@ -1,4 +1,4 @@
-use std::{panic, process::Command, time::Instant};
+use std::{panic, process::Command};
 
 use clap::Format;
 use randomprime::{patch_config::PatchConfig, patches, reader_writer, structs};
@@ -78,10 +78,9 @@ fn maybe_pause_at_exit() {
 }
 
 fn main_inner() -> Result<(), String> {
-    let start_time = Instant::now();
     let patch_config = PatchConfig::from_cli_options()?;
     let pn = ProgressNotifier::new(patch_config.quiet);
-    patches::patch_iso(patch_config, pn, start_time)?;
+    patches::patch_iso(patch_config, pn)?;
     println!("Done");
     Ok(())
 }

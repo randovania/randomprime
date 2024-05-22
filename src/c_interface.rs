@@ -4,7 +4,6 @@ use std::{
     os::raw::c_char,
     panic,
     path::Path,
-    time::Instant,
 };
 
 use serde::Serialize;
@@ -101,8 +100,6 @@ fn inner(
     cb_data: *const (),
     cb: extern "C" fn(*const (), *const c_char),
 ) -> Result<(), String> {
-    let start_time = Instant::now();
-
     let config_json = unsafe { CStr::from_ptr(config_json) }
         .to_str()
         .map_err(|e| format!("JSON parse failed: {}", e))?;
@@ -110,7 +107,7 @@ fn inner(
     let patch_config = PatchConfig::from_json(config_json)?;
 
     let pn = ProgressNotifier::new(cb_data, cb);
-    patches::patch_iso(patch_config, pn, start_time)?;
+    patches::patch_iso(patch_config, pn)?;
 
     Ok(())
 }

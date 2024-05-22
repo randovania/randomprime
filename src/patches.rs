@@ -15382,10 +15382,11 @@ fn patch_arboretum_sandstone(patcher: &mut PrimePatcher<'_, '_>) {
     });
 }
 
-pub fn patch_iso<T>(config: PatchConfig, mut pn: T, start_time: Instant) -> Result<(), String>
+pub fn patch_iso<T>(config: PatchConfig, mut pn: T) -> Result<(), String>
 where
     T: structs::ProgressNotifier,
 {
+    let start_time = Instant::now();
     let mut audio_override_patches: Vec<AudioOverridePatch> = Vec::new();
     for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
         let world = World::from_pak(pak_name).unwrap();
