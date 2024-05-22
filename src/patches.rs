@@ -12968,6 +12968,220 @@ fn patch_remove_control_disabler(
     Ok(())
 }
 
+fn patch_test_cutscene_impl(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+) -> Result<(), String> {
+    let mrea_id = area.mlvl_area.mrea.to_u32();
+
+    let scly = area.mrea().scly_section();
+
+    /*    
+    for every camera:
+        if it doesn't ACTIVATE another camera:
+            if it doesn't SET_TO_ZERO a relay
+                issue a warning
+            if that relay doesn't DECREMENT a custscene skip sf
+                issue a warning
+            if any outgoing connections are also present in the cutscene skip sf:
+                issue a warning
+    for every cutscene skip sf:
+        if it has any incoming connections from a non-relay object:
+            issue a warning
+    */
+
+    let mut cameras: Vec<u32> = Vec::new();
+    for layer in scly.layers.iter() {
+        for obj in layer.objects.iter() {
+            if obj.property_data.is_camera() {
+                cameras.push(obj.instance_id);
+            }
+        }
+    }
+
+    let mut relays: Vec<u32> = Vec::new();
+    for layer in scly.layers.iter() {
+        for obj in layer.objects.iter() {
+            if obj.property_data.is_relay() {
+                relays.push(obj.instance_id);
+            }
+        }
+    }
+
+    let mut cutscene_sfs: Vec<u32> = Vec::new();
+    for layer in scly.layers.iter() {
+        for obj in layer.objects.iter() {
+            if let Some(sf) = obj.property_data.as_special_function() {
+                if sf.type_ == SpecialFunctionType::CinematicSkip as u32 {
+                    cutscene_sfs.push(obj.instance_id);
+                }
+            }
+        }
+    }
+
+    for layer in scly.layers.iter() {
+        for obj in layer.objects.iter() {
+            let obj_id = obj.instance_id;
+            for conn in obj.connections.iter() {
+                let id = conn.target_object_id;
+                if cutscene_sfs.contains(&id) && !relays.contains(&obj_id) {
+                    println!("WARNING: In room 0x{:X}, non-relay object 0x{:X} ({}) messages cutscene skip special function 0x{:X} ({})", mrea_id, obj_id & 0x00FFFFFF, obj_id & 0x00FFFFFF, id & 0x00FFFFFF, id & 0x00FFFFFF);
+                }
+            }
+        }
+    }
+
+    for layer in scly.layers.iter() {
+        for obj in layer.objects.iter() {
+            if !obj.property_data.is_camera() {
+                continue; // not a camera
+            }
+
+            let camera_id = obj.instance_id;
+
+            if !{
+                let mut is_last_cam = true;
+                for conn in obj.connections.iter() {
+                    if conn.state == structs::ConnectionState::INACTIVE &&
+                        conn.message == structs::ConnectionMsg::ACTIVATE && 
+                        cameras.contains(&(conn.target_object_id)
+                    ) {
+                        is_last_cam = false;
+                        break;
+                    }
+                }
+                is_last_cam
+            } {
+                continue; // not the last camera
+            }
+            
+            let ending_relay_id = {
+                let mut ending_relay_ids = Vec::new();
+                for conn in obj.connections.iter() {
+                    let obj_id = conn.target_object_id;
+                    if conn.state == structs::ConnectionState::INACTIVE &&
+                        conn.message == structs::ConnectionMsg::SET_TO_ZERO && 
+                        relays.contains(&obj_id)
+                    {
+                        ending_relay_ids.push(obj_id);
+                        break;
+                    }
+                }
+
+                let mut ending_relay_id = None;
+                for layer in scly.layers.iter() {
+                    for obj in layer.objects.iter() {
+                        if !ending_relay_ids.contains(&obj.instance_id) {
+                            continue;
+                        }
+
+                        for conn in obj.connections.iter() {
+                            let id = conn.target_object_id;
+                            if conn.message == structs::ConnectionMsg::DECREMENT && cutscene_sfs.contains(&id) {
+                                if ending_relay_id.is_some() {
+                                    println!("WARNING: In room 0x{:X}, more than 1 end cinema relay detected for camera {:X} ({})", mrea_id, camera_id & 0x00FFFFFF, camera_id & 0x00FFFFFF);
+                                    continue;
+                                }
+
+                                ending_relay_id = Some(obj.instance_id);
+                            }
+                        }
+                    }
+                }
+
+                ending_relay_id
+            };
+
+            if ending_relay_id.is_none() {
+                println!("WARNING: In room 0x{:X}, camera 0x{:X} ({}) is the last in the chain but does not SET_TO_ZERO any relay which also decrements an sf", mrea_id, camera_id & 0x00FFFFFF, camera_id & 0x00FFFFFF);
+                continue;
+            }
+            let ending_relay_id = ending_relay_id.unwrap();
+
+            let sf_id = {
+                let mut found = false;
+                let mut sf_id = None;
+    
+                for layer in scly.layers.iter() {
+                    let layer = layer.clone();
+                    for obj in layer.objects.iter() {
+                        if obj.instance_id == ending_relay_id {
+                            found = true;
+    
+                            for conn in obj.connections.iter() {
+                                let id = conn.target_object_id;
+                                if conn.message == structs::ConnectionMsg::DECREMENT && cutscene_sfs.contains(&id) {
+                                    sf_id = Some(id);
+                                }
+                            }
+    
+                            break;
+                        }
+                    }
+    
+                    if found {
+                        break;
+                    }
+                }
+    
+                if !found {
+                    println!("WARNING: In room 0x{:X}, failed to find relay 0x{:X} ({})", mrea_id, ending_relay_id & 0x00FFFFFF, ending_relay_id & 0x00FFFFFF);
+                    continue;
+                }
+
+                if sf_id.is_none() {
+                    println!("WARNING: In room 0x{:X}, failed to find cutscene skip object associated with relay 0x{:X} ({}) and camera 0x{:X} ({})", mrea_id, ending_relay_id & 0x00FFFFFF, ending_relay_id & 0x00FFFFFF, camera_id & 0x00FFFFFF, camera_id & 0x00FFFFFF);
+                    continue;
+                }
+
+                sf_id.unwrap()
+            };
+
+            let sf_connections = {
+                let mut sf_connections = Vec::new();
+                let mut found = false;
+
+                for layer in scly.layers.iter() {
+                    let layer = layer.clone();
+                    for obj in layer.objects.iter() {
+                        if obj.instance_id == sf_id {
+                            found = true;
+    
+                            for conn in obj.connections.iter() {
+                                let id = conn.target_object_id;
+                                sf_connections.push(structs::Connection {
+                                    target_object_id: id,
+                                    message: conn.message,
+                                    state: conn.state,
+                                });
+                            }
+    
+                            break;
+                        }
+                    }
+                }
+
+                if !found {
+                    println!("WARNING: In room 0x{:X}, failed to find special function 0x{:X} ({})", mrea_id, sf_id & 0x00FFFFFF, sf_id & 0x00FFFFFF);
+                    continue;
+                }
+
+                sf_connections
+            };
+
+            for sf_conn in sf_connections.iter() {
+                for conn in obj.connections.iter() {
+                    if sf_conn.message == conn.message && sf_conn.target_object_id == conn.target_object_id && ending_relay_id != conn.target_object_id {
+                        println!("WARNING: In room 0x{:X}, camera 0x{:X} ({}) sends same message that's handled by special function 0x{:X} ({})", mrea_id, camera_id & 0x00FFFFFF, camera_id & 0x00FFFFFF, sf_id & 0x00FFFFFF, sf_id & 0x00FFFFFF);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn patch_add_dock_teleport<'r>(
     _ps: &mut PatcherState,
@@ -18676,6 +18890,19 @@ fn build_and_run_patches<'r>(
             resource_info!("STRG_MemoryCard.STRG").into(), // 0x19C3F7F7
             |res| patch_memorycard_strg(res, config.version),
         );
+    }
+
+    const TEST_CUTSCENE_IMPL: bool = true;
+
+    if TEST_CUTSCENE_IMPL {
+        for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+            for room_info in rooms.iter() {
+                patcher.add_scly_patch(
+                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                    patch_test_cutscene_impl,
+                );
+            }
+        }
     }
 
     patcher.run(gc_disc)?;
