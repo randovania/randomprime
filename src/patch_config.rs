@@ -10,7 +10,10 @@ use clap::{crate_version, App, Arg};
 use json_data::*;
 use json_strip::strip_jsonc_comments;
 use reader_writer::{FourCC, Reader};
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{Error, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 use structs::{res_id, MapaObjectVisibilityMode, ResId};
 
 use crate::{
@@ -1111,6 +1114,66 @@ pub enum DifficultyBehavior {
     HardOnly,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
+pub enum SuitDamageReduction {
+    #[default]
+    Default,
+    Progressive,
+    Additive,
+}
+
+impl<'de> Deserialize<'de> for SuitDamageReduction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SuitDamageReductionVisitor;
+
+        impl<'de> Visitor<'de> for SuitDamageReductionVisitor {
+            type Value = SuitDamageReduction;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                write!(
+                    formatter,
+                    r#""Default", "Progressive", "Additive", true, or false"#
+                )
+            }
+
+            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                if v {
+                    Ok(SuitDamageReduction::Progressive)
+                } else {
+                    Ok(SuitDamageReduction::Default)
+                }
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                match v {
+                    "Default" => Ok(SuitDamageReduction::Default),
+                    "Progressive" => Ok(SuitDamageReduction::Progressive),
+                    "Additive" => Ok(SuitDamageReduction::Additive),
+                    variant => Err(E::unknown_variant(
+                        variant,
+                        &["Default", "Progressive", "Additive"],
+                    )),
+                }
+            }
+        }
+
+        deserializer.deserialize_enum(
+            "SuitDamageReduction",
+            &["Default", "Progressive", "Additive"],
+            SuitDamageReductionVisitor,
+        )
+    }
+}
+
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
@@ -1190,7 +1253,7 @@ pub struct PatchConfig {
     pub poison_damage_per_sec: f32,
     pub phazon_damage_per_sec: f32,
     pub phazon_damage_modifier: PhazonDamageModifier,
-    pub staggered_suit_damage: bool,
+    pub staggered_suit_damage: SuitDamageReduction,
     pub item_max_capacity: HashMap<PickupType, u32>,
     pub map_default_state: MapaObjectVisibilityMode,
     pub auto_enabled_elevators: bool,
@@ -1283,7 +1346,7 @@ struct GameConfig {
     shuffle_pickup_pos_all_rooms: Option<bool>,
     remove_vanilla_blast_shields: Option<bool>,
     nonvaria_heat_damage: Option<bool>,
-    staggered_suit_damage: Option<bool>,
+    staggered_suit_damage: Option<SuitDamageReduction>,
     heat_damage_per_sec: Option<f32>,
     poison_damage_per_sec: Option<f32>,
     phazon_damage_per_sec: Option<f32>,
@@ -1577,11 +1640,13 @@ impl PatchConfig {
             "quickpatch" => patch_config.preferences.quickpatch,
             "quiet" => patch_config.preferences.quiet,
             "nonvaria heat damage" => patch_config.game_config.nonvaria_heat_damage,
-            "staggered suit damage" => patch_config.game_config.staggered_suit_damage,
             "auto enabled elevators" => patch_config.game_config.auto_enabled_elevators,
             "spring ball" => patch_config.game_config.spring_ball,
             "warp to start" => patch_config.game_config.warp_to_start,
         );
+        if matches.is_present("staggered suit damage") {
+            patch_config.game_config.staggered_suit_damage = Some(SuitDamageReduction::Default);
+        }
 
         // string
         if let Some(input_iso_path) = matches.value_of("input iso path") {
@@ -2362,7 +2427,7 @@ impl PatchConfigPrivate {
                 .remove_vanilla_blast_shields
                 .unwrap_or(false),
             nonvaria_heat_damage: self.game_config.nonvaria_heat_damage.unwrap_or(false),
-            staggered_suit_damage: self.game_config.staggered_suit_damage.unwrap_or(false),
+            staggered_suit_damage: self.game_config.staggered_suit_damage.unwrap_or_default(),
             heat_damage_per_sec: self.game_config.heat_damage_per_sec.unwrap_or(10.0),
             poison_damage_per_sec: self.game_config.poison_damage_per_sec.unwrap_or(0.11),
             phazon_damage_per_sec: self.game_config.phazon_damage_per_sec.unwrap_or(0.964),

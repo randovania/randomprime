@@ -5,7 +5,7 @@ use image::{
     codecs::png::{PngDecoder, PngEncoder},
     ColorType, ImageDecoder,
 };
-use libsquish_wrapper::{compress_dxt1gcn_block, decompress_dxt1gcn_block};
+use randomprime::txtr_conversions::{compress_dxt1gcn_block, decompress_dxt1gcn_block};
 use reader_writer::{Readable, Reader, Writable};
 use structs::{Txtr, TxtrFormat, TxtrPaletteFormat};
 
@@ -445,13 +445,8 @@ impl TxtrFormatExt for TxtrFormat {
             }
             TxtrFormat::Rgba8 => pixels.copy_from_slice(block),
             TxtrFormat::Cmpr => {
-                let mut decoded_dxt1_block = [[0u8; 4]; 16];
                 for i in 0..4 {
-                    decompress_dxt1gcn_block(
-                        &mut decoded_dxt1_block,
-                        block[i * 8..(i + 1) * 8].try_into().unwrap(),
-                    );
-
+                    let decoded_dxt1_block = decompress_dxt1gcn_block(&block[i * 8..(i + 1) * 8]);
                     let outer_x = i % 2 * 4;
                     let outer_y = i / 2 * 4;
                     for (k, decoded_pixel) in decoded_dxt1_block.iter().enumerate() {
@@ -542,7 +537,7 @@ impl TxtrFormatExt for TxtrFormat {
                         sub_block_pixel[..].copy_from_slice(&pixels[start..start + 4]);
                     }
 
-                    compress_dxt1gcn_block(&sub_block_pixels, sub_block.try_into().unwrap());
+                    compress_dxt1gcn_block(sub_block_pixels, sub_block);
                 }
             }
         }

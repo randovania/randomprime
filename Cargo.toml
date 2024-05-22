@@ -29,12 +29,12 @@ dol_linker = { path = "dol_linker" }
 dol_symbol_table = { path = "generated/dol_symbol_table" }
 json_data = { path = "generated/json_data" }
 json_strip = { path = "generated/json_strip" }
-libsquish_wrapper = { path = "libsquish_wrapper" }
 ppcasm = { path = "ppcasm" }
 reader_writer.workspace = true
 rel_files = { path = "generated/rel_files" }
 resource_info_table.workspace = true
 structs = { path = "structs" }
+texpresso = "2.0.1"
 
 [profile.release]
 lto = "thin"
@@ -51,7 +51,6 @@ members = [
     "generated/dol_symbol_table/dol_symbol_table_macro",
     "generated/json_data",
     "generated/json_strip",
-    "libsquish_wrapper",
     "ppcasm",
     "ppcasm/ppcasm_macro",
     "reader_writer",
