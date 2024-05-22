@@ -1166,11 +1166,7 @@ impl<'de> Deserialize<'de> for SuitDamageReduction {
             }
         }
 
-        deserializer.deserialize_enum(
-            "SuitDamageReduction",
-            &["Default", "Progressive", "Additive"],
-            SuitDamageReductionVisitor,
-        )
+        deserializer.deserialize_any(SuitDamageReductionVisitor)
     }
 }
 
