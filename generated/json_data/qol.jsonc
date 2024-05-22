@@ -14568,6 +14568,12 @@
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 145, // [Trigger] Trigger - Start Room Entrance
+                            "targetId": 91, // [SpecialFunction] Music Player For Area
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 170, // [Timer] Timer Music Start after Load
                             "targetId": 91, // [SpecialFunction] Music Player For Area
                             "state": "ZERO",
@@ -14697,8 +14703,80 @@
                         }
                     ]
                 },
-                "Phazon Infusion Chamber": {},
-                "Subchamber Five": {},
+                "Phazon Infusion Chamber": {
+                    "addConnections": [
+                        {
+                            "senderId": 327765, // [SpecialFunction] Music Player For Area
+                            "targetId": 327766, // [Switch] CLOSED: Crater Music / OPEN: Exo Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 327766, // [Switch] CLOSED: Crater Music / OPEN: Exo Music
+                            "targetId": 327767, // [StreamedAudio] StreamedAudio - Crater Main SW
+                            "state": "CLOSED",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 327766, // [Switch] CLOSED: Crater Music / OPEN: Exo Music
+                            "targetId": 327832, // [StreamedAudio] StreamedAudio Metroid Prime Stage 1 SW
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 327722, // [Trigger] Trigger
+                            "targetId": 327766, // [Switch] CLOSED: Crater Music / OPEN: Exo Music
+                            "state": "ENTERED",
+                            "message": "OPEN"
+                        }
+                    ],
+                    "switches": [
+                        {
+                            "id": 327766 // [Switch] CLOSED: Crater Music / OPEN: Exo Music
+                        }
+                    ],
+                    "specialFunctions": [
+                        {
+                            "id": 327765, // [SpecialFunction] Music Player For Area
+                            "type": "PlayerInAreaRelay"
+                        }
+                    ],
+                    "streamedAudios": [
+                        {
+                            "id": 327767, // [StreamedAudio] StreamedAudio - Crater Main SW
+                            "volume": 80,
+                            "isMusic": true,
+                            "fadeInTime": 0.01,
+                            "fadeOutTime": 1.5,
+                            "audioFileName": "/audio/cra_mainL.dsp|/audio/cra_mainR.dsp"
+                        },
+                        {
+                            "id": 327832, // [StreamedAudio] StreamedAudio Metroid Prime Stage 1 SW
+                            "volume": 90,
+                            "isMusic": true,
+                            "fadeInTime": 0.01,
+                            "fadeOutTime": 3.0,
+                            "audioFileName": "/audio/cra_mprime1L.dsp|/audio/cra_mprime1R.dsp"
+                        }
+                    ]
+                },
+                "Subchamber Five": {
+                    "addConnections": [
+                        {
+                            "senderId": 655375, // [Relay] Relay-start of cinema
+                            "targetId": 655406, // [StreamedAudio] StreamedAudio - Crater Main SW
+                            "state": "ZERO",
+                            "message": "STOP"
+                        }
+                    ],
+                    "streamedAudios": [
+                        {
+                            "id": 655406, // [StreamedAudio] StreamedAudio - Crater Main SW
+                            "isMusic": true,
+                            "audioFileName": "/audio/cra_mainL.dsp|/audio/cra_mainR.dsp"
+                        }
+                    ]
+                },
                 "Subchamber Four": {
                     // Destroy Energy Orbs when Exo dipping Cutscene Starts
                     "addConnections": [
