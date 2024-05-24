@@ -18698,20 +18698,33 @@ fn patch_required_artifact_count(patcher: &mut PrimePatcher, artifact_count: u32
 
             let layer = &mut scly.layers.as_mut_vec()[layer_index];
 
-            if artifact_count == 0 {
-                for obj in layer.objects.iter_mut() {
-                    if let Some(relay) = obj.property_data.as_relay_mut() {
-                        if relay.name == b"Relay Monoliths Complete\0".as_cstr() {
+            for obj in layer.objects.iter_mut() {
+                if let Some(relay) = obj.property_data.as_relay_mut() {
+                    if relay.name == b"Relay Monoliths Complete\0".as_cstr() {
+                        if artifact_count == 0 {
                             relay.active = 1;
+                        }
+
+                        // Relay Activate 1-12
+                        for relay_id in [
+                            0x0010001F, 0x0010007E, 0x00100032, 0x0010006B, 0x00100045, 0x00100058,
+                            0x001000DD, 0x001000CA, 0x001000F0, 0x001000B7, 0x00100091, 0x001000A4,
+                        ] {
+                            obj.connections.as_mut_vec().push(structs::Connection {
+                                state: structs::ConnectionState::ZERO,
+                                message: structs::ConnectionMsg::SET_TO_ZERO,
+                                target_object_id: relay_id,
+                            });
                         }
                     }
                 }
-            } else {
-                for obj in layer.objects.iter_mut() {
-                    if let Some(counter) = obj.property_data.as_counter_mut() {
-                        if counter.name == b"Counter - Monoliths left to Activate\0".as_cstr() {
+
+                if let Some(counter) = obj.property_data.as_counter_mut() {
+                    if counter.name == b"Counter - Monoliths left to Activate\0".as_cstr() {
+                        if artifact_count != 0 {
                             counter.start_value = artifact_count;
                         }
+                        counter.auto_reset = 0;
                     }
                 }
             }
