@@ -2783,14 +2783,20 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2333588, // [Platform] Follow Water
+                            "senderId": 2993769, // [SpecialFunction] Violence
                             "targetId": 2883635, // [Water] Poison MainWater Morph Source
                             "state": "PLAY",
-                            "message": "ACTIVATE"
+                            "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 2333588, // [Platform] Follow Water
+                            "senderId": 2993769, // [SpecialFunction] Violence
                             "targetId": 2884015, // [Water] Clean MainWater Morph Source
+                            "state": "PLAY",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2993769, // [SpecialFunction] Violence
+                            "targetId": 2333588, // [Platform] Follow Water
                             "state": "PLAY",
                             "message": "ACTIVATE"
                         },
@@ -2829,12 +2835,6 @@
                             "targetId": 2333588, // [Platform] Follow Water
                             "state": "ARRIVED",
                             "message": "STOP"
-                        },
-                        {
-                            "senderId": 2333659, // [Waypoint] Lower Water Position
-                            "targetId": 2893756, // [Timer] Water Deactivation Delay
-                            "state": "ARRIVED",
-                            "message": "RESET_AND_START"
                         },
                         {
                             "senderId": 2333598, // [Waypoint] Upper Water Position
@@ -3455,6 +3455,11 @@
                         {
                             "id": 2883656, // [SpecialFunction] Slot 3 Cutscene Skip
                             "type": "CinematicSkip"
+                        },
+                        {
+                            "id": 2993769, // [SpecialFunction] Violence
+                            "type": "ObjectFollowObject",
+                            "position": [547.509277, -178.081604, 31.968304]
                         }
                     ],
                     "triggers": [
@@ -13223,7 +13228,7 @@
                             "senderId": 2966095, // [Relay] Ball Slot Destroyed End
                             "targetId": 1966164, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
-                            "message": "INCREMENT"
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 2966095, // [Relay] Ball Slot Destroyed End
