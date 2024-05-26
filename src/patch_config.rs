@@ -1866,6 +1866,7 @@ impl PatchConfigPrivate {
                 extend_option_vec!(distance_fogs, self_room_config, other_room_config);
                 extend_option_vec!(bomb_slots, self_room_config, other_room_config);
                 extend_option_vec!(controller_actions, self_room_config, other_room_config);
+                extend_option_vec!(cameras, self_room_config, other_room_config);
                 extend_option_vec!(player_actors, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
