@@ -4600,6 +4600,104 @@
                         "additionalProperties": false
                     }
                 },
+                "cameras": {
+                    "description": "Add cameras to this room. These are used for cutscenes.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "The position of the camera. Will get overridden if specified a CAMERA_PATH.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "The rotation of the camera. Will get overridden if specified a CAMERA_TARGET.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "active": {
+                                "description": "Default active state of the camera. Generally it should stay deactivated until activated via a script message, unless it's desired to immediately start upon room load.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "shotDuration": {
+                                "description": "Duration of the cutscene. Will affect the speed of the camera as well.",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0,
+                                "default": 5.0
+                            },
+                            "lookAtPlayer": {
+                                "description": "Specify if the camera will look at the player. Similar to the cutscene in Hall of the Elders. Will get overridden if specified a CAMERA_TARGET.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "outOfPlayerEye": {
+                                "description": "Specify if the camera will come out of the player's view before following it's specified path.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "intoPlayerEye": {
+                                "description": "Specify if the camera will end up at the player's current view. Similar to the end of Parasite Queen's intro cutscene.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "drawPlayer": {
+                                "description": "Specify if the player will be visible during the cutscene. Only the Morph Ball can be visible.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "disableInput": {
+                                "description": "Specify if the player's control will be stopped during the cutscene.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "unknown": {
+                                "description": "Doesn't seem to do anything.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "finishCinematicSkip": {
+                                "description": "It's use is unknown.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fieldOfView": {
+                                "description": "Specify the field of view of the camera. Will get overridden by the CameraWaypoint's FoV setting.",
+                                "type": "number",
+                                "default": 70.0,
+                                "exclusiveMinimum": 0.0
+                            },
+                            "checkFailsafe": {
+                                "description": "If true, the player will be frozen in place during the cutscene.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "disableOutOfInto": {
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
                 "playerActors": {
                     "description": "Add playerActors to this room. The animation used is the one of Samus riding an elevator. I was too lazy to add all the dependencies to the room, so the game may stutter substantially when loading a room with one of these.",
                     "type": "array",

@@ -8980,6 +8980,15 @@
                             "layer": 2
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "position": [0, 0, 0],
+                            "rotation": [0, 0, 0],
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "timers": [
                         {
                             "id": 2424901, // [Timer] Lower Platform + Teeth 1
@@ -10118,6 +10127,13 @@
                             "message": "SET_TO_ZERO"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -10395,6 +10411,13 @@
                             "message": "SET_TO_ZERO"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -10666,6 +10689,13 @@
                             "message": "SET_TO_ZERO"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -10923,6 +10953,13 @@
                             "targetId": 4128856, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "spawnPoints": [
@@ -16417,6 +16454,13 @@
                             "message": "INCREMENT"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -16674,6 +16718,13 @@
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "spawnPoints": [
@@ -18365,6 +18416,17 @@
                             "message": "PLAY"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 5, // [Camera] Cinematic Camera Save Skip
+                            "position": [-366.851898, 375.47049, -21.39986],
+                            "rotation": [11.490609, 0.0, 18.759502],
+                            "fieldOfView": 120.0,
+                            "shotDuration": 4.5,
+                            "intoPlayerEye": true,
+                            "disableOutOfInto": true
+                        }
+                    ],
                     "timers": [
                         {
                             "id": 8, // [Timer] Save Skip Delay
@@ -19269,6 +19331,13 @@
                             "message": "INCREMENT"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -19520,6 +19589,13 @@
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "spawnPoints": [
@@ -19775,6 +19851,13 @@
                             "message": "INCREMENT"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -20026,6 +20109,13 @@
                             "targetId": 1507432, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "spawnPoints": [
@@ -20285,6 +20375,13 @@
                             "targetId": 2818080, // [SpawnPoint] Spawn point - Arrival Spawnpoint
                             "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "spawnPoints": [
@@ -24756,6 +24853,13 @@
                             "message": "INCREMENT"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -25001,6 +25105,14 @@
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "layer": 0,
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "spawnPoints": [
@@ -25966,6 +26078,13 @@
                             "message": "INCREMENT"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -26424,6 +26543,13 @@
                             "message": "INCREMENT"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -26669,6 +26795,13 @@
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "spawnPoints": [
@@ -26924,6 +27057,13 @@
                             "message": "INCREMENT"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -27116,6 +27256,13 @@
                             "targetId": 153, // [Timer] Timer - Delay Teleport
                             "state": "ZERO",
                             "message": "STOP"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "timers": [
@@ -28289,6 +28436,12 @@
                             "message": "SET_TO_ZERO"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 655400, // [Camera] Cinematic Camera Hold
+                            "position": [46.805, -245.663193, -194.979507]
+                        }
+                    ],
                     "timers": [
                         {
                             "id": 755396, // [Timer] Transition Delay
@@ -28485,6 +28638,13 @@
                             "message": "DEACTIVATE"
                         }
                     ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
+                        }
+                    ],
                     "relays": [
                         {
                             "id": 720904 // [Relay] END_INVISOCAM
@@ -28562,6 +28722,13 @@
                             "targetId": 1241, // [SpecialFunction] SpecialFunction-edngame
                             "state": "ZERO",
                             "message": "ACTION"
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 666666, // [Camera] Cinematic Camera Hold
+                            "fieldOfView": 70,
+                            "shotDuration": 7.0
                         }
                     ],
                     "specialFunctions": [

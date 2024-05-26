@@ -8,7 +8,7 @@ use crate::{
     door_meta::DoorType,
     mlvl_wrapper,
     patch_config::{
-        ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig,
+        ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
         ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
         HudmemoConfig, LockOnPoint, PlatformConfig, PlatformType, PlayerActorConfig,
         PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
@@ -1714,6 +1714,92 @@ pub fn patch_add_controller_action(
         Some(config.id),
         config.layer,
         ControllerAction,
+        new,
+        update
+    );
+}
+
+pub fn patch_add_camera(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: CameraConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::Camera {
+                name: b"my camera\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                active: config.active.unwrap_or(false) as u8,
+                shot_duration: config.shot_duration.unwrap_or(10.0) as f32,
+                look_at_player: config.look_at_player.unwrap_or(false) as u8,
+                out_of_player_eye: config.out_of_player_eye.unwrap_or(false) as u8,
+                into_player_eye: config.into_player_eye.unwrap_or(false) as u8,
+                draw_player: config.draw_player.unwrap_or(false) as u8,
+                disable_input: config.disable_input.unwrap_or(true) as u8,
+                unknown: config.unknown.unwrap_or(false) as u8,
+                finish_cine_skip: config.finish_cine_skip.unwrap_or(false) as u8,
+                field_of_view: config.field_of_view.unwrap_or(70.0) as f32,
+                check_failsafe: config.check_failsafe.unwrap_or(true) as u8,
+                disable_out_of_into: config.disable_out_of_into.unwrap_or(false) as u8,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_camera_mut().unwrap();
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(rotation) = config.rotation {
+                property_data.rotation = rotation.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(shot_duration) = config.shot_duration {
+                property_data.shot_duration = shot_duration as f32
+            }
+            if let Some(look_at_player) = config.look_at_player {
+                property_data.look_at_player = look_at_player as u8
+            }
+            if let Some(out_of_player_eye) = config.out_of_player_eye {
+                property_data.out_of_player_eye = out_of_player_eye as u8
+            }
+            if let Some(into_player_eye) = config.into_player_eye {
+                property_data.into_player_eye = into_player_eye as u8
+            }
+            if let Some(draw_player) = config.draw_player {
+                property_data.draw_player = draw_player as u8
+            }
+            if let Some(disable_input) = config.disable_input {
+                property_data.disable_input = disable_input as u8
+            }
+            if let Some(unknown) = config.unknown {
+                property_data.unknown = unknown as u8
+            }
+            if let Some(finish_cine_skip) = config.finish_cine_skip {
+                property_data.finish_cine_skip = finish_cine_skip as u8
+            }
+            if let Some(field_of_view) = config.field_of_view {
+                property_data.field_of_view = field_of_view as f32
+            }
+            if let Some(check_failsafe) = config.check_failsafe {
+                property_data.check_failsafe = check_failsafe as u8
+            }
+            if let Some(disable_out_of_into) = config.disable_out_of_into {
+                property_data.disable_out_of_into = disable_out_of_into as u8
+            }
+        };
+    }
+
+    add_edit_obj_helper!(
+        area,
+        Some(config.id),
+        config.layer,
+        Camera,
         new,
         update
     );

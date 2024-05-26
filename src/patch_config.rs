@@ -746,6 +746,27 @@ pub struct ControllerActionConfig {
     pub one_shot: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CameraConfig {
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub shot_duration: Option<f32>,
+    pub look_at_player: Option<bool>,
+    pub out_of_player_eye: Option<bool>,
+    pub into_player_eye: Option<bool>,
+    pub draw_player: Option<bool>,
+    pub disable_input: Option<bool>,
+    pub unknown: Option<bool>,
+    pub finish_cine_skip: Option<bool>,
+    pub field_of_view: Option<f32>,
+    pub check_failsafe: Option<bool>,
+    pub disable_out_of_into: Option<bool>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -958,6 +979,7 @@ pub struct RoomConfig {
     pub controller_actions: Option<Vec<ControllerActionConfig>>,
     pub player_actors: Option<Vec<PlayerActorConfig>>,
     pub world_light_faders: Option<Vec<WorldLightFaderConfig>>,
+    pub cameras: Option<Vec<CameraConfig>>,
     // Don't forget to update merge_json when adding here
 }
 

@@ -4680,10 +4680,16 @@ fn place_floaty_contraption(
             rotation: [0.0, 0.0, 0.0].into(),
             active: 0,
             shot_duration: 2.0 / 60.0,
-            unknowns: [0, 0, 0, 0, 1, 0, 0].into(),
-            unknown1: 140.0,
-            unknown2: 1,
-            unknown3: 0,
+            look_at_player: 0,
+            out_of_player_eye: 0,
+            into_player_eye: 0,
+            draw_player: 0,
+            disable_input: 1,
+            unknown: 0,
+            finish_cine_skip: 0,
+            field_of_view: 140.0,
+            check_failsafe: 1,
+            disable_out_of_into: 0,
         }
         .into(),
         connections: vec![].into(),
@@ -5529,64 +5535,6 @@ fn patch_sunchamber_cutscene_hack(
             layer.objects.as_mut_vec().push(new_flaahgra);
         }
     }
-
-    Ok(())
-}
-
-fn patch_move_camera(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    id: u32,
-    position: [f32; 3],
-) -> Result<(), String> {
-    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    for layer in layers.iter_mut() {
-        let obj = layer
-            .objects
-            .iter_mut()
-            .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF);
-
-        if obj.is_none() {
-            continue;
-        }
-
-        let camera = obj.unwrap().property_data.as_camera_mut().unwrap();
-        camera.position = position.into();
-        break;
-    }
-
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-fn patch_add_camera(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    id: u32,
-    position: [f32; 3],
-    rotation: Option<[f32; 3]>,
-    shot_duration: f32,
-    unknowns: [u8; 7],
-    unknown: bool,
-) -> Result<(), String> {
-    let scly = area.mrea().scly_section_mut();
-    let layer: &mut SclyLayer = &mut scly.layers.as_mut_vec()[0];
-    layer.objects.as_mut_vec().push(structs::SclyObject {
-        instance_id: id,
-        property_data: structs::Camera {
-            name: b"my camera\0".as_cstr(),
-            position: position.into(),
-            rotation: rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
-            active: 0,
-            shot_duration,
-            unknowns: unknowns.into(),
-            unknown1: 120.0,
-            unknown2: 1,
-            unknown3: unknown as u8,
-        }
-        .into(),
-        connections: vec![].into(),
-    });
 
     Ok(())
 }
@@ -16554,6 +16502,17 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
+                        if let Some(cameras) = room.cameras.as_ref() {
+                            for config in cameras {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_camera(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
                                 patcher.add_scly_patch(
@@ -16609,24 +16568,6 @@ fn build_and_run_patches<'r>(
                         if do_cutscene_skip_patches {
                             /* Some rooms need to be update to play nicely with skippable cutscenes */
                             match room_info.room_id.to_u32() {
-                                0xB2701146 => {
-                                    // landing site
-                                    patcher.add_scly_patch(
-                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| {
-                                            patch_add_camera(
-                                                ps,
-                                                area,
-                                                0x5,
-                                                [-367.851_9, 375.470_5, -21.39986], // same as 0x1D8
-                                                [11.490609, 0.0, 18.759502].into(),
-                                                4.5,
-                                                [0, 0, 1, 0, 1, 0, 0],
-                                                true,
-                                            )
-                                        },
-                                    );
-                                }
                                 0x6655F51E => {
                                     // chozo ice temple
                                     for id in [0x80171, 0x80210] {
@@ -16661,20 +16602,6 @@ fn build_and_run_patches<'r>(
                                         move |ps, area| patch_add_boss_health_bar(ps, area, 696969),
                                     );
                                 }
-                                0x77714498 => {
-                                    // subchamber five
-                                    patcher.add_scly_patch(
-                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| {
-                                            patch_move_camera(
-                                                ps,
-                                                area,
-                                                0x000A0028,
-                                                [46.805, -245.6632, -194.9795],
-                                            )
-                                        },
-                                    );
-                                }
                                 _ => {}
                             }
 
@@ -16693,21 +16620,6 @@ fn build_and_run_patches<'r>(
                                     },
                                 );
 
-                                patcher.add_scly_patch(
-                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                    move |ps, area| {
-                                        patch_add_camera(
-                                            ps,
-                                            area,
-                                            0xA2C2A,
-                                            [0.0, 0.0, -1000.0],
-                                            None,
-                                            7.0,
-                                            [0, 0, 0, 0, 1, 0, 0],
-                                            false,
-                                        )
-                                    },
-                                );
                             }
                         }
 
