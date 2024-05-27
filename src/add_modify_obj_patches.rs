@@ -9,7 +9,7 @@ use crate::{
     mlvl_wrapper,
     patch_config::{
         ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
-        ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
+        CameraWaypointConfig, ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
         HudmemoConfig, LockOnPoint, PlatformConfig, PlatformType, PlayerActorConfig,
         PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
         StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
@@ -1800,6 +1800,56 @@ pub fn patch_add_camera(
         Some(config.id),
         config.layer,
         Camera,
+        new,
+        update
+    );
+}
+
+pub fn patch_add_camera_waypoint(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: CameraWaypointConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::CameraWaypoint {
+                name: b"my camera waypoint\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+                fov: config.fov.unwrap_or(70.0) as f32,
+                unknown: config.unknown.unwrap_or(0) as u32,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_camera_waypoint_mut().unwrap();
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(rotation) = config.rotation {
+                property_data.rotation = rotation.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(fov) = config.fov {
+                property_data.fov = fov as f32
+            }
+            if let Some(unknown) = config.unknown {
+                property_data.unknown = unknown as u32
+            }
+        };
+    }
+
+    add_edit_obj_helper!(
+        area,
+        Some(config.id),
+        config.layer,
+        CameraWaypoint,
         new,
         update
     );

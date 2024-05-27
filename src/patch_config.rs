@@ -767,6 +767,18 @@ pub struct CameraConfig {
     pub disable_out_of_into: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CameraWaypointConfig {
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub fov: Option<f32>,
+    pub unknown: Option<u32>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -980,6 +992,7 @@ pub struct RoomConfig {
     pub player_actors: Option<Vec<PlayerActorConfig>>,
     pub world_light_faders: Option<Vec<WorldLightFaderConfig>>,
     pub cameras: Option<Vec<CameraConfig>>,
+    pub camera_waypoints: Option<Vec<CameraWaypointConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1866,8 +1879,10 @@ impl PatchConfigPrivate {
                 extend_option_vec!(distance_fogs, self_room_config, other_room_config);
                 extend_option_vec!(bomb_slots, self_room_config, other_room_config);
                 extend_option_vec!(controller_actions, self_room_config, other_room_config);
-                extend_option_vec!(cameras, self_room_config, other_room_config);
                 extend_option_vec!(player_actors, self_room_config, other_room_config);
+                extend_option_vec!(world_light_faders, self_room_config, other_room_config);
+                extend_option_vec!(cameras, self_room_config, other_room_config);
+                extend_option_vec!(camera_waypoints, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {

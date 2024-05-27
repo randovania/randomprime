@@ -4600,6 +4600,82 @@
                         "additionalProperties": false
                     }
                 },
+                "playerActors": {
+                    "description": "Add playerActors to this room. The animation used is the one of Samus riding an elevator. I was too lazy to add all the dependencies to the room, so the game may stutter substantially when loading a room with one of these.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the player actor.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "The position of the platform.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "The rotation of the platform.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "worldLightFaders": {
+                    "description": "Add worldLightFaders to this room. These objects dim the room to the specified level when they receive the `ACTION` script message.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the worldLightFader.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "fadedLightLevel": {
+                                "description": "Amount to scale light by where 1.0 is unchanged light level.",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            },
+                            "fadeSpeed": {
+                                "description": "Rate at which to execute the fade (higher is faster)",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
                 "cameras": {
                     "description": "Add cameras to this room. These are used for cutscenes.",
                     "type": "array",
@@ -4698,8 +4774,8 @@
                         "additionalProperties": false
                     }
                 },
-                "playerActors": {
-                    "description": "Add playerActors to this room. The animation used is the one of Samus riding an elevator. I was too lazy to add all the dependencies to the room, so the game may stutter substantially when loading a room with one of these.",
+                "cameraWaypoints": {
+                    "description": "Add CameraWaypoints to this room, these are often used alongside camreas to indicate it's path and view via `CAMERA_PATH` and `CAMERA_TARGET` respectively.",
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -4710,13 +4786,8 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
-                            "active": {
-                                "description": "Default active state of the player actor.",
-                                "type": "boolean",
-                                "default": true
-                            },
                             "position": {
-                                "description": "The position of the platform.",
+                                "description": "The position of the CameraWaypoint.",
                                 "$ref": "#/$defs/vector3",
                                 "default": [
                                     0.0,
@@ -4725,47 +4796,32 @@
                                 ]
                             },
                             "rotation": {
-                                "description": "The rotation of the platform.",
+                                "description": "The rotation of the CameraWaypoint.",
                                 "$ref": "#/$defs/vector3",
                                 "default": [
                                     0.0,
                                     0.0,
                                     0.0
                                 ]
-                            }
-                        },
-                        "required": [
-                            "id"
-                        ],
-                        "additionalProperties": false
-                    }
-                },
-                "worldLightFaders": {
-                    "description": "Add worldLightFaders to this room. These objects dim the room to the specified level when they receive the `ACTION` script message.",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "$ref": "#/$defs/addModifyId"
-                            },
-                            "layer": {
-                                "$ref": "#/$defs/addModifyLayer"
                             },
                             "active": {
-                                "description": "Default active state of the worldLightFader.",
+                                "description": "Default active state of the CameraWaypoint.",
                                 "type": "boolean",
-                                "default": true
+                                "default": false
                             },
-                            "fadedLightLevel": {
-                                "description": "Amount to scale light by where 1.0 is unchanged light level.",
+                            "fov": {
+                                "description": "Used to specify the field of view of the camera if it's used as a `CAMERA_PATH`",
                                 "type": "number",
-                                "exclusiveMinimum": 0.0
+                                "exclusiveMinimum": 0.0,
+                                "exclusiveMaximum": 1000000.0,
+                                "default:": 5.0
                             },
-                            "fadeSpeed": {
-                                "description": "Rate at which to execute the fade (higher is faster)",
-                                "type": "number",
-                                "exclusiveMinimum": 0.0
+                            "unknown": {
+                                "description": "Doesn't seem to do anything.",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0,
+                                "maximum": 2147483647
                             }
                         },
                         "required": [

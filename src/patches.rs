@@ -16513,6 +16513,17 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
+                        if let Some(camera_waypoints) = room.camera_waypoints.as_ref() {
+                            for config in camera_waypoints {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_camera_waypoint(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
                                 patcher.add_scly_patch(
