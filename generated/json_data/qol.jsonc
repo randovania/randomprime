@@ -5909,6 +5909,21 @@
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/ice_chapelL.dsp|/audio/ice_chapelR.dsp"
                         }
+                    ],
+                    // Invisible cutscene black bars fix
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
+                            "color": [0, 0, 0, 1],
+                            "filterType": "Multiply",
+                            "filterShape": "CinemaBars"
+                        },
+                        {
+                            "id": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "color": [0, 0, 0, 1],
+                            "filterType": "Multiply",
+                            "filterShape": "CinemaBars"
+                        }
                     ]
                 },
                 "Control Tower": {

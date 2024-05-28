@@ -311,6 +311,14 @@
                             "id": 74, // [SpecialFunction] SpecialFunction Cinematic Skip (Intro Closing)
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Map Facility": {
@@ -8942,6 +8950,14 @@
                             "layer": 1,
                             "startImmediately": true
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Sun Tower Access": {
@@ -10078,6 +10094,14 @@
                             "id": 1572882, // [SpecialFunction] Arrival Cinematic Skip
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Transport to Tallon Overworld East": {
@@ -10362,6 +10386,14 @@
                             "id": 4063244, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Transport to Tallon Overworld North": {
@@ -10640,6 +10672,14 @@
                             "id": 11, // [SpecialFunction] Arrival Cinematic Skip
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Transport to Tallon Overworld South": {
@@ -10905,6 +10945,14 @@
                         {
                             "id": 4128779, // [SpecialFunction] Arrival Cinematic Skip
                             "type": "CinematicSkip"
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ]
                 },
@@ -16671,6 +16719,14 @@
                             "id": 4, // [SpecialFunction] Departure Cinematic Skip
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 }
             }
@@ -17709,6 +17765,14 @@
                         {
                             "id": 1048597, // [SpecialFunction] Arriving Cutscene Skip
                             "type": "CinematicSkip"
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ]
                 },
@@ -19282,6 +19346,14 @@
                             "id": 1441797, // [SpecialFunction] Departure Cinematic Skip
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Transport to Chozo Ruins South": {
@@ -19541,6 +19613,14 @@
                         {
                             "id": 2686979, // [SpecialFunction] Departure Cinematic Skip
                             "type": "CinematicSkip"
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ]
                 },
@@ -19802,6 +19882,14 @@
                             "id": 917569, // [SpecialFunction] Departure Cinematic Skip
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Transport to Magmoor Caverns East": {
@@ -20061,6 +20149,14 @@
                         {
                             "id": 1507343, // [SpecialFunction] Arrival Cinematic Skip
                             "type": "CinematicSkip"
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ]
                 },
@@ -20327,6 +20423,14 @@
                         {
                             "id": 2818117, // [SpecialFunction] Arrival Cinematic Skip
                             "type": "CinematicSkip"
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ]
                 }
@@ -24804,6 +24908,14 @@
                             "id": 1638480, // [SpecialFunction] Departure Cinematic Skip
                             "type": "CinematicSkip"
                         }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
                     ]
                 },
                 "Transport to Tallon Overworld South": {
@@ -25024,6 +25136,14 @@
                             "layer": 0,
                             "fieldOfView": 70,
                             "shotDuration": 7.0
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ],
                     "spawnPoints": [
@@ -25996,6 +26116,14 @@
                             "shotDuration": 7.0
                         }
                     ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -26223,6 +26351,14 @@
                         {
                             "id": 1572949, // [Timer] Cutscene Skip 2 Frame Delay
                             "time": 0.02
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ],
                     "specialFunctions": [
@@ -26459,6 +26595,14 @@
                             "id": 666666, // [Camera] Cinematic Camera Hold
                             "fieldOfView": 70,
                             "shotDuration": 7.0
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ],
                     "spawnPoints": [
@@ -26713,6 +26857,14 @@
                             "id": 666666, // [Camera] Cinematic Camera Hold
                             "fieldOfView": 70,
                             "shotDuration": 7.0
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ],
                     "spawnPoints": [
@@ -26975,6 +27127,14 @@
                             "shotDuration": 7.0
                         }
                     ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
+                    ],
                     "spawnPoints": [
                         {
                             "id": 5555555, // [SpawnPoint] Morph
@@ -27174,6 +27334,14 @@
                             "id": 666666, // [Camera] Cinematic Camera Hold
                             "fieldOfView": 70,
                             "shotDuration": 7.0
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ],
                     "timers": [
@@ -28556,6 +28724,14 @@
                             "shotDuration": 7.0
                         }
                     ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
+                        }
+                    ],
                     "relays": [
                         {
                             "id": 720904 // [Relay] END_INVISOCAM
@@ -28640,6 +28816,14 @@
                             "id": 666666, // [Camera] Cinematic Camera Hold
                             "fieldOfView": 70,
                             "shotDuration": 7.0
+                        }
+                    ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "fadeOutTime": 0.5
                         }
                     ],
                     "specialFunctions": [

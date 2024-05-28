@@ -4829,6 +4829,106 @@
                         ],
                         "additionalProperties": false
                     }
+                },
+                "cameraFilterKeyframes": {
+                    "description": "Add CameraFilterKeyframe objects in this room. They can display certain filters on the screen ranging from black bars seen in cutscenes to screen flashes of any color. `overlay_texture` feature is currently incomplete.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the ControllerAction object.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "filterType": {
+                                "description": "Specify the desired type of filter.",
+                                "type": "string",
+                                "enum": [
+                                    "Passthrough",
+                                    "Multiply",
+                                    "Invert",
+                                    "Add",
+                                    "Subtract",
+                                    "Blend",
+                                    "Widescreen",
+                                    "SceneAdd",
+                                    "NoColor",
+                                    "InvDstMultiply"
+                                ],
+                                "default": "Multiply"
+                            },
+                            "filterShape": {
+                                "description": "Specify the desired shape of the filter.",
+                                "type": "string",
+                                "enum": [
+                                    "Fullscreen",
+                                    "FullscreenHalvesLeftRight",
+                                    "FullscreenHalvesTopBottom",
+                                    "FullscreenQuarters",
+                                    "CinemaBars",
+                                    "ScanLinesEven",
+                                    "ScanLinesOdd",
+                                    "RandomStatic",
+                                    "CookieCutterDepthRandomStatic"
+                                ],
+                                "default": "CinemaBars"
+                            },
+                            "filterIndex": {
+                                "description": "The index of the filter. The highest index will be the one to be drawn on top of the other filters with a lower index number.",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0
+                            },
+                            "filterGroup": {
+                                "description": "It's use is currently unknown.",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0
+                            },
+                            "color": {
+                                "description": "The color of the filter.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ]
+                            },
+                            "fadeInTime": {
+                                "description": "Specify the speed in which the filter will fade in.",
+                                "type": "number",
+                                "default": 0.0,
+                                "minimum": 0.0
+                            },
+                            "fadeOutTime": {
+                                "description": "Specify the speed in which the filter will fade out.",
+                                "type": "number",
+                                "default": 0.0,
+                                "minimum": 0.0
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "filterType",
+                            "filterShape"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false

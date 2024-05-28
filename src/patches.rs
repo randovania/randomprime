@@ -34,7 +34,7 @@ use crate::{
     },
     dol_patcher::DolPatcher,
     door_meta::{BlastShieldType, DoorType},
-    elevators::{is_elevator, is_teleporter, Elevator, SpawnRoom, SpawnRoomData, World},
+    elevators::{is_elevator, Elevator, SpawnRoom, SpawnRoomData, World},
     extern_assets::ExternPickupModel,
     gcz_writer::GczWriter,
     generic_edit::patch_edit_objects,
@@ -5354,36 +5354,6 @@ fn patch_post_pq_frigate(
     Ok(())
 }
 
-fn patch_edit_camera_keyframe(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    id: u32,
-) -> Result<(), String> {
-    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    for layer in layers.iter_mut() {
-        let obj = layer
-            .objects
-            .iter_mut()
-            .find(|obj| obj.instance_id & 0x00FFFFFF == id & 0x00FFFFFF);
-
-        if obj.is_none() {
-            continue;
-        }
-
-        let camera_keyframe = obj
-            .unwrap()
-            .property_data
-            .as_camera_filter_keyframe_mut()
-            .unwrap();
-        camera_keyframe.filter_type = 1;
-        camera_keyframe.filter_shape = 4;
-        camera_keyframe.unknown4 = 2;
-        camera_keyframe.color = [0.0, 0.0, 0.0, 1.0].into();
-    }
-
-    Ok(())
-}
-
 fn patch_sunchamber_cutscene_hack(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -5586,38 +5556,6 @@ pub fn id_in_use(area: &mut mlvl_wrapper::MlvlArea, id: u32) -> bool {
     }
 
     false
-}
-
-fn patch_add_camera_filter_key_frame(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    id: u32,
-) -> Result<(), String> {
-    if id_in_use(area, id) {
-        panic!("id 0x{:X} already in use", id);
-    }
-
-    let scly = area.mrea().scly_section_mut();
-    let layer = &mut scly.layers.as_mut_vec()[0];
-    layer.objects.as_mut_vec().push(structs::SclyObject {
-        instance_id: id,
-        property_data: structs::CameraFilterKeyframe {
-            name: b"my ckeyframe\0".as_cstr(),
-            active: 1,
-            filter_type: 1,
-            filter_shape: 0,
-            unknown4: 2,
-            unknown5: 0,
-            color: [0.0, 0.0, 0.0, 1.0].into(),
-            fade_in_time: 0.0,
-            fade_out_time: 0.5,
-            overlay_txtr: 0xFFFFFFFF,
-        }
-        .into(),
-        connections: vec![].into(),
-    });
-
-    Ok(())
 }
 
 fn patch_add_cutscene_skip_fn(
@@ -16524,6 +16462,17 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
+                        if let Some(camera_filter_keyframes) = room.camera_filter_keyframes.as_ref() {
+                            for config in camera_filter_keyframes {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_camera_filter_keyframe(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
                                 patcher.add_scly_patch(
@@ -16579,17 +16528,6 @@ fn build_and_run_patches<'r>(
                         if do_cutscene_skip_patches {
                             /* Some rooms need to be update to play nicely with skippable cutscenes */
                             match room_info.room_id.to_u32() {
-                                0x6655F51E => {
-                                    // chozo ice temple
-                                    for id in [0x80171, 0x80210] {
-                                        patcher.add_scly_patch(
-                                            (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                            move |ps, area| {
-                                                patch_edit_camera_keyframe(ps, area, id)
-                                            },
-                                        );
-                                    }
-                                }
                                 0x9A0A03EB => {
                                     // sunchamber
                                     patcher.add_scly_patch(
@@ -16614,23 +16552,6 @@ fn build_and_run_patches<'r>(
                                     );
                                 }
                                 _ => {}
-                            }
-
-                            let room_id = room_info.room_id.to_u32();
-                            if is_teleporter(room_id)
-                                || [
-                                    0x90709AAC, // vent shaft
-                                    0x9A0A03EB,
-                                ]
-                                .contains(&room_id)
-                            {
-                                patcher.add_scly_patch(
-                                    (pak_name.as_bytes(), room_id),
-                                    move |ps: &mut PatcherState, area| {
-                                        patch_add_camera_filter_key_frame(ps, area, 0xA455)
-                                    },
-                                );
-
                             }
                         }
 
