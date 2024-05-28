@@ -15,21 +15,16 @@ pub struct Camera<'r> {
     pub rotation: GenericArray<f32, U3>,
     pub active: u8,
     pub shot_duration: f32,
-
-    // Value<bool> lookAtPlayer;
-    // Value<bool> outOfPlayerEye;
-    // Value<bool> intoPlayerEye;
-    // Value<bool> drawPlayer;
-    // Value<bool> disableInput;
-    // Value<bool> unknown;
-    // Value<bool> finishCineSkip;
-    // Value<float> fov;
-    // Value<bool> checkFailsafe;
-    // Value<bool> disableOutOfInto;
-    pub unknowns: GenericArray<u8, U7>,
-    pub unknown1: f32,
-    pub unknown2: u8,
-    pub unknown3: u8,
+    pub look_at_player: u8,
+    pub out_of_player_eye: u8,
+    pub into_player_eye: u8,
+    pub draw_player: u8,
+    pub disable_input: u8,
+    pub unknown: u8,
+    pub finish_cine_skip: u8,
+    pub field_of_view: f32,
+    pub check_failsafe: u8,
+    pub disable_out_of_into: u8,
 }
 
 use crate::{impl_position, impl_rotation};

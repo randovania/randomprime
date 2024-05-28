@@ -15,7 +15,7 @@ pub struct CameraWaypoint<'r> {
     pub rotation: GenericArray<f32, U3>,
 
     pub active: u8,
-    pub h_fov: f32,
+    pub fov: f32,
     pub unknown: u32,
 }
 

@@ -746,6 +746,39 @@ pub struct ControllerActionConfig {
     pub one_shot: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CameraConfig {
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub shot_duration: Option<f32>,
+    pub look_at_player: Option<bool>,
+    pub out_of_player_eye: Option<bool>,
+    pub into_player_eye: Option<bool>,
+    pub draw_player: Option<bool>,
+    pub disable_input: Option<bool>,
+    pub unknown: Option<bool>,
+    pub finish_cine_skip: Option<bool>,
+    pub field_of_view: Option<f32>,
+    pub check_failsafe: Option<bool>,
+    pub disable_out_of_into: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CameraWaypointConfig {
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub fov: Option<f32>,
+    pub unknown: Option<u32>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -958,6 +991,8 @@ pub struct RoomConfig {
     pub controller_actions: Option<Vec<ControllerActionConfig>>,
     pub player_actors: Option<Vec<PlayerActorConfig>>,
     pub world_light_faders: Option<Vec<WorldLightFaderConfig>>,
+    pub cameras: Option<Vec<CameraConfig>>,
+    pub camera_waypoints: Option<Vec<CameraWaypointConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1845,6 +1880,9 @@ impl PatchConfigPrivate {
                 extend_option_vec!(bomb_slots, self_room_config, other_room_config);
                 extend_option_vec!(controller_actions, self_room_config, other_room_config);
                 extend_option_vec!(player_actors, self_room_config, other_room_config);
+                extend_option_vec!(world_light_faders, self_room_config, other_room_config);
+                extend_option_vec!(cameras, self_room_config, other_room_config);
+                extend_option_vec!(camera_waypoints, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
