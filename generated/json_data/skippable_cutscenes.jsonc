@@ -7785,12 +7785,6 @@
                         },
                         {
                             "senderId": 2424914, // [Relay] Bomb Slot 1 Destroyed?
-                            "targetId": 2424883, // [SpawnPoint] Spawn point - Destroy Bomb Slot 1
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2424914, // [Relay] Bomb Slot 1 Destroyed?
                             "targetId": 2424872, // [Effect] Bomb Slot Destroyed Effect
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -7854,12 +7848,6 @@
                             "targetId": 2424980, // [Timer] Release from Bomb Slot Timer 2
                             "state": "ZERO",
                             "message": "STOP_AND_RESET"
-                        },
-                        {
-                            "senderId": 2424917, // [Relay] Bomb Slot 2 Destroyed?
-                            "targetId": 2424968, // [Spawn point] Spawn point - Destroy Bomb Slot 2
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 2424917, // [Relay] Bomb Slot 2 Destroyed?
@@ -7930,12 +7918,6 @@
                         {
                             "senderId": 2424920, // [Relay] Bomb Slot 3 Destroyed?
                             "targetId": 3424946, // [Relay] Flaahgra Switch Activator
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2424920, // [Relay] Bomb Slot 3 Destroyed?
-                            "targetId": 2424971, // [Spawn point] Spawn point - Destroy Bomb Slot 3
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
@@ -8014,12 +7996,6 @@
                         {
                             "senderId": 2424926, // [Relay] Bomb Slot 4 Destroyed?
                             "targetId": 3424946, // [Relay] Flaahgra Switch Activator
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2424926, // [Relay] Bomb Slot 4 Destroyed?
-                            "targetId": 2424974, // [Spawn point] Spawn point - Destroy Bomb Slot 4
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
@@ -8287,102 +8263,6 @@
                         },
                         //SLOT 4 ENDS HERE//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                         {
-                            "senderId": 2424862, // [Flaahgra] Main Flaahgra
-                            "targetId": 2424883, // [SpawnPoint] Spawn point - Destroy Bomb Slot 1
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2424862, // [Flaahgra] Main Flaahgra
-                            "targetId": 2424968, // [SpawnPoint] Spawn point - Destroy Bomb Slot 2
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2424862, // [Flaahgra] Main Flaahgra
-                            "targetId": 2424971, // [SpawnPoint] Spawn point - Destroy Bomb Slot 3
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2424862, // [Flaahgra] Main Flaahgra
-                            "targetId": 2424974, // [SpawnPoint] Spawn point - Destroy Bomb Slot 4
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242880, // [Flaahgra] Flaahgra #2
-                            "targetId": 2424883, // [SpawnPoint] Spawn point - Destroy Bomb Slot 1
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242880, // [Flaahgra] Flaahgra #2
-                            "targetId": 2424968, // [SpawnPoint] Spawn point - Destroy Bomb Slot 2
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242880, // [Flaahgra] Flaahgra #2
-                            "targetId": 2424971, // [SpawnPoint] Spawn point - Destroy Bomb Slot 3
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242880, // [Flaahgra] Flaahgra #2
-                            "targetId": 2424974, // [SpawnPoint] Spawn point - Destroy Bomb Slot 4
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242881, // [Flaahgra] Flaahgra #3
-                            "targetId": 2424883, // [SpawnPoint] Spawn point - Destroy Bomb Slot 1
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242881, // [Flaahgra] Flaahgra #3
-                            "targetId": 2424968, // [SpawnPoint] Spawn point - Destroy Bomb Slot 2
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242881, // [Flaahgra] Flaahgra #3
-                            "targetId": 2424971, // [SpawnPoint] Spawn point - Destroy Bomb Slot 3
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242881, // [Flaahgra] Flaahgra #3
-                            "targetId": 2424974, // [SpawnPoint] Spawn point - Destroy Bomb Slot 4
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242882, // [Flaahgra] Flaahgra #4
-                            "targetId": 2424883, // [SpawnPoint] Spawn point - Destroy Bomb Slot 1
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242882, // [Flaahgra] Flaahgra #4
-                            "targetId": 2424968, // [SpawnPoint] Spawn point - Destroy Bomb Slot 2
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242882, // [Flaahgra] Flaahgra #4
-                            "targetId": 2424971, // [SpawnPoint] Spawn point - Destroy Bomb Slot 3
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 5242882, // [Flaahgra] Flaahgra #4
-                            "targetId": 2424974, // [SpawnPoint] Spawn point - Destroy Bomb Slot 4
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
-                        },
-                        {
                             "senderId": 2434957, // [Relay] Relay-start of cinema
                             "targetId": 2424866, // [SpecialFunction] SpecialFunction Cinematic Skip Main
                             "state": "ZERO",
@@ -8472,18 +8352,12 @@
                             "senderId": 2424865, // [SpecialFunction] SpecialFunction Cinematic Skip 
                             "targetId": 2424862, // [Flaahgra] Main Flaahgra
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "DELETED"
                         },
                         {
                             "senderId": 2424865, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 2424862, // [Flaahgra] Main Flaahgra
                             "state": "ZERO",
-                            "message": "DELETED"
-                        },
-                        {
-                            "senderId": 2424865, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 5242880, // [Flaahgra] Flaahgra #2
-                            "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
@@ -8494,7 +8368,7 @@
                         },
                         {
                             "senderId": 2424865, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 5242881, // [Flaahgra] Flaahgra #3
+                            "targetId": 5242880, // [Flaahgra] Flaahgra #2
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
@@ -8506,7 +8380,7 @@
                         },
                         {
                             "senderId": 2424865, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 5242882, // [Flaahgra] Flaahgra #4
+                            "targetId": 5242881, // [Flaahgra] Flaahgra #3
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
@@ -8515,6 +8389,60 @@
                             "targetId": 5242882, // [Flaahgra] Flaahgra #4
                             "state": "ZERO",
                             "message": "DELETED"
+                        },
+                        {
+                            "senderId": 2424865, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 5242882, // [Flaahgra] Flaahgra #4
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 2424862, // [Flaahgra] Main Flaahgra
+                            "state": "ACTIVE",
+                            "message": "DELETED"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 2424862, // [Flaahgra] Main Flaahgra
+                            "state": "ACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 5242880, // [Flaahgra] Flaahgra #2
+                            "state": "ACTIVE",
+                            "message": "DELETED"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 5242880, // [Flaahgra] Flaahgra #2
+                            "state": "ACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 5242881, // [Flaahgra] Flaahgra #3
+                            "state": "ACTIVE",
+                            "message": "DELETED"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 5242881, // [Flaahgra] Flaahgra #3
+                            "state": "ACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 5242882, // [Flaahgra] Flaahgra #4
+                            "state": "ACTIVE",
+                            "message": "DELETED"
+                        },
+                        {
+                            "senderId": 2434923, // [Camera] camera4
+                            "targetId": 5242882, // [Flaahgra] Flaahgra #4
+                            "state": "ACTIVE",
+                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 2424865, // [SpecialFunction] SpecialFunction Cinematic Skip
@@ -8838,55 +8766,23 @@
                     "triggers": [
                         {
                             "id": 2436939, // [Trigger] Reset Faint Time Trigger
-                            "position": [
-                                269.368408,
-                                137.372131,
-                                67.644196
-                            ],
-                            "scale": [
-                                5.0,
-                                7.0,
-                                2.5
-                            ]
+                            "position": [269.368408, 137.372131, 67.644196],
+                            "scale": [5.0, 7.0, 2.5]
                         },
                         {
                             "id": 2436940, // [Trigger] Reset Faint Time Trigger
-                            "position": [
-                                284.118408,
-                                152.122131,
-                                67.644196
-                            ],
-                            "scale": [
-                                7.0,
-                                5.0,
-                                2.5
-                            ]
+                            "position": [284.118408, 152.122131, 67.644196],
+                            "scale": [7.0, 5.0, 2.5]
                         },
                         {
                             "id": 2436941, // [Trigger] Reset Faint Time Trigger
-                            "position": [
-                                298.868408,
-                                137.372131,
-                                67.644196
-                            ],
-                            "scale": [
-                                5.0,
-                                7.0,
-                                2.5
-                            ]
+                            "position": [298.868408, 137.372131, 67.644196],
+                            "scale": [5.0, 7.0, 2.5]
                         },
                         {
                             "id": 2436942, // [Trigger] Reset Faint Time Trigger
-                            "position": [
-                                284.118408,
-                                122.622131,
-                                67.644196
-                            ],
-                            "scale": [
-                                7.0,
-                                5.0,
-                                2.5
-                            ]
+                            "position": [284.118408, 122.622131, 67.644196],
+                            "scale": [7.0, 5.0, 2.5]
                         }
                     ],
                     "relays": [
@@ -9016,8 +8912,23 @@
                             "layer": 1
                         },
                         {
-                            "id": 2424935, // [Timer] Pre-Floaty Timer
-                            "time": 0.001,
+                            "id": 2424934, // [Timer] Reposition Player Timer 1
+                            "time": 0.98,
+                            "layer": 1
+                        },
+                        {
+                            "id": 2424969, // [Timer] Reposition Player Timer 2
+                            "time": 0.98,
+                            "layer": 1
+                        },
+                        {
+                            "id": 2424972, // [Timer] Reposition Player Timer 3
+                            "time": 0.98,
+                            "layer": 1
+                        },
+                        {
+                            "id": 2424975, // [Timer] Reposition Player Timer 4
+                            "time": 0.98,
                             "layer": 1
                         },
                         {
