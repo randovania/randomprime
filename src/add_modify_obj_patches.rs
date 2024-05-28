@@ -13,7 +13,7 @@ use crate::{
         HudmemoConfig, LockOnPoint, PlatformConfig, PlatformType, PlayerActorConfig,
         PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
         StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
-        WorldLightFaderConfig,
+        WorldLightFaderConfig, CameraFilterKeyframeConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -1850,6 +1850,69 @@ pub fn patch_add_camera_waypoint(
         Some(config.id),
         config.layer,
         CameraWaypoint,
+        new,
+        update
+    );
+}
+
+pub fn patch_add_camera_filter_keyframe<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: CameraFilterKeyframeConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::CameraFilterKeyframe {
+                name: b"my filter\0".as_cstr(),
+                active: config.active.unwrap_or(true) as u8,
+                filter_type: config.filter_type as u32,
+                filter_shape: config.filter_shape as u32,
+                filter_index: config.filter_index.unwrap_or(0) as u32,
+                filter_group: config.filter_group.unwrap_or(0) as u32,
+                color: config.color.unwrap_or([0.0, 0.0, 0.0, 1.0]).into(),
+                fade_in_time: config.fade_in_time.unwrap_or(0.0) as f32,
+                fade_out_time: config.fade_out_time.unwrap_or(0.0) as f32,
+                overlay_texture: config.overlay_texture.unwrap_or(0xFFFFFFFF) as u32,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_camera_filter_keyframe_mut().unwrap();
+
+            property_data.filter_type = config.filter_type as u32;
+            property_data.filter_shape = config.filter_shape as u32;
+
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(filter_index) = config.filter_index {
+                property_data.filter_index = filter_index as u32
+            }
+            if let Some(filter_group) = config.filter_group {
+                property_data.filter_group = filter_group as u32
+            }
+            if let Some(color) = config.color {
+                property_data.color = color.into()
+            }
+            if let Some(fade_in_time) = config.fade_in_time {
+                property_data.fade_in_time = fade_in_time as f32
+            }
+            if let Some(fade_out_time) = config.fade_out_time {
+                property_data.fade_out_time = fade_out_time as f32
+            }
+            if let Some(overlay_texture) = config.overlay_texture {
+                property_data.overlay_texture = overlay_texture as u32
+            }
+        };
+    }
+
+    add_edit_obj_helper!(
+        area,
+        Some(config.id),
+        config.layer,
+        CameraFilterKeyframe,
         new,
         update
     );

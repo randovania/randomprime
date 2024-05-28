@@ -779,6 +779,53 @@ pub struct CameraWaypointConfig {
     pub unknown: Option<u32>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum FilterType {
+    Passthrough = 0,
+    Multiply,
+    Invert,
+    Add,
+    Subtract,
+    Blend,
+    Widescreen,
+    SceneAdd,
+    NoColor,
+    InvDstMultiply,
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum FilterShape {
+    Fullscreen = 0,
+    FullscreenHalvesLeftRight,
+    FullscreenHalvesTopBottom,
+    FullscreenQuarters,
+    CinemaBars,
+    ScanLinesEven,
+    ScanLinesOdd,
+    RandomStatic,
+    CookieCutterDepthRandomStatic,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CameraFilterKeyframeConfig {
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
+
+    pub filter_type: FilterType,
+    pub filter_shape: FilterShape,
+    
+    pub filter_index: Option<u32>,
+    pub filter_group: Option<u32>,
+    pub fade_in_time: Option<f32>,
+    pub fade_out_time: Option<f32>,
+    pub color: Option<[f32; 4]>,
+    pub overlay_texture: Option<u32>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -993,6 +1040,7 @@ pub struct RoomConfig {
     pub world_light_faders: Option<Vec<WorldLightFaderConfig>>,
     pub cameras: Option<Vec<CameraConfig>>,
     pub camera_waypoints: Option<Vec<CameraWaypointConfig>>,
+    pub camera_filter_keyframes: Option<Vec<CameraFilterKeyframeConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1883,6 +1931,7 @@ impl PatchConfigPrivate {
                 extend_option_vec!(world_light_faders, self_room_config, other_room_config);
                 extend_option_vec!(cameras, self_room_config, other_room_config);
                 extend_option_vec!(camera_waypoints, self_room_config, other_room_config);
+                extend_option_vec!(camera_filter_keyframes, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
