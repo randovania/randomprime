@@ -18430,7 +18430,7 @@
                     "timers": [
                         {
                             "id": 8, // [Timer] Save Skip Delay
-                            "time": 0.01
+                            "time": 0.02
                         },
                         {
                             "id": 13, // [Timer] Timer Scanlines Skip
