@@ -15062,7 +15062,7 @@
                     "removeConnections": [
                         {
                             "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1311465, // [Cinematic] Cinematic Camera
+                            "targetId": 1311465, // [Camera] Cinematic Camera
                             "state": "ENTERED",
                             "message": "ACTIVATE"
                         },
@@ -15073,13 +15073,13 @@
                             "message": "RESET_AND_START"
                         },
                         {
-                            "senderId": 1311465, // [Cinematic] Cinematic Camera
+                            "senderId": 1311465, // [Camera] Cinematic Camera
                             "targetId": 1311347, // [CameraFilterKeyframe] cinema bars
                             "state": "ACTIVE",
                             "message": "INCREMENT"
                         },
                         {
-                            "senderId": 1311178, // [Cinematic] camera1 - Cinematic to start doors locking
+                            "senderId": 1311178, // [Camera] camera1 - Cinematic to start doors locking
                             "targetId": 1311347, // [CameraFilterKeyframe] cinema bars
                             "state": "INACTIVE",
                             "message": "DECREMENT"
@@ -15094,7 +15094,7 @@
                         },
                         {
                             "senderId": 1310721, // [Relay] Relay-start of cinema
-                            "targetId": 1311465, // [Cinematic] Cinematic Camera
+                            "targetId": 1311465, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
@@ -25605,12 +25605,46 @@
                             "targetId": 1311402, // [Actor] Actor - Ceiling Animation
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1310750, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 1310792, // [ActorKeyframe] Platform Skip
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
+                        {
+                            "senderId": 1310750, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 1310791, // [Timer] Platform Activate Delay
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 1310792, // [ActorKeyframe] Platform Skip
+                            "targetId": 1310782, // [Actor] Actor - exitPlat
+                            "state": "PLAY",
+                            "message": "PLAY"
                         }
                     ],
                     "specialFunctions": [
                         {
                             "id": 1310750, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "type": "CinematicSkip"
+                        }
+                    ],
+                    "actorKeyframes": [
+                        {
+                            "id": 1310792, // [ActorKeyframe] Platform Skip
+                            "fadeOut": 0,
+                            "looping": false,
+                            "lifetime": 0.0,
+                            "animationId": 0,
+                            "totalPlayback": 100.0
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 1310791, // [Timer] Platform Activate Delay
+                            "time": 5.5
                         }
                     ]
                 },
@@ -26760,6 +26794,12 @@
                             "targetId": 1769517, // [Relay] Faulty Relay - End Arriving Cinematic
                             "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 666666, // [Camera] Cinematic Camera Hold
+                            "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 666555, // [Timer] Load Timer
