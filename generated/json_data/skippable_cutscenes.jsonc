@@ -25253,7 +25253,7 @@
                         {
                             "senderId": 1179651, // [Relay] Relay-start of cinema
                             "targetId": 1179782, // [CameraFilterKeyframe] Camera Filter Keyframe Widescreen
-                            "state": "ACTIVE",
+                            "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
