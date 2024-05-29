@@ -7942,6 +7942,14 @@
                         1311599,
                         1311598
                     ],
+                    "removeConnections": [
+                        {
+                            "senderId": 1311605, // [Counter] Counter Dead Pirate Music
+                            "targetId": 1311506, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        }
+                    ],
                     "addConnections": [
                         {
                             "senderId": 1310726, // [SpecialFunction] Music Player For Area
@@ -7965,6 +7973,12 @@
                             "senderId": 1310726, // [SpecialFunction] Music Player For Area
                             "targetId": 1310734, // [Relay] Pirate Battle Music
                             "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1311605, // [Counter] Counter Dead Pirate Music
+                            "targetId": 1310735, // [Relay] Pirate Ambiance Music
+                            "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
@@ -12585,48 +12599,122 @@
                         1312015,
                         1312268
                     ],
+                    "removeConnections": [
+                        {
+                            "senderId": 1311904, // [SpacePirate] SpacePirate-WAVE TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEAD",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311906, // [SpacePirate] SpacePirate-WAVE TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEAD",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311910, // [SpacePirate] SpacePirate-POWER TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEAD",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311911, // [SpacePirate] SpacePirate-POWER TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEAD",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311912, // [SpacePirate] SpacePirate-POWER TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEAD",
+                            "message": "DECREMENT"
+                        }
+                    ],
                     "addConnections": [
                         {
                             "senderId": 1310727, // [SpecialFunction] Music Player For Area
-                            "targetId": 1310729, // [Relay] 1st Pass Pirates Music
+                            "targetId": 1310729, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Music
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "targetId": 1310729, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Music
+                            "state": "ZERO",
+                            "message": "OPEN"
+                        },
+                        {
+                            "senderId": 1311917, // [Relay] Relay
+                            "targetId": 1310736, // [Switch] OPEN: Pirate Ambiance / CLOSED: Elite Pirate Music
+                            "state": "ZERO",
+                            "message": "CLOSE"
+                        },
+                        {
+                            "senderId": 1311182, // [ElitePirate] ElitePirate
+                            "targetId": 1310736, // [Switch] OPEN: Pirate Ambiance / CLOSED: Elite Pirate Music
+                            "state": "DEATH_RATTLE",
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 1310727, // [SpecialFunction] Music Player For Area
-                            "targetId": 1310736, // [Relay] 1st Pass Pirate Ambiance
+                            "targetId": 1310736, // [Switch] OPEN: Pirate Ambiance / CLOSED: Elite Pirate Music
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 1310729, // [Relay] 1st Pass Pirates Music
+                            "senderId": 1310729, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Music
                             "targetId": 1312018, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 1310736, // [Relay] 1st Pass Pirate Ambiance
+                            "senderId": 1310729, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Music
                             "targetId": 1312017, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ZERO",
+                            "state": "OPEN",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 1312016, // [Counter] Counter Dead Pirate Music
-                            "targetId": 1310736, // [Relay] 1st Pass Pirate Ambiance
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1312016, // [Counter] Counter Dead Pirate Music
-                            "targetId": 1310729, // [Relay] 1st Pass Pirates Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1310727, // [SpecialFunction] Music Player For Area
+                            "senderId": 1310736, // [Switch] OPEN: Pirate Ambiance / CLOSED: Elite Pirate Music
                             "targetId": 1312221, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ENTERED",
+                            "state": "OPEN",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1310736, // [Switch] OPEN: Pirate Ambiance / CLOSED: Elite Pirate Music
+                            "targetId": 1312220, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "state": "CLOSED",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1311904, // [SpacePirate] SpacePirate-WAVE TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEATH_RATTLE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311906, // [SpacePirate] SpacePirate-WAVE TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEATH_RATTLE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311910, // [SpacePirate] SpacePirate-POWER TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEATH_RATTLE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311911, // [SpacePirate] SpacePirate-POWER TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEATH_RATTLE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1311912, // [SpacePirate] SpacePirate-POWER TROOPER
+                            "targetId": 1312016, // [Counter] Counter Dead Pirate Music
+                            "state": "DEATH_RATTLE",
+                            "message": "DECREMENT"
                         }
                     ],
                     "specialFunctions": [
@@ -12635,15 +12723,15 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 1310729, // [Relay] 1st Pass Pirates Music
+                            "id": 1310729, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Music
                             "layer": 1
                         },
                         {
-                            "id": 1310736, // [Relay] 1st Pass Pirate Ambiance
-                            "layer": 1,
-                            "active": false
+                            "id": 1310736, // [Switch] OPEN: Pirate Ambiance / CLOSED: Elite Pirate Music
+                            "open": true,
+                            "layer": 2
                         }
                     ]
                 },
@@ -13438,12 +13526,27 @@
                     ]
                 },
                 "Geothermal Core": {
+                    "deleteIds": [
+                        1310784 // [Trigger] Trigger - exitPlat
+                    ],
                     "addConnections": [
                         {
                             "senderId": 1310760, // [SpecialFunction] Music Player For Area
                             "targetId": 1310783, // [StreamedAudio] StreamedAudio Lava Main SW
                             "state": "ENTERED",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1311191, // [Camera] Cinematic Camera
+                            "targetId": 1310791, // [Timer] Platform Activate Delay
+                            "state": "ACTIVE",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 1310791, // [Timer] Platform Activate Delay
+                            "targetId": 1310782, // [Actor] Actor - exitPlat
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "specialFunctions": [
@@ -13460,6 +13563,12 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/lav_lavamainL.dsp|/audio/lav_lavamainR.dsp"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 1310791, // [Timer] Platform Activate Delay
+                            "time": 5.5
                         }
                     ]
                 },
