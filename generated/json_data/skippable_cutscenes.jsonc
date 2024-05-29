@@ -317,6 +317,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -8956,6 +8957,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -10100,6 +10102,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -10392,6 +10395,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -10678,6 +10682,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -10952,6 +10957,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -16431,6 +16437,15 @@
                             "morphed": true
                         }
                     ],
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "filterShape": "Fullscreen",
+                            "filterType": "Multiply",
+                            "filterIndex": 2,
+                            "fadeOutTime": 0.5
+                        }
+                    ],
                     "timers": [
                         {
                             "id": 1572949, // [Timer] Cutscene Skip 2 Frame Delay
@@ -16725,6 +16740,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -17772,6 +17788,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -19350,9 +19367,9 @@
                     "cameraFilterKeyframes": [
                         {
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
-                            "filterShape": "Fullscreen",
                             "filterType": "Multiply",
-                            "fadeOutTime": 0.5
+                            "filterShape": "Fullscreen",
+                            "filterIndex": 2
                         }
                     ]
                 },
@@ -19620,6 +19637,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -19888,6 +19906,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -20156,6 +20175,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -20430,6 +20450,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -24914,6 +24935,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ]
@@ -25143,6 +25165,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -26155,6 +26178,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -26392,6 +26416,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -26636,6 +26661,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -26904,6 +26930,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -27172,6 +27199,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -28769,6 +28797,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -28863,6 +28892,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
