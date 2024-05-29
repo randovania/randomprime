@@ -10054,6 +10054,24 @@
                             "targetId": 1572884, // [Relay] Faulty Relay - End Arriving Cinematic
                             "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1572923, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1572865, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1572923, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1572867, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1572923, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1572866, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "cameras": [
@@ -16417,6 +16435,18 @@
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1900654, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1900546, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900654, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1900545, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "cameras": [
@@ -26916,6 +26946,18 @@
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1769549, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1769473, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1769549, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1769477, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "cameras": [
@@ -27185,6 +27227,18 @@
                             "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "state": "ZERO",
                             "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1048644, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1048577, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1048644, // [Trigger] Trigger - Activate Elevator
+                            "targetId": 1048578, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "cameras": [
