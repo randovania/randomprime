@@ -11964,12 +11964,6 @@
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 1704898, // [Camera] camera 6-last panning shot
-                            "targetId": 1704780, // [StreamedAudio] StreamedAudio - Item Attainment SW
-                            "state": "INACTIVE",
-                            "message": "PLAY"
-                        },
-                        {
                             "senderId": 1705156, // [SpawnPoint] Spawn point
                             "targetId": 1703939, // [Timer] Play Music Again
                             "state": "ZERO",
@@ -11985,7 +11979,7 @@
                     "timers": [
                         {
                             "id": 1703939, // [Timer] Play Music Again
-                            "time": 1.0,
+                            "time": 2.5,
                             "layer": 1
                         }
                     ],
