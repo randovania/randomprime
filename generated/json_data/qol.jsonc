@@ -11936,12 +11936,57 @@
                         1705093, // [Trigger] Trigger - Play Music 2
                         1705063 // [Trigger] Trigger - Play Music 2
                     ],
+                    "removeConnections": [
+                        {
+                            "senderId": 1704898, // [Camera] camera 6-last panning shot
+                            "targetId": 1704775, // [Relay] Relay Post Pickup
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
                     "addConnections": [
                         {
                             "senderId": 1703940, // [SpecialFunction] Music Player For Area
                             "targetId": 1705068, // [StreamedAudio] StreamedAudio Music Mines Dark SW
                             "state": "ENTERED",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1704597, // [Relay] Relay-start of cinema
+                            "targetId": 1705171, // [PlayerHint] Player Hint Combat Visor
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1704898, // [Camera] camera 6-last panning shot
+                            "targetId": 1704780, // [StreamedAudio] StreamedAudio - Item Attainment SW
+                            "state": "INACTIVE",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1704898, // [Camera] camera 6-last panning shot
+                            "targetId": 1704780, // [StreamedAudio] StreamedAudio - Item Attainment SW
+                            "state": "INACTIVE",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1705156, // [SpawnPoint] Spawn point
+                            "targetId": 1703939, // [Timer] Play Music Again
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 1703939, // [Timer] Play Music Again
+                            "targetId": 1705068, // [StreamedAudio] StreamedAudio Music Mines Dark SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 1703939, // [Timer] Play Music Again
+                            "time": 1.0,
+                            "layer": 1
                         }
                     ],
                     "specialFunctions": [

@@ -22458,6 +22458,18 @@
                             "message": "INCREMENT"
                         },
                         {
+                            "senderId": 1704898, // [Camera] camera 6-last panning shot
+                            "targetId": 1704598, // [Relay] Relay-end of cinema
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1704618, // [Camera] camera 4-close up of samus busting out of back-effects
+                            "targetId": 1705068, // [StreamedAudio] StreamedAudio Music Mines Dark SW
+                            "state": "INACTIVE",
+                            "message": "PLAY"
+                        },
+                        {
                             "senderId": 1704598, // [Relay] Relay-end of cinema
                             "targetId": 1704602, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
@@ -22480,12 +22492,6 @@
                             "targetId": 1704623, // [PlayerActor] PlayerActor-omega_end_samus_breakout_cinematic
                             "state": "ZERO",
                             "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1704598, // [Relay] Relay-end of cinema
-                            "targetId": 1704775, // [Relay] Relay Post Pickup
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 1704598, // [Relay] Relay-end of cinema
@@ -22537,6 +22543,12 @@
                         },
                         {
                             "senderId": 1704598, // [Relay] Relay-end of cinema
+                            "targetId": 1704780, // [StreamedAudio] StreamedAudio - Item Attainment SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1704598, // [Relay] Relay-end of cinema
                             "targetId": 1703937, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
@@ -22544,6 +22556,12 @@
                         {
                             "senderId": 1703937, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 1704598, // [Relay] Relay-end of cinema
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1703937, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 1705156, // [SpawnPoint] Spawn point
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
@@ -22801,34 +22819,9 @@
                         },
                         {
                             "senderId": 1703937, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 1705156, // [SpawnPoint] Spawn point
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 1703937, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 1704618, // [Camera] camera 4-close up of samus busting out of back-effects
                             "state": "ZERO",
                             "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1705156, // [SpawnPoint] Spawn point
-                            "targetId": 1703939, // [Timer] Play Music Again
-                            "state": "ZERO",
-                            "message": "START"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 1703939, // [Timer] Play Music Again
-                            "time": 2.0,
-                            "layer": 1
-                        }
-                    ],
-                    "relays": [
-                        {
-                            "id": 1703938, // [Relay] PSuit Cutscene Play Music,
-                            "layer": 1
                         }
                     ],
                     "specialFunctions": [
