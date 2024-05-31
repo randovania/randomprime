@@ -18,7 +18,7 @@ pub struct CameraFilterKeyframe<'r> {
     pub color: GenericArray<f32, U4>, // RGBA
     pub fade_in_time: f32,
     pub fade_out_time: f32,
-    pub overlay_texture: u32
+    pub overlay_texture: u32,
 }
 
 impl<'r> SclyPropertyData for CameraFilterKeyframe<'r> {

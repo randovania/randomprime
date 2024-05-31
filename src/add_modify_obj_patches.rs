@@ -9,11 +9,11 @@ use crate::{
     mlvl_wrapper,
     patch_config::{
         ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
-        CameraWaypointConfig, ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
-        HudmemoConfig, LockOnPoint, PlatformConfig, PlatformType, PlayerActorConfig,
-        PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
-        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
-        WorldLightFaderConfig, CameraFilterKeyframeConfig,
+        CameraFilterKeyframeConfig, CameraWaypointConfig, ControllerActionConfig, CounterConfig,
+        DamageType, FogConfig, GenericTexture, HudmemoConfig, LockOnPoint, PlatformConfig,
+        PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig,
+        SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig,
+        WaterConfig, WaypointConfig, WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -1795,14 +1795,7 @@ pub fn patch_add_camera(
         };
     }
 
-    add_edit_obj_helper!(
-        area,
-        Some(config.id),
-        config.layer,
-        Camera,
-        new,
-        update
-    );
+    add_edit_obj_helper!(area, Some(config.id), config.layer, Camera, new, update);
 }
 
 pub fn patch_add_camera_waypoint(
@@ -1855,7 +1848,7 @@ pub fn patch_add_camera_waypoint(
     );
 }
 
-pub fn patch_add_camera_filter_keyframe<'r>(
+pub fn patch_add_camera_filter_keyframe(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     config: CameraFilterKeyframeConfig,

@@ -817,7 +817,7 @@ pub struct CameraFilterKeyframeConfig {
 
     pub filter_type: FilterType,
     pub filter_shape: FilterShape,
-    
+
     pub filter_index: Option<u32>,
     pub filter_group: Option<u32>,
     pub fade_in_time: Option<f32>,
