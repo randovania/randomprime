@@ -1,23 +1,25 @@
+#![allow(clippy::missing_safety_doc)]
 #![no_std]
 
 extern crate alloc;
 
-use linkme::distributed_slice;
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    ffi::c_void,
+    fmt::{self, Write as _},
+};
 
+use linkme::distributed_slice;
 // Rexport these macros
 pub use primeapi_macros::{cpp_method, cw_link_name, patch_fn, prolog_fn};
-
-use core::alloc::{GlobalAlloc, Layout};
-use core::ffi::c_void;
-use core::fmt::{self, Write as _};
 
 pub mod rstl;
 pub mod dol_sdk {
     pub mod dvd;
     pub mod os;
 }
-pub mod mp1;
 pub mod alignment_utils;
+pub mod mp1;
 
 #[doc(hidden)]
 pub mod reexport {
@@ -60,8 +62,7 @@ macro_rules! cpp_field {
     };
 }
 
-extern "C"
-{
+extern "C" {
     fn fwrite(bytes: *const u8, len: usize, count: usize) -> usize;
 
     // Sometime around 2022-11-12, the use of printf in this file started requiring external symbol "puts" which
@@ -79,21 +80,17 @@ extern "C"
     fn free(ptr: *const c_void);
 }
 
-pub unsafe fn malloc(len: usize) -> *mut c_void
-{
+pub unsafe fn malloc(len: usize) -> *mut c_void {
     operator_new(len, b"??\0".as_ptr(), b"??\0".as_ptr())
 }
 
 struct Mp1Allocator;
 
-unsafe impl GlobalAlloc for Mp1Allocator
-{
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8
-    {
+unsafe impl GlobalAlloc for Mp1Allocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         malloc(layout.size()) as *mut u8
     }
-    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout)
-    {
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
         free(ptr as *const c_void)
     }
 }
@@ -103,10 +100,8 @@ static A: Mp1Allocator = Mp1Allocator;
 
 pub struct Mp1Stdout;
 
-impl fmt::Write for Mp1Stdout
-{
-    fn write_str(&mut self, s: &str) -> fmt::Result
-    {
+impl fmt::Write for Mp1Stdout {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
         unsafe {
             // TODO: Check result?
             fwrite(s.as_bytes().as_ptr(), s.len(), 1);
@@ -115,15 +110,14 @@ impl fmt::Write for Mp1Stdout
     }
 }
 
-
-fn halt() -> !
-{
+fn halt() -> ! {
     // extern "C" {
     //     fn PPCHalt() -> !;
     // }
     // unsafe {
     //     PPCHalt()
     // }
+    #![allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -137,15 +131,13 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum PatchKind
-{
+pub enum PatchKind {
     Call,
     Return,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum GameVersion
-{
+pub enum GameVersion {
     Any,
     Ntsc0_00,
     Ntsc0_01,
@@ -155,17 +147,15 @@ pub enum GameVersion
     Pal,
 }
 
-impl GameVersion
-{
-    pub fn current() -> Self
-    {
+impl GameVersion {
+    pub fn current() -> Self {
         extern "C" {
             static __build_info: u8;
         }
         static mut CACHED: Option<GameVersion> = None;
         unsafe {
             if let Some(v) = CACHED {
-                return v
+                return v;
             }
         }
         let build_info_slice = unsafe { core::slice::from_raw_parts(&__build_info, 36) };
@@ -186,15 +176,13 @@ impl GameVersion
     }
 
     #[inline(always)]
-    pub fn matches(self, other: Self) -> bool
-    {
+    pub fn matches(self, other: Self) -> bool {
         self == other || self == GameVersion::Any || other == GameVersion::Any
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Patch
-{
+pub struct Patch {
     fn_ptr_to_patch: *const u8,
     patch_offset: usize,
     target_fn_ptr: *const u8,
@@ -202,15 +190,13 @@ pub struct Patch
     version: GameVersion,
 }
 
-impl Patch
-{
+impl Patch {
     pub const fn call_patch(
         fn_ptr_to_patch: *const u8,
         patch_offset: usize,
         target_fn_ptr: *const u8,
         version: GameVersion,
-    ) -> Patch
-    {
+    ) -> Patch {
         Patch {
             fn_ptr_to_patch,
             patch_offset,
@@ -225,8 +211,7 @@ impl Patch
         patch_offset: usize,
         target_fn_ptr: *const u8,
         version: GameVersion,
-    ) -> Patch
-    {
+    ) -> Patch {
         Patch {
             fn_ptr_to_patch,
             patch_offset,
@@ -237,34 +222,31 @@ impl Patch
     }
 }
 
-unsafe impl Sync for Patch { }
+unsafe impl Sync for Patch {}
 
 #[distributed_slice]
 pub static PATCHES: [Patch] = [..];
-
 
 #[distributed_slice]
 pub static PROLOG_FUNCS: [unsafe extern "C" fn()] = [..];
 
 #[cfg(feature = "rel_prolog")]
 #[no_mangle]
-unsafe extern "C" fn __rel_prolog()
-{
+unsafe extern "C" fn __rel_prolog() {
     // printf(b"prolog called\n\0".as_ptr());
     let version = GameVersion::current();
     for patch in PATCHES.iter() {
         if !version.matches(patch.version) {
-            continue
+            continue;
         }
         let instr_ptr = patch.fn_ptr_to_patch.add(patch.patch_offset) as *mut u32;
         let instr = core::ptr::read(instr_ptr);
 
         let bounds_check_and_mask = |len: u8, addr: i64| {
             // XXX Only len + 1 because this is a sign-extended value
-            debug_assert!(!(
-                    addr > (1 << (len + 1)) - 1
-                    || addr < -1 << (len + 1)
-                    || addr as u64 & 0x3 != 0));
+            debug_assert!(
+                !(addr > (1 << (len + 1)) - 1 || addr < -1 << (len + 1) || addr as u64 & 0x3 != 0)
+            );
 
             (addr as u64 & ((1 << (len + 2)) - 1)) as u32
         };
@@ -274,7 +256,7 @@ unsafe extern "C" fn __rel_prolog()
                 let rel_addr = patch.target_fn_ptr as i64 - instr_ptr as i64;
                 let imm = bounds_check_and_mask(24, rel_addr);
                 (instr & 0xfc000003) | imm
-            },
+            }
             PatchKind::Return => {
                 // Assert the instr is actually a return
                 debug_assert_eq!(instr, 0x4e800020);
@@ -282,7 +264,7 @@ unsafe extern "C" fn __rel_prolog()
                 let rel_addr = patch.target_fn_ptr as i64 - instr_ptr as i64;
                 let imm = bounds_check_and_mask(24, rel_addr);
                 0x48000000 | imm // Uncondtional jump
-            },
+            }
         };
 
         core::ptr::write(instr_ptr, instr);
@@ -293,7 +275,6 @@ unsafe extern "C" fn __rel_prolog()
         prolog_func();
     }
 }
-
 
 // TODO: Maybe re-enable this later? The core::fmt machinery seems to need it sometimes
 // #[no_mangle]

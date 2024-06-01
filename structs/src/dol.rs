@@ -1,19 +1,18 @@
-use auto_struct_macros::auto_struct;
-
-
 use std::iter::Zip as ZipIter;
-use reader_writer::{IteratorArray, LCow, LazyArray};
-use reader_writer::generic_array::{GenericArray, GenericArrayIter};
-use reader_writer::typenum::*;
 
+use auto_struct_macros::auto_struct;
+use reader_writer::{
+    generic_array::{GenericArray, GenericArrayIter},
+    typenum::*,
+    IteratorArray, LCow, LazyArray,
+};
 
 pub type DolSegementsIter<S> = ZipIter<GenericArrayIter<u32, S>, GenericArrayIter<u32, S>>;
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
 // XXX We're assuming that all of the segments are contigious and in order, which isn't
 //     necessarily the case but is true for prime
-pub struct Dol<'r>
-{
+pub struct Dol<'r> {
     #[auto_struct(derive_from_iter = text_segments.iter()
         .scan(0x100, &|sum: &mut usize, seg: LCow<DolSegment>| {
             let r = *sum as u32;
@@ -54,8 +53,7 @@ pub struct Dol<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct DolSegment<'r>
-{
+pub struct DolSegment<'r> {
     #[auto_struct(args = (load_addr, size))]
     _args: (u32, u32),
 

@@ -1,25 +1,20 @@
-use resource_info_table::resource_info;
-use reader_writer::{
-    FourCC,
-    Reader,
-    Writable,
-};
-use structs::{res_id, ResId, Resource, ResourceKind};
-
-use crate::{
-    patch_config::{Version, PatchConfig, GenericTexture},
-    elevators::{World, SpawnRoomData},
-    pickup_meta::{self, PickupType, PickupModel},
-    door_meta::{DoorType, BlastShieldType},
-    ResourceData,
-    GcDiscLookupExtensions,
-    extern_assets::ExternPickupModel,
-    patches::WaterType,
-};
-
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
+};
+
+use reader_writer::{FourCC, Reader, Writable};
+use resource_info_table::resource_info;
+use structs::{res_id, ResId, Resource, ResourceKind};
+
+use crate::{
+    door_meta::{BlastShieldType, DoorType},
+    elevators::{SpawnRoomData, World},
+    extern_assets::ExternPickupModel,
+    patch_config::{GenericTexture, PatchConfig, Version},
+    patches::WaterType,
+    pickup_meta::{self, PickupModel, PickupType},
+    GcDiscLookupExtensions, ResourceData,
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -30,12 +25,12 @@ pub struct PickupHashKey {
 }
 
 impl PickupHashKey {
-    fn from_location(level_name: &str, room_name: &str, pickup_idx: u32) -> Self
-    {
+    fn from_location(level_name: &str, room_name: &str, pickup_idx: u32) -> Self {
         let level = World::from_json_key(level_name);
         PickupHashKey {
             level_id: level.mlvl(),
-            room_id: SpawnRoomData::from_str(&format!("{}:{}", level.to_str(), room_name).as_str()).mrea, // TODO: this is suboptimal
+            room_id: SpawnRoomData::from_str(format!("{}:{}", level.to_str(), room_name).as_str())
+                .mrea, // TODO: this is suboptimal
             pickup_idx,
         }
     }
@@ -333,26 +328,22 @@ pub mod custom_asset_ids {
     }
 }
 
-pub fn custom_asset_filename(resource_info: structs::ResourceInfo) -> String
-{
-    let base_name = match resource_info.file_id {
-        // id if custom_asset_ids::PHAZON_SUIT_TXTR1.to_u32()                   == id => "phazon_suit_txtr1".to_string()                  ,
-        _ => format!("{:X}", resource_info.file_id),
-    };
+pub fn custom_asset_filename(resource_info: structs::ResourceInfo) -> String {
+    let base_name = format!("{:X}", resource_info.file_id);
 
-    return format!("{}.{}", base_name, resource_info.fourcc);
+    format!("{}.{}", base_name, resource_info.fourcc)
 }
 
-pub fn build_resource<'r, K>(file_id: ResId<K>, kind: ResourceKind<'r>) -> Resource<'r>
-    where K: res_id::ResIdKind,
+pub fn build_resource<K>(file_id: ResId<K>, kind: ResourceKind) -> Resource
+where
+    K: res_id::ResIdKind,
 {
     assert_eq!(K::FOURCC, kind.fourcc());
     build_resource_raw(file_id.to_u32(), kind)
 }
 
 #[cfg(not(debug_assertions))]
-pub fn build_resource_raw<'r>(file_id: u32, kind: ResourceKind<'r>) -> Resource<'r>
-{
+pub fn build_resource_raw(file_id: u32, kind: ResourceKind) -> Resource {
     Resource {
         compressed: false,
         file_id,
@@ -361,8 +352,7 @@ pub fn build_resource_raw<'r>(file_id: u32, kind: ResourceKind<'r>) -> Resource<
 }
 
 #[cfg(debug_assertions)]
-pub fn build_resource_raw<'r>(file_id: u32, kind: ResourceKind<'r>) -> Resource<'r>
-{
+pub fn build_resource_raw(file_id: u32, kind: ResourceKind) -> Resource {
     Resource {
         compressed: false,
         file_id,
@@ -372,19 +362,16 @@ pub fn build_resource_raw<'r>(file_id: u32, kind: ResourceKind<'r>) -> Resource<
 }
 
 // Assets defined in an external file at RUNTIME
-fn extern_assets_runtime<'r>(extern_assets_dir: Option<String>)
- -> Result<
-     (Vec<Resource<'r>>, HashMap<String, ExternPickupModel>),
-     String>
-{
-    let (extern_models, extern_assets) = ExternPickupModel::parse(&extern_assets_dir.clone().unwrap())?;
+fn extern_assets_runtime<'r>(
+    extern_assets_dir: Option<String>,
+) -> Result<(Vec<Resource<'r>>, HashMap<String, ExternPickupModel>), String> {
+    let (extern_models, extern_assets) =
+        ExternPickupModel::parse(&extern_assets_dir.clone().unwrap())?;
 
     let mut resources = Vec::<Resource<'r>>::new();
     for (id, asset) in extern_assets.iter() {
         let resource = ResourceKind::External(asset.bytes.clone(), asset.fourcc);
-        resources.push(
-            build_resource_raw(*id, resource)
-        );
+        resources.push(build_resource_raw(*id, resource));
     }
 
     Ok((resources, extern_models))
@@ -401,133 +388,221 @@ macro_rules! extern_asset {
 }
 
 // Assets defined in an external file at COMPILE TIME
-fn extern_assets_compile_time<'r>() -> Vec<Resource<'r>>
-{
+fn extern_assets_compile_time<'r>() -> Vec<Resource<'r>> {
     let extern_assets: &[(ResId<_>, [u8; 4], &[u8])] = &[
         /* Map Assets */
         extern_asset!(MAP_PICKUP_ICON_TXTR, "map_pickupdot.txtr"),
-
         /* Pickup Assets */
-        extern_asset!(NOTHING_TXTR              , "nothing_texture.txtr"            ),
-        extern_asset!(PHAZON_SUIT_TXTR1         , "phazon_suit_texure_1.txtr"       ),
-        extern_asset!(PHAZON_SUIT_TXTR2         , "phazon_suit_texure_2.txtr"       ),
-        extern_asset!(SHINY_MISSILE_TXTR0       , "shiny-missile0.txtr"             ),
-        extern_asset!(SHINY_MISSILE_TXTR1       , "shiny-missile1.txtr"             ),
-        extern_asset!(SHINY_MISSILE_TXTR2       , "shiny-missile2.txtr"             ),
-        extern_asset!(FLAMETHROWER_PICKUP_TXTR1 , "flamethrower_vertice_color.TXTR" ),
-        extern_asset!(FLAMETHROWER_PICKUP_TXTR2 , "flamethrower_cap_glow.TXTR"      ),
-        extern_asset!(FLAMETHROWER_PICKUP_TXTR3 , "flamethrower_color_body.TXTR"    ),
-        extern_asset!(RANDOVANIA_GAMECUBE0_TXTR , "randovania_gamecube.TXTR"        ),
-        extern_asset!(RANDOVANIA_GAMECUBE1_TXTR , "randovania_gamecube_text.TXTR"   ),
-
+        extern_asset!(NOTHING_TXTR, "nothing_texture.txtr"),
+        extern_asset!(PHAZON_SUIT_TXTR1, "phazon_suit_texure_1.txtr"),
+        extern_asset!(PHAZON_SUIT_TXTR2, "phazon_suit_texure_2.txtr"),
+        extern_asset!(SHINY_MISSILE_TXTR0, "shiny-missile0.txtr"),
+        extern_asset!(SHINY_MISSILE_TXTR1, "shiny-missile1.txtr"),
+        extern_asset!(SHINY_MISSILE_TXTR2, "shiny-missile2.txtr"),
+        extern_asset!(FLAMETHROWER_PICKUP_TXTR1, "flamethrower_vertice_color.TXTR"),
+        extern_asset!(FLAMETHROWER_PICKUP_TXTR2, "flamethrower_cap_glow.TXTR"),
+        extern_asset!(FLAMETHROWER_PICKUP_TXTR3, "flamethrower_color_body.TXTR"),
+        extern_asset!(RANDOVANIA_GAMECUBE0_TXTR, "randovania_gamecube.TXTR"),
+        extern_asset!(RANDOVANIA_GAMECUBE1_TXTR, "randovania_gamecube_text.TXTR"),
         /* Door/Blast Shield Assets */
-        extern_asset!(ORANGE_TXTR  , "orange.txtr"  ),
-        extern_asset!(PINK_TXTR    , "pink.txtr"    ),
-        extern_asset!(YELLOW_TXTR  , "yellow.txtr"  ),
+        extern_asset!(ORANGE_TXTR, "orange.txtr"),
+        extern_asset!(PINK_TXTR, "pink.txtr"),
+        extern_asset!(YELLOW_TXTR, "yellow.txtr"),
         extern_asset!(TESTBNEW_TXTR, "testbnew.txtr"),
-
         extern_asset!(AI_TXTR, "holorim_ai.txtr"),
-        extern_asset!(CHARGE_BEAM_ANIMATED_GLOW_TXTR      , "charge_beam_animated_glow.TXTR"      ),
-        extern_asset!(CHARGE_BEAM_GLOW_BORDER_TXTR        , "charge_beam_glow_border.TXTR"        ),
-        extern_asset!(CHARGE_BEAM_GLOW_TRIM_TXTR          , "charge_beam_glow_trim.TXTR"          ),
-        extern_asset!(CHARGE_BEAM_HOLORIM_TXTR            , "charge_beam_holorim.TXTR"            ),
-        extern_asset!(CHARGE_BEAM_METAL_BODY_TXTR         , "charge_beam_metal_body.TXTR"         ),
-        extern_asset!(CHARGE_BEAM_METAL_TRIM_TXTR         , "charge_beam_metal_trim.TXTR"         ),
-        extern_asset!(FLAMETHROWER_ANIMATED_GLOW_TXTR     , "flamethrower_animated_glow.TXTR"     ),
-        extern_asset!(FLAMETHROWER_GLOW_BORDER_TXTR       , "flamethrower_glow_border.TXTR"       ),
-        extern_asset!(FLAMETHROWER_GLOW_TRIM_TXTR         , "flamethrower_glow_trim.TXTR"         ),
-        extern_asset!(FLAMETHROWER_HOLORIM_TXTR           , "flamethrower_holorim.TXTR"           ),
-        extern_asset!(FLAMETHROWER_METAL_BODY_TXTR        , "flamethrower_metal_body.TXTR"        ),
-        extern_asset!(FLAMETHROWER_METAL_TRIM_TXTR        , "flamethrower_metal_trim.TXTR"        ),
-        extern_asset!(GRAPPLE_BEAM_ANIMATED_GLOW_TXTR     , "grapple_beam_animated_glow.TXTR"     ),
-        extern_asset!(GRAPPLE_BEAM_GLOW_BORDER_TXTR       , "grapple_beam_glow_border.TXTR"       ),
-        extern_asset!(GRAPPLE_BEAM_GLOW_TRIM_TXTR         , "grapple_beam_glow_trim.TXTR"         ),
-        extern_asset!(GRAPPLE_BEAM_HOLORIM_TXTR           , "grapple_beam_holorim.TXTR"           ),
-        extern_asset!(GRAPPLE_BEAM_METAL_BODY_TXTR        , "grapple_beam_metal_body.TXTR"        ),
-        extern_asset!(GRAPPLE_BEAM_METAL_TRIM_TXTR        , "grapple_beam_metal_trim.TXTR"        ),
-        extern_asset!(ICE_SPREADER_ANIMATED_GLOW_TXTR     , "ice_spreader_animated_glow.TXTR"     ),
-        extern_asset!(ICE_SPREADER_GLOW_TRIM_TXTR         , "ice_spreader_glow_trim.TXTR"         ),
-        extern_asset!(ICE_SPREADER_HOLORIM_TXTR           , "ice_spreader_holorim.TXTR"           ),
-        extern_asset!(ICE_SPREADER_METAL_BODY_TXTR        , "ice_spreader_metal_body.TXTR"        ),
-        extern_asset!(ICE_SPREADER_METAL_TRIM_TXTR        , "ice_spreader_metal_trim.TXTR"        ),
-        extern_asset!(ICE_SPREADER_GLOW_BORDER_TXTR       , "ice_spreader_glow_border.TXTR"       ),
-        extern_asset!(MORPH_BALL_BOMBS_ANIMATED_GLOW_TXTR , "morph_ball_bombs_animated_glow.TXTR" ),
-        extern_asset!(MORPH_BALL_BOMBS_GLOW_BORDER_TXTR   , "morph_ball_bombs_glow_border.TXTR"   ),
-        extern_asset!(MORPH_BALL_BOMBS_GLOW_TRIM_TXTR     , "morph_ball_bombs_glow_trim.TXTR"     ),
-        extern_asset!(MORPH_BALL_BOMBS_HOLORIM_TXTR       , "morph_ball_bombs_holorim.TXTR"       ),
-        extern_asset!(MORPH_BALL_BOMBS_METAL_BODY_TXTR    , "morph_ball_bombs_metal_body.TXTR"    ),
-        extern_asset!(MORPH_BALL_BOMBS_METAL_TRIM_TXTR    , "morph_ball_bombs_metal_trim.TXTR"    ),
-        extern_asset!(PHAZON_BEAM_ANIMATED_GLOW_TXTR      , "phazon_beam_animated_glow.TXTR"      ),
-        extern_asset!(PHAZON_BEAM_GLOW_BORDER_TXTR        , "phazon_beam_glow_border.TXTR"        ),
-        extern_asset!(PHAZON_BEAM_GLOW_TRIM_TXTR          , "phazon_beam_glow_trim.TXTR"          ),
-        extern_asset!(PHAZON_BEAM_HOLORIM_TXTR            , "phazon_beam_holorim.TXTR"            ),
-        extern_asset!(PHAZON_BEAM_METAL_BODY_TXTR         , "phazon_beam_metal_body.TXTR"         ),
-        extern_asset!(PHAZON_BEAM_METAL_TRIM_TXTR         , "phazon_beam_metal_trim.TXTR"         ),
-        extern_asset!(POWER_BEAM_HOLORIM_TXTR             , "power_beam_holorim.TXTR"             ),
-        extern_asset!(POWER_BOMB_ANIMATED_GLOW_TXTR       , "power_bomb_animated_glow.TXTR"       ),
-        extern_asset!(POWER_BOMB_GLOW_BORDER_TXTR         , "power_bomb_glow_border.TXTR"         ),
-        extern_asset!(POWER_BOMB_GLOW_TRIM_TXTR           , "power_bomb_glow_trim.TXTR"           ),
-        extern_asset!(POWER_BOMB_HOLORIM_TXTR             , "power_bomb_holorim.TXTR"             ),
-        extern_asset!(POWER_BOMB_METAL_BODY_TXTR          , "power_bomb_metal_body.TXTR"          ),
-        extern_asset!(POWER_BOMB_METAL_TRIM_TXTR          , "power_bomb_metal_trim.TXTR"          ),
-        extern_asset!(SUPER_MISSILE_ANIMATED_GLOW_TXTR    , "super_missile_animated_glow.TXTR"    ),
-        extern_asset!(SUPER_MISSILE_GLOW_BORDER_TXTR      , "super_missile_glow_border.TXTR"      ),
-        extern_asset!(SUPER_MISSILE_GLOW_TRIM_TXTR        , "super_missile_glow_trim.TXTR"        ),
-        extern_asset!(SUPER_MISSILE_HOLORIM_TXTR          , "super_missile_holorim.TXTR"          ),
-        extern_asset!(SUPER_MISSILE_METAL_BODY_TXTR       , "super_missile_metal_body.TXTR"       ),
-        extern_asset!(SUPER_MISSILE_METAL_TRIM_TXTR       , "super_missile_metal_trim.TXTR"       ),
-        extern_asset!(THERMAL_VISOR_ANIMATED_GLOW_TXTR    , "thermal_visor_animated_glow.TXTR"    ),
-        extern_asset!(THERMAL_VISOR_GLOW_BORDER_TXTR      , "thermal_visor_glow_border.TXTR"      ),
-        extern_asset!(THERMAL_VISOR_GLOW_TRIM_TXTR        , "thermal_visor_glow_trim.TXTR"        ),
-        extern_asset!(THERMAL_VISOR_HOLORIM_TXTR          , "thermal_visor_holorim.TXTR"          ),
-        extern_asset!(THERMAL_VISOR_METAL_BODY_TXTR       , "thermal_visor_metal_body.TXTR"       ),
-        extern_asset!(THERMAL_VISOR_METAL_TRIM_TXTR       , "thermal_visor_metal_trim.TXTR"       ),
-        extern_asset!(WAVEBUSTER_ANIMATED_GLOW_TXTR       , "wavebuster_animated_glow.TXTR"       ),
-        extern_asset!(WAVEBUSTER_GLOW_BORDER_TXTR         , "wavebuster_glow_border.TXTR"         ),
-        extern_asset!(WAVEBUSTER_GLOW_TRIM_TXTR           , "wavebuster_glow_trim.TXTR"           ),
-        extern_asset!(WAVEBUSTER_HOLORIM_TXTR             , "wavebuster_holorim.TXTR"             ),
-        extern_asset!(WAVEBUSTER_METAL_BODY_TXTR          , "wavebuster_metal_body.TXTR"          ),
-        extern_asset!(WAVEBUSTER_METAL_TRIM_TXTR          , "wavebuster_metal_trim.TXTR"          ),
-        extern_asset!(XRAY_VISOR_ANIMATED_GLOW_TXTR       , "xray_visor_animated_glow.TXTR"       ),
-        extern_asset!(XRAY_VISOR_GLOW_BORDER_TXTR         , "xray_visor_glow_border.TXTR"         ),
-        extern_asset!(XRAY_VISOR_GLOW_TRIM_TXTR           , "xray_visor_glow_trim.TXTR"           ),
-        extern_asset!(XRAY_VISOR_HOLORIM_TXTR             , "xray_visor_holorim.TXTR"             ),
-        extern_asset!(XRAY_VISOR_METAL_BODY_TXTR          , "xray_visor_metal_body.TXTR"          ),
-        extern_asset!(XRAY_VISOR_METAL_TRIM_TXTR          , "xray_visor_metal_trim.TXTR"          ),
-        extern_asset!(SCAN_VISOR_ANIMATED_GLOW_TXTR       , "scan_visor_animated_glow.TXTR"       ),
-        extern_asset!(SCAN_VISOR_GLOW_BORDER_TXTR         , "scan_visor_glow_border.TXTR"         ),
-        extern_asset!(SCAN_VISOR_GLOW_TRIM_TXTR           , "scan_visor_glow_trim.TXTR"           ),
-        extern_asset!(SCAN_VISOR_HOLORIM_TXTR             , "scan_visor_holorim.TXTR"             ),
-        extern_asset!(SCAN_VISOR_METAL_BODY_TXTR          , "scan_visor_metal_body.TXTR"          ),
-        extern_asset!(SCAN_VISOR_METAL_TRIM_TXTR          , "scan_visor_metal_trim.TXTR"          ),
+        extern_asset!(
+            CHARGE_BEAM_ANIMATED_GLOW_TXTR,
+            "charge_beam_animated_glow.TXTR"
+        ),
+        extern_asset!(CHARGE_BEAM_GLOW_BORDER_TXTR, "charge_beam_glow_border.TXTR"),
+        extern_asset!(CHARGE_BEAM_GLOW_TRIM_TXTR, "charge_beam_glow_trim.TXTR"),
+        extern_asset!(CHARGE_BEAM_HOLORIM_TXTR, "charge_beam_holorim.TXTR"),
+        extern_asset!(CHARGE_BEAM_METAL_BODY_TXTR, "charge_beam_metal_body.TXTR"),
+        extern_asset!(CHARGE_BEAM_METAL_TRIM_TXTR, "charge_beam_metal_trim.TXTR"),
+        extern_asset!(
+            FLAMETHROWER_ANIMATED_GLOW_TXTR,
+            "flamethrower_animated_glow.TXTR"
+        ),
+        extern_asset!(
+            FLAMETHROWER_GLOW_BORDER_TXTR,
+            "flamethrower_glow_border.TXTR"
+        ),
+        extern_asset!(FLAMETHROWER_GLOW_TRIM_TXTR, "flamethrower_glow_trim.TXTR"),
+        extern_asset!(FLAMETHROWER_HOLORIM_TXTR, "flamethrower_holorim.TXTR"),
+        extern_asset!(FLAMETHROWER_METAL_BODY_TXTR, "flamethrower_metal_body.TXTR"),
+        extern_asset!(FLAMETHROWER_METAL_TRIM_TXTR, "flamethrower_metal_trim.TXTR"),
+        extern_asset!(
+            GRAPPLE_BEAM_ANIMATED_GLOW_TXTR,
+            "grapple_beam_animated_glow.TXTR"
+        ),
+        extern_asset!(
+            GRAPPLE_BEAM_GLOW_BORDER_TXTR,
+            "grapple_beam_glow_border.TXTR"
+        ),
+        extern_asset!(GRAPPLE_BEAM_GLOW_TRIM_TXTR, "grapple_beam_glow_trim.TXTR"),
+        extern_asset!(GRAPPLE_BEAM_HOLORIM_TXTR, "grapple_beam_holorim.TXTR"),
+        extern_asset!(GRAPPLE_BEAM_METAL_BODY_TXTR, "grapple_beam_metal_body.TXTR"),
+        extern_asset!(GRAPPLE_BEAM_METAL_TRIM_TXTR, "grapple_beam_metal_trim.TXTR"),
+        extern_asset!(
+            ICE_SPREADER_ANIMATED_GLOW_TXTR,
+            "ice_spreader_animated_glow.TXTR"
+        ),
+        extern_asset!(ICE_SPREADER_GLOW_TRIM_TXTR, "ice_spreader_glow_trim.TXTR"),
+        extern_asset!(ICE_SPREADER_HOLORIM_TXTR, "ice_spreader_holorim.TXTR"),
+        extern_asset!(ICE_SPREADER_METAL_BODY_TXTR, "ice_spreader_metal_body.TXTR"),
+        extern_asset!(ICE_SPREADER_METAL_TRIM_TXTR, "ice_spreader_metal_trim.TXTR"),
+        extern_asset!(
+            ICE_SPREADER_GLOW_BORDER_TXTR,
+            "ice_spreader_glow_border.TXTR"
+        ),
+        extern_asset!(
+            MORPH_BALL_BOMBS_ANIMATED_GLOW_TXTR,
+            "morph_ball_bombs_animated_glow.TXTR"
+        ),
+        extern_asset!(
+            MORPH_BALL_BOMBS_GLOW_BORDER_TXTR,
+            "morph_ball_bombs_glow_border.TXTR"
+        ),
+        extern_asset!(
+            MORPH_BALL_BOMBS_GLOW_TRIM_TXTR,
+            "morph_ball_bombs_glow_trim.TXTR"
+        ),
+        extern_asset!(
+            MORPH_BALL_BOMBS_HOLORIM_TXTR,
+            "morph_ball_bombs_holorim.TXTR"
+        ),
+        extern_asset!(
+            MORPH_BALL_BOMBS_METAL_BODY_TXTR,
+            "morph_ball_bombs_metal_body.TXTR"
+        ),
+        extern_asset!(
+            MORPH_BALL_BOMBS_METAL_TRIM_TXTR,
+            "morph_ball_bombs_metal_trim.TXTR"
+        ),
+        extern_asset!(
+            PHAZON_BEAM_ANIMATED_GLOW_TXTR,
+            "phazon_beam_animated_glow.TXTR"
+        ),
+        extern_asset!(PHAZON_BEAM_GLOW_BORDER_TXTR, "phazon_beam_glow_border.TXTR"),
+        extern_asset!(PHAZON_BEAM_GLOW_TRIM_TXTR, "phazon_beam_glow_trim.TXTR"),
+        extern_asset!(PHAZON_BEAM_HOLORIM_TXTR, "phazon_beam_holorim.TXTR"),
+        extern_asset!(PHAZON_BEAM_METAL_BODY_TXTR, "phazon_beam_metal_body.TXTR"),
+        extern_asset!(PHAZON_BEAM_METAL_TRIM_TXTR, "phazon_beam_metal_trim.TXTR"),
+        extern_asset!(POWER_BEAM_HOLORIM_TXTR, "power_beam_holorim.TXTR"),
+        extern_asset!(
+            POWER_BOMB_ANIMATED_GLOW_TXTR,
+            "power_bomb_animated_glow.TXTR"
+        ),
+        extern_asset!(POWER_BOMB_GLOW_BORDER_TXTR, "power_bomb_glow_border.TXTR"),
+        extern_asset!(POWER_BOMB_GLOW_TRIM_TXTR, "power_bomb_glow_trim.TXTR"),
+        extern_asset!(POWER_BOMB_HOLORIM_TXTR, "power_bomb_holorim.TXTR"),
+        extern_asset!(POWER_BOMB_METAL_BODY_TXTR, "power_bomb_metal_body.TXTR"),
+        extern_asset!(POWER_BOMB_METAL_TRIM_TXTR, "power_bomb_metal_trim.TXTR"),
+        extern_asset!(
+            SUPER_MISSILE_ANIMATED_GLOW_TXTR,
+            "super_missile_animated_glow.TXTR"
+        ),
+        extern_asset!(
+            SUPER_MISSILE_GLOW_BORDER_TXTR,
+            "super_missile_glow_border.TXTR"
+        ),
+        extern_asset!(SUPER_MISSILE_GLOW_TRIM_TXTR, "super_missile_glow_trim.TXTR"),
+        extern_asset!(SUPER_MISSILE_HOLORIM_TXTR, "super_missile_holorim.TXTR"),
+        extern_asset!(
+            SUPER_MISSILE_METAL_BODY_TXTR,
+            "super_missile_metal_body.TXTR"
+        ),
+        extern_asset!(
+            SUPER_MISSILE_METAL_TRIM_TXTR,
+            "super_missile_metal_trim.TXTR"
+        ),
+        extern_asset!(
+            THERMAL_VISOR_ANIMATED_GLOW_TXTR,
+            "thermal_visor_animated_glow.TXTR"
+        ),
+        extern_asset!(
+            THERMAL_VISOR_GLOW_BORDER_TXTR,
+            "thermal_visor_glow_border.TXTR"
+        ),
+        extern_asset!(THERMAL_VISOR_GLOW_TRIM_TXTR, "thermal_visor_glow_trim.TXTR"),
+        extern_asset!(THERMAL_VISOR_HOLORIM_TXTR, "thermal_visor_holorim.TXTR"),
+        extern_asset!(
+            THERMAL_VISOR_METAL_BODY_TXTR,
+            "thermal_visor_metal_body.TXTR"
+        ),
+        extern_asset!(
+            THERMAL_VISOR_METAL_TRIM_TXTR,
+            "thermal_visor_metal_trim.TXTR"
+        ),
+        extern_asset!(
+            WAVEBUSTER_ANIMATED_GLOW_TXTR,
+            "wavebuster_animated_glow.TXTR"
+        ),
+        extern_asset!(WAVEBUSTER_GLOW_BORDER_TXTR, "wavebuster_glow_border.TXTR"),
+        extern_asset!(WAVEBUSTER_GLOW_TRIM_TXTR, "wavebuster_glow_trim.TXTR"),
+        extern_asset!(WAVEBUSTER_HOLORIM_TXTR, "wavebuster_holorim.TXTR"),
+        extern_asset!(WAVEBUSTER_METAL_BODY_TXTR, "wavebuster_metal_body.TXTR"),
+        extern_asset!(WAVEBUSTER_METAL_TRIM_TXTR, "wavebuster_metal_trim.TXTR"),
+        extern_asset!(
+            XRAY_VISOR_ANIMATED_GLOW_TXTR,
+            "xray_visor_animated_glow.TXTR"
+        ),
+        extern_asset!(XRAY_VISOR_GLOW_BORDER_TXTR, "xray_visor_glow_border.TXTR"),
+        extern_asset!(XRAY_VISOR_GLOW_TRIM_TXTR, "xray_visor_glow_trim.TXTR"),
+        extern_asset!(XRAY_VISOR_HOLORIM_TXTR, "xray_visor_holorim.TXTR"),
+        extern_asset!(XRAY_VISOR_METAL_BODY_TXTR, "xray_visor_metal_body.TXTR"),
+        extern_asset!(XRAY_VISOR_METAL_TRIM_TXTR, "xray_visor_metal_trim.TXTR"),
+        extern_asset!(
+            SCAN_VISOR_ANIMATED_GLOW_TXTR,
+            "scan_visor_animated_glow.TXTR"
+        ),
+        extern_asset!(SCAN_VISOR_GLOW_BORDER_TXTR, "scan_visor_glow_border.TXTR"),
+        extern_asset!(SCAN_VISOR_GLOW_TRIM_TXTR, "scan_visor_glow_trim.TXTR"),
+        extern_asset!(SCAN_VISOR_HOLORIM_TXTR, "scan_visor_holorim.TXTR"),
+        extern_asset!(SCAN_VISOR_METAL_BODY_TXTR, "scan_visor_metal_body.TXTR"),
+        extern_asset!(SCAN_VISOR_METAL_TRIM_TXTR, "scan_visor_metal_trim.TXTR"),
     ];
 
-    extern_assets.iter().map(|&(res, ref fourcc, bytes)| {
+    /* If you ever needed more than just TXTR you would chain like so:
+
+    extern_assets_txtr.iter().map(|&(res, ref fourcc, bytes)| {
         build_resource(res, ResourceKind::Unknown(Reader::new(bytes), fourcc.into()))
-    }).collect()
+    }).chain(extern_assets_dcln.iter().map(|&(res, ref fourcc, bytes)| {
+        build_resource(res, ResourceKind::Unknown(Reader::new(bytes), fourcc.into()))
+    })).collect()
+
+     */
+
+    extern_assets
+        .iter()
+        .map(|&(res, ref fourcc, bytes)| {
+            build_resource(
+                res,
+                ResourceKind::Unknown(Reader::new(bytes), fourcc.into()),
+            )
+        })
+        .collect()
 }
 
 // Assets not found in the base game
+#[allow(clippy::type_complexity)]
 pub fn custom_assets<'r>(
-    resources: &HashMap<(u32, FourCC),
-    structs::Resource<'r>>,
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     starting_memo: Option<&str>,
-    pickup_hudmemos: &mut HashMap::<PickupHashKey, ResId<res_id::STRG>>,
+    pickup_hudmemos: &mut HashMap<PickupHashKey, ResId<res_id::STRG>>,
     pickup_scans: &mut HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     extra_scans: &mut HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     config: &PatchConfig,
-)
-->
-    Result<
+) -> Result<
     (
         Vec<Resource<'r>>,
         Vec<ResId<res_id::SCAN>>,
         Vec<Vec<ResId<res_id::SCAN>>>,
-        HashMap::<u32, u32>,
+        HashMap<u32, u32>,
         HashMap<String, ExternPickupModel>,
     ),
-    String>
-{
+    String,
+> {
     /*  List of all custom SCAN IDs which might be used throughout the game.
         We need to patch these into a SAVW file so that the game engine allocates enough space
         on initialization to store each individual scan's completion %. This first list is for
@@ -546,15 +621,17 @@ pub fn custom_assets<'r>(
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        Vec::new(),
     ];
 
     /* Mapping of strings and their corresponding scan_id. Use this to avoid
        redundant usage of percious memory card space
     */
-    let mut string_to_scan_strg: HashMap::<String, (ResId<res_id::SCAN>, ResId<res_id::STRG>)> = HashMap::new();
+    let mut string_to_scan_strg: HashMap<String, (ResId<res_id::SCAN>, ResId<res_id::STRG>)> =
+        HashMap::new();
 
     /* Mapping of SCAN id to logbook category for easier SAVW entry creation */
-    let mut savw_scan_logbook_category: HashMap::<u32, u32> = HashMap::new();
+    let mut savw_scan_logbook_category: HashMap<u32, u32> = HashMap::new();
 
     // External assets
     let mut assets = extern_assets_compile_time();
@@ -605,7 +682,7 @@ pub fn custom_assets<'r>(
         custom_asset_ids::COMBAT_ANCS,
         ResId::<res_id::TXTR>::new(0x1D588B22),
     ));
-    
+
     assets.extend_from_slice(&create_shiny_missile_assets(resources));
     assets.extend_from_slice(&create_flamethrower_assets(resources));
 
@@ -620,7 +697,8 @@ pub fn custom_assets<'r>(
         "task failed successfully\0".to_string(),
         config.version,
     ));
-    local_savw_scans_to_add[World::PhendranaDrifts as usize].push(custom_asset_ids::SHORELINES_POI_SCAN);
+    local_savw_scans_to_add[World::PhendranaDrifts as usize]
+        .push(custom_asset_ids::SHORELINES_POI_SCAN);
     assets.extend_from_slice(&create_item_scan_strg_pair_2(
         custom_asset_ids::CFLDG_POI_SCAN,
         custom_asset_ids::CFLDG_POI_STRG,
@@ -640,20 +718,22 @@ pub fn custom_assets<'r>(
         vec![
             "Chozo script translated.\0".to_string(),
             "Racing\0".to_string(),
-            "As we have done for millennia, we Chozo work constantly on our speed. Our fastest are our sentinels; They are, and have always been, repositories for our most precious secrets and strongest powers.\n\n2023 - Cosmonawt\n2022 (CGC) - Cosmo + Cestrion\n2021 - Dinopony\n2020 - Interslice\n2019 - TheWeakestLink64\0".to_string(),
+            "As we have done for millennia, we Chozo work constantly on our speed. Our fastest are our sentinels; They are, and have always been, repositories for our most precious secrets and strongest powers.\n\n2023 (CGC) - TheGingerChris + BajaBlood\n2023 - Cosmonawt\n2022 (CGC) - Cosmo + Cestrion\n2021 - Dinopony\n2020 - Interslice\n2019 - TheWeakestLink64\0".to_string(),
         ],
         1,
         0,
         config.version,
     ));
-    local_savw_scans_to_add[World::TallonOverworld as usize].push(custom_asset_ids::TOURNEY_WINNERS_SCAN);
+    local_savw_scans_to_add[World::TallonOverworld as usize]
+        .push(custom_asset_ids::TOURNEY_WINNERS_SCAN);
 
     if starting_memo.is_some() {
         assets.push(build_resource(
             custom_asset_ids::STARTING_ITEMS_HUDMEMO_STRG,
-            structs::ResourceKind::Strg(structs::Strg::from_strings(vec![
-                format!("&just=center;{}\0", starting_memo.clone().unwrap()),
-            ])),
+            structs::ResourceKind::Strg(structs::Strg::from_strings(vec![format!(
+                "&just=center;{}\0",
+                starting_memo.unwrap()
+            )])),
         ));
     }
 
@@ -672,9 +752,10 @@ pub fn custom_assets<'r>(
 
         assets.push(build_resource(
             pt.hudmemo_strg(),
-            structs::ResourceKind::Strg(structs::Strg::from_strings(vec![
-                format!("&just=center;{} acquired!\0", name),
-            ])),
+            structs::ResourceKind::Strg(structs::Strg::from_strings(vec![format!(
+                "&just=center;{} Acquired!\0",
+                name
+            )])),
         ));
     }
 
@@ -696,20 +777,25 @@ pub fn custom_assets<'r>(
 
                         // Add this scan_id as a dep of this world if it wasn't already //
                         if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
                         }
 
-                        let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (scan_id.clone(), strg_id.clone()));
-                        extra_scans_idx = extra_scans_idx + 1;
+                        let key =
+                            PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
+                        extra_scans.insert(key, (*scan_id, *strg_id));
+                        extra_scans_idx += 1;
                         continue;
                     }
 
                     // Get next 2 IDs //
-                    let scan_id = ResId::<res_id::SCAN>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                    custom_asset_offset = custom_asset_offset + 1;
-                    let strg_id = ResId::<res_id::STRG>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                    custom_asset_offset = custom_asset_offset + 1;
+                    let scan_id = ResId::<res_id::SCAN>::new(
+                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                    );
+                    custom_asset_offset += 1;
+                    let strg_id = ResId::<res_id::STRG>::new(
+                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                    );
+                    custom_asset_offset += 1;
 
                     let is_red = {
                         if *custom_scan.is_red.as_ref().unwrap_or(&false) {
@@ -725,8 +811,8 @@ pub fn custom_assets<'r>(
 
                     // "The &push;&main-color=#c300ff;Phazon Suit&pop; can be found in &push;&main-color=#89a1ff;Phazon Mines - Processing Center Access&pop;.",
                     // TODO: the game will actually crash if we paginate the color wrong
-                    for x in contents.split("&") {
-                        let semicolon_index = x.find(";").unwrap_or(0);
+                    for x in contents.split('&') {
+                        let semicolon_index = x.find(';').unwrap_or(0);
                         if semicolon_index != 0 {
                             content_len -= semicolon_index + 2;
                         }
@@ -762,24 +848,26 @@ pub fn custom_assets<'r>(
                         strings.push("\0".to_string()); // logbook category
                     }
 
-                    if custom_scan.logbook_title.is_some() || custom_scan.logbook_category.is_some() {
-                        if !custom_scan.logbook_title.is_some() || !custom_scan.logbook_category.is_some() {
+                    if custom_scan.logbook_title.is_some() || custom_scan.logbook_category.is_some()
+                    {
+                        if custom_scan.logbook_title.is_none()
+                            || custom_scan.logbook_category.is_none()
+                        {
                             panic!("Both logbook title and logbook category are required.");
                         }
                         strings[1] = custom_scan.logbook_title.clone().unwrap() + "\0";
-                        savw_scan_logbook_category.insert(scan_id.to_u32(), custom_scan.logbook_category.clone().unwrap());
+                        savw_scan_logbook_category
+                            .insert(scan_id.to_u32(), custom_scan.logbook_category.unwrap());
                     }
 
-                    assets.extend_from_slice(
-                        &create_item_scan_strg_pair_2(
+                    assets.extend_from_slice(&create_item_scan_strg_pair_2(
                         scan_id,
                         strg_id,
                         strings,
                         is_red,
                         *custom_scan.logbook_category.as_ref().unwrap_or(&0),
                         config.version,
-                        )
-                    );
+                    ));
 
                     // Map for easy lookup when patching //
                     let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
@@ -789,13 +877,15 @@ pub fn custom_assets<'r>(
                     // Cache this scan/strg pair for re-use //
                     string_to_scan_strg.insert(contents, (scan_id, strg_id));
 
-                    extra_scans_idx = extra_scans_idx + 1;
+                    extra_scans_idx += 1;
                 }
             }
 
             if room.doors.is_some() {
                 for (_, door) in room.doors.as_ref().unwrap().iter() {
-                    if door.destination.is_none() { continue; }
+                    if door.destination.is_none() {
+                        continue;
+                    }
 
                     let string = door.destination.as_ref().unwrap().room_name.clone() + "\0";
 
@@ -805,74 +895,26 @@ pub fn custom_assets<'r>(
 
                         // Add this scan_id as a dep of this world if it wasn't already //
                         if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
                         }
 
-                        let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (scan_id.clone(), strg_id.clone()));
-                        extra_scans_idx = extra_scans_idx + 1;
-
-                        continue;
-                    }
-
-                    // Get next 2 IDs //
-                    let scan_id = ResId::<res_id::SCAN>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                    custom_asset_offset = custom_asset_offset + 1;
-                    let strg_id = ResId::<res_id::STRG>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                    custom_asset_offset = custom_asset_offset + 1;
-
-                    // Create scan/strg pair for destination
-                    assets.extend_from_slice(&create_item_scan_strg_pair(
-                        scan_id,
-                        strg_id,
-                        string.clone(),
-                        config.version,
-                    ));
-                    local_savw_scans_to_add[world as usize].push(scan_id);
-
-                    // Map for easy lookup when patching //
-                    let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                    extra_scans.insert(key, (scan_id, strg_id));
-
-                    // Cache this scan/strg pair for re-use //
-                    string_to_scan_strg.insert(string.clone(), (scan_id, strg_id));
-
-                    extra_scans_idx = extra_scans_idx + 1;
-                }
-            }
-
-            if room.hudmemos.is_some() {
-                for hudmemo_config in room.hudmemos.as_ref().unwrap().iter() {
-                    if hudmemo_config.text.is_none() {
+                        let key =
+                            PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
+                        extra_scans.insert(key, (*scan_id, *strg_id));
                         extra_scans_idx += 1;
-                        continue;
-                    }
-
-                    let string = format!("{}\0", hudmemo_config.text.as_ref().unwrap());
-
-                    // todo: subroutine
-
-                    // Check if this string already has a scan_id //
-                    if string_to_scan_strg.contains_key(&string.clone()) {
-                        let (scan_id, strg_id) = string_to_scan_strg.get(&string.clone()).unwrap();
-
-                        // Add this scan_id as a dep of this world if it wasn't already //
-                        if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
-                        }
-
-                        let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (scan_id.clone(), strg_id.clone()));
-                        extra_scans_idx = extra_scans_idx + 1;
 
                         continue;
                     }
 
                     // Get next 2 IDs //
-                    let scan_id = ResId::<res_id::SCAN>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                    custom_asset_offset = custom_asset_offset + 1;
-                    let strg_id = ResId::<res_id::STRG>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                    custom_asset_offset = custom_asset_offset + 1;
+                    let scan_id = ResId::<res_id::SCAN>::new(
+                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                    );
+                    custom_asset_offset += 1;
+                    let strg_id = ResId::<res_id::STRG>::new(
+                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                    );
+                    custom_asset_offset += 1;
 
                     // Create scan/strg pair for destination
                     assets.extend_from_slice(&create_item_scan_strg_pair(
@@ -894,26 +936,86 @@ pub fn custom_assets<'r>(
                 }
             }
 
-            if room.pickups.is_none() { continue };
+            if room.hudmemos.is_some() {
+                for hudmemo_config in room.hudmemos.as_ref().unwrap().iter() {
+                    if hudmemo_config.text.is_none() {
+                        extra_scans_idx += 1;
+                        continue;
+                    }
+
+                    let string = format!("{}\0", hudmemo_config.text.as_ref().unwrap());
+
+                    // todo: subroutine
+
+                    // Check if this string already has a scan_id //
+                    if string_to_scan_strg.contains_key(&string.clone()) {
+                        let (scan_id, strg_id) = string_to_scan_strg.get(&string.clone()).unwrap();
+
+                        // Add this scan_id as a dep of this world if it wasn't already //
+                        if !local_savw_scans_to_add[world as usize].contains(scan_id) {
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
+                        }
+
+                        let key =
+                            PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
+                        extra_scans.insert(key, (*scan_id, *strg_id));
+                        extra_scans_idx += 1;
+
+                        continue;
+                    }
+
+                    // Get next 2 IDs //
+                    let scan_id = ResId::<res_id::SCAN>::new(
+                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                    );
+                    custom_asset_offset += 1;
+                    let strg_id = ResId::<res_id::STRG>::new(
+                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                    );
+                    custom_asset_offset += 1;
+
+                    // Create scan/strg pair for destination
+                    assets.extend_from_slice(&create_item_scan_strg_pair(
+                        scan_id,
+                        strg_id,
+                        string.clone(),
+                        config.version,
+                    ));
+                    local_savw_scans_to_add[world as usize].push(scan_id);
+
+                    // Map for easy lookup when patching //
+                    let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
+                    extra_scans.insert(key, (scan_id, strg_id));
+
+                    // Cache this scan/strg pair for re-use //
+                    string_to_scan_strg.insert(string.clone(), (scan_id, strg_id));
+
+                    extra_scans_idx += 1;
+                }
+            }
+
+            if room.pickups.is_none() {
+                continue;
+            };
             for pickup in room.pickups.as_ref().unwrap().iter() {
                 // custom hudmemo string
-                if pickup.hudmemo_text.is_some()
-                {
+                if pickup.hudmemo_text.is_some() {
                     let hudmemo_text = pickup.hudmemo_text.as_ref().unwrap();
 
                     // Get next ID //
-                    let strg_id = ResId::<res_id::STRG>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                    custom_asset_offset = custom_asset_offset + 1;
+                    let strg_id = ResId::<res_id::STRG>::new(
+                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                    );
+                    custom_asset_offset += 1;
 
                     // Build resource //
                     let strg = structs::ResourceKind::Strg(structs::Strg {
-                        string_tables: vec![
-                            structs::StrgStringTable {
-                                lang: b"ENGL".into(),
-                                strings: vec![format!("&just=center;{}\u{0}",
-                                                        hudmemo_text).into()].into(),
-                            },
-                        ].into(),
+                        string_tables: vec![structs::StrgStringTable {
+                            lang: b"ENGL".into(),
+                            strings: vec![format!("&just=center;{}\u{0}", hudmemo_text).into()]
+                                .into(),
+                        }]
+                        .into(),
                     });
                     let resource = build_resource(strg_id, strg);
                     assets.push(resource);
@@ -924,8 +1026,7 @@ pub fn custom_assets<'r>(
                 }
 
                 // Custom scan string
-                if pickup.scan_text.is_some()
-                {
+                if pickup.scan_text.is_some() {
                     let scan_text = pickup.scan_text.as_ref().unwrap();
 
                     // Check if this string already has a scan_id //
@@ -934,23 +1035,26 @@ pub fn custom_assets<'r>(
 
                         // Add this scan_id as a dep of this world if it wasn't already //
                         if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(scan_id.clone());
+                            local_savw_scans_to_add[world as usize].push(*scan_id);
                         }
 
                         // Map for easy lookup when patching //
                         let key = PickupHashKey::from_location(level_name, room_name, pickup_idx);
                         pickup_scans.insert(key, (*scan_id, *strg_id));
-                    }
-                    else
-                    {
+                    } else {
                         // Get next 2 IDs //
-                        let scan_id = ResId::<res_id::SCAN>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                        custom_asset_offset = custom_asset_offset + 1;
-                        let strg_id = ResId::<res_id::STRG>::new(custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset);
-                        custom_asset_offset = custom_asset_offset + 1;
+                        let scan_id = ResId::<res_id::SCAN>::new(
+                            custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                        );
+                        custom_asset_offset += 1;
+                        let strg_id = ResId::<res_id::STRG>::new(
+                            custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                        );
+                        custom_asset_offset += 1;
 
                         // Build resource //
-                        if room_name.trim().to_lowercase() == "research core" // make the research core scan red because it goes on the terminal
+                        if room_name.trim().to_lowercase() == "research core"
+                        // make the research core scan red because it goes on the terminal
                         {
                             assets.extend_from_slice(&create_item_scan_strg_pair_2(
                                 scan_id,
@@ -960,9 +1064,7 @@ pub fn custom_assets<'r>(
                                 0,
                                 config.version,
                             ));
-                        }
-                        else
-                        {
+                        } else {
                             assets.extend_from_slice(&create_item_scan_strg_pair(
                                 scan_id,
                                 strg_id,
@@ -981,7 +1083,7 @@ pub fn custom_assets<'r>(
                     }
                 }
 
-                pickup_idx = pickup_idx + 1;
+                pickup_idx += 1;
             }
         }
     }
@@ -990,7 +1092,9 @@ pub fn custom_assets<'r>(
     assets.push(build_resource(
         custom_asset_ids::WARPING_TO_START_STRG,
         structs::ResourceKind::Strg(structs::Strg::from_strings(vec![
-            "&just=center;Returning to starting room...\0".to_string().to_owned(),
+            "&just=center;Returning to starting room...\0"
+                .to_string()
+                .to_owned(),
         ])),
     ));
 
@@ -1007,31 +1111,30 @@ pub fn custom_assets<'r>(
     }
     assets.push(build_resource(
         custom_asset_ids::WARPING_TO_START_DELAY_STRG,
-        structs::ResourceKind::Strg(structs::Strg::from_strings(vec![
-            format!("&just=center;Warping in {}s...\0", warp_to_start_delay_s as u32).to_owned(),
-        ])),
+        structs::ResourceKind::Strg(structs::Strg::from_strings(vec![format!(
+            "&just=center;Warping in {}s...\0",
+            warp_to_start_delay_s as u32
+        )
+        .to_owned()])),
     ));
     assets.push(build_resource(
         custom_asset_ids::WARPING_TO_OTHER_STRG,
         structs::ResourceKind::Strg(structs::Strg::from_strings(vec![
-            format!("&just=center;Warping in 6s...\0").to_owned(),
+            "&just=center;Warping in 6s...\0".to_string().to_owned(),
         ])),
     ));
 
     // Custom block asset
     for gt in GenericTexture::iter() {
-        assets.push(
-            create_custom_block_cmdl(
-                resources,
-                gt.txtr(),
-                gt.cmdl(),
-            )
-        );
+        assets.push(create_custom_block_cmdl(resources, gt.txtr(), gt.cmdl()));
     }
 
     // Custom door assets
     for door_type in DoorType::iter() {
-        if door_type.shield_cmdl().to_u32() >= 0xDEAF0000 && door_type.shield_cmdl().to_u32() <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50 { // only if it doesn't exist in-game already
+        if door_type.shield_cmdl().to_u32() >= 0xDEAF0000
+            && door_type.shield_cmdl().to_u32() <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50
+        {
+            // only if it doesn't exist in-game already
             assets.push(create_custom_door_cmdl(resources, door_type));
 
             if door_type.scan() != ResId::invalid() || door_type.strg() != ResId::invalid() {
@@ -1043,16 +1146,14 @@ pub fn custom_assets<'r>(
                     continue; // Duplicate scan point
                 }
 
-                assets.extend_from_slice(
-                    &create_item_scan_strg_pair_2(
-                        door_type.scan(),
-                        door_type.strg(),
-                        door_type.scan_text(),
-                        1,
-                        0,
-                        config.version,
-                    )
-                );
+                assets.extend_from_slice(&create_item_scan_strg_pair_2(
+                    door_type.scan(),
+                    door_type.strg(),
+                    door_type.scan_text(),
+                    1,
+                    0,
+                    config.version,
+                ));
                 global_savw_scans_to_add.push(door_type.scan());
             }
         }
@@ -1060,11 +1161,16 @@ pub fn custom_assets<'r>(
 
     // Custom blast shield assets
     for blast_shield in BlastShieldType::iter() {
-        if blast_shield.cmdl().to_u32() >= 0xDEAF0000 && blast_shield.cmdl().to_u32() <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50 { // only if it doesn't exist in-game already
+        if blast_shield.cmdl().to_u32() >= 0xDEAF0000
+            && blast_shield.cmdl().to_u32() <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50
+        {
+            // only if it doesn't exist in-game already
             assets.push(create_custom_blast_shield_cmdl(blast_shield));
 
             if blast_shield.scan() != ResId::invalid() || blast_shield.strg() != ResId::invalid() {
-                if blast_shield.scan() == ResId::invalid() || blast_shield.strg() == ResId::invalid() {
+                if blast_shield.scan() == ResId::invalid()
+                    || blast_shield.strg() == ResId::invalid()
+                {
                     panic!("strg/scan do not make a pair");
                 }
 
@@ -1072,26 +1178,21 @@ pub fn custom_assets<'r>(
                     continue; // Duplicate scan point
                 }
 
-                assets.extend_from_slice(
-                    &create_item_scan_strg_pair_2(
-                        blast_shield.scan(),
-                        blast_shield.strg(),
-                        blast_shield.scan_text(),
-                        1,
-                        0,
-                        config.version,
-                    )
-                );
+                assets.extend_from_slice(&create_item_scan_strg_pair_2(
+                    blast_shield.scan(),
+                    blast_shield.strg(),
+                    blast_shield.scan_text(),
+                    1,
+                    0,
+                    config.version,
+                ));
                 global_savw_scans_to_add.push(blast_shield.scan());
             }
         } else {
             // If vanilla CMDL, then it can't depend on custom textures
-            assert!(
-                blast_shield.dependencies(true)
-                .iter()
-                .find(|d| d.0 >= 0xDEAF0000 && d.0 <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50)
-                .is_none()
-            );
+            assert!(!blast_shield.dependencies(true).iter().any(
+                |d| d.0 >= 0xDEAF0000 && d.0 <= custom_asset_ids::EXTRA_IDS_START.to_u32() + 50
+            ));
         }
     }
 
@@ -1114,19 +1215,23 @@ pub fn custom_assets<'r>(
         }
     }
 
-
-    Ok((assets, global_savw_scans_to_add, local_savw_scans_to_add, savw_scan_logbook_category, extern_models))
+    Ok((
+        assets,
+        global_savw_scans_to_add,
+        local_savw_scans_to_add,
+        savw_scan_logbook_category,
+        extern_models,
+    ))
 }
 
 // When modifying resources in an MREA, we need to give the room a copy of the resources/
 // assests used. Create a cache of all the resources needed by any pickup, door, etc...
+#[allow(clippy::type_complexity)]
 pub fn collect_game_resources<'r>(
     gc_disc: &structs::GcDisc<'r>,
     starting_memo: Option<&str>,
     config: &PatchConfig,
-)
-    ->
-    Result<
+) -> Result<
     (
         HashMap<(u32, FourCC), structs::Resource<'r>>,
         HashMap<PickupHashKey, ResId<res_id::STRG>>,
@@ -1134,12 +1239,12 @@ pub fn collect_game_resources<'r>(
         HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
         Vec<ResId<res_id::SCAN>>,
         Vec<Vec<ResId<res_id::SCAN>>>,
-        HashMap::<u32, u32>,
+        HashMap<u32, u32>,
         HashMap<String, ExternPickupModel>,
         Vec<structs::Resource<'r>>,
     ),
-    String>
-{
+    String,
+> {
     // Get list of all dependencies patcher needs //
     let mut looking_for = HashSet::<_>::new();
     looking_for.extend(PickupModel::iter().flat_map(|x| x.dependencies().iter().cloned()));
@@ -1148,7 +1253,7 @@ pub fn collect_game_resources<'r>(
     looking_for.extend(GenericTexture::iter().flat_map(|x| x.dependencies()));
     looking_for.extend(WaterType::iter().flat_map(|x| x.dependencies()));
 
-    let platform_deps: Vec<(u32,FourCC)> = vec![
+    let platform_deps: Vec<(u32, FourCC)> = vec![
         (0x48DF38A3, FourCC::from_bytes(b"CMDL")),
         (0xB2D50628, FourCC::from_bytes(b"DCLN")),
         (0x19C17D5C, FourCC::from_bytes(b"TXTR")),
@@ -1159,36 +1264,65 @@ pub fn collect_game_resources<'r>(
     ];
     looking_for.extend(platform_deps);
 
-    let platform_deps: Vec<(u32,FourCC)> = vec![
+    let platform_deps: Vec<(u32, FourCC)> = vec![
         (0x27D0663B, FourCC::from_bytes(b"CMDL")), // actually the block model but I'm lazy
+        (0x964E98AC, FourCC::from_bytes(b"DCLN")), // Perfect cube collision which goes with above CMDL
+        (0x910FF59C, FourCC::from_bytes(b"DCLN")), // Same as above, but scale=[1, 1, 0.5]
+        (0xA87758DC, FourCC::from_bytes(b"DCLN")), // Same as above, but scale=[2, 1, 0.5]
+        (0x19AD934F, FourCC::from_bytes(b"TXTR")),
+        (0xFF6F41A6, FourCC::from_bytes(b"TXTR")),
         (0xDCDFD386, FourCC::from_bytes(b"CMDL")),
         (0x6D412D11, FourCC::from_bytes(b"DCLN")),
         (0xEED972E7, FourCC::from_bytes(b"TXTR")),
         (0xF1478D6A, FourCC::from_bytes(b"TXTR")),
         (0xF89D34EF, FourCC::from_bytes(b"TXTR")),
+        (0x09D55763, FourCC::from_bytes(b"CMDL")),
+        (0x133336F4, FourCC::from_bytes(b"CMDL")),
+        (0x00F75174, FourCC::from_bytes(b"TXTR")),
+        (0x123A70A6, FourCC::from_bytes(b"TXTR")),
+        (0xB3A153C0, FourCC::from_bytes(b"TXTR")),
+        (0x57fe7e67, FourCC::from_bytes(b"AGSC")), // Misc.AGSC
+        (0x836c33b3, FourCC::from_bytes(b"ANCS")),
+        (0x6E5D6796, FourCC::from_bytes(b"CMDL")),
+        (0x0D36FB59, FourCC::from_bytes(b"TXTR")),
+        (0xACADD83F, FourCC::from_bytes(b"TXTR")),
     ];
     looking_for.extend(platform_deps);
 
-    let glow_ring: Vec<(u32,FourCC)> = vec![ // mapstation_beams.CMDL
+    let bomb_slot_deps: Vec<(u32, FourCC)> = vec![
+        (0x82A1E868, FourCC::from_bytes(b"CMDL")),
+        (0xD64787E8, FourCC::from_bytes(b"TXTR")),
+        (0x53A74797, FourCC::from_bytes(b"CMDL")),
+        (0x5B4D184E, FourCC::from_bytes(b"TXTR")),
+        (0x563799A1, FourCC::from_bytes(b"TXTR")),
+        (0xC11B62AF, FourCC::from_bytes(b"DCLN")),
+        (0x3852C9CF, FourCC::from_bytes(b"CMDL")),
+        (0x89CC3758, FourCC::from_bytes(b"DCLN")),
+        (0xA88267E6, FourCC::from_bytes(b"CMDL")),
+    ];
+    looking_for.extend(bomb_slot_deps);
+
+    let glow_ring: Vec<(u32, FourCC)> = vec![
+        // mapstation_beams.CMDL
         (0x12771AF0, FourCC::from_bytes(b"CMDL")),
         (0xA6114429, FourCC::from_bytes(b"TXTR")),
     ];
     looking_for.extend(glow_ring);
 
-    let orange_light: Vec<(u32,FourCC)> = vec![
-        (0xB4A658C3, FourCC::from_bytes(b"PART")),
-    ];
+    let orange_light: Vec<(u32, FourCC)> = vec![(0xB4A658C3, FourCC::from_bytes(b"PART"))];
     looking_for.extend(orange_light);
 
-    let gamecube: Vec<(u32,FourCC)> = vec![
-        (0x770939c0, FourCC::from_bytes(b"CMDL")),
-    ];
+    let gamecube: Vec<(u32, FourCC)> = vec![(0x770939c0, FourCC::from_bytes(b"CMDL"))];
     looking_for.extend(gamecube);
 
-    let ghost_ball: Vec<(u32,FourCC)> = vec![ // used for lock on point model
+    let ghost_ball: Vec<(u32, FourCC)> = vec![
+        // used for lock on point model
         (0xBFE4DAA0, FourCC::from_bytes(b"CMDL")),
+        (0x3801DE98, FourCC::from_bytes(b"CMDL")),
+        (0xF4BEE243, FourCC::from_bytes(b"DCLN")),
         (0x57C7107D, FourCC::from_bytes(b"TXTR")),
         (0xE580D665, FourCC::from_bytes(b"TXTR")),
+        (0xB3048E27, FourCC::from_bytes(b"TXTR")),
     ];
     looking_for.extend(ghost_ball);
 
@@ -1201,7 +1335,6 @@ pub fn collect_game_resources<'r>(
         (0xE436418D, FourCC::from_bytes(b"CINF")),
         (0xA1ED00B6, FourCC::from_bytes(b"ANIM")),
         (0xA7DDBDC4, FourCC::from_bytes(b"EVNT")),
-
         (0x3abe45a6, FourCC::from_bytes(b"SCAN")),
         (0x191a6881, FourCC::from_bytes(b"STRG")),
         (0x748c37a5, FourCC::from_bytes(b"SCAN")),
@@ -1231,13 +1364,13 @@ pub fn collect_game_resources<'r>(
 
     // Iterate through every level Pak //
     let mut paks: Vec<&str> = Vec::new();
-    for pak_name in pickup_meta::ROOM_INFO.iter().map(|(name, _)| name)
-    {
+    for pak_name in pickup_meta::ROOM_INFO.iter().map(|(name, _)| name) {
         paks.push(pak_name);
     }
     paks.push("AudioGrp.pak");
     paks.push("NoARAM.pak");
     paks.push("MiscData.pak");
+    paks.push("TestAnim.Pak");
     for pak_name in paks {
         let file_entry = gc_disc.find_file(pak_name).unwrap();
         let pak = match *file_entry.file().unwrap() {
@@ -1258,13 +1391,28 @@ pub fn collect_game_resources<'r>(
 
     // Maps pickup location to STRG to use
     let mut pickup_hudmemos = HashMap::<PickupHashKey, ResId<res_id::STRG>>::new();
-    let mut pickup_scans = HashMap::<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
-    let mut extra_scans = HashMap::<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
+    let mut pickup_scans =
+        HashMap::<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
+    let mut extra_scans =
+        HashMap::<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
 
     // Remove extra assets from dependency search since they won't appear     //
     // in any pak. Instead add them to the output resource pool. These assets //
     // are provided as external files checked into the repository.            //
-    let (custom_assets, global_savw_scans_to_add, local_savw_scans_to_add, savw_scan_logbook_category, extern_models) = custom_assets(&found, starting_memo, &mut pickup_hudmemos, &mut pickup_scans, &mut extra_scans, config)?;
+    let (
+        custom_assets,
+        global_savw_scans_to_add,
+        local_savw_scans_to_add,
+        savw_scan_logbook_category,
+        extern_models,
+    ) = custom_assets(
+        &found,
+        starting_memo,
+        &mut pickup_hudmemos,
+        &mut pickup_scans,
+        &mut extra_scans,
+        config,
+    )?;
     for res in custom_assets.iter() {
         let key = (res.file_id, res.fourcc());
         looking_for.remove(&key);
@@ -1275,16 +1423,24 @@ pub fn collect_game_resources<'r>(
         panic!("error - still looking for {:?}", looking_for);
     }
 
-    Ok((found, pickup_hudmemos, pickup_scans, extra_scans, global_savw_scans_to_add, local_savw_scans_to_add, savw_scan_logbook_category, extern_models, custom_assets))
+    Ok((
+        found,
+        pickup_hudmemos,
+        pickup_scans,
+        extra_scans,
+        global_savw_scans_to_add,
+        local_savw_scans_to_add,
+        savw_scan_logbook_category,
+        extern_models,
+        custom_assets,
+    ))
 }
 
 fn create_custom_block_cmdl<'r>(
-    resources: &HashMap<(u32, FourCC),
-    structs::Resource<'r>>,
-    txtr_id: ResId::<res_id::TXTR>,
-    new_cmdl_id: ResId::<res_id::CMDL>,
-) -> structs::Resource<'r>
-{
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    txtr_id: ResId<res_id::TXTR>,
+    new_cmdl_id: ResId<res_id::CMDL>,
+) -> structs::Resource<'r> {
     // Find and read the vanilla block cmdl
     let old_cmdl = ResourceData::new(&resources[&resource_info!("27D0663B.CMDL").into()]);
 
@@ -1293,7 +1449,9 @@ fn create_custom_block_cmdl<'r>(
     let mut new_cmdl = Reader::new(&old_cmdl_bytes[..]).read::<structs::Cmdl>(());
 
     // Modify the new CMDL to use custom textures
-    new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = txtr_id;
+    new_cmdl.material_sets.as_mut_vec()[0]
+        .texture_ids
+        .as_mut_vec()[0] = txtr_id;
 
     // Re-serialize the CMDL
     let mut new_cmdl_bytes = vec![];
@@ -1305,24 +1463,33 @@ fn create_custom_block_cmdl<'r>(
     // Return resource
     build_resource(
         new_cmdl_id,
-        structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+        structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
     )
 }
 
 fn create_custom_blast_shield_cmdl<'r>(
     blast_shield_type: BlastShieldType,
-) -> structs::Resource<'r>
-{
+) -> structs::Resource<'r> {
     // Create a copy of the bast model
     let old_cmdl = include_bytes!("../extra_assets/EFDFFB8C.CMDL");
     let mut new_cmdl = Reader::new(&old_cmdl[..]).read::<structs::Cmdl>(());
 
     // Modify the new CMDL to use custom textures
-    new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = blast_shield_type.glow_border_txtr();
-    new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[1] = blast_shield_type.glow_trim_txtr();
-    new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[2] = blast_shield_type.metal_body_txtr();
-    new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[3] = blast_shield_type.animated_glow_txtr();
-    new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[4] = blast_shield_type.metal_trim_txtr();
+    new_cmdl.material_sets.as_mut_vec()[0]
+        .texture_ids
+        .as_mut_vec()[0] = blast_shield_type.glow_border_txtr();
+    new_cmdl.material_sets.as_mut_vec()[0]
+        .texture_ids
+        .as_mut_vec()[1] = blast_shield_type.glow_trim_txtr();
+    new_cmdl.material_sets.as_mut_vec()[0]
+        .texture_ids
+        .as_mut_vec()[2] = blast_shield_type.metal_body_txtr();
+    new_cmdl.material_sets.as_mut_vec()[0]
+        .texture_ids
+        .as_mut_vec()[3] = blast_shield_type.animated_glow_txtr();
+    new_cmdl.material_sets.as_mut_vec()[0]
+        .texture_ids
+        .as_mut_vec()[4] = blast_shield_type.metal_trim_txtr();
 
     // Re-serialize the CMDL
     let mut new_cmdl_bytes = vec![];
@@ -1334,16 +1501,14 @@ fn create_custom_blast_shield_cmdl<'r>(
     // Return resource
     build_resource(
         blast_shield_type.cmdl(),
-        structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+        structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
     )
 }
 
 fn create_custom_door_cmdl<'r>(
-    resources: &HashMap<(u32, FourCC),
-    structs::Resource<'r>>,
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     door_type: DoorType,
-) -> structs::Resource<'r>
-{
+) -> structs::Resource<'r> {
     let new_cmdl_id: ResId<res_id::CMDL> = door_type.shield_cmdl();
     let new_txtr_id: ResId<res_id::TXTR> = door_type.holorim_txtr();
 
@@ -1351,7 +1516,8 @@ fn create_custom_door_cmdl<'r>(
         // Find and read the blue door CMDL
         let blue_door_cmdl = {
             if door_type.is_vertical() {
-                ResourceData::new(&resources[&resource_info!("18D0AEE6.CMDL").into()]) // actually white door but who cares
+                ResourceData::new(&resources[&resource_info!("18D0AEE6.CMDL").into()])
+            // actually white door but who cares
             } else {
                 ResourceData::new(&resources[&resource_info!("blueShield_v1.CMDL").into()])
             }
@@ -1362,7 +1528,9 @@ fn create_custom_door_cmdl<'r>(
         let mut new_cmdl = Reader::new(&blue_door_cmdl_bytes[..]).read::<structs::Cmdl>(());
 
         // Modify the new CMDL to make it unique
-        new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = new_txtr_id;
+        new_cmdl.material_sets.as_mut_vec()[0]
+            .texture_ids
+            .as_mut_vec()[0] = new_txtr_id;
 
         // Re-serialize the CMDL //
         let mut new_cmdl_bytes = vec![];
@@ -1375,7 +1543,7 @@ fn create_custom_door_cmdl<'r>(
         // Assemble into a proper resource object
         crate::custom_assets::build_resource(
             new_cmdl_id, // Custom ids start with 0xDEAFxxxx
-            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
         )
     };
 
@@ -1388,12 +1556,9 @@ fn create_nothing_icon_cmdl_and_ancs<'r>(
     new_ancs_id: ResId<res_id::ANCS>,
     new_txtr1: ResId<res_id::TXTR>,
     _new_txtr2: ResId<res_id::TXTR>,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     let new_suit_cmdl = {
-        let grav_suit_cmdl = ResourceData::new(
-            &resources[&resource_info!("Metroid.CMDL").into()]
-        );
+        let grav_suit_cmdl = ResourceData::new(&resources[&resource_info!("Metroid.CMDL").into()]);
         let cmdl_bytes = grav_suit_cmdl.decompress().into_owned();
         let mut cmdl: structs::Cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
 
@@ -1411,13 +1576,11 @@ fn create_nothing_icon_cmdl_and_ancs<'r>(
 
         build_resource(
             new_cmdl_id,
-            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
         )
     };
     let new_suit_ancs = {
-        let grav_suit_ancs = ResourceData::new(
-            &resources[&resource_info!("Node1_11.ANCS").into()]
-        );
+        let grav_suit_ancs = ResourceData::new(&resources[&resource_info!("Node1_11.ANCS").into()]);
         let ancs_bytes = grav_suit_ancs.decompress().into_owned();
         let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
 
@@ -1428,7 +1591,7 @@ fn create_nothing_icon_cmdl_and_ancs<'r>(
 
         build_resource(
             new_ancs_id,
-            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
         )
     };
     [new_suit_cmdl, new_suit_ancs]
@@ -1440,28 +1603,29 @@ fn create_randovania_gamecube_cmdl_and_ancs<'r>(
     new_ancs_id: ResId<res_id::ANCS>,
     new_txtr_id0: ResId<res_id::TXTR>,
     new_txtr_id1: ResId<res_id::TXTR>,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     let new_cmdl = {
         let old_cmdl = include_bytes!("../extra_assets/randovania_gamecube.CMDL");
         let mut new_cmdl = Reader::new(&old_cmdl[..]).read::<structs::Cmdl>(());
 
-        new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = new_txtr_id0;
-        new_cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[1] = new_txtr_id1;
+        new_cmdl.material_sets.as_mut_vec()[0]
+            .texture_ids
+            .as_mut_vec()[0] = new_txtr_id0;
+        new_cmdl.material_sets.as_mut_vec()[0]
+            .texture_ids
+            .as_mut_vec()[1] = new_txtr_id1;
 
         let mut new_cmdl_bytes = vec![];
         new_cmdl.write_to(&mut new_cmdl_bytes).unwrap();
 
         build_resource(
             new_cmdl_id,
-            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
         )
     };
 
     let new_ancs = {
-        let grav_suit_ancs = ResourceData::new(
-            &resources[&resource_info!("Node1_11.ANCS").into()]
-        );
+        let grav_suit_ancs = ResourceData::new(&resources[&resource_info!("Node1_11.ANCS").into()]);
         let ancs_bytes = grav_suit_ancs.decompress().into_owned();
         let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
 
@@ -1472,7 +1636,7 @@ fn create_randovania_gamecube_cmdl_and_ancs<'r>(
 
         build_resource(
             new_ancs_id,
-            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
         )
     };
 
@@ -1484,12 +1648,9 @@ fn create_visor_cmdl_and_ancs<'r>(
     new_cmdl_id: ResId<res_id::CMDL>,
     new_ancs_id: ResId<res_id::ANCS>,
     new_txtr: ResId<res_id::TXTR>,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     let new_cmdl = {
-        let old_cmdl = ResourceData::new(
-            &resources[&resource_info!("Node1_39_1.CMDL").into()]
-        );
+        let old_cmdl = ResourceData::new(&resources[&resource_info!("Node1_39_1.CMDL").into()]);
         let cmdl_bytes = old_cmdl.decompress().into_owned();
         let mut cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
 
@@ -1500,13 +1661,11 @@ fn create_visor_cmdl_and_ancs<'r>(
 
         build_resource(
             new_cmdl_id,
-            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
         )
     };
     let new_ancs = {
-        let old_ancs = ResourceData::new(
-            &resources[&resource_info!("Node1_39_1.ANCS").into()]
-        );
+        let old_ancs = ResourceData::new(&resources[&resource_info!("Node1_39_1.ANCS").into()]);
         let ancs_bytes = old_ancs.decompress().into_owned();
         let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
 
@@ -1517,7 +1676,7 @@ fn create_visor_cmdl_and_ancs<'r>(
 
         build_resource(
             new_ancs_id,
-            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
         )
     };
     [new_cmdl, new_ancs]
@@ -1529,12 +1688,9 @@ fn create_suit_icon_cmdl_and_ancs<'r>(
     new_ancs_id: ResId<res_id::ANCS>,
     new_txtr1: ResId<res_id::TXTR>,
     new_txtr2: ResId<res_id::TXTR>,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     let new_suit_cmdl = {
-        let grav_suit_cmdl = ResourceData::new(
-            &resources[&resource_info!("Node1_11.CMDL").into()]
-        );
+        let grav_suit_cmdl = ResourceData::new(&resources[&resource_info!("Node1_11.CMDL").into()]);
         let cmdl_bytes = grav_suit_cmdl.decompress().into_owned();
         let mut cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
 
@@ -1546,13 +1702,11 @@ fn create_suit_icon_cmdl_and_ancs<'r>(
 
         build_resource(
             new_cmdl_id,
-            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
         )
     };
     let new_suit_ancs = {
-        let grav_suit_ancs = ResourceData::new(
-            &resources[&resource_info!("Node1_11.ANCS").into()]
-        );
+        let grav_suit_ancs = ResourceData::new(&resources[&resource_info!("Node1_11.ANCS").into()]);
         let ancs_bytes = grav_suit_ancs.decompress().into_owned();
         let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
 
@@ -1563,7 +1717,7 @@ fn create_suit_icon_cmdl_and_ancs<'r>(
 
         build_resource(
             new_ancs_id,
-            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
         )
     };
     [new_suit_cmdl, new_suit_ancs]
@@ -1571,12 +1725,10 @@ fn create_suit_icon_cmdl_and_ancs<'r>(
 
 fn create_shiny_missile_assets<'r>(
     resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
-) -> [structs::Resource<'r>; 4]
-{
+) -> [structs::Resource<'r>; 4] {
     let shiny_missile_cmdl = {
-        let shiny_missile_cmdl = ResourceData::new(
-            &resources[&resource_info!("Node1_36_0.CMDL").into()]
-        );
+        let shiny_missile_cmdl =
+            ResourceData::new(&resources[&resource_info!("Node1_36_0.CMDL").into()]);
         let cmdl_bytes = shiny_missile_cmdl.decompress().into_owned();
         let mut cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
 
@@ -1584,36 +1736,39 @@ fn create_shiny_missile_assets<'r>(
             custom_asset_ids::SHINY_MISSILE_TXTR0,
             custom_asset_ids::SHINY_MISSILE_TXTR1,
             custom_asset_ids::SHINY_MISSILE_TXTR2,
-        ].into();
+        ]
+        .into();
 
         let mut new_cmdl_bytes = vec![];
         cmdl.write_to(&mut new_cmdl_bytes).unwrap();
 
         build_resource(
             custom_asset_ids::SHINY_MISSILE_CMDL,
-            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
         )
     };
     let shiny_missile_ancs = {
-        let shiny_missile_ancs = ResourceData::new(
-            &resources[&resource_info!("Node1_37_0.ANCS").into()]
-        );
+        let shiny_missile_ancs =
+            ResourceData::new(&resources[&resource_info!("Node1_37_0.ANCS").into()]);
         let ancs_bytes = shiny_missile_ancs.decompress().into_owned();
         let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
 
         ancs.char_set.char_info.as_mut_vec()[0].cmdl = custom_asset_ids::SHINY_MISSILE_CMDL;
-        ancs.char_set.char_info.as_mut_vec()[0].particles.part_assets = vec![
-            resource_info!("healthnew.PART").res_id
-        ].into();
+        ancs.char_set.char_info.as_mut_vec()[0]
+            .particles
+            .part_assets = vec![resource_info!("healthnew.PART").res_id].into();
         if let Some(animation_resources) = &mut ancs.anim_set.animation_resources {
             animation_resources.as_mut_vec()[0].evnt = custom_asset_ids::SHINY_MISSILE_EVNT;
             animation_resources.as_mut_vec()[0].anim = custom_asset_ids::SHINY_MISSILE_ANIM;
         }
 
         match &mut ancs.anim_set.animations.as_mut_vec()[..] {
-            [structs::Animation { meta: structs::MetaAnimation::Play(play), .. }] => {
+            [structs::Animation {
+                meta: structs::MetaAnimation::Play(play),
+                ..
+            }] => {
                 play.get_mut().anim = custom_asset_ids::SHINY_MISSILE_ANIM;
-            },
+            }
             _ => panic!(),
         }
 
@@ -1622,66 +1777,71 @@ fn create_shiny_missile_assets<'r>(
 
         build_resource(
             custom_asset_ids::SHINY_MISSILE_ANCS,
-            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
         )
     };
     let shiny_missile_evnt = {
         let mut evnt = resources[&resource_info!("Missile_Launcher_ready.EVNT").into()]
-            .kind.as_evnt()
-            .unwrap().into_owned();
-
+            .kind
+            .as_evnt()
+            .unwrap()
+            .into_owned();
 
         evnt.effect_events.as_mut_vec()[0].effect_file_id = resource_info!("healthnew.PART").res_id;
         evnt.effect_events.as_mut_vec()[1].effect_file_id = resource_info!("healthnew.PART").res_id;
 
         build_resource(
             custom_asset_ids::SHINY_MISSILE_EVNT,
-            structs::ResourceKind::Evnt(evnt)
+            structs::ResourceKind::Evnt(evnt),
         )
     };
     let shiny_missile_anim = {
-        let shiny_missile_anim = ResourceData::new(
-            &resources[&resource_info!("Missile_Launcher_ready.ANIM").into()]
-        );
+        let shiny_missile_anim =
+            ResourceData::new(&resources[&resource_info!("Missile_Launcher_ready.ANIM").into()]);
         let mut anim_bytes = shiny_missile_anim.decompress().into_owned();
-        custom_asset_ids::SHINY_MISSILE_EVNT.write_to(&mut std::io::Cursor::new(&mut anim_bytes[8..])).unwrap();
+        custom_asset_ids::SHINY_MISSILE_EVNT
+            .write_to(&mut std::io::Cursor::new(&mut anim_bytes[8..]))
+            .unwrap();
         build_resource(
             custom_asset_ids::SHINY_MISSILE_ANIM,
-            structs::ResourceKind::External(anim_bytes, b"ANIM".into())
+            structs::ResourceKind::External(anim_bytes, b"ANIM".into()),
         )
     };
-    [shiny_missile_cmdl, shiny_missile_ancs, shiny_missile_evnt, shiny_missile_anim]
+    [
+        shiny_missile_cmdl,
+        shiny_missile_ancs,
+        shiny_missile_evnt,
+        shiny_missile_anim,
+    ]
 }
 
 fn create_flamethrower_assets<'r>(
     resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     let cmdl = {
-        let cmdl = ResourceData::new(
-            &resources[&resource_info!("plasma_combo.CMDL").into()]
-        );
+        let cmdl = ResourceData::new(&resources[&resource_info!("plasma_combo.CMDL").into()]);
         let cmdl_bytes = cmdl.decompress().into_owned();
         let mut cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
 
-        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = custom_asset_ids::FLAMETHROWER_PICKUP_TXTR1; // 0x0a515bbb
-        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[1] = custom_asset_ids::FLAMETHROWER_PICKUP_TXTR2; // 0x3494c49b
-        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[2] = custom_asset_ids::FLAMETHROWER_PICKUP_TXTR3; // 0x5eddd583
-        // cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[3] = ; // 0xb59eb7e6
+        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] =
+            custom_asset_ids::FLAMETHROWER_PICKUP_TXTR1; // 0x0a515bbb
+        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[1] =
+            custom_asset_ids::FLAMETHROWER_PICKUP_TXTR2; // 0x3494c49b
+        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[2] =
+            custom_asset_ids::FLAMETHROWER_PICKUP_TXTR3; // 0x5eddd583
+                                                         // cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[3] = ; // 0xb59eb7e6
 
         let mut new_cmdl_bytes = vec![];
         cmdl.write_to(&mut new_cmdl_bytes).unwrap();
 
         build_resource(
             custom_asset_ids::FLAMETHROWER_PICKUP_CMDL,
-            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into())
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
         )
     };
 
     let ancs = {
-        let ancs = ResourceData::new(
-            &resources[&resource_info!("power_combo.ANCS").into()]
-        );
+        let ancs = ResourceData::new(&resources[&resource_info!("power_combo.ANCS").into()]);
         let ancs_bytes = ancs.decompress().into_owned();
         let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
 
@@ -1692,7 +1852,7 @@ fn create_flamethrower_assets<'r>(
 
         build_resource(
             custom_asset_ids::FLAMETHROWER_PICKUP_ANCS,
-            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
         )
     };
 
@@ -1703,12 +1863,9 @@ fn create_ice_trap_icon_ancs<'r>(
     resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     new_cmdl_id: ResId<res_id::CMDL>,
     new_ancs_id: ResId<res_id::ANCS>,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     let new_suit_ancs = {
-        let grav_suit_ancs = ResourceData::new(
-            &resources[&resource_info!("Node1_11.ANCS").into()]
-        );
+        let grav_suit_ancs = ResourceData::new(&resources[&resource_info!("Node1_11.ANCS").into()]);
         let ancs_bytes = grav_suit_ancs.decompress().into_owned();
         let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
 
@@ -1719,10 +1876,13 @@ fn create_ice_trap_icon_ancs<'r>(
 
         build_resource(
             new_ancs_id,
-            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into())
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
         )
     };
-    [resources[&resource_info!("new_ice_parasite_bound.CMDL").into()].clone(), new_suit_ancs]
+    [
+        resources[&resource_info!("new_ice_parasite_bound.CMDL").into()].clone(),
+        new_suit_ancs,
+    ]
 }
 
 fn create_item_scan_strg_pair<'r>(
@@ -1730,8 +1890,7 @@ fn create_item_scan_strg_pair<'r>(
     new_strg: ResId<res_id::STRG>,
     contents: String,
     version: Version,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     create_item_scan_strg_pair_2(new_scan, new_strg, vec![contents], 0, 0, version)
 }
 
@@ -1742,8 +1901,7 @@ fn create_item_scan_strg_pair_2<'r>(
     is_important: u8,
     logbook_category: u32,
     version: Version,
-) -> [structs::Resource<'r>; 2]
-{
+) -> [structs::Resource<'r>; 2] {
     let scan = build_resource(
         new_scan,
         structs::ResourceKind::Scan(structs::Scan {
@@ -1789,7 +1947,8 @@ fn create_item_scan_strg_pair_2<'r>(
                     interval: 0.0,
                     fade_duration: 0.0,
                 },
-            ].into(),
+            ]
+            .into(),
             padding: [255; 23].into(),
             _dummy: std::marker::PhantomData,
         }),
@@ -1803,10 +1962,7 @@ fn create_item_scan_strg_pair_2<'r>(
         structs::ResourceKind::Strg(structs::Strg::from_strings(contents))
     };
 
-    let strg = build_resource(
-        new_strg,
-        kind,
-    );
+    let strg = build_resource(new_strg, kind);
 
     [scan, strg]
 }

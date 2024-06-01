@@ -5,10 +5,6 @@ authors = ["April Wade <wayedt@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+byteorder.workspace = true
+generic-array.workspace = true
 ppcasm_macro = { path = "ppcasm_macro" }
-byteorder = "1.*"
-generic-array = "0.14"
-
-[[test]]
-name = "test_ppcasm"
-path = "tests/test.rs"

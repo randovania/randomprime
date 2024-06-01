@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PickupGenerator<'r>
-{
+pub struct PickupGenerator<'r> {
     #[auto_struct(expect = 4)]
     prop_count: u32,
 
@@ -19,7 +16,6 @@ pub struct PickupGenerator<'r>
     pub frequency: f32,
 }
 
-impl<'r> SclyPropertyData for PickupGenerator<'r>
-{
+impl<'r> SclyPropertyData for PickupGenerator<'r> {
     const OBJECT_TYPE: u8 = 0x40;
 }

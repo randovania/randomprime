@@ -16,13 +16,13 @@ To give you a taste of what's implemented, here are some highlighted features wh
 
 ## Usage
 
-- The application which best makes use of this program is [randovania](https://github.com/randovania/randovania). It's a full-GUI application centered around randomizing the game with various settings, even supporting co-operative multiworld.
+- The application which best makes use of this program is [randovania](https://github.com/randovania/randovania). It's a full-GUI application centered around randomizing the game with various settings, even supporting co-operative multiworld. It's implemented via the py-randomprime wrapper (described below)
 - Some "fanhacks" have been made utilizing the features exposed by this program more directly. They can be found in the [metroid-prime-fanhacks](https://github.com/toasterparty/metroid-prime-fanhacks) repository. Be sure to check out the [Creator's Guide](https://github.com/toasterparty/metroid-prime-fanhacks/blob/main/doc/readme.md) for an in-depth dive into the patcher API and how to use it.
-- [py-randomprime](https://github.com/randovania/py-randomprime) implements Python bindings for this project's feature set making it much more portable.
+- [py-randomprime](https://github.com/randovania/py-randomprime) implements Python bindings for this project's feature set making it much more portable. The py-randomprime repository also builds standalone windows executable files (`.exe`) and attaches them to each release.
 
 ## Documentation
 
-The API is documented thoroughly at [randovania.github.io/randomprime](https://randovania.github.io/randomprime). Though a bit dated, some auxillary documents which may be useful can be found in the [/doc/](./doc/) folder.
+The API is documented thoroughly at [randovania.org/randomprime](https://randovania.org/randomprime). Though a bit dated, some auxillary documents which may be useful can be found in the [/doc/](./doc/) folder.
 
 ## Changelog
 
@@ -36,6 +36,24 @@ Updates to this program are documented as part of the [py-randomprime Release Pr
 4. Run `cargo build`
 
 That should create a standalone executable in `./randomprime/target/debug/randomprime_patcher.exe`.
+
+Occasionally run `rustup update` to keep your toolchain version up-to-date.
+
+## Contributing
+
+In order to pass this project's Pull Request requirements, your proposed change must pass the following checks:
+
+```sh
+cargo fmt --check
+cargo clippy -- -D warnings
+```
+
+You can use these commands to fix most issues automatically:
+
+```sh
+cargo fmt
+cargo clippy --fix --allow-dirty
+```
 
 ## Resources
 

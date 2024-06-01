@@ -1,18 +1,15 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{
+    generic_array::GenericArray, typenum::*, IteratorArray, LazyArray, RoArray, RoArrayIter,
+};
 
-use reader_writer::{LazyArray, RoArray, RoArrayIter, IteratorArray};
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-
-use crate::ResId;
-use crate::res_id::*;
+use crate::{res_id::*, ResId};
 
 // We don't need to modify CMDLs, so most of the details are left out.
 // We only actually care about reading out the TXTR file ids.
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Cmdl<'r>
-{
+pub struct Cmdl<'r> {
     #[auto_struct(expect = 0xDEADBABE)]
     magic: u32,
 
@@ -43,8 +40,7 @@ pub struct Cmdl<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct CmdlMaterialSet<'r>
-{
+pub struct CmdlMaterialSet<'r> {
     #[auto_struct(args)]
     size: u32,
 
@@ -59,8 +55,7 @@ pub struct CmdlMaterialSet<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct CmdlDataSection<'r>
-{
+pub struct CmdlDataSection<'r> {
     #[auto_struct(args)]
     size: u32,
 

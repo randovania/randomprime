@@ -1,15 +1,11 @@
 use auto_struct_macros::auto_struct;
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::*;
-use crate::{impl_position, impl_rotation, impl_scale};
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct GunTurret<'r>
-{
+pub struct GunTurret<'r> {
     #[auto_struct(expect = 48)]
     pub prop_count: u32,
 
@@ -31,14 +27,13 @@ pub struct GunTurret<'r>
     pub damage_vulnerability: DamageVulnerability,
 
     pub into_deactivate_delay: f32,
-    pub reload_time: f32, // TODO: speed
+    pub reload_time: f32,
     pub reload_time_variance: f32,
 
     pub dont_care: GenericArray<u8, U146>,
 }
 
-impl<'r> SclyPropertyData for GunTurret<'r>
-{
+impl<'r> SclyPropertyData for GunTurret<'r> {
     const OBJECT_TYPE: u8 = 0x64;
 
     impl_position!();
@@ -48,9 +43,7 @@ impl<'r> SclyPropertyData for GunTurret<'r>
     const SUPPORTS_VULNERABILITIES: bool = true;
 
     fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
-        vec![
-            self.damage_vulnerability.clone(),
-        ]
+        vec![self.damage_vulnerability.clone()]
     }
 
     fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
@@ -60,9 +53,7 @@ impl<'r> SclyPropertyData for GunTurret<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.health_info.clone()
-        ]
+        vec![self.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

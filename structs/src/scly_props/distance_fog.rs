@@ -1,15 +1,11 @@
 use auto_struct_macros::auto_struct;
-
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct DistanceFog<'r>
-{
+pub struct DistanceFog<'r> {
     #[auto_struct(expect = 8)]
     prop_count: u32,
 
@@ -24,7 +20,6 @@ pub struct DistanceFog<'r>
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for DistanceFog<'r>
-{
+impl<'r> SclyPropertyData for DistanceFog<'r> {
     const OBJECT_TYPE: u8 = 0x35;
 }

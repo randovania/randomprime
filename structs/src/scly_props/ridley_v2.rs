@@ -1,10 +1,13 @@
 use auto_struct_macros::auto_struct;
-use crate::SclyPropertyData;
-use reader_writer::generic_array::GenericArray;
-use reader_writer::typenum::*;
-use reader_writer::CStr;
-use crate::res_id:: *;
-use crate::scly_props::structs::{ActorParameters, DamageInfo, PatternedInfo, RidleyStruct1, RidleyStruct2};
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{
+    res_id::*,
+    scly_props::structs::{
+        ActorParameters, DamageInfo, PatternedInfo, RidleyStruct1, RidleyStruct2,
+    },
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]

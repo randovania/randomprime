@@ -1,24 +1,21 @@
+use std::io;
 
 use auto_struct_macros::auto_struct;
-use reader_writer::{LCow, IteratorArray, Readable, Reader, RoArray, RoArrayIter, Writable, LazyArray};
-
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-
-use std::io;
+use reader_writer::{
+    generic_array::GenericArray, typenum::*, IteratorArray, LCow, LazyArray, Readable, Reader,
+    RoArray, RoArrayIter, Writable,
+};
 
 use crate::scly::Scly;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct Mrea<'r>
-{
+pub struct Mrea<'r> {
     #[auto_struct(expect = 0xDEADBEEF)]
     magic: u32,
 
     #[auto_struct(expect = 0xF)]
     version: u32,
-
 
     pub area_transform: GenericArray<f32, U12>,
     pub world_model_count: u32,
@@ -50,55 +47,59 @@ pub struct Mrea<'r>
     _pad: (),
 }
 
-impl<'r> Mrea<'r>
-{
-    pub fn scly_section<'s>(&'s self) -> LCow<'s, Scly<'r>>
-    {
-        let section = self.sections.iter().nth(self.scly_section_idx as usize).unwrap();
+impl<'r> Mrea<'r> {
+    pub fn scly_section<'s>(&'s self) -> LCow<'s, Scly<'r>> {
+        let section = self
+            .sections
+            .iter()
+            .nth(self.scly_section_idx as usize)
+            .unwrap();
         match section {
             LCow::Owned(MreaSection::Unknown(ref reader)) => LCow::Owned(reader.clone().read(())),
-            LCow::Borrowed(MreaSection::Unknown(ref reader)) => LCow::Owned(reader.clone().read(())),
+            LCow::Borrowed(MreaSection::Unknown(ref reader)) => {
+                LCow::Owned(reader.clone().read(()))
+            }
             LCow::Owned(MreaSection::Scly(scly)) => LCow::Owned(scly),
             LCow::Borrowed(MreaSection::Scly(scly)) => LCow::Borrowed(scly),
             _ => unreachable!(),
         }
     }
 
-    pub fn scly_section_mut(&mut self) -> &mut Scly<'r>
-    {
+    pub fn scly_section_mut(&mut self) -> &mut Scly<'r> {
         self.sections.as_mut_vec()[self.scly_section_idx as usize].convert_to_scly()
     }
 
-    pub fn lights_section<'s>(&'s self) -> LCow<'s, Lights<'r>>
-    {
-        let section = self.sections.iter().nth(self.lights_section_idx as usize).unwrap();
+    pub fn lights_section<'s>(&'s self) -> LCow<'s, Lights<'r>> {
+        let section = self
+            .sections
+            .iter()
+            .nth(self.lights_section_idx as usize)
+            .unwrap();
         match section {
             LCow::Owned(MreaSection::Unknown(ref reader)) => LCow::Owned(reader.clone().read(())),
-            LCow::Borrowed(MreaSection::Unknown(ref reader)) => LCow::Owned(reader.clone().read(())),
+            LCow::Borrowed(MreaSection::Unknown(ref reader)) => {
+                LCow::Owned(reader.clone().read(()))
+            }
             LCow::Owned(MreaSection::Lights(lights)) => LCow::Owned(lights),
             LCow::Borrowed(MreaSection::Lights(lights)) => LCow::Borrowed(lights),
             _ => panic!(),
         }
     }
 
-    pub fn lights_section_mut(&mut self) -> &mut Lights<'r>
-    {
+    pub fn lights_section_mut(&mut self) -> &mut Lights<'r> {
         self.sections.as_mut_vec()[self.lights_section_idx as usize].convert_to_lights()
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum MreaSection<'r>
-{
+pub enum MreaSection<'r> {
     Unknown(Reader<'r>),
     Scly(Scly<'r>),
     Lights(Lights<'r>),
 }
 
-impl<'r> MreaSection<'r>
-{
-    pub fn convert_to_scly(&mut self) -> &mut Scly<'r>
-    {
+impl<'r> MreaSection<'r> {
+    pub fn convert_to_scly(&mut self) -> &mut Scly<'r> {
         *self = match *self {
             MreaSection::Unknown(ref reader) => MreaSection::Scly(reader.clone().read(())),
             MreaSection::Scly(ref mut scly) => return scly,
@@ -110,8 +111,7 @@ impl<'r> MreaSection<'r>
         }
     }
 
-    pub fn convert_to_lights(&mut self) -> &mut Lights<'r>
-    {
+    pub fn convert_to_lights(&mut self) -> &mut Lights<'r> {
         *self = match *self {
             MreaSection::Unknown(ref reader) => MreaSection::Lights(reader.clone().read(())),
             MreaSection::Lights(ref mut lights) => return lights,
@@ -124,18 +124,15 @@ impl<'r> MreaSection<'r>
     }
 }
 
-impl<'r> Readable<'r> for MreaSection<'r>
-{
+impl<'r> Readable<'r> for MreaSection<'r> {
     type Args = u32;
-    fn read_from(reader: &mut Reader<'r>, size: u32) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, size: u32) -> Self {
         let res = MreaSection::Unknown(reader.truncated(size as usize));
         reader.advance(size as usize);
         res
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         match *self {
             MreaSection::Unknown(ref reader) => reader.len(),
             MreaSection::Scly(ref scly) => scly.size(),
@@ -144,15 +141,13 @@ impl<'r> Readable<'r> for MreaSection<'r>
     }
 }
 
-impl<'r> Writable for MreaSection<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for MreaSection<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match *self {
             MreaSection::Unknown(ref reader) => {
-                writer.write_all(&reader)?;
+                writer.write_all(reader)?;
                 Ok(reader.len() as u64)
-            },
+            }
             MreaSection::Scly(ref scly) => scly.write_to(writer),
             MreaSection::Lights(ref lights) => lights.write_to(writer),
         }
@@ -161,8 +156,7 @@ impl<'r> Writable for MreaSection<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Lights<'r>
-{
+pub struct Lights<'r> {
     #[auto_struct(expect = 0xBABEDEAD)]
     magic: u32,
 
@@ -177,8 +171,7 @@ pub struct Lights<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct LightLayer
-{
+pub struct LightLayer {
     pub light_type: u32,
 
     pub color: GenericArray<f32, U3>,

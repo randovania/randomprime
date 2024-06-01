@@ -1,11 +1,9 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::{FourCC, IteratorArray, LazyArray, Readable, RoArray, RoArrayIter};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Thp<'r>
-{
+pub struct Thp<'r> {
     #[auto_struct(expect = b"THP\0".into())]
     magic: FourCC,
 
@@ -39,10 +37,8 @@ pub struct Thp<'r>
     pub frames: LazyArray<'r, ThpFrameData<'r>>,
 }
 
-impl<'r> Thp<'r>
-{
-    pub fn update_sibling_frame_sizes(&mut self)
-    {
+impl<'r> Thp<'r> {
+    pub fn update_sibling_frame_sizes(&mut self) {
         if !self.frames.is_owned() {
             return;
         }
@@ -64,8 +60,7 @@ impl<'r> Thp<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ThpComponents<'r>
-{
+pub struct ThpComponents<'r> {
     pub component_count: u32,
     #[auto_struct(init = (16, ()))]
     pub component_types: RoArray<'r, u8>,
@@ -75,8 +70,7 @@ pub struct ThpComponents<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ThpComponent
-{
+pub struct ThpComponent {
     #[auto_struct(args)]
     kind: u8,
     #[auto_struct(init = if kind == 0 { Some(()) } else { None })]
@@ -87,16 +81,14 @@ pub struct ThpComponent
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct ThpVideoInfo
-{
+pub struct ThpVideoInfo {
     pub width: u32,
     pub height: u32,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct ThpAudioInfo
-{
+pub struct ThpAudioInfo {
     pub channels_count: u32,
     pub frequency: u32,
     pub samples_count: u32,
@@ -104,8 +96,7 @@ pub struct ThpAudioInfo
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ThpFrameData<'r>
-{
+pub struct ThpFrameData<'r> {
     #[auto_struct(args)]
     has_audio: bool,
     pub frame_size_next: u32,

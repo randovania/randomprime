@@ -2,8 +2,8 @@ include!(concat!(env!("OUT_DIR"), "/codegen.rs"));
 
 extern crate proc_macro;
 use proc_macro::TokenStream;
-use syn::{LitStr, parse_macro_input};
 use quote::quote;
+use syn::{parse_macro_input, LitStr};
 
 macro_rules! build_lookup_macros {
     ($(($macro_name:ident, $table_name:ident, $version_name:expr),)*) => {

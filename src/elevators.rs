@@ -1,7 +1,8 @@
 #![allow(unused)]
 
-use serde::Deserialize;
 use enum_map::{Enum, EnumMap};
+use serde::Deserialize;
+
 use crate::pickup_meta;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -17,8 +18,7 @@ pub enum World {
 }
 
 impl World {
-    pub fn iter() -> impl Iterator<Item = World>
-    {
+    pub fn iter() -> impl Iterator<Item = World> {
         [
             World::FrigateOrpheon,
             World::ChozoRuins,
@@ -28,75 +28,75 @@ impl World {
             World::MagmoorCaverns,
             World::ImpactCrater,
             World::EndCinema,
-        ].iter().map(|i| *i)
+        ]
+        .iter()
+        .copied()
     }
 
-    pub fn to_pak_str(&self) -> &'static str
-    {
+    pub fn to_pak_str(&self) -> &'static str {
         match self {
-            World::FrigateOrpheon  => "Metroid1.pak",
-            World::ChozoRuins      => "Metroid2.pak",
+            World::FrigateOrpheon => "Metroid1.pak",
+            World::ChozoRuins => "Metroid2.pak",
             World::PhendranaDrifts => "Metroid3.pak",
             World::TallonOverworld => "Metroid4.pak",
-            World::PhazonMines     => "metroid5.pak",
-            World::MagmoorCaverns  => "Metroid6.pak",
-            World::ImpactCrater    => "Metroid7.pak",
-            World::EndCinema       => "Metroid8.pak",
+            World::PhazonMines => "metroid5.pak",
+            World::MagmoorCaverns => "Metroid6.pak",
+            World::ImpactCrater => "Metroid7.pak",
+            World::EndCinema => "Metroid8.pak",
         }
     }
 
     pub fn from_pak(pak_str: &str) -> Option<Self> {
-        for world in World::iter() {
-            if pak_str.to_lowercase() == world.to_pak_str().to_lowercase() {
-                return Some(world);
-            }
-        }
-
-        None
+        World::iter().find(|&world| pak_str.to_lowercase() == world.to_pak_str().to_lowercase())
     }
 
     pub fn mlvl(&self) -> u32 {
         match self {
-            World::FrigateOrpheon  => 0x158efe17,
-            World::ChozoRuins      => 0x83f6ff6f,
+            World::FrigateOrpheon => 0x158efe17,
+            World::ChozoRuins => 0x83f6ff6f,
             World::PhendranaDrifts => 0xa8be6291,
             World::TallonOverworld => 0x39f2de28,
-            World::PhazonMines     => 0xb1ac4d65,
-            World::MagmoorCaverns  => 0x3ef8237c,
-            World::ImpactCrater    => 0xc13b09d1,
-            World::EndCinema       => 0x13D79165,
+            World::PhazonMines => 0xb1ac4d65,
+            World::MagmoorCaverns => 0x3ef8237c,
+            World::ImpactCrater => 0xc13b09d1,
+            World::EndCinema => 0x13D79165,
         }
     }
 
     pub fn to_str(&self) -> &'static str {
         match self {
-            World::FrigateOrpheon  => "Frigate Orpheon",
-            World::ChozoRuins      => "Chozo Ruins",
+            World::FrigateOrpheon => "Frigate Orpheon",
+            World::ChozoRuins => "Chozo Ruins",
             World::PhendranaDrifts => "Phendrana Drifts",
             World::TallonOverworld => "Tallon Overworld",
-            World::PhazonMines     => "Mines, Phazon",
-            World::MagmoorCaverns  => "Magmoor Caverns",
-            World::ImpactCrater    => "Crater, Impact",
-            World::EndCinema       => "End Cinema",
+            World::PhazonMines => "Mines, Phazon",
+            World::MagmoorCaverns => "Magmoor Caverns",
+            World::ImpactCrater => "Crater, Impact",
+            World::EndCinema => "End Cinema",
         }
     }
 
     pub fn to_json_key(&self) -> &'static str {
         match self {
-            World::FrigateOrpheon  => "Frigate Orpheon",
-            World::ChozoRuins      => "Chozo Ruins",
+            World::FrigateOrpheon => "Frigate Orpheon",
+            World::ChozoRuins => "Chozo Ruins",
             World::PhendranaDrifts => "Phendrana Drifts",
             World::TallonOverworld => "Tallon Overworld",
-            World::PhazonMines     => "Phazon Mines",
-            World::MagmoorCaverns  => "Magmoor Caverns",
-            World::ImpactCrater    => "Impact Crater",
-            World::EndCinema       => "End Cinema",
+            World::PhazonMines => "Phazon Mines",
+            World::MagmoorCaverns => "Magmoor Caverns",
+            World::ImpactCrater => "Impact Crater",
+            World::EndCinema => "End Cinema",
         }
     }
 
     pub fn from_json_key(string: &str) -> Self {
         for world in World::iter() {
-            if string.trim().to_lowercase() == world.to_json_key().to_lowercase() || world.to_str().to_lowercase().starts_with(&string.trim().to_lowercase()) {
+            if string.trim().to_lowercase() == world.to_json_key().to_lowercase()
+                || world
+                    .to_str()
+                    .to_lowercase()
+                    .starts_with(&string.trim().to_lowercase())
+            {
                 return world;
             }
         }
@@ -173,13 +173,13 @@ macro_rules! decl_elevators {
     };
 }
 
-impl Elevator
-{
+impl Elevator {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(name: &str) -> Option<Self> {
-        let mut name = name.to_lowercase().replace("\0","");
+        let mut name = name.to_lowercase().replace('\0', "");
         name.retain(|c| !c.is_whitespace());
         for elevator in Elevator::iter() {
-            let mut elevator_name = elevator.name.to_lowercase().replace("\0","");
+            let mut elevator_name = elevator.name.to_lowercase().replace('\0', "");
             elevator_name.retain(|c| !c.is_whitespace());
             if elevator_name == name {
                 return Some(elevator);
@@ -208,9 +208,9 @@ pub fn is_teleporter(mrea: u32) -> bool {
 
 pub fn is_elevator(mrea: u32) -> bool {
     for elv in Elevator::iter() {
-        if mrea == elv.elevator_data().mrea &&
-        mrea != Elevator::ArtifactTemple.elevator_data().mrea &&
-        mrea != Elevator::CraterEntryPoint.elevator_data().mrea
+        if mrea == elv.elevator_data().mrea
+            && mrea != Elevator::ArtifactTemple.elevator_data().mrea
+            && mrea != Elevator::CraterEntryPoint.elevator_data().mrea
         {
             return true;
         }
@@ -218,11 +218,9 @@ pub fn is_elevator(mrea: u32) -> bool {
     false
 }
 
-impl std::ops::Deref for Elevator
-{
+impl std::ops::Deref for Elevator {
     type Target = ElevatorData;
-    fn deref(&self) -> &Self::Target
-    {
+    fn deref(&self) -> &Self::Target {
         self.elevator_data()
     }
 }
@@ -616,10 +614,9 @@ macro_rules! decl_spawn_rooms {
     };
 }
 
-impl SpawnRoomData
-{
-    pub fn from_str(dest_name: &str) -> Self
-    {
+impl SpawnRoomData {
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(dest_name: &str) -> Self {
         let dest_name = dest_name.to_lowercase();
 
         // Handle special destinations //
@@ -637,23 +634,25 @@ impl SpawnRoomData
         }
 
         // Handle specific room destinations //
-        let vec: Vec<&str> = dest_name.split(":").collect();
+        let vec: Vec<&str> = dest_name.split(':').collect();
         if vec.len() != 2 {
             panic!("Error - Could not find destination '{}'", dest_name);
         }
         let world_name = vec[0].trim();
         let room_name = vec[1].trim();
 
-        for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() { // for each pak
+        for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+            // for each pak
             let world = World::from_pak(pak_name).unwrap();
 
             if world != World::from_json_key(world_name) {
                 continue;
             }
 
-            let mut idx: u32 = 0;
-            for room_info in rooms.iter() { // for each room in the pak
-                if room_info.name().to_lowercase().trim() == room_name { // trim both because "west tower " has an extra space in it
+            for (idx, room_info) in (0_u32..).zip(rooms.iter()) {
+                // for each room in the pak
+                if room_info.name().to_lowercase().trim() == room_name {
+                    // trim both because "west tower " has an extra space in it
                     return SpawnRoomData {
                         pak_name,
                         mlvl: world.mlvl(),
@@ -663,7 +662,6 @@ impl SpawnRoomData
                         name: room_info.name(),
                     };
                 }
-                idx = idx + 1;
             }
         }
 
@@ -671,42 +669,27 @@ impl SpawnRoomData
     }
 }
 
-impl std::ops::Deref for SpawnRoom
-{
+impl std::ops::Deref for SpawnRoom {
     type Target = SpawnRoomData;
-    fn deref(&self) -> &Self::Target
-    {
+    fn deref(&self) -> &Self::Target {
         self.spawn_room_data()
     }
 }
 
-impl PartialEq<Elevator> for SpawnRoom
-{
-    fn eq(&self, other: &Elevator) -> bool
-    {
+impl PartialEq<Elevator> for SpawnRoom {
+    fn eq(&self, other: &Elevator) -> bool {
         self == &SpawnRoom::Elevator(*other)
     }
 }
 
-impl From<Elevator> for SpawnRoom
-{
-    fn from(elv: Elevator) -> Self
-    {
+impl From<Elevator> for SpawnRoom {
+    fn from(elv: Elevator) -> Self {
         SpawnRoom::Elevator(elv)
     }
 }
 
-impl Default for SpawnRoom
-{
-    fn default() -> Self
-    {
-        SpawnRoom::FrigateExteriorDockingHangar
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SpawnRoomData
-{
+pub struct SpawnRoomData {
     pub pak_name: &'static str,
     pub mlvl: u32,
     pub mrea: u32,
@@ -716,10 +699,8 @@ pub struct SpawnRoomData
     pub name: &'static str,
 }
 
-impl From<ElevatorData> for SpawnRoomData
-{
-    fn from(elv: ElevatorData) -> Self
-    {
+impl From<ElevatorData> for SpawnRoomData {
+    fn from(elv: ElevatorData) -> Self {
         SpawnRoomData {
             pak_name: elv.pak_name,
             mlvl: elv.mlvl,
@@ -730,7 +711,6 @@ impl From<ElevatorData> for SpawnRoomData
         }
     }
 }
-
 
 decl_spawn_rooms! {
     LandingSite => {
@@ -763,4 +743,3 @@ decl_spawn_rooms! {
         name: "Frigate\0(Exterior Docking Hangar)",
     },
 }
-

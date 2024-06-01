@@ -1,11 +1,9 @@
 use auto_struct_macros::auto_struct;
-
-use reader_writer::{LazyArray};
+use reader_writer::LazyArray;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Mapw<'r>
-{
+pub struct Mapw<'r> {
     #[auto_struct(expect = 0xDEADF00D)]
     pub magic: u32,
     #[auto_struct(expect = 1)]

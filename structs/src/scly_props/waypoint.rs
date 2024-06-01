@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Waypoint<'r>
-{
+pub struct Waypoint<'r> {
     #[auto_struct(expect = 13)]
     prop_count: u32,
 
@@ -28,8 +25,7 @@ pub struct Waypoint<'r>
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for Waypoint<'r>
-{
+impl<'r> SclyPropertyData for Waypoint<'r> {
     const OBJECT_TYPE: u8 = 0x02;
     impl_position!();
     impl_rotation!();

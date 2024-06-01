@@ -1,16 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-
-use crate::scly_props::structs::DamageInfo;
-use crate::SclyPropertyData;
+use crate::{scly_props::structs::DamageInfo, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Trigger<'r>
-{
+pub struct Trigger<'r> {
     #[auto_struct(expect = 9)]
     prop_count: u32,
 
@@ -27,8 +22,7 @@ pub struct Trigger<'r>
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for Trigger<'r>
-{
+impl<'r> SclyPropertyData for Trigger<'r> {
     const OBJECT_TYPE: u8 = 0x04;
     impl_position!();
     impl_scale!();
@@ -36,12 +30,10 @@ impl<'r> SclyPropertyData for Trigger<'r>
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
-        vec![
-            self.damage_info.clone(),
-        ]
+        vec![self.damage_info]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.damage_info = x[0].clone();
+        self.damage_info = x[0];
     }
 }

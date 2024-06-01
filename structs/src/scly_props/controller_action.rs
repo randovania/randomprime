@@ -5,17 +5,17 @@ use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Switch<'r> {
+pub struct ControllerAction<'r> {
     #[auto_struct(expect = 4)]
     pub prop_count: u32,
 
     pub name: CStr<'r>,
 
     pub active: u8,
-    pub open: u8,
-    pub auto_close: u8,
+    pub action: u32,
+    pub one_shot: u8,
 }
 
-impl<'r> SclyPropertyData for Switch<'r> {
-    const OBJECT_TYPE: u8 = 0x56;
+impl<'r> SclyPropertyData for ControllerAction<'r> {
+    const OBJECT_TYPE: u8 = 0x55;
 }

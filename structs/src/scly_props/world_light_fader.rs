@@ -5,15 +5,16 @@ use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MemoryRelay<'r> {
-    #[auto_struct(expect = 3)]
+pub struct WorldLightFader<'r> {
+    #[auto_struct(expect = 4)]
     prop_count: u32,
 
     pub name: CStr<'r>,
-    pub unknown: u8,
     pub active: u8,
+    pub faded_light_level: f32,
+    pub fade_speed: f32,
 }
 
-impl<'r> SclyPropertyData for MemoryRelay<'r> {
-    const OBJECT_TYPE: u8 = 0x13;
+impl<'r> SclyPropertyData for WorldLightFader<'r> {
+    const OBJECT_TYPE: u8 = 0x82;
 }

@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr, CStrConversionExtension};
 
-use reader_writer::{CStr, CStrConversionExtension};
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct SpecialFunction<'r>
-{
+pub struct SpecialFunction<'r> {
     #[auto_struct(expect = 15)]
     prop_count: u32,
 
@@ -38,19 +35,16 @@ pub struct SpecialFunction<'r>
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for SpecialFunction<'r>
-{
+impl<'r> SclyPropertyData for SpecialFunction<'r> {
     const OBJECT_TYPE: u8 = 0x3A;
     impl_position!();
     impl_rotation!();
 }
 
-impl<'r> SpecialFunction<'r>
-{
-    pub fn layer_change_fn(name: CStr<'r>, room_id: u32, layer_num: u32) -> Self
-    {
+impl<'r> SpecialFunction<'r> {
+    pub fn layer_change_fn(name: CStr<'r>, room_id: u32, layer_num: u32) -> Self {
         SpecialFunction {
-            name: name,
+            name,
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 16,
@@ -69,10 +63,9 @@ impl<'r> SpecialFunction<'r>
         }
     }
 
-    pub fn ice_trap_fn(name: CStr<'r>) -> Self
-    {
+    pub fn ice_trap_fn(name: CStr<'r>) -> Self {
         SpecialFunction {
-            name: name,
+            name,
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 33,

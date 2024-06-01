@@ -1,11 +1,7 @@
-use std::{
-    marker::PhantomData,
-    io,
-    borrow::Borrow,
-};
+use std::{borrow::Borrow, io, marker::PhantomData};
 
 use crate::{
-    reader::{Reader, Readable},
+    reader::{Readable, Reader},
     writer::Writable,
 };
 
@@ -16,43 +12,43 @@ use crate::{
 /// the write method of each item in the wrapped iterator.
 #[derive(Clone)]
 pub struct Dap<I, T>(I, PhantomData<*const T>)
-    where I: Iterator + Clone,
-          I::Item: Borrow<T>;
+where
+    I: Iterator + Clone,
+    I::Item: Borrow<T>;
 
 impl<I, T> Dap<I, T>
-    where I: Iterator + Clone,
-          I::Item: Borrow<T>,
+where
+    I: Iterator + Clone,
+    I::Item: Borrow<T>,
 {
-    pub fn new(i: I) -> Dap<I, T>
-    {
+    pub fn new(i: I) -> Dap<I, T> {
         Dap(i, PhantomData)
     }
 }
 
 impl<'r, I, T> Readable<'r> for Dap<I, T>
-    where I: Iterator + Clone,
-          I::Item: Borrow<T>,
-          T: Readable<'r>,
+where
+    I: Iterator + Clone,
+    I::Item: Borrow<T>,
+    T: Readable<'r>,
 {
     type Args = ();
-    fn read_from(_: &mut Reader<'r>, (): ()) -> Self
-    {
+    fn read_from(_: &mut Reader<'r>, (): ()) -> Self {
         panic!("Dap should not ever be read.")
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         self.0.clone().map(|t| t.borrow().size()).sum()
     }
 }
 
 impl<I, T> Writable for Dap<I, T>
-    where I: Iterator + Clone,
-          I::Item: Borrow<T>,
-          T: Writable
+where
+    I: Iterator + Clone,
+    I::Item: Borrow<T>,
+    T: Writable,
 {
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let mut s = 0;
         for e in self.0.clone() {
             s += e.borrow().write_to(writer)?
@@ -62,16 +58,15 @@ impl<I, T> Writable for Dap<I, T>
 }
 
 impl<I, T> From<I> for Dap<I, T>
-    where I: Iterator + Clone,
-          I::Item: Borrow<T>,
+where
+    I: Iterator + Clone,
+    I::Item: Borrow<T>,
 {
-    fn from(iter: I) -> Self
-    {
+    fn from(iter: I) -> Self {
         Dap::new(iter)
     }
 }
 
-pub trait DerivableFromIterator
-{
+pub trait DerivableFromIterator {
     type Item;
 }

@@ -1,18 +1,14 @@
-use auto_struct_macros::auto_struct;
-use crate::ResId;
-use crate::res_id:: *;
-
-use reader_writer::{
-    CStr, FourCC, LazyArray, IteratorArray, Readable, Reader, RoArray, Uncached, RoArrayIter,
-    Writable,
-};
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-
 use std::io;
 
-fn bool_to_opt(b: bool) -> Option<()>
-{
+use auto_struct_macros::auto_struct;
+use reader_writer::{
+    generic_array::GenericArray, typenum::*, CStr, FourCC, IteratorArray, LazyArray, Readable,
+    Reader, RoArray, RoArrayIter, Uncached, Writable,
+};
+
+use crate::{res_id::*, ResId};
+
+fn bool_to_opt(b: bool) -> Option<()> {
     if b {
         Some(())
     } else {
@@ -22,8 +18,7 @@ fn bool_to_opt(b: bool) -> Option<()>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Ancs<'r>
-{
+pub struct Ancs<'r> {
     #[auto_struct(expect = 1)]
     version: u16,
 
@@ -33,8 +28,7 @@ pub struct Ancs<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct CharacterSet<'r>
-{
+pub struct CharacterSet<'r> {
     #[auto_struct(expect = 1)]
     version: u16,
 
@@ -46,8 +40,7 @@ pub struct CharacterSet<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct CharacterInfo<'r>
-{
+pub struct CharacterInfo<'r> {
     pub id: u32,
 
     pub info_type_count: u16,
@@ -103,11 +96,9 @@ pub struct CharacterInfo<'r>
     pub animation_indexed_aabbs: Option<RoArray<'r, AnimationIndexedAABB>>,
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct AnimationName<'r>
-{
+pub struct AnimationName<'r> {
     #[auto_struct(args)]
     info_type_count: u16,
 
@@ -117,11 +108,9 @@ pub struct AnimationName<'r>
     pub name: CStr<'r>,
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PasDatabase<'r>
-{
+pub struct PasDatabase<'r> {
     #[auto_struct(expect = FourCC::from_bytes(b"PAS4"))]
     magic: FourCC,
 
@@ -135,8 +124,7 @@ pub struct PasDatabase<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PasAnimState<'r>
-{
+pub struct PasAnimState<'r> {
     pub unknown: u32,
     pub param_info_count: u32,
     pub anim_info_count: u32,
@@ -148,8 +136,7 @@ pub struct PasAnimState<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PasAnimStateParamInfo<'r>
-{
+pub struct PasAnimStateParamInfo<'r> {
     pub param_type: u32,
     pub unknown0: u32,
     pub unknown1: f32,
@@ -161,20 +148,22 @@ pub struct PasAnimStateParamInfo<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PasAnimStateAnimInfo<'r>
-{
+pub struct PasAnimStateAnimInfo<'r> {
     #[auto_struct(args)]
     param_info: RoArray<'r, PasAnimStateParamInfo<'r>>,
 
     pub unknown: u32,
     #[auto_struct(init = param_info.iter())]
-    pub items: IteratorArray<'r, PasAnimStateAnimInfoInner<'r>, RoArrayIter<'r, PasAnimStateParamInfo<'r>>>,
+    pub items: IteratorArray<
+        'r,
+        PasAnimStateAnimInfoInner<'r>,
+        RoArrayIter<'r, PasAnimStateParamInfo<'r>>,
+    >,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PasAnimStateAnimInfoInner<'r>
-{
+pub struct PasAnimStateAnimInfoInner<'r> {
     #[auto_struct(args)]
     param_info: PasAnimStateParamInfo<'r>,
     #[auto_struct(init = (if param_info.param_type == 3 { 1 } else { 4 }, ()))]
@@ -185,8 +174,7 @@ pub struct PasAnimStateAnimInfoInner<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ParticleResData<'r>
-{
+pub struct ParticleResData<'r> {
     #[auto_struct(args)]
     info_type_count: u16,
 
@@ -213,25 +201,21 @@ pub struct ParticleResData<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct AnimationAABB<'r>
-{
+pub struct AnimationAABB<'r> {
     pub name: CStr<'r>,
     pub aabb: GenericArray<f32, U6>,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct AnimationIndexedAABB
-{
+pub struct AnimationIndexedAABB {
     pub index: u32,
     pub aabb: GenericArray<f32, U6>,
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Effect<'r>
-{
+pub struct Effect<'r> {
     pub name: CStr<'r>,
     pub component_count: u32,
     #[auto_struct(init = (component_count as usize, ()))]
@@ -240,8 +224,7 @@ pub struct Effect<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct EffectComponent<'r>
-{
+pub struct EffectComponent<'r> {
     pub name: CStr<'r>,
     pub type_: FourCC,
     pub file_id: u32,
@@ -251,11 +234,9 @@ pub struct EffectComponent<'r>
     pub flags: u32,
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct AnimationSet<'r>
-{
+pub struct AnimationSet<'r> {
     pub info_count: u16,
 
     #[auto_struct(derive = animations.len() as u32)]
@@ -288,19 +269,16 @@ pub struct AnimationSet<'r>
     pub animation_resources: Option<LazyArray<'r, AnimationResource>>,
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Animation<'r>
-{
+pub struct Animation<'r> {
     pub name: CStr<'r>,
     pub meta: MetaAnimation<'r>,
 }
 
 // Uncached allows for recursion without the struct having infinite size
 #[derive(Debug, Clone)]
-pub enum MetaAnimation<'r>
-{
+pub enum MetaAnimation<'r> {
     Play(Uncached<'r, MetaAnimationPlay<'r>>),
     Blend(Uncached<'r, MetaAnimationBlend<'r>>),
     PhaseBlend(Uncached<'r, MetaAnimationBlend<'r>>),
@@ -308,12 +286,9 @@ pub enum MetaAnimation<'r>
     Sequence(Uncached<'r, MetaAnimationSequence<'r>>),
 }
 
-
-impl<'r> Readable<'r> for MetaAnimation<'r>
-{
+impl<'r> Readable<'r> for MetaAnimation<'r> {
     type Args = ();
-    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self {
         let kind: u32 = reader.read(());
         let res = match kind {
             0 => MetaAnimation::Play(reader.read(())),
@@ -326,22 +301,20 @@ impl<'r> Readable<'r> for MetaAnimation<'r>
         res
     }
 
-    fn size(&self) -> usize
-    {
-        u32::fixed_size().unwrap() + match *self {
-            MetaAnimation::Play(ref i) => i.size(),
-            MetaAnimation::Blend(ref i) => i.size(),
-            MetaAnimation::PhaseBlend(ref i) => i.size(),
-            MetaAnimation::Random(ref i) => i.size(),
-            MetaAnimation::Sequence(ref i) => i.size(),
-        }
+    fn size(&self) -> usize {
+        u32::fixed_size().unwrap()
+            + match *self {
+                MetaAnimation::Play(ref i) => i.size(),
+                MetaAnimation::Blend(ref i) => i.size(),
+                MetaAnimation::PhaseBlend(ref i) => i.size(),
+                MetaAnimation::Random(ref i) => i.size(),
+                MetaAnimation::Sequence(ref i) => i.size(),
+            }
     }
 }
 
-impl<'r> Writable for MetaAnimation<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for MetaAnimation<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         Ok(match self {
             MetaAnimation::Play(i) => 0u32.write_to(writer)? + i.write_to(writer)?,
             MetaAnimation::Blend(i) => 1u32.write_to(writer)? + i.write_to(writer)?,
@@ -352,11 +325,9 @@ impl<'r> Writable for MetaAnimation<'r>
     }
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MetaAnimationPlay<'r>
-{
+pub struct MetaAnimationPlay<'r> {
     pub anim: ResId<ANIM>,
     pub index: u32,
     pub name: CStr<'r>,
@@ -366,8 +337,7 @@ pub struct MetaAnimationPlay<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MetaAnimationBlend<'r>
-{
+pub struct MetaAnimationBlend<'r> {
     pub anim_a: MetaAnimation<'r>,
     pub anim_b: MetaAnimation<'r>,
     pub unknown0: f32,
@@ -376,8 +346,7 @@ pub struct MetaAnimationBlend<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MetaAnimationRandom<'r>
-{
+pub struct MetaAnimationRandom<'r> {
     pub anim_count: u32,
     #[auto_struct(init = (anim_count as usize, ()))]
     pub anims: RoArray<'r, MetaAnimationRandomPair<'r>>,
@@ -385,16 +354,14 @@ pub struct MetaAnimationRandom<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MetaAnimationRandomPair<'r>
-{
+pub struct MetaAnimationRandomPair<'r> {
     pub meta: MetaAnimation<'r>,
     pub probability: u32,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MetaAnimationSequence<'r>
-{
+pub struct MetaAnimationSequence<'r> {
     pub anim_count: u32,
     #[auto_struct(init = (anim_count as usize, ()))]
     pub anims: RoArray<'r, MetaAnimation<'r>>,
@@ -402,8 +369,7 @@ pub struct MetaAnimationSequence<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Transition<'r>
-{
+pub struct Transition<'r> {
     pub unknown: u32,
     pub anim_index_a: u32,
     pub anim_index_b: u32,
@@ -411,19 +377,16 @@ pub struct Transition<'r>
 }
 
 #[derive(Debug, Clone)]
-pub enum MetaTransition<'r>
-{
+pub enum MetaTransition<'r> {
     Animation(Uncached<'r, MetaTransitionAnimation<'r>>),
     Transition(Uncached<'r, MetaTransitionTransition>),
     PhaseTransition(Uncached<'r, MetaTransitionTransition>),
     NoTransition,
 }
 
-impl<'r> Readable<'r> for MetaTransition<'r>
-{
+impl<'r> Readable<'r> for MetaTransition<'r> {
     type Args = ();
-    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self {
         let kind: u32 = reader.read(());
         let res = match kind {
             0 => MetaTransition::Animation(reader.read(())),
@@ -435,21 +398,19 @@ impl<'r> Readable<'r> for MetaTransition<'r>
         res
     }
 
-    fn size(&self) -> usize
-    {
-        u32::fixed_size().unwrap() + match *self {
-            MetaTransition::Animation(ref i) => i.size(),
-            MetaTransition::Transition(ref i) => i.size(),
-            MetaTransition::PhaseTransition(ref i) => i.size(),
-            MetaTransition::NoTransition => 0,
-        }
+    fn size(&self) -> usize {
+        u32::fixed_size().unwrap()
+            + match *self {
+                MetaTransition::Animation(ref i) => i.size(),
+                MetaTransition::Transition(ref i) => i.size(),
+                MetaTransition::PhaseTransition(ref i) => i.size(),
+                MetaTransition::NoTransition => 0,
+            }
     }
 }
 
-impl<'r> Writable for MetaTransition<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for MetaTransition<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         Ok(match self {
             MetaTransition::Animation(i) => 0u32.write_to(writer)? + i.write_to(writer)?,
             MetaTransition::Transition(i) => 1u32.write_to(writer)? + i.write_to(writer)?,
@@ -461,15 +422,13 @@ impl<'r> Writable for MetaTransition<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MetaTransitionAnimation<'r>
-{
+pub struct MetaTransitionAnimation<'r> {
     pub meta: MetaAnimation<'r>,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct MetaTransitionTransition
-{
+pub struct MetaTransitionTransition {
     pub time: f32,
     pub unknown0: u32,
     pub unknown1: u8,
@@ -477,11 +436,9 @@ pub struct MetaTransitionTransition
     pub unknown3: u32,
 }
 
-
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct AdditiveAnimation
-{
+pub struct AdditiveAnimation {
     pub index: u32,
     pub fade_in: f32,
     pub fade_out: f32,
@@ -489,16 +446,14 @@ pub struct AdditiveAnimation
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct HalfTransition<'r>
-{
+pub struct HalfTransition<'r> {
     pub index: u32,
     pub meta: MetaTransition<'r>,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct AnimationResource
-{
+pub struct AnimationResource {
     pub anim: ResId<ANIM>,
     pub evnt: ResId<EVNT>,
 }
