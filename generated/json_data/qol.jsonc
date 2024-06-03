@@ -2086,38 +2086,26 @@
                     "addConnections": [
                         {
                             "senderId": 3145758, // [Trigger] MasterTrigger
-                            "targetId": 3175736, // [Relay] No Music
+                            "targetId": 3149741, // [Switch] OPEN: Play Music / CLOSED: Stop Music
                             "state": "INACTIVE",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3145758, // [Trigger] MasterTrigger
-                            "targetId": 3149741, // [Relay] Yes Music
-                            "state": "INACTIVE",
-                            "message": "ACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 3145756, // [SpecialFunction] Music Player For Area
-                            "targetId": 3149741, // [Relay] Yes Music
+                            "targetId": 3149741, // [Switch] OPEN: Play Music / CLOSED: Stop Music
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 3145756, // [SpecialFunction] Music Player For Area
-                            "targetId": 3175736, // [Relay] No Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 3149741, // [Relay] Yes Music
+                            "senderId": 3149741, // [Switch] OPEN: Play Music / CLOSED: Stop Music
                             "targetId": 3155830, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
+                            "state": "OPEN",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 3175736, // [Relay] No Music
+                            "senderId": 3149741, // [Switch] OPEN: Play Music / CLOSED: Stop Music
                             "targetId": 3155830, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "STOP"
                         }
                     ],
@@ -2143,13 +2131,9 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 3175736 // [Relay] No Music
-                        },
-                        {
-                            "id": 3149741, // [Relay] Yes Music
-                            "active": false
+                            "id": 3149741 // [Switch] OPEN: Play Music / CLOSED: Stop Music
                         }
                     ]
                 },
@@ -7918,20 +7902,6 @@
                     ]
                 },
                 "Research Entrance": {
-                    "editObjs": {
-                        // [Actor] Actor
-                        "1311208": {
-                            "layer": 4
-                        },
-                        // [Effect] Effect_spotlight
-                        "1311209": {
-                            "layer": 4
-                        },
-                        // [Timer] Timer - Spot light delay
-                        "1311447": {
-                            "layer": 4
-                        }
-                    },
                     "deleteIds": [
                         1311600,
                         1311601,
