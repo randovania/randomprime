@@ -8,10 +8,10 @@ use crate::{
     door_meta::DoorType,
     mlvl_wrapper,
     patch_config::{
-        ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
-        CameraFilterKeyframeConfig, CameraWaypointConfig, ControllerActionConfig, CounterConfig,
-        DamageType, FogConfig, GenericTexture, HudmemoConfig, LockOnPoint, PlatformConfig,
-        PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig,
+        ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig, CameraHintTriggerConfig,
+        CameraFilterKeyframeConfig, CameraHintConfig, CameraWaypointConfig, ControllerActionConfig,
+        CounterConfig, DamageType, FogConfig, GenericTexture, HudmemoConfig, LockOnPoint, 
+        PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig,
         SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig,
         WaterConfig, WaypointConfig, WorldLightFaderConfig,
     },
@@ -1911,6 +1911,338 @@ pub fn patch_add_camera_filter_keyframe(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
+pub fn patch_add_camera_hint(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: CameraHintConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::CameraHint {
+                name: b"my camerahint\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+                priority: config.priority.unwrap_or(10) as u32,
+                behaviour: config.behaviour as u32,
+
+                camera_hint_params: structs::CameraHintParameters {
+                    calculate_cam_pos: config.calculate_cam_pos.unwrap_or(false) as u8,
+                    chase_allowed: config.chase_allowed.unwrap_or(false) as u8,
+                    boost_allowed: config.boost_allowed.unwrap_or(false) as u8,
+                    obscure_avoidance: config.obscure_avoidance.unwrap_or(false) as u8,
+                    volume_collider: config.volume_collider.unwrap_or(false) as u8,
+                    apply_immediately: config.apply_immediately.unwrap_or(false) as u8,
+                    look_at_ball: config.look_at_ball.unwrap_or(false) as u8,
+                    hint_distance_selection: config.hint_distance_selection.unwrap_or(false) as u8,
+                    hint_distance_self_pos: config.hint_distance_self_pos.unwrap_or(false) as u8,
+                    control_interpolation: config.control_interpolation.unwrap_or(false) as u8,
+                    sinusoidal_interpolation: config.sinusoidal_interpolation.unwrap_or(false) as u8,
+                    sinusoidal_interpolation_hintless: config.sinusoidal_interpolation_hintless.unwrap_or(false) as u8,
+                    clamp_velocity: config.clamp_velocity.unwrap_or(false) as u8,
+                    skip_cinematic: config.skip_cinematic.unwrap_or(false) as u8,
+                    no_elevation_interp: config.no_elevation_interp.unwrap_or(false) as u8,
+                    direct_elevation: config.direct_elevation.unwrap_or(false) as u8,
+                    override_look_dir: config.override_look_dir.unwrap_or(false) as u8,
+                    no_elevation_vel_clamp: config.no_elevation_vel_clamp.unwrap_or(false) as u8,
+                    calculate_transform_from_prev_cam: config.calculate_transform_from_prev_cam.unwrap_or(false) as u8,
+                    no_spline: config.no_spline.unwrap_or(false) as u8,
+                    unknown1: config.unknown1.unwrap_or(false) as u8,
+                    unknown2: config.unknown2.unwrap_or(false) as u8,
+                }
+                .into(),
+
+                min_dist: structs::BoolFloat {
+                    override_flags: config.override_min_dist.unwrap_or(false) as u8,
+                    value: config.min_dist.unwrap_or(8.0) as f32,
+                }
+                .into(),
+                max_dist: structs::BoolFloat {
+                    override_flags: config.override_max_dist.unwrap_or(false) as u8,
+                    value: config.max_dist.unwrap_or(8.0) as f32,
+                }
+                .into(),
+                backwards_dist: structs::BoolFloat {
+                    override_flags: config.override_backwards_dist.unwrap_or(false) as u8,
+                    value: config.backwards_dist.unwrap_or(8.0) as f32,
+                }
+                .into(),
+                look_at_offset: structs::BoolVec3 {
+                    override_flags: config.override_look_at_offset.unwrap_or(false) as u8,
+                    value: config.look_at_offset.unwrap_or([0.0, 0.0, 0.0]).into(),
+                }
+                .into(),
+                chase_look_at_offset: structs::BoolVec3 {
+                    override_flags: config.override_chase_look_at_offset.unwrap_or(false) as u8,
+                    value: config.chase_look_at_offset.unwrap_or([0.0, 0.0, 0.0]).into(),
+                }
+                .into(),
+
+                ball_to_cam: config.ball_to_cam.unwrap_or([0.0, 0.0, 0.0]).into(),
+
+                fov: structs::BoolFloat {
+                    override_flags: config.override_fov.unwrap_or(false) as u8,
+                    value: config.fov.unwrap_or(55.0) as f32,
+                }
+                .into(),
+
+                attitude_range: structs::BoolFloat {
+                    override_flags: config.override_attitude_range.unwrap_or(false) as u8,
+                    value: config.attitude_range.unwrap_or(90.0) as f32,
+                }
+                .into(),
+
+                azimuth_range: structs::BoolFloat {
+                    override_flags: config.override_azimuth_range.unwrap_or(false) as u8,
+                    value: config.azimuth_range.unwrap_or(90.0) as f32,
+                }
+                .into(),
+                
+                angle_per_second: structs::BoolFloat {
+                    override_flags: config.override_angle_per_second.unwrap_or(false) as u8,
+                    value: config.angle_per_second.unwrap_or(120.0) as f32,
+                }
+                .into(),
+                
+                clamp_vel_range: config.clamp_vel_range.unwrap_or(10.0) as f32,
+                clamp_rot_range: config.clamp_rot_range.unwrap_or(120.0) as f32,
+                
+                elevation: structs::BoolFloat {
+                    override_flags: config.override_elevation.unwrap_or(false) as u8,
+                    value: config.elevation.unwrap_or(2.7) as f32,
+                }
+                .into(),
+
+                interpolate_time: config.interpolate_time.unwrap_or(1.5) as f32,
+                clamp_vel_time: config.clamp_vel_time.unwrap_or(2.0) as f32,
+                control_interp_dur: config.control_interp_dur.unwrap_or(1.0) as f32,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_camera_hint_mut().unwrap();
+
+            property_data.behaviour = config.behaviour as u32;
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(rotation) = config.rotation {
+                property_data.rotation = rotation.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(priority) = config.priority {
+                property_data.priority = priority as u32
+            }
+            if let Some(calculate_cam_pos) = config.calculate_cam_pos {
+                property_data.camera_hint_params.calculate_cam_pos = calculate_cam_pos as u8
+            }
+            if let Some(chase_allowed) = config.chase_allowed {
+                property_data.camera_hint_params.chase_allowed = chase_allowed as u8
+            }
+            if let Some(boost_allowed) = config.boost_allowed {
+                property_data.camera_hint_params.boost_allowed = boost_allowed as u8
+            }
+            if let Some(obscure_avoidance) = config.obscure_avoidance {
+                property_data.camera_hint_params.obscure_avoidance = obscure_avoidance as u8
+            }
+            if let Some(volume_collider) = config.volume_collider {
+                property_data.camera_hint_params.volume_collider = volume_collider as u8
+            }
+            if let Some(apply_immediately) = config.apply_immediately {
+                property_data.camera_hint_params.apply_immediately = apply_immediately as u8
+            }
+            if let Some(look_at_ball) = config.look_at_ball {
+                property_data.camera_hint_params.look_at_ball = look_at_ball as u8
+            }
+            if let Some(hint_distance_selection) = config.hint_distance_selection {
+                property_data.camera_hint_params.hint_distance_selection = hint_distance_selection as u8
+            }
+            if let Some(hint_distance_self_pos) = config.hint_distance_self_pos {
+                property_data.camera_hint_params.hint_distance_self_pos = hint_distance_self_pos as u8
+            }
+            if let Some(control_interpolation) = config.control_interpolation {
+                property_data.camera_hint_params.control_interpolation = control_interpolation as u8
+            }
+            if let Some(sinusoidal_interpolation) = config.sinusoidal_interpolation {
+                property_data.camera_hint_params.sinusoidal_interpolation = sinusoidal_interpolation as u8
+            }
+            if let Some(sinusoidal_interpolation_hintless) = config.sinusoidal_interpolation_hintless {
+                property_data.camera_hint_params.sinusoidal_interpolation_hintless = sinusoidal_interpolation_hintless as u8
+            }
+            if let Some(clamp_velocity) = config.clamp_velocity {
+                property_data.camera_hint_params.clamp_velocity = clamp_velocity as u8
+            }
+            if let Some(skip_cinematic) = config.skip_cinematic {
+                property_data.camera_hint_params.skip_cinematic = skip_cinematic as u8
+            }
+            if let Some(no_elevation_interp) = config.no_elevation_interp {
+                property_data.camera_hint_params.no_elevation_interp = no_elevation_interp as u8
+            }
+            if let Some(direct_elevation) = config.direct_elevation {
+                property_data.camera_hint_params.direct_elevation = direct_elevation as u8
+            }
+            if let Some(override_look_dir) = config.override_look_dir {
+                property_data.camera_hint_params.override_look_dir = override_look_dir as u8
+            }
+            if let Some(no_elevation_vel_clamp) = config.no_elevation_vel_clamp {
+                property_data.camera_hint_params.no_elevation_vel_clamp = no_elevation_vel_clamp as u8
+            }
+            if let Some(calculate_transform_from_prev_cam) = config.calculate_transform_from_prev_cam {
+                property_data.camera_hint_params.calculate_transform_from_prev_cam = calculate_transform_from_prev_cam as u8
+            }
+            if let Some(no_spline) = config.no_spline {
+                property_data.camera_hint_params.no_spline = no_spline as u8
+            }
+            if let Some(unknown1) = config.unknown1 {
+                property_data.camera_hint_params.unknown1 = unknown1 as u8
+            }
+            if let Some(unknown2) = config.unknown2 {
+                property_data.camera_hint_params.unknown2 = unknown2 as u8
+            }
+            if let Some(override_min_dist) = config.override_min_dist {
+                property_data.min_dist.override_flags = override_min_dist as u8
+            }
+            if let Some(min_dist) = config.min_dist {
+                property_data.min_dist.value = min_dist as f32
+            }
+            if let Some(override_max_dist) = config.override_max_dist {
+                property_data.max_dist.override_flags = override_max_dist as u8
+            }
+            if let Some(max_dist) = config.max_dist {
+                property_data.max_dist.value = max_dist as f32
+            }
+            if let Some(override_backwards_dist) = config.override_backwards_dist {
+                property_data.backwards_dist.override_flags = override_backwards_dist as u8
+            }
+            if let Some(backwards_dist) = config.backwards_dist {
+                property_data.backwards_dist.value = backwards_dist as f32
+            }
+            if let Some(override_look_at_offset) = config.override_look_at_offset {
+                property_data.look_at_offset.override_flags = override_look_at_offset as u8
+            }
+            if let Some(look_at_offset) = config.look_at_offset {
+                property_data.look_at_offset.value = look_at_offset.into()
+            }
+            if let Some(override_chase_look_at_offset) = config.override_chase_look_at_offset {
+                property_data.chase_look_at_offset.override_flags = override_chase_look_at_offset as u8
+            }
+            if let Some(chase_look_at_offset) = config.chase_look_at_offset {
+                property_data.chase_look_at_offset.value = chase_look_at_offset.into()
+            }
+            if let Some(ball_to_cam) = config.ball_to_cam {
+                property_data.ball_to_cam = ball_to_cam.into()
+            }
+            if let Some(override_fov) = config.override_fov {
+                property_data.fov.override_flags = override_fov as u8
+            }
+            if let Some(fov) = config.fov {
+                property_data.fov.value = fov as f32
+            }
+            if let Some(override_attitude_range) = config.override_attitude_range {
+                property_data.attitude_range.override_flags = override_attitude_range as u8
+            }
+            if let Some(attitude_range) = config.attitude_range {
+                property_data.attitude_range.value = attitude_range as f32
+            }
+            if let Some(override_azimuth_range) = config.override_azimuth_range {
+                property_data.azimuth_range.override_flags = override_azimuth_range as u8
+            }
+            if let Some(azimuth_range) = config.azimuth_range {
+                property_data.azimuth_range.value = azimuth_range as f32
+            }
+            if let Some(override_angle_per_second) = config.override_angle_per_second {
+                property_data.angle_per_second.override_flags = override_angle_per_second as u8
+            }
+            if let Some(angle_per_second) = config.angle_per_second {
+                property_data.angle_per_second.value = angle_per_second as f32
+            }
+            if let Some(clamp_vel_range) = config.clamp_vel_range {
+                property_data.clamp_vel_range = clamp_vel_range as f32
+            }
+            if let Some(clamp_rot_range) = config.clamp_rot_range {
+                property_data.clamp_rot_range = clamp_rot_range as f32
+            }
+            if let Some(override_elevation) = config.override_elevation {
+                property_data.elevation.override_flags = override_elevation as u8
+            }
+            if let Some(elevation) = config.elevation {
+                property_data.elevation.value = elevation as f32
+            }
+            if let Some(interpolate_time) = config.interpolate_time {
+                property_data.interpolate_time = interpolate_time as f32
+            }
+            if let Some(clamp_vel_time) = config.clamp_vel_time {
+                property_data.clamp_vel_time = clamp_vel_time as f32
+            }
+            if let Some(control_interp_dur) = config.control_interp_dur {
+                property_data.control_interp_dur = control_interp_dur as f32
+            }
+        };
+    }
+
+    add_edit_obj_helper!(
+        area,
+        Some(config.id),
+        config.layer,
+        CameraHint,
+        new,
+        update
+    );
+}
+
+pub fn patch_add_camera_hint_trigger(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: CameraHintTriggerConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::CameraHintTrigger {
+                name: b"my camerahinttrigger\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                scale: config.scale.unwrap_or([5.0, 5.0, 5.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+                deactivate_on_enter: config.deactivate_on_enter.unwrap_or(false) as u8,
+                deactivate_on_exit: config.deactivate_on_exit.unwrap_or(false) as u8,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_camera_hint_trigger_mut().unwrap();
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(rotation) = config.rotation {
+                property_data.rotation = rotation.into()
+            }
+            if let Some(scale) = config.scale {
+                property_data.scale = scale.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(deactivate_on_enter) = config.deactivate_on_enter {
+                property_data.deactivate_on_enter = deactivate_on_enter as u8
+            }
+            if let Some(deactivate_on_exit) = config.deactivate_on_exit {
+                property_data.deactivate_on_exit = deactivate_on_exit as u8
+            }
+        };
+    }
+
+    add_edit_obj_helper!(area, config.id, config.layer, CameraHintTrigger, new, update);
+}
+
 pub fn patch_add_platform<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -3053,41 +3385,7 @@ pub fn patch_lock_on_point<'r>(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn patch_add_camera_hint(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    trigger_pos: [f32; 3],
-    trigger_scale: [f32; 3],
-    camera_pos: [f32; 3],
-    camera_rot: [f32; 3],
-    behavior: u32,
-    layer: u32,
-    camera_id: Option<u32>,
-    trigger_id: Option<u32>,
-) -> Result<(), String> {
-    let layer = layer as usize;
-    let camear_hint_id = camera_id.unwrap_or(area.new_object_id_from_layer_id(layer));
-    let camera_hint_trigger_id = trigger_id.unwrap_or(area.new_object_id_from_layer_id(layer));
-
-    let camera_objs = add_camera_hint(
-        camear_hint_id,
-        camera_hint_trigger_id,
-        trigger_pos,
-        trigger_scale,
-        camera_pos,
-        camera_rot,
-        behavior,
-    );
-
-    area.mrea().scly_section_mut().layers.as_mut_vec()[layer]
-        .objects
-        .as_mut_vec()
-        .extend_from_slice(&camera_objs);
-
-    Ok(())
-}
-
+// different camera hint thing for a separate arbitrary patch
 pub fn add_camera_hint<'r>(
     camear_hint_id: u32,
     camera_hint_trigger_id: u32,
@@ -3095,7 +3393,7 @@ pub fn add_camera_hint<'r>(
     trigger_scale: [f32; 3],
     camera_pos: [f32; 3],
     camera_rot: [f32; 3],
-    behavior: u32,
+    behaviour: u32,
 ) -> Vec<structs::SclyObject<'r>> {
     let objects = vec![
         structs::SclyObject {
@@ -3107,7 +3405,7 @@ pub fn add_camera_hint<'r>(
                 rotation: camera_rot.into(),
                 active: 1,
                 priority: 8,
-                behavior,
+                behaviour,
                 camera_hint_params: structs::CameraHintParameters {
                     calculate_cam_pos: 0,
                     chase_allowed: 0,
@@ -3129,50 +3427,50 @@ pub fn add_camera_hint<'r>(
                     no_elevation_vel_clamp: 0,
                     calculate_transform_from_prev_cam: 1,
                     no_spline: 1,
-                    unknown21: 0,
-                    unknown22: 0,
+                    unknown1: 0,
+                    unknown2: 0,
                 },
                 min_dist: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 8.0,
                 },
                 max_dist: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 50.0,
                 },
                 backwards_dist: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 8.0,
                 },
                 look_at_offset: structs::BoolVec3 {
-                    active: 0,
+                    override_flags: 0,
                     value: [0.0, 1.0, 1.0].into(),
                 },
                 chase_look_at_offset: structs::BoolVec3 {
-                    active: 0,
+                    override_flags: 0,
                     value: [0.0, 1.0, 1.0].into(),
                 },
                 ball_to_cam: [3.0, 3.0, 3.0].into(),
                 fov: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 55.0,
                 },
                 attitude_range: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 90.0,
                 },
                 azimuth_range: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 90.0,
                 },
                 angle_per_second: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 120.0,
                 },
                 clamp_vel_range: 10.0,
                 clamp_rot_range: 120.0,
                 elevation: structs::BoolFloat {
-                    active: 0,
+                    override_flags: 0,
                     value: 2.7,
                 },
                 interpolate_time: 1.0,

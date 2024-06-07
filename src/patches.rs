@@ -16350,6 +16350,28 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
+                        if let Some(camera_hints) = room.camera_hints.as_ref() {
+                            for config in camera_hints {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_camera_hint(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
+                        if let Some(camera_hint_triggers) = room.camera_hint_triggers.as_ref() {
+                            for config in camera_hint_triggers {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_camera_hint_trigger(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
                                 patcher.add_scly_patch(
@@ -16452,28 +16474,6 @@ fn build_and_run_patches<'r>(
                                 patcher.add_scly_patch(
                                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                     move |ps, area| patch_add_timer(ps, area, timer.clone()),
-                                );
-                            }
-                        }
-
-                        if room.camera_hints.is_some() {
-                            for camera_hint in room.camera_hints.as_ref().unwrap() {
-                                patcher.add_scly_patch(
-                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                    move |ps, area| {
-                                        patch_add_camera_hint(
-                                            ps,
-                                            area,
-                                            camera_hint.trigger_pos,
-                                            camera_hint.trigger_scale,
-                                            camera_hint.camera_pos,
-                                            camera_hint.camera_rot,
-                                            camera_hint.behavior,
-                                            camera_hint.layer.unwrap_or(0),
-                                            camera_hint.camera_id,
-                                            camera_hint.trigger_id,
-                                        )
-                                    },
                                 );
                             }
                         }
