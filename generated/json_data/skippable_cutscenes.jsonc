@@ -1851,6 +1851,12 @@
                         },
                         {
                             "senderId": 1245192, // [SpecialFunction] Gate Cinematic Skip
+                            "targetId": 1245490, // [MemoryRelay] Memory Relay
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1245192, // [SpecialFunction] Gate Cinematic Skip
                             "targetId": 1245760, // [SpawnPoint] Gate Spawn
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
@@ -8841,7 +8847,7 @@
                         },
                         {
                             "id": 3424927, // [Relay] End Unveil Cinematic
-                            "layer": 1
+                            "layer": 2
                         },
                         {
                             "id": 3424926, // [Relay] Flaahgra 1
