@@ -88,8 +88,8 @@
             "rooms": {
                 "Burn Dome": {
                     "deleteIds": [
-                        3145754,
-                        3145745
+                        3459754, // [Timer] Timer Skipped Intro Encounter
+                        3176985 // [SpecialFunction] iDrone Intro Cinematic Skip
                     ]
                 },
                 "Ruined Shrine": {
