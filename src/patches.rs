@@ -16882,7 +16882,7 @@ fn build_and_run_patches<'r>(
 
                     // Some doors have their object IDs changed in non NTSC-U versions
                     // NTSC-K is based on NTSC-U and shouldn't be part of those changes
-                    if config.version == Version::Pal || config.version == Version::NtscJ {
+                    if [Version::Pal, Version::NtscJ, Version::NtscJTrilogy, Version::NtscUTrilogy, Version::PalTrilogy].contains(&config.version) {
                         // Tallon Overworld - Temple Security Station
                         if mrea_id == 0xBDB1FCAC
                             && local_dl.door_location.unwrap().instance_id == 0x00070055
