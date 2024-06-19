@@ -3065,7 +3065,8 @@
                     }
                 },
                 "cameraHints": {
-                    "description": "Add camera hint + camera hint trigger pairs to this room. They are somewhat broken.",
+                    "deprecated": true,
+                    "description": "[Deprecated] Add camera hint + camera hint trigger pairs to this room. They are somewhat broken. Use `newCameraHints` instead.",
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -4926,6 +4927,340 @@
                             "id",
                             "filterType",
                             "filterShape"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "newCameraHints": {
+                    "description": "Add CameraHint objects to this room. They are used to manipulate the Morph Ball camera in various ways. Recommended to use in conjunction with `cameraHintTriggers`",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "The position of the CameraHint.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "rotation": {
+                                "description": "The rotation of the CameraHint.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "active": {
+                                "description": "Default active state of the CameraHint.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "priority": {
+                                "type": "integer",
+                                "default": 10
+                            },
+                            "behaviour": {
+                                "type": "string",
+                                "enum": [
+                                    "Default",
+                                    "FreezeLookPosition",
+                                    "HintBallToCam",
+                                    "HintInitializePosition",
+                                    "HintFixedPosition",
+                                    "HintFixedTransform",
+                                    "PathCameraDesiredPos",
+                                    "PathCamera",
+                                    "SpindleCamera"
+                                ],
+                                "default": "Default"
+                            },
+                            "calculateCamPos": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "chaseAllowed": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "boostAllowed": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "obscureAvoidance": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "volumeCollider": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "applyImmediately": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "lookAtBall": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "hintDistanceSelection": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "hintDistanceSelfPos": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "sinusoidalInterpolation": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "sinusoidalInterpolationHintless": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "clampVelocity": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "skipCinematic": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "noElevationInterp": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "overrideLookDir": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "noElevationVelClamp": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "calculateTransformFromPrevCam": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "noSpline": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "unknown1": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "unknown2": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "overrideMinDist": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "minDist": {
+                                "description": "Requires `overrideMinDist` to be true to work.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 8.0
+                            },
+                            "overrideMaxDist": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "maxDist": {
+                                "description": "Requires `overrideMaxDist` to be true to work.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 8.0
+                            },
+                            "overrideBackwardsDist": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "backwardsDist": {
+                                "description": "Requires `overrideBackwardsDist` to be true to work.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 8.0
+                            },
+                            "overrideLookAtOffset": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "lookAtOffset": {
+                                "description": "Requires `overrideLookAtOffset` to be true to work.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "overrideChaseLookAtOffset": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "chaseLookAtOffset": {
+                                "description": "Requires `overrideChaseLookAtOffset` to be true to work.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "ballToCam": {
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "overrideFov": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fov": {
+                                "description": "Requires `overrideFov` to be true to work. 55.0 = Morph Ball Camera Fov",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 55.0
+                            },
+                            "overrideAttitudeRange": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "attitudeRange": {
+                                "description": "Requires `overrideAttitudeRange` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 90.0
+                            },
+                            "overrideAzimuthRange": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "azimuthRange": {
+                                "description": "Requires `overrideAzimuthRange` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 90.0
+                            },
+                            "overrideAnglePerSecond": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "anglePerSecond": {
+                                "description": "Requires `overrideAnglePerSecond` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 120.0
+                            },
+                            "clampVelRange": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 10.0
+                            },
+                            "clampRotRange": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 120.0
+                            },
+                            "overrideElevation": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "elevation": {
+                                "description": "Requires `overrideElevation` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 2.7
+                            },
+                            "interpolateTime": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.5
+                            },
+                            "clampVelTime": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 2.0
+                            },
+                            "controlInterpDur": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "position",
+                            "rotation",
+                            "behaviour"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "cameraHintTriggers": {
+                    "description": "Add CameraHintTrigger objects to this room. They behave like regular triggers but they can be rotated and have less properties",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default activate state of the trigger",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "Position of the trigger.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "Rotation of the trigger.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "scale": {
+                                "description": "Extent of the trigger.",
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [
+                                    5.0,
+                                    5.0,
+                                    5.0
+                                ]
+                            },
+                            "deactivateOnEnter": {
+                                "description": "Disable this trigger when entered.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "deactivateOnExit": {
+                                "description": "Disable this trigger when exited.",
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "required": [
+                            "id"
                         ],
                         "additionalProperties": false
                     }
