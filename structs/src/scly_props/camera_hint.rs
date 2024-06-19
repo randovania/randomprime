@@ -5,10 +5,6 @@ use crate::{
     scly_props::structs::{CameraHintParameters, BoolFloat, BoolVec3},
     SclyPropertyData,
 };
-use serde::{
-    de::{Error, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
