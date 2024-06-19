@@ -302,3 +302,46 @@ pub struct CameraShakePoint {
     pub duration: f32,
     pub magnitude: f32,
 }
+
+#[auto_struct(Readable, Writable, FixedSize)]
+#[derive(Debug, Clone)]
+pub struct CameraHintParameters {
+    #[auto_struct(expect = 22)]
+    prop_count: u32,
+    pub calculate_cam_pos: u8,
+    pub chase_allowed: u8,
+    pub boost_allowed: u8,
+    pub obscure_avoidance: u8,
+    pub volume_collider: u8,
+    pub apply_immediately: u8,
+    pub look_at_ball: u8,
+    pub hint_distance_selection: u8,
+    pub hint_distance_self_pos: u8,
+    pub control_interpolation: u8,
+    pub sinusoidal_interpolation: u8,
+    pub sinusoidal_interpolation_hintless: u8,
+    pub clamp_velocity: u8,
+    pub skip_cinematic: u8,
+    pub no_elevation_interp: u8,
+    pub direct_elevation: u8,
+    pub override_look_dir: u8,
+    pub no_elevation_vel_clamp: u8,
+    pub calculate_transform_from_prev_cam: u8,
+    pub no_spline: u8,
+    pub unknown21: u8,
+    pub unknown22: u8,
+}
+
+#[auto_struct(Readable, Writable, FixedSize)]
+#[derive(Debug, Clone)]
+pub struct BoolFloat {
+    pub override_flags: u8,
+    pub value: f32,
+}
+
+#[auto_struct(Readable, Writable, FixedSize)]
+#[derive(Debug, Clone)]
+pub struct BoolVec3 {
+    pub override_flags: u8,
+    pub value: GenericArray<f32, U3>,
+}
