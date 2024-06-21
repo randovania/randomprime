@@ -1319,6 +1319,7 @@ pub struct PatchConfig {
     pub starting_room: String,
     pub starting_memo: Option<String>,
     pub spring_ball: bool,
+    pub spring_ball_item: PickupType,
     pub warp_to_start: bool,
     pub warp_to_start_delay_s: f32,
 
@@ -1418,6 +1419,7 @@ struct GameConfig {
     starting_room: Option<String>,
     starting_memo: Option<String>,
     spring_ball: Option<bool>,
+    spring_ball_item: Option<String>,
     warp_to_start: Option<bool>,
     warp_to_start_delay_s: Option<f32>,
 
@@ -1597,7 +1599,10 @@ impl PatchConfig {
                 .takes_value(true))
             .arg(Arg::with_name("spring ball")
                 .long("spring-ball")
-                .help("Allows player to use spring ball when bombs are acquired"))
+                .help("Allows player to use spring ball when bombs are acquired if not set"))
+            .arg(Arg::with_name("spring ball item")
+                .long("spring-ball-item")
+                .help("Spring ball checks for this item when enabled"))
             .arg(Arg::with_name("warp to start")
                 .long("warp-to-start")
                 .help("Allows player to warp to start from any save station"))
@@ -1757,6 +1762,9 @@ impl PatchConfig {
         }
         if let Some(run_mode) = matches.value_of("run mode") {
             patch_config.run_mode = Some(run_mode.to_string());
+        }
+        if let Some(spring_ball_item_str) = matches.value_of("spring ball item") {
+            patch_config.game_config.spring_ball_item = Some(spring_ball_item_str.to_string());
         }
 
         // integer/float
@@ -2428,6 +2436,21 @@ impl PatchConfigPrivate {
             }
         };
 
+        let spring_ball_item = {
+            match self
+                .game_config
+                .spring_ball_item
+                .as_deref()
+            {
+                Some(s) => PickupType::from_str(s),
+                None => PickupType::MorphBallBomb
+            }
+        };
+
+        if spring_ball_item as u32 > PickupType::Nothing as u32 {
+            panic!("Spring ball item cannot be {}!", spring_ball_item.name())
+        }
+
         let result = PatchConfig {
             run_mode,
             logbook_filename: self.logbook_filename.clone(),
@@ -2497,6 +2520,7 @@ impl PatchConfigPrivate {
             starting_room,
             starting_memo: self.game_config.starting_memo.clone(),
             spring_ball,
+            spring_ball_item,
             warp_to_start,
             warp_to_start_delay_s: self.game_config.warp_to_start_delay_s.unwrap_or(0.0),
 
