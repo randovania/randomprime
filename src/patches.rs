@@ -10866,7 +10866,10 @@ fn patch_dol(
             (0x148, 0x268, 0x27c, 0x284, 0x2c0, 0x2bc, 0x778)
         };
 
-        let spring_ball_patch = ppcasm!(new_text_section_end, {
+        let compute_spring_ball_movement = new_text_section_end;
+        let compute_spring_ball_movement_data = compute_spring_ball_movement + 0x1b4;
+
+        let spring_ball_patch_start = ppcasm!(new_text_section_end, {
                 // stack init (at +0x000)
                 stwu      r1, -0x20(r1);
                 mflr      r0;
@@ -10883,8 +10886,8 @@ fn patch_dol(
                 // function body (at +0x02c)
                 lwz       r14, 0x84c(r30);
                 lwz       r15, 0x8b8(r30);
-                lis       r16, data@h;
-                addi      r16, r16, data@l;
+                lis       r16, { compute_spring_ball_movement_data }@h;
+                addi      r16, r16, { compute_spring_ball_movement_data }@l;
                 lwz       r17, { morph_ball_offset }(r14);
                 lfs       f1, 0x40(r14);
                 stfs      f1, 0x00(r16);
@@ -10894,43 +10897,67 @@ fn patch_dol(
                 stfs      f1, 0x08(r16);
                 lwz       r0, 0x0c(r16);
                 cmplwi    r0, 0;
-                bgt       { new_text_section_end + 0x14c };
+                bgt       { compute_spring_ball_movement + 0x14c };
                 lwz       r0, { movement_state_offset }(r14);
                 cmplwi    r0, 0;
-                beq       { new_text_section_end + 0x84 };
-                b         { new_text_section_end + 0x14c };
+                beq       { compute_spring_ball_movement + 0x84 };
+                b         { compute_spring_ball_movement + 0x14c };
                 cmplwi    r0, 4;
-                bne       { new_text_section_end + 0x14c };
+                bne       { compute_spring_ball_movement + 0x14c };
                 lwz       r0, { out_of_water_ticks_offset }(r14);
                 cmplwi    r0, 2;
-                bne       { new_text_section_end + 0x90 };
+                bne       { compute_spring_ball_movement + 0x90 };
                 lwz       r0, { surface_restraint_type_offset }(r14);
-                b         { new_text_section_end + 0x94 };
+                b         { compute_spring_ball_movement + 0x94 };
                 li        r0, 4;
                 cmplwi    r0, 7;
-                beq       { new_text_section_end + 0x14c };
+                beq       { compute_spring_ball_movement + 0x14c };
                 mr        r3, r28;
                 bl        { symbol_addr!("IsMovementAllowed__10CMorphBallCFv", version) };
                 cmplwi    r3, 0;
-                beq       { new_text_section_end + 0x14c };
-                lwz       r3, 0x0(r15);
-                li        r4, 6;
-                bl        { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) };
-                cmplwi    r3, 0;
-                beq       { new_text_section_end + 0x14c };
+                beq       { compute_spring_ball_movement + 0x14c };
+        });
+
+        new_text_section_end += spring_ball_patch_start.encoded_bytes().len() as u32;
+        new_text_section.extend(spring_ball_patch_start.encoded_bytes());
+
+        let spring_ball_item_condition_patch = if config.spring_ball_item != PickupType::Nothing {
+            let _spring_ball_item_condition_patch = ppcasm!(new_text_section_end, {
+                    lwz       r3, 0x0(r15);
+                    li        r4, { config.spring_ball_item.kind() };
+                    bl        { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) };
+                    cmplwi    r3, 0;
+                    beq       { compute_spring_ball_movement + 0x14c };
+            });
+            _spring_ball_item_condition_patch.encoded_bytes()
+        } else {
+            let _spring_ball_item_condition_patch = ppcasm!(new_text_section_end, {
+                    nop;
+                    nop;
+                    nop;
+                    nop;
+                    nop;
+            });
+            _spring_ball_item_condition_patch.encoded_bytes()
+        };
+
+        new_text_section_end += spring_ball_item_condition_patch.len() as u32;
+        new_text_section.extend(spring_ball_item_condition_patch);
+
+        let spring_ball_patch_end = ppcasm!(new_text_section_end, {
                 lhz       r0, { attached_actor_offset }(r14);
                 cmplwi    r0, 65535;
-                bne       { new_text_section_end + 0x14c };
+                bne       { compute_spring_ball_movement + 0x14c };
                 addi      r3, r14, { energy_drain_offset };
                 bl        { symbol_addr!("GetEnergyDrainIntensity__18CPlayerEnergyDrainCFv", version) };
                 fcmpu     cr0, f1, f14;
-                bgt       { new_text_section_end + 0x14c };
+                bgt       { compute_spring_ball_movement + 0x14c };
                 lwz       r0, 0x187c(r28);
                 cmplwi    r0, 0;
-                bne       { new_text_section_end + 0x14c };
+                bne       { compute_spring_ball_movement + 0x14c };
                 lfs       f1, 0x14(r29);
                 fcmpu     cr0, f1, f14;
-                ble       { new_text_section_end + 0x14c };
+                ble       { compute_spring_ball_movement + 0x14c };
                 lfs       f16, { velocity_offset }(r14);
                 lfs       f17, { velocity_offset + 4 }(r14);
                 mr        r3, r14;
@@ -10941,7 +10968,7 @@ fn patch_dol(
                 stfs      f17, { velocity_offset + 4 }(r14);
                 lfs       f17, 0x1dfc(r17);
                 fcmpu     cr0, f17, f14;
-                ble       { new_text_section_end + 0x130 };
+                ble       { compute_spring_ball_movement + 0x130 };
                 lfs       f17, 0x10(r16);
                 lfs       f16, { velocity_offset + 8 }(r14);
                 fdivs     f16, f16, f17;
@@ -10952,10 +10979,10 @@ fn patch_dol(
                 bl        { symbol_addr!("SetMoveState__7CPlayerFQ27NPlayer20EPlayerMovementStateR13CStateManager", version) };
                 li        r3, 40;
                 stw       r3, 0x0c(r16);
-                b         { new_text_section_end + 0x160 };
+                b         { compute_spring_ball_movement + 0x160 };
                 lwz       r3, 0x0c(r16);
                 cmplwi    r3, 0;
-                beq       { new_text_section_end + 0x160 };
+                beq       { compute_spring_ball_movement + 0x160 };
                 addi      r3, r3, -1;
                 stw       r3, 0x0c(r16);
 
@@ -10993,8 +11020,8 @@ fn patch_dol(
                 .float 1.5;
         });
 
-        new_text_section_end += spring_ball_patch.encoded_bytes().len() as u32;
-        new_text_section.extend(spring_ball_patch.encoded_bytes());
+        new_text_section_end += spring_ball_patch_end.encoded_bytes().len() as u32;
+        new_text_section.extend(spring_ball_patch_end.encoded_bytes());
 
         let spring_ball_cooldown = new_text_section_end - 8;
 
