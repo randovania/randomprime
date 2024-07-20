@@ -5899,12 +5899,14 @@
                         {
                             "id": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
                             "color": [0, 0, 0, 1],
+                            "filterIndex": 1,
                             "filterType": "Multiply",
                             "filterShape": "CinemaBars"
                         },
                         {
                             "id": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "color": [0, 0, 0, 1],
+                            "filterIndex": 1,
                             "filterType": "Multiply",
                             "filterShape": "CinemaBars"
                         }
