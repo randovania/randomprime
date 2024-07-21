@@ -705,7 +705,7 @@ pub fn custom_assets<'r>(
         vec![
             "Toaster's Champions: Awp82, DiggleWrath, Yeti2000, freak532486, AlphaRage, Csabi,\0".to_string(),
             "\0".to_string(),
-            "BajaBlood, hammergoboom, Firemetroid, Lokir, MeriKatt, Cosmonawt, Haldadrin, RXM, Schwartz, Samuel, Miguel, chliu\0".to_string(),
+            "BajaBlood, hammergoboom, Firemetroid, Lokir, MeriKatt, Cosmonawt, Haldadrin, RXM, Schwartz, Samuel, Miguel, chliu, JeffGainsNGames\0".to_string(),
         ],
         1,
         0,
