@@ -8017,51 +8017,39 @@ fn patch_ruined_courtyard_thermal_conduits(
     area: &mut mlvl_wrapper::MlvlArea,
     version: Version,
 ) -> Result<(), String> {
-    let scly = area.mrea().scly_section_mut();
-    let layer = &mut scly.layers.as_mut_vec()[0];
-    let thermal_conduit_damageable_trigger_obj_id = 0xF01C8;
-    let thermal_conduit_actor_obj_id = 0xF01C7;
-    let debris_generator_obj_id = 0xF01DD;
-    let thermal_conduit_cover_actor_obj_id = 0xF01D9;
-
-    layer
-        .objects
-        .as_mut_vec()
+    let layer = area
+        .mrea()
+        .scly_section_mut()
+        .layers
         .iter_mut()
-        .find(|obj| obj.instance_id == thermal_conduit_damageable_trigger_obj_id)
-        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
-        .unwrap()
-        .active = 1;
+        .next()
+        .unwrap();
 
     if version == Version::NtscU0_02 {
-        layer
-            .objects
-            .as_mut_vec()
+
+        let objects = layer.objects.as_mut_vec();
+        // Thermal Conduit Actor
+        objects
             .iter_mut()
-            .find(|obj| obj.instance_id == thermal_conduit_actor_obj_id)
+            .find(|obj: &&mut structs::SclyObject| obj.instance_id & 0x00FFFFFF == 0xF01C7)
             .and_then(|obj| obj.property_data.as_actor_mut())
             .unwrap()
             .active = 1;
+    
+        // Damageable Trigger Activation Relay
+        objects
+            .iter_mut()
+            .find(|obj| obj.instance_id & 0x00FFFFFF == 0xF0312)
+            .and_then(|obj| obj.property_data.as_relay_mut())
+            .unwrap()
+            .active = 1;
+
     } else if version == Version::NtscJ
         || version == Version::Pal
         || version == Version::NtscUTrilogy
         || version == Version::NtscJTrilogy
         || version == Version::PalTrilogy
     {
-        layer
-            .objects
-            .as_mut_vec()
-            .iter_mut()
-            .find(|obj| obj.instance_id == debris_generator_obj_id)
-            .unwrap()
-            .connections
-            .as_mut_vec()
-            .push(structs::Connection {
-                state: structs::ConnectionState::ZERO,
-                message: structs::ConnectionMsg::DEACTIVATE,
-                target_object_id: thermal_conduit_cover_actor_obj_id,
-            });
-
         let flags = &mut area.layer_flags.flags;
         *flags |= 1 << 6; // Turn on "Thermal Target"
     }
