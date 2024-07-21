@@ -13960,7 +13960,7 @@
                         },
                         {
                             "senderId": 131593, // [Relay] Relay One Shot Out
-                            "targetId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "targetId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
@@ -13978,7 +13978,7 @@
                         },
                         {
                             "senderId": 131088, // [Relay] One Shot End
-                            "targetId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "targetId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
@@ -13989,31 +13989,31 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131088, // [Relay] One Shot End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131347, // [Platform] Platform_Blockage
                             "state": "ZERO",
                             "message": "NEXT"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131587, // [Timer] Timer - open spiderball hole
                             "state": "ZERO",
                             "message": "STOP"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131572, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131571, // [PlayerActor] PlayerActor-scan_cine_forward
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -14039,7 +14039,7 @@
                             "layer": 4
                         },
                         {
-                            "id": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "id": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "type": "CinematicSkip"
                         }
                     ]
@@ -16226,6 +16226,33 @@
                         {
                             "id": 983071, // [SpecialFunction] Water Follows Platform
                             "type": "ObjectFollowObject"
+                        }
+                    ]
+                },
+                "Save Station B": {
+                    "addConnections": [
+                        {
+                            "senderId": 262147, // [SpecialFunction] Player Exits Room
+                            "targetId": 262262, // [SpecialFunction] SpecialFunction Cinematic Skip Load
+                            "state": "EXITED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 262147, // [SpecialFunction] Player Exits Room
+                            "targetId": 262263, // [SpecialFunction] SpecialFunction Cinematic Skip Save
+                            "state": "EXITED",
+                            "message": "DECREMENT"
+                        }
+                    ],
+                    "specialFunctions": [
+                        {
+                            "id": 262147, // [SpecialFunction] Player Exits Room
+                            "type": "PlayerInAreaRelay",
+                            "position": [
+                                -70.700981,
+                                -212.262238,
+                                0.032295
+                            ]
                         }
                     ]
                 },
