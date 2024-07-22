@@ -8026,7 +8026,6 @@ fn patch_ruined_courtyard_thermal_conduits(
         .unwrap();
 
     if version == Version::NtscU0_02 {
-
         let objects = layer.objects.as_mut_vec();
         // Thermal Conduit Actor
         objects
@@ -8035,7 +8034,7 @@ fn patch_ruined_courtyard_thermal_conduits(
             .and_then(|obj| obj.property_data.as_actor_mut())
             .unwrap()
             .active = 1;
-    
+
         // Damageable Trigger Activation Relay
         objects
             .iter_mut()
@@ -8043,7 +8042,6 @@ fn patch_ruined_courtyard_thermal_conduits(
             .and_then(|obj| obj.property_data.as_relay_mut())
             .unwrap()
             .active = 1;
-
     } else if version == Version::NtscJ
         || version == Version::Pal
         || version == Version::NtscUTrilogy
@@ -8669,11 +8667,7 @@ fn patch_remove_cutscenes(
     Ok(())
 }
 
-/**
- * Patch is actually for QAA
- *
- */
-fn patch_fix_central_dynamo_crash(
+fn patch_purge_debris_extended(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -8682,8 +8676,98 @@ fn patch_fix_central_dynamo_crash(
         layer
             .objects
             .as_mut_vec()
-            .retain(|obj| ![0x45].contains(&obj.property_data.object_type()));
+            .retain(|obj| !obj.property_data.is_debris_extended());
     }
+
+    Ok(())
+}
+
+/**
+ * Patch is actually for QAA
+ *
+ */
+fn patch_fix_central_dynamo_crash(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let timer_id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let objects = scly.layers.as_mut_vec()[0].objects.as_mut_vec();
+
+    // Decouple door-unlocking from maze disabling
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B03FA) // Deactivate Maze Relay
+        .unwrap();
+    obj.connections
+        .as_mut_vec()
+        .retain(|conn| conn.target_object_id != 0x001B065E); // Activate Rooms Relay
+
+    // Always close the maze entrance when disabling the maze walls
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ZERO,
+        message: structs::ConnectionMsg::ACTIVATE,
+        target_object_id: 0x001B02F2, // Maze Entrance Door
+    });
+
+    // Disallow the deactivation of the maze until it's actually enabled
+    objects.push(structs::SclyObject {
+        instance_id: timer_id,
+        property_data: structs::Timer {
+            name: b"my timer\0".as_cstr(),
+            start_time: 0.04, // but only after a couple of frames because of the memory relay
+            max_random_add: 0.0,
+            looping: 0,
+            start_immediately: 1,
+            active: 1,
+        }
+        .into(),
+        connections: vec![structs::Connection {
+            target_object_id: 0x001B03FA, // Deactivate Maze Relay
+            state: structs::ConnectionState::ZERO,
+            message: structs::ConnectionMsg::DEACTIVATE,
+        }]
+        .into(),
+    });
+
+    // Have the pickup unlock the doors instead of maze deactivation
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B04B1) // Pickup
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ARRIVED,
+        message: structs::ConnectionMsg::SET_TO_ZERO,
+        target_object_id: 0x001B065E, // Activate Rooms Relay
+    });
+
+    // Re-allow deactivation of the maze once it's actually activated
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B0305) // Pop Foot Relay
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ZERO,
+        message: structs::ConnectionMsg::ACTIVATE,
+        target_object_id: 0x001B03FA, // Deactivate Maze Relay
+    });
+
+    // Whenever the door to QAA is interacted with, attempt to disable the maze
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B0474) // Door to QAA
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::OPEN,
+        message: structs::ConnectionMsg::SET_TO_ZERO,
+        target_object_id: 0x001B03FA, // Deactivate Maze Relay
+    });
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::CLOSED,
+        message: structs::ConnectionMsg::SET_TO_ZERO,
+        target_object_id: 0x001B03FA, // Deactivate Maze Relay
+    });
 
     Ok(())
 }
@@ -13882,12 +13966,20 @@ fn patch_qol_game_breaking(
 ) {
     // Crashes
     patcher.add_scly_patch(
-        resource_info!("00j_mines_connect.MREA").into(),
+        resource_info!("07_mines_electric.MREA").into(),
         patch_fix_central_dynamo_crash,
     );
     patcher.add_scly_patch(
-        resource_info!("05_under_intro_zoo.MREA").into(), // stop crashing from too much stuff in biohazard containment + our patches
-        patch_fix_central_dynamo_crash,
+        resource_info!("07_mines_electric.MREA").into(),
+        patch_purge_debris_extended,
+    );
+    patcher.add_scly_patch(
+        resource_info!("00j_mines_connect.MREA").into(),
+        patch_purge_debris_extended,
+    );
+    patcher.add_scly_patch(
+        resource_info!("05_under_intro_zoo.MREA").into(),
+        patch_purge_debris_extended,
     );
     patcher.add_scly_patch(
         resource_info!("00p_mines_connect.MREA").into(),
@@ -16870,7 +16962,15 @@ fn build_and_run_patches<'r>(
 
                     // Some doors have their object IDs changed in non NTSC-U versions
                     // NTSC-K is based on NTSC-U and shouldn't be part of those changes
-                    if [Version::Pal, Version::NtscJ, Version::NtscJTrilogy, Version::NtscUTrilogy, Version::PalTrilogy].contains(&config.version) {
+                    if [
+                        Version::Pal,
+                        Version::NtscJ,
+                        Version::NtscJTrilogy,
+                        Version::NtscUTrilogy,
+                        Version::PalTrilogy,
+                    ]
+                    .contains(&config.version)
+                    {
                         // Tallon Overworld - Temple Security Station
                         if mrea_id == 0xBDB1FCAC
                             && local_dl.door_location.unwrap().instance_id == 0x00070055
