@@ -8682,10 +8682,98 @@ fn patch_purge_debris_extended(
     Ok(())
 }
 
-/**
- * Patch is actually for QAA
- *
- */
+fn patch_fix_deck_beta_security_hall_crash(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let trigger1_id = area.new_object_id_from_layer_id(0);
+    let trigger2_id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let objects = scly.layers.as_mut_vec()[0].objects.as_mut_vec();
+
+    // Insert our own load triggers
+    objects.extend_from_slice(
+        &[
+            structs::SclyObject {
+                instance_id: trigger1_id,
+                property_data: structs::Trigger {
+                    name: b"Trigger\0".as_cstr(),
+                    position: [-86.4, 265.1, -67.6].into(),
+                    scale: [10.0, 5.0, 10.0].into(),
+                    damage_info: structs::scly_structs::DamageInfo {
+                        weapon_type: 0,
+                        damage: 0.0,
+                        radius: 0.0,
+                        knockback_power: 0.0,
+                    },
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 1,
+                    active: 1,
+                    deactivate_on_enter: 0,
+                    deactivate_on_exit: 0,
+                }
+                .into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ENTERED,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: 0x001F0001,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ENTERED,
+                        message: structs::ConnectionMsg::SET_TO_MAX,
+                        target_object_id: 0x001F0002,
+                    },
+                ]
+                .into(),
+            },
+            structs::SclyObject {
+                instance_id: trigger2_id,
+                property_data: structs::Trigger {
+                    name: b"Trigger\0".as_cstr(),
+                    position: [-94.5, 272.3, -68.6].into(),
+                    scale: [5.0, 10.0, 10.0].into(),
+                    damage_info: structs::scly_structs::DamageInfo {
+                        weapon_type: 0,
+                        damage: 0.0,
+                        radius: 0.0,
+                        knockback_power: 0.0,
+                    },
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 1,
+                    active: 1,
+                    deactivate_on_enter: 0,
+                    deactivate_on_exit: 0,
+                }
+                .into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ENTERED,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: 0x001F0002,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ENTERED,
+                        message: structs::ConnectionMsg::SET_TO_MAX,
+                        target_object_id: 0x001F0001,
+                    },
+                ]
+                .into(),
+            },
+        ]
+    );
+
+    // Disable auto-loading of adjacent rooms
+    for obj in objects {
+        if let Some(dock) = obj.property_data.as_dock_mut() {
+            dock.load_connected = 0;
+        }
+    }
+
+    Ok(())
+}
+
 fn patch_fix_central_dynamo_crash(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -13976,6 +14064,10 @@ fn patch_qol_game_breaking(
     patcher.add_scly_patch(
         resource_info!("00j_mines_connect.MREA").into(),
         patch_purge_debris_extended,
+    );
+    patcher.add_scly_patch(
+        resource_info!("00d_under_intro_hall.MREA").into(),
+        patch_fix_deck_beta_security_hall_crash,
     );
     patcher.add_scly_patch(
         resource_info!("05_under_intro_zoo.MREA").into(),
