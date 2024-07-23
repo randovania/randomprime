@@ -1000,7 +1000,7 @@ fn patch_door<'r>(
             0x001E000B, // Biohazard Containment
             0x0020000D, // Biotech Research Area 1
             0x000F01D1, // Ruined Courtyard
-            0x001B0088,
+            0x001B0088, 0x0028005C, // Research Core
         ]
         .contains(&door_open_trigger_id);
 
@@ -1928,11 +1928,11 @@ fn patch_door<'r>(
             (0xAC2C58FE, 1), // biohazard containment
             (0x5F2EB7B6, 1), // biotech research area 1
             (0x1921876D, 3), // ruined courtyard
-            (0xA49B2544, 1),
+            (0xA49B2544, 1), // research core
         ]
         .contains(&(mrea_id, door_loc.dock_number))
         {
-            /* Add two relays which can activated/deactivated to control which shield appears */
+            /* Add two relays which can be activated/deactivated to control which shield appears */
             layers[0].objects.as_mut_vec().push(structs::SclyObject {
                 instance_id: activate_new_door_id,
                 connections: vec![
@@ -1966,37 +1966,6 @@ fn patch_door<'r>(
             });
 
             layers[0].objects.as_mut_vec().push(structs::SclyObject {
-                instance_id: update_door_timer_id,
-                property_data: structs::Timer {
-                    name: b"update_door_timer\0".as_cstr(),
-                    start_time: 0.5,
-                    max_random_add: 0.0,
-                    looping: 0,
-                    start_immediately: 0,
-                    active: 1,
-                }
-                .into(),
-                connections: vec![
-                    structs::Connection {
-                        state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::SET_TO_ZERO,
-                        target_object_id: activate_old_door_id,
-                    },
-                    structs::Connection {
-                        state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::SET_TO_ZERO,
-                        target_object_id: activate_new_door_id,
-                    },
-                    structs::Connection {
-                        state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::ACTIVATE,
-                        target_object_id: auto_open_relay_id,
-                    },
-                ]
-                .into(),
-            });
-
-            layers[0].objects.as_mut_vec().push(structs::SclyObject {
                 instance_id: activate_old_door_id,
                 connections: vec![
                     structs::Connection {
@@ -2025,6 +1994,37 @@ fn patch_door<'r>(
                     name: b"activate old door\0".as_cstr(),
                     active: 0,
                 }
+                .into(),
+            });
+
+            layers[0].objects.as_mut_vec().push(structs::SclyObject {
+                instance_id: update_door_timer_id,
+                property_data: structs::Timer {
+                    name: b"update_door_timer\0".as_cstr(),
+                    start_time: 0.5,
+                    max_random_add: 0.0,
+                    looping: 0,
+                    start_immediately: 0,
+                    active: 1,
+                }
+                .into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: activate_old_door_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: activate_new_door_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: auto_open_relay_id,
+                    },
+                ]
                 .into(),
             });
 
@@ -2083,7 +2083,7 @@ fn patch_door<'r>(
                 0xAC2C58FE => (Some(0x001E01DA), Some(0x001E01D8)), // biohazard containment
                 0x5F2EB7B6 => (Some(0x00200027), Some(0x00200025)), // biotech research area 1
                 0x1921876D => (Some(0x000F01D5), Some(0x000F01D6)), // ruined courtyard
-                0xA49B2544 => (Some(0x0028043D), Some(0x0028043C)), // research core
+                0xA49B2544 => (Some(0x0028043D), None), // research core
                 _ => (None, None),
             };
 
@@ -2139,22 +2139,123 @@ fn patch_door<'r>(
                     .contains(&conn.target_object_id)
                 });
 
-                obj.connections.as_mut_vec().push(structs::Connection {
-                    state: structs::ConnectionState::ZERO,
-                    message: structs::ConnectionMsg::RESET_AND_START,
-                    target_object_id: update_door_timer_id,
-                });
-
                 if mrea_id == 0xA49B2544 {
                     // research core
+
+                    // Start with the correct door
+                    let timer = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == update_door_timer_id)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Could not find 0x{:X} in room 0x{:X}",
+                                update_door_timer_id, mrea_id
+                            )
+                        })
+                        .property_data
+                        .as_timer_mut()
+                        .unwrap();
+                    timer.start_immediately = 1;
+
+                    // When the outage happens, deactivate both doors
+                    let obj = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == 0x0028043C)
+                        .unwrap_or_else(|| {
+                            panic!("Could not find 0x0028043C in room 0x{:X}", mrea_id)
+                        });
+
+                    obj.connections.as_mut_vec().extend_from_slice(&[
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: door_shield_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: door_force_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: existing_door_shield_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: existing_door_force_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: auto_open_relay_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: 0x0028005C, // door open trigger
+                        },
+                    ]);
+
+                    let obj = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == update_door_timer_id)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Could not find update_door_timer_id in room 0x{:X}",
+                                mrea_id
+                            )
+                        });
+                    obj.connections
+                        .as_mut_vec()
+                        .retain(|conn| conn.target_object_id != auto_open_relay_id);
+
+                    // The thermal conduit re-activates the appropriate door
                     let obj = layers[0]
                         .objects
                         .iter_mut()
                         .find(|obj| obj.instance_id == 0x0028043F)
-                        .expect("Could not find conduit damageable trigger in research core");
+                        .unwrap_or_else(|| {
+                            panic!("Could not find 0x0028043F in room 0x{:X}", mrea_id)
+                        });
+                    obj.connections.as_mut_vec().extend_from_slice(&[
+                        structs::Connection {
+                            state: structs::ConnectionState::DEAD,
+                            message: structs::ConnectionMsg::RESET_AND_START,
+                            target_object_id: update_door_timer_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: auto_open_relay_id,
+                        },
+                    ]);
 
+                    // Keep dt and force shield in sync
+                    let obj = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == existing_door_force_id)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Could not find existing_door_force_id in room 0x{:X}",
+                                mrea_id
+                            )
+                        });
+                    obj.connections
+                        .as_mut_vec()
+                        .extend_from_slice(&[structs::Connection {
+                            state: structs::ConnectionState::ACTIVE,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: existing_door_shield_id,
+                        }]);
+                } else {
                     obj.connections.as_mut_vec().push(structs::Connection {
-                        state: structs::ConnectionState::DEAD,
+                        state: structs::ConnectionState::ZERO,
                         message: structs::ConnectionMsg::RESET_AND_START,
                         target_object_id: update_door_timer_id,
                     });
@@ -2213,6 +2314,17 @@ fn patch_door<'r>(
                     target_object_id: door_shield_id,
                 },
             ]);
+
+            if mrea_id == 0xA49B2544 {
+                new_door_force
+                    .connections
+                    .as_mut_vec()
+                    .extend_from_slice(&[structs::Connection {
+                        state: structs::ConnectionState::ACTIVE,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: door_shield_id,
+                    }]);
+            }
 
             new_door_force_data.pattern_txtr0 = door_type_after_open.pattern0_txtr();
             new_door_force_data.pattern_txtr1 = door_type_after_open.pattern1_txtr();
