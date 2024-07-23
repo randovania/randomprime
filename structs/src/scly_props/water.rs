@@ -41,7 +41,7 @@ pub struct Water<'r> {
     pub turb_phase_min: f32,
     pub turb_amplitude_max: f32,
     pub turb_amplitude_min: f32,
-    pub splash_color: GenericArray<f32, U4>, // RGBA
+    pub splash_color: GenericArray<f32, U4>,     // RGBA
     pub inside_fog_color: GenericArray<f32, U4>, // RGBA
     pub splash_particle_1: u32,
     pub splash_particle_2: u32,

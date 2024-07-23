@@ -737,8 +737,6 @@ fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         ResourceKey::from(custom_asset_ids::NOTHING_CMDL),
         ResourceKey::from(custom_asset_ids::NOTHING_ANCS),
         ResourceKey::from(custom_asset_ids::NOTHING_TXTR),
-        ResourceKey::from(ResId::<res_id::CMDL>::new(0x2f976e86)), // Metroid
-        ResourceKey::from(ResId::<res_id::TXTR>::new(0xBE4CD99D)), // white door
     ]);
     assert!(pickup_table
         .insert(
@@ -746,6 +744,45 @@ fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             PickupData {
                 bytes: nothing_bytes,
                 deps: nothing_deps,
+                attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
+}
+
+fn create_zoomer(pickup_table: &mut HashMap<PickupModel, PickupData>) {
+    let mut bytes = Vec::new();
+    {
+        let mut pickup: structs::Pickup =
+            Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
+                .read::<Pickup>(())
+                .clone();
+        pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Zoomer\0").unwrap());
+        pickup.kind = PickupType::Missile.kind();
+        pickup.max_increase = 0;
+        pickup.curr_increase = 0;
+        pickup.cmdl = custom_asset_ids::ZOOMER_CMDL;
+        pickup.ancs.file_id = custom_asset_ids::ZOOMER_ANCS;
+        pickup.part = ResId::<res_id::PART>::invalid();
+        pickup.write_to(&mut bytes).unwrap();
+    }
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::PhazonSuit]
+        .deps
+        .iter()
+        .filter(|i| ![b"SCAN".into(), b"STRG".into(), b"CMDL".into()].contains(&i.fourcc))
+        .cloned()
+        .collect();
+    deps.extend(&[
+        ResourceKey::from(custom_asset_ids::ZOOMER_CMDL),
+        ResourceKey::from(custom_asset_ids::ZOOMER_ANCS),
+        ResourceKey::from(custom_asset_ids::NOTHING_TXTR),
+    ]);
+    assert!(pickup_table
+        .insert(
+            PickupModel::Zoomer,
+            PickupData {
+                bytes,
+                deps,
                 attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
             }
         )
@@ -1458,6 +1495,9 @@ fn main() {
     assert!(cmdl_aabbs
         .insert(custom_asset_ids::NOTHING_CMDL, suit_aabb)
         .is_none());
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::ZOOMER_CMDL, suit_aabb)
+        .is_none());
 
     let missile_aabb = *cmdl_aabbs
         .get(&ResId::<res_id::CMDL>::new(
@@ -1485,6 +1525,7 @@ fn main() {
 
     create_gamecube(&mut pickup_table);
     create_nothing(&mut pickup_table);
+    create_zoomer(&mut pickup_table);
     create_shiny_missile(&mut pickup_table);
     create_thermal_visor(&mut pickup_table);
     create_xray_visor(&mut pickup_table);

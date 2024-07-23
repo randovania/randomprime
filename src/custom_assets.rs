@@ -61,6 +61,8 @@ pub mod custom_asset_ids {
         NOTHING_TXTR: TXTR,
         NOTHING_CMDL: CMDL,
         NOTHING_ANCS: ANCS,
+        ZOOMER_CMDL: CMDL,
+        ZOOMER_ANCS: ANCS,
         THERMAL_CMDL: CMDL,
         THERMAL_ANCS: ANCS,
         XRAY_CMDL: CMDL,
@@ -649,6 +651,12 @@ pub fn custom_assets<'r>(
         custom_asset_ids::NOTHING_ANCS,
         custom_asset_ids::NOTHING_TXTR,
         ResId::<res_id::TXTR>::new(0xF68DF7F1),
+    ));
+    assets.extend_from_slice(&create_zoomer_cmdl_and_ancs(
+        resources,
+        custom_asset_ids::ZOOMER_CMDL,
+        custom_asset_ids::ZOOMER_ANCS,
+        custom_asset_ids::NOTHING_TXTR,
     ));
     assets.extend_from_slice(&create_randovania_gamecube_cmdl_and_ancs(
         resources,
@@ -1312,8 +1320,12 @@ pub fn collect_game_resources<'r>(
     let orange_light: Vec<(u32, FourCC)> = vec![(0xB4A658C3, FourCC::from_bytes(b"PART"))];
     looking_for.extend(orange_light);
 
-    let gamecube: Vec<(u32, FourCC)> = vec![(0x770939c0, FourCC::from_bytes(b"CMDL"))];
-    looking_for.extend(gamecube);
+    let pickup_model_assets: Vec<(u32, FourCC)> = vec![
+        (0x770939C0, FourCC::from_bytes(b"CMDL")),
+        (0x663E4DEB, FourCC::from_bytes(b"CMDL")),
+        (0x2F976E86, FourCC::from_bytes(b"CMDL")),
+    ];
+    looking_for.extend(pickup_model_assets);
 
     let ghost_ball: Vec<(u32, FourCC)> = vec![
         // used for lock on point model
@@ -1641,6 +1653,45 @@ fn create_randovania_gamecube_cmdl_and_ancs<'r>(
     };
 
     [new_cmdl, new_ancs]
+}
+
+fn create_zoomer_cmdl_and_ancs<'r>(
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    new_cmdl_id: ResId<res_id::CMDL>,
+    new_ancs_id: ResId<res_id::ANCS>,
+    new_txtr1: ResId<res_id::TXTR>,
+) -> [structs::Resource<'r>; 2] {
+    let cmdl = {
+        let cmdl = ResourceData::new(&resources[&resource_info!("Zoomer.CMDL").into()]);
+        let cmdl_bytes = cmdl.decompress().into_owned();
+        let mut cmdl: structs::Cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
+
+        cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = new_txtr1;
+
+        let mut new_cmdl_bytes = vec![];
+        cmdl.write_to(&mut new_cmdl_bytes).unwrap();
+
+        build_resource(
+            new_cmdl_id,
+            structs::ResourceKind::External(new_cmdl_bytes, b"CMDL".into()),
+        )
+    };
+    let ancs = {
+        let ancs = ResourceData::new(&resources[&resource_info!("Node1_11.ANCS").into()]);
+        let ancs_bytes = ancs.decompress().into_owned();
+        let mut ancs = Reader::new(&ancs_bytes[..]).read::<structs::Ancs>(());
+
+        ancs.char_set.char_info.as_mut_vec()[0].cmdl = new_cmdl_id;
+
+        let mut new_ancs_bytes = vec![];
+        ancs.write_to(&mut new_ancs_bytes).unwrap();
+
+        build_resource(
+            new_ancs_id,
+            structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
+        )
+    };
+    [cmdl, ancs]
 }
 
 fn create_visor_cmdl_and_ancs<'r>(

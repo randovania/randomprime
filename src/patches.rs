@@ -3262,7 +3262,10 @@ impl WaterType {
             (water.splash_particle_2, FourCC::from_bytes(b"PART")),
             (water.splash_particle_3, FourCC::from_bytes(b"PART")),
             (water.visor_runoff_particle, FourCC::from_bytes(b"PART")),
-            (water.unmorph_visor_runoff_particle, FourCC::from_bytes(b"PART")),
+            (
+                water.unmorph_visor_runoff_particle,
+                FourCC::from_bytes(b"PART"),
+            ),
         ];
         deps.retain(|i| i.0 != 0xffffffff && i.0 != 0);
         deps
