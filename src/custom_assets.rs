@@ -63,6 +63,8 @@ pub mod custom_asset_ids {
         NOTHING_ANCS: ANCS,
         ZOOMER_CMDL: CMDL,
         ZOOMER_ANCS: ANCS,
+        COG_CMDL: CMDL,
+        COG_ANCS: ANCS,
         THERMAL_CMDL: CMDL,
         THERMAL_ANCS: ANCS,
         XRAY_CMDL: CMDL,
@@ -657,6 +659,11 @@ pub fn custom_assets<'r>(
         custom_asset_ids::ZOOMER_CMDL,
         custom_asset_ids::ZOOMER_ANCS,
         custom_asset_ids::NOTHING_TXTR,
+    ));
+    assets.extend_from_slice(&create_cog_cmdl_and_ancs(
+        resources,
+        custom_asset_ids::COG_CMDL,
+        custom_asset_ids::COG_ANCS,
     ));
     assets.extend_from_slice(&create_randovania_gamecube_cmdl_and_ancs(
         resources,
@@ -1689,6 +1696,40 @@ fn create_zoomer_cmdl_and_ancs<'r>(
         build_resource(
             new_ancs_id,
             structs::ResourceKind::External(new_ancs_bytes, b"ANCS".into()),
+        )
+    };
+    [cmdl, ancs]
+}
+
+fn create_cog_cmdl_and_ancs<'r>(
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    new_cmdl_id: ResId<res_id::CMDL>,
+    new_ancs_id: ResId<res_id::ANCS>,
+) -> [structs::Resource<'r>; 2] {
+    let cmdl = {
+        let cmdl = include_bytes!("../extra_assets/cog.CMDL");
+        let cmdl = Reader::new(&cmdl[..]).read::<structs::Cmdl>(());
+        let mut bytes = vec![];
+        cmdl.write_to(&mut bytes).unwrap();
+
+        build_resource(
+            new_cmdl_id,
+            structs::ResourceKind::External(bytes, b"CMDL".into()),
+        )
+    };
+    let ancs = {
+        let ancs = ResourceData::new(&resources[&resource_info!("Node1_11.ANCS").into()]);
+        let bytes = ancs.decompress().into_owned();
+        let mut ancs = Reader::new(&bytes[..]).read::<structs::Ancs>(());
+
+        ancs.char_set.char_info.as_mut_vec()[0].cmdl = new_cmdl_id;
+
+        let mut bytes = vec![];
+        ancs.write_to(&mut bytes).unwrap();
+
+        build_resource(
+            new_ancs_id,
+            structs::ResourceKind::External(bytes, b"ANCS".into()),
         )
     };
     [cmdl, ancs]

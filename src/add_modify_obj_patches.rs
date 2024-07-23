@@ -339,8 +339,7 @@ pub fn patch_add_liquid<'r>(
             .as_water_mut()
             .unwrap()
             .morph_out_time = config.morph_out_time.unwrap_or(1.0);
-        water_obj.property_data.as_water_mut().unwrap().tile_size =
-            config.tile_size.unwrap_or(2.4);
+        water_obj.property_data.as_water_mut().unwrap().tile_size = config.tile_size.unwrap_or(2.4);
         water_obj
             .property_data
             .as_water_mut()

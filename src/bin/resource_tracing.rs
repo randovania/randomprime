@@ -789,6 +789,45 @@ fn create_zoomer(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         .is_none());
 }
 
+fn create_cog(pickup_table: &mut HashMap<PickupModel, PickupData>) {
+    let mut bytes = Vec::new();
+    {
+        let mut pickup: structs::Pickup =
+            Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
+                .read::<Pickup>(())
+                .clone();
+        pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Cog\0").unwrap());
+        pickup.kind = PickupType::Missile.kind();
+        pickup.max_increase = 0;
+        pickup.curr_increase = 0;
+        pickup.cmdl = custom_asset_ids::COG_CMDL;
+        pickup.ancs.file_id = custom_asset_ids::COG_ANCS;
+        pickup.part = ResId::<res_id::PART>::invalid();
+        pickup.write_to(&mut bytes).unwrap();
+    }
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::PhazonSuit]
+        .deps
+        .iter()
+        .filter(|i| ![b"SCAN".into(), b"STRG".into(), b"CMDL".into()].contains(&i.fourcc))
+        .cloned()
+        .collect();
+    deps.extend(&[
+        ResourceKey::from(custom_asset_ids::COG_CMDL),
+        ResourceKey::from(custom_asset_ids::COG_ANCS),
+        ResourceKey::new(0x50DF3CAD, b"TXTR".into()),
+    ]);
+    assert!(pickup_table
+        .insert(
+            PickupModel::Cog,
+            PickupData {
+                bytes,
+                deps,
+                attainment_audio_file_name: b"/audio/itm_x_short_02.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
+}
+
 fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut bytes = Vec::new();
     {
@@ -1498,6 +1537,10 @@ fn main() {
     assert!(cmdl_aabbs
         .insert(custom_asset_ids::ZOOMER_CMDL, suit_aabb)
         .is_none());
+    let cog_aabb = [suit_aabb[0], suit_aabb[1], suit_aabb[2] + 0.5, suit_aabb[3], suit_aabb[4], suit_aabb[5] + 0.5];
+    assert!(cmdl_aabbs
+        .insert(custom_asset_ids::COG_CMDL, cog_aabb)
+        .is_none());
 
     let missile_aabb = *cmdl_aabbs
         .get(&ResId::<res_id::CMDL>::new(
@@ -1526,6 +1569,7 @@ fn main() {
     create_gamecube(&mut pickup_table);
     create_nothing(&mut pickup_table);
     create_zoomer(&mut pickup_table);
+    create_cog(&mut pickup_table);
     create_shiny_missile(&mut pickup_table);
     create_thermal_visor(&mut pickup_table);
     create_xray_visor(&mut pickup_table);
