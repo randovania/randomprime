@@ -175,6 +175,12 @@ pub struct WaterConfig {
     pub liquid_type: String,
     pub position: [f32; 3],
     pub scale: [f32; 3],
+    pub morph_in_time: Option<f32>,
+    pub morph_out_time: Option<f32>,
+    pub tile_size: Option<f32>,
+    pub tile_subdivisions: Option<u32>,
+    pub alpha_in_time: Option<f32>,
+    pub alpha_out_time: Option<f32>,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
@@ -1370,7 +1376,9 @@ pub struct PatchConfig {
     pub comment: String,
     pub main_menu_message: String,
 
+    #[serde(skip_serializing)] // skipped for competitive integrity reasons
     pub credits_string: Option<String>,
+
     pub results_string: Option<String>,
     pub artifact_hints: Option<HashMap<String, String>>, // e.g. "Strength":"This item can be found in Ruined Fountain"
     pub required_artifact_count: Option<u32>,

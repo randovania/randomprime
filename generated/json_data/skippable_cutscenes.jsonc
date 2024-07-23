@@ -10915,12 +10915,6 @@
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 666666, // [Camera] Cinematic Camera Hold
-                            "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
-                            "state": "INACTIVE",
-                            "message": "DECREMENT"
-                        },
-                        {
                             "senderId": 4128769, // [Dock] Dock
                             "targetId": 666555, // [Timer] Load Timer
                             "state": "MAX_REACHED",
@@ -11716,13 +11710,13 @@
                         },
                         {
                             "senderId": 524805, // [Camera] Cinematic Camera
-                            "targetId": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
+                            "targetId": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ACTIVE",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 524805, // [Camera] Cinematic Camera
-                            "targetId": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
+                            "targetId": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "INACTIVE",
                             "message": "DECREMENT"
                         },
@@ -11760,7 +11754,7 @@
                         },
                         {
                             "senderId": 524290, // [Relay] Bomb Slot Cinematic Start
-                            "targetId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
@@ -11796,42 +11790,42 @@
                         },
                         {
                             "senderId": 524292, // [Relay] Bomb Slot Cinematic End
-                            "targetId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "targetId": 524292, // [Relay] Bomb Slot Cinematic End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "targetId": 524650, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "targetId": 524656, // [Timer] Timer - Delay Grate Opening
                             "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
-                            "senderId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "targetId": 524551, // [Platform] Platform - Upper Grate
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "targetId": 524567, // [Platform] Platform - Upper Grate Final Position
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "targetId": 524726, // [MemoryRelay] Memory Relay - open gate
                             "state": "ZERO",
                             "message": "ACTIVATE"
@@ -11844,13 +11838,13 @@
                         },
                         {
                             "senderId": 524294, // [Relay] Wallbreak Cinema Start
-                            "targetId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 524294, // [Relay] Wallbreak Cinema Start
-                            "targetId": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
+                            "targetId": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
@@ -11928,66 +11922,66 @@
                         },
                         {
                             "senderId": 524295, // [Relay] Wallbreak Cinema End
-                            "targetId": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
+                            "targetId": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
                             "senderId": 524295, // [Relay] Wallbreak Cinema End
-                            "targetId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524295, // [Relay] Wallbreak Cinema End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524790, // [Platform] Platform_arms_up
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524801, // [Timer] Timer_pause for drop
                             "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524787, // [Actor] Actor_arms_anim
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524805, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524803, // [Timer] Timer_dooropen_pause
                             "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524789, // [Platform] Platform_arms_down
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524876, // [SpecialFunction] SpecialFunction PlayerFollowLocator
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "targetId": 524297, // [Relay] Destroy Wall Cutscene Skip
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
@@ -12012,7 +12006,7 @@
                         },
                         {
                             "senderId": 524298, // [Relay] Decrement Ice Cinematic Start
-                            "targetId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
@@ -12024,7 +12018,7 @@
                         },
                         {
                             "senderId": 524299, // [Relay] Decrement Ice Cinematic End
-                            "targetId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
@@ -12035,52 +12029,46 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "targetId": 524299, // [Relay] Decrement Ice Cinematic End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "targetId": 524902, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "targetId": 524797, // [Timer] Timer_start hand trigger
                             "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "targetId": 524798, // [Trigger] Trigger_ballstart
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "targetId": 524804, // [Timer] Timer_allice_deactivate
                             "state": "ZERO",
                             "message": "RESET_AND_START"
                         },
                         {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "targetId": 524901, // [Effect] Effect-Bluelight
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "targetId": 524900, // [Sound] Sound-Glowsound
                             "state": "ZERO",
                             "message": "PLAY"
-                        },
-                        {
-                            "senderId": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524299, // [Relay] Decrement Ice Cinematic End
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "relays": [
@@ -12109,15 +12097,15 @@
                     ],
                     "specialFunctions": [
                         {
-                            "id": 524293, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 524293, // [SpecialFunction] Bomb Slot Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 524296, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 524296, // [SpecialFunction] Wall Destruction Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 524300, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 524300, // [SpecialFunction] Ice Melting Cinematic Skip
                             "type": "CinematicSkip"
                         }
                     ]
@@ -13972,7 +13960,7 @@
                         },
                         {
                             "senderId": 131593, // [Relay] Relay One Shot Out
-                            "targetId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "targetId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
@@ -13990,7 +13978,7 @@
                         },
                         {
                             "senderId": 131088, // [Relay] One Shot End
-                            "targetId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "targetId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
@@ -14001,31 +13989,31 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131088, // [Relay] One Shot End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131347, // [Platform] Platform_Blockage
                             "state": "ZERO",
                             "message": "NEXT"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131587, // [Timer] Timer - open spiderball hole
                             "state": "ZERO",
                             "message": "STOP"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131572, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "senderId": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "targetId": 131571, // [PlayerActor] PlayerActor-scan_cine_forward
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -14051,7 +14039,7 @@
                             "layer": 4
                         },
                         {
-                            "id": 231092, // [SpecialFunction] Wall Unlock Cinematic Skip
+                            "id": 131219, // [SpecialFunction] Wall Unlock Cinematic Skip
                             "type": "CinematicSkip"
                         }
                     ]
@@ -16238,6 +16226,33 @@
                         {
                             "id": 983071, // [SpecialFunction] Water Follows Platform
                             "type": "ObjectFollowObject"
+                        }
+                    ]
+                },
+                "Save Station B": {
+                    "addConnections": [
+                        {
+                            "senderId": 262147, // [SpecialFunction] Player Exits Room
+                            "targetId": 262262, // [SpecialFunction] SpecialFunction Cinematic Skip Load
+                            "state": "EXITED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 262147, // [SpecialFunction] Player Exits Room
+                            "targetId": 262263, // [SpecialFunction] SpecialFunction Cinematic Skip Save
+                            "state": "EXITED",
+                            "message": "DECREMENT"
+                        }
+                    ],
+                    "specialFunctions": [
+                        {
+                            "id": 262147, // [SpecialFunction] Player Exits Room
+                            "type": "PlayerInAreaRelay",
+                            "position": [
+                                -70.700981,
+                                -212.262238,
+                                0.032295
+                            ]
                         }
                     ]
                 },
@@ -19316,12 +19331,6 @@
                         },
                         {
                             "senderId": 1441796, // [SpecialFunction] Arrival Cinematic Skip
-                            "targetId": 1441878, // [CameraFilterKeyframe] cinema bars
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 1441796, // [SpecialFunction] Arrival Cinematic Skip
                             "targetId": 1441913, // [SpecialFunction] SpecialFunction - Display Billboard
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -19421,6 +19430,7 @@
                             "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterType": "Multiply",
                             "filterShape": "Fullscreen",
+                            "fadeOutTime": 0.5,
                             "filterIndex": 2
                         }
                     ]
@@ -23149,7 +23159,7 @@
                         {
                             "senderId": 852694, // [Relay] Relay One Shot Out
                             "targetId": 852702, // [CameraFilterKeyframe] Camera Filter Keyframe Widescreen
-                            "state": "ACTIVE",
+                            "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
