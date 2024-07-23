@@ -418,7 +418,11 @@ impl PickupModel {
 
     pub fn pickup_data(&self) -> Pickup {
         let mut pickup: Pickup = Reader::new(self.raw_pickup_data()).read(());
-        if self.name() == PickupModel::RandovaniaGamecube.name() {
+        if self.name() == PickupModel::Nothing.name() {
+            pickup.scale[0] = 1.0;
+            pickup.scale[1] = 1.0;
+            pickup.scale[2] = 1.0;
+        } else if self.name() == PickupModel::RandovaniaGamecube.name() {
             pickup.scale[0] = 0.475;
             pickup.scale[1] = 0.475;
             pickup.scale[2] = 0.475;
