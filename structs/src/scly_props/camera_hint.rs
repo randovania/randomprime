@@ -3,7 +3,7 @@ use reader_writer::{generic_array::GenericArray, typenum::U3, CStr};
 
 use crate::{
     scly_props::structs::{CameraHintParameters, BoolFloat, BoolVec3},
-    SclyPropertyData, impl_position, impl_rotation,
+    SclyPropertyData,
 };
 
 #[auto_struct(Readable, Writable)]
@@ -37,8 +37,9 @@ pub struct CameraHint<'r> {
     pub control_interp_dur: f32,
 }
 
+use crate::{impl_position, impl_rotation};
 impl<'r> SclyPropertyData for CameraHint<'r> {
+    const OBJECT_TYPE: u8 = 0x10;
     impl_position!();
     impl_rotation!();
-    const OBJECT_TYPE: u8 = 0x10;
 }
