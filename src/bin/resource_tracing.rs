@@ -1537,7 +1537,14 @@ fn main() {
     assert!(cmdl_aabbs
         .insert(custom_asset_ids::ZOOMER_CMDL, suit_aabb)
         .is_none());
-    let cog_aabb = [suit_aabb[0], suit_aabb[1], suit_aabb[2] + 0.5, suit_aabb[3], suit_aabb[4], suit_aabb[5] + 0.5];
+    let cog_aabb = [
+        suit_aabb[0],
+        suit_aabb[1],
+        suit_aabb[2] + 0.5,
+        suit_aabb[3],
+        suit_aabb[4],
+        suit_aabb[5] + 0.5,
+    ];
     assert!(cmdl_aabbs
         .insert(custom_asset_ids::COG_CMDL, cog_aabb)
         .is_none());
