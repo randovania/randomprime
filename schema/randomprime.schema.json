@@ -2861,7 +2861,7 @@
                     "default": false
                 },
                 "liquids": {
-                    "description": "Add liquid volumes to this room.",
+                    "description": "Add liquid volumes to this room. The bigger their size, the bigger the `tileSize` and `tileSubdivisions` values must be in order for the liquid to render properly.",
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -2894,6 +2894,42 @@
                             "scale": {
                                 "description": "The extent of the liquid volume.",
                                 "$ref": "#/$defs/vector3Positive"
+                            },
+                            "morphInTime": {
+                                "description": "Duration in which the water will be traveling to it's destination.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 3.0
+                            },
+                            "morphOutTime": {
+                                "description": "Duration in which the water will be traveling back to it's source position.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 3.0
+                            },
+                            "tileSize": {
+                                "description": "Specify the size of the water tiles.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 2.4
+                            },
+                            "tileSubdivisions": {
+                                "description": "Specify the amount of tile subdivisions on the liquid.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "default": 6
+                            },
+                            "alphaInTime": {
+                                "description": "Duration in which the water will be fading back in view.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 3.0
+                            },
+                            "alphaOutTime": {
+                                "description": "Duration in which the water will be fading out of view.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 3.0
                             }
                         },
                         "required": [

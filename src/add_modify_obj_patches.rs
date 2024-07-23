@@ -329,6 +329,18 @@ pub fn patch_add_liquid<'r>(
             .as_mut_vec();
         water_obj.property_data.as_water_mut().unwrap().active =
             config.active.unwrap_or(true) as u8;
+        water_obj.property_data.as_water_mut().unwrap().morph_in_time =
+            config.morph_in_time.unwrap_or(1.0) as f32;
+        water_obj.property_data.as_water_mut().unwrap().morph_out_time =
+            config.morph_out_time.unwrap_or(1.0) as f32;
+        water_obj.property_data.as_water_mut().unwrap().tile_size =
+            config.tile_size.unwrap_or(2.4) as f32;
+        water_obj.property_data.as_water_mut().unwrap().tile_subdivisions =
+            config.tile_subdivisions.unwrap_or(6) as u32;
+        water_obj.property_data.as_water_mut().unwrap().alpha_in_time =
+            config.alpha_in_time.unwrap_or(3.0) as f32;
+        water_obj.property_data.as_water_mut().unwrap().alpha_out_time =
+            config.alpha_out_time.unwrap_or(3.0) as f32;
         let property_data: structs::SclyProperty = water_obj.property_data;
 
         assert!(property_data.object_type() == structs::Water::OBJECT_TYPE);
