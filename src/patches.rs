@@ -8017,29 +8017,29 @@ fn patch_ruined_courtyard_thermal_conduits(
     area: &mut mlvl_wrapper::MlvlArea,
     version: Version,
 ) -> Result<(), String> {
-    let scly = area.mrea().scly_section_mut();
-    let layer = &mut scly.layers.as_mut_vec()[0];
-    let thermal_conduit_damageable_trigger_obj_id = 0xF01C8;
-    let thermal_conduit_actor_obj_id = 0xF01C7;
-    let debris_generator_obj_id = 0xF01DD;
-    let thermal_conduit_cover_actor_obj_id = 0xF01D9;
-
-    layer
-        .objects
-        .as_mut_vec()
+    let layer = area
+        .mrea()
+        .scly_section_mut()
+        .layers
         .iter_mut()
-        .find(|obj| obj.instance_id == thermal_conduit_damageable_trigger_obj_id)
-        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
-        .unwrap()
-        .active = 1;
+        .next()
+        .unwrap();
 
     if version == Version::NtscU0_02 {
-        layer
-            .objects
-            .as_mut_vec()
+        let objects = layer.objects.as_mut_vec();
+        // Thermal Conduit Actor
+        objects
             .iter_mut()
-            .find(|obj| obj.instance_id == thermal_conduit_actor_obj_id)
+            .find(|obj: &&mut structs::SclyObject| obj.instance_id & 0x00FFFFFF == 0xF01C7)
             .and_then(|obj| obj.property_data.as_actor_mut())
+            .unwrap()
+            .active = 1;
+
+        // Damageable Trigger Activation Relay
+        objects
+            .iter_mut()
+            .find(|obj| obj.instance_id & 0x00FFFFFF == 0xF0312)
+            .and_then(|obj| obj.property_data.as_relay_mut())
             .unwrap()
             .active = 1;
     } else if version == Version::NtscJ
@@ -8048,20 +8048,6 @@ fn patch_ruined_courtyard_thermal_conduits(
         || version == Version::NtscJTrilogy
         || version == Version::PalTrilogy
     {
-        layer
-            .objects
-            .as_mut_vec()
-            .iter_mut()
-            .find(|obj| obj.instance_id == debris_generator_obj_id)
-            .unwrap()
-            .connections
-            .as_mut_vec()
-            .push(structs::Connection {
-                state: structs::ConnectionState::ZERO,
-                message: structs::ConnectionMsg::DEACTIVATE,
-                target_object_id: thermal_conduit_cover_actor_obj_id,
-            });
-
         let flags = &mut area.layer_flags.flags;
         *flags |= 1 << 6; // Turn on "Thermal Target"
     }
@@ -8681,11 +8667,7 @@ fn patch_remove_cutscenes(
     Ok(())
 }
 
-/**
- * Patch is actually for QAA
- *
- */
-fn patch_fix_central_dynamo_crash(
+fn patch_purge_debris_extended(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
@@ -8694,8 +8676,184 @@ fn patch_fix_central_dynamo_crash(
         layer
             .objects
             .as_mut_vec()
-            .retain(|obj| ![0x45].contains(&obj.property_data.object_type()));
+            .retain(|obj| !obj.property_data.is_debris_extended());
     }
+
+    Ok(())
+}
+
+fn patch_fix_deck_beta_security_hall_crash(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let trigger1_id = area.new_object_id_from_layer_id(0);
+    let trigger2_id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let objects = scly.layers.as_mut_vec()[0].objects.as_mut_vec();
+
+    // Insert our own load triggers
+    objects.extend_from_slice(&[
+        structs::SclyObject {
+            instance_id: trigger1_id,
+            property_data: structs::Trigger {
+                name: b"Trigger\0".as_cstr(),
+                position: [-86.4, 265.1, -67.6].into(),
+                scale: [10.0, 5.0, 10.0].into(),
+                damage_info: structs::scly_structs::DamageInfo {
+                    weapon_type: 0,
+                    damage: 0.0,
+                    radius: 0.0,
+                    knockback_power: 0.0,
+                },
+                force: [0.0, 0.0, 0.0].into(),
+                flags: 1,
+                active: 1,
+                deactivate_on_enter: 0,
+                deactivate_on_exit: 0,
+            }
+            .into(),
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: 0x001F0001,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_MAX,
+                    target_object_id: 0x001F0002,
+                },
+            ]
+            .into(),
+        },
+        structs::SclyObject {
+            instance_id: trigger2_id,
+            property_data: structs::Trigger {
+                name: b"Trigger\0".as_cstr(),
+                position: [-94.5, 272.3, -68.6].into(),
+                scale: [5.0, 10.0, 10.0].into(),
+                damage_info: structs::scly_structs::DamageInfo {
+                    weapon_type: 0,
+                    damage: 0.0,
+                    radius: 0.0,
+                    knockback_power: 0.0,
+                },
+                force: [0.0, 0.0, 0.0].into(),
+                flags: 1,
+                active: 1,
+                deactivate_on_enter: 0,
+                deactivate_on_exit: 0,
+            }
+            .into(),
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: 0x001F0002,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_MAX,
+                    target_object_id: 0x001F0001,
+                },
+            ]
+            .into(),
+        },
+    ]);
+
+    // Disable auto-loading of adjacent rooms
+    for obj in objects {
+        if let Some(dock) = obj.property_data.as_dock_mut() {
+            dock.load_connected = 0;
+        }
+    }
+
+    Ok(())
+}
+
+fn patch_fix_central_dynamo_crash(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let timer_id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let objects = scly.layers.as_mut_vec()[0].objects.as_mut_vec();
+
+    // Decouple door-unlocking from maze disabling
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B03FA) // Deactivate Maze Relay
+        .unwrap();
+    obj.connections
+        .as_mut_vec()
+        .retain(|conn| conn.target_object_id != 0x001B065E); // Activate Rooms Relay
+
+    // Always close the maze entrance when disabling the maze walls
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ZERO,
+        message: structs::ConnectionMsg::ACTIVATE,
+        target_object_id: 0x001B02F2, // Maze Entrance Door
+    });
+
+    // Disallow the deactivation of the maze until it's actually enabled
+    objects.push(structs::SclyObject {
+        instance_id: timer_id,
+        property_data: structs::Timer {
+            name: b"my timer\0".as_cstr(),
+            start_time: 0.04, // but only after a couple of frames because of the memory relay
+            max_random_add: 0.0,
+            looping: 0,
+            start_immediately: 1,
+            active: 1,
+        }
+        .into(),
+        connections: vec![structs::Connection {
+            target_object_id: 0x001B03FA, // Deactivate Maze Relay
+            state: structs::ConnectionState::ZERO,
+            message: structs::ConnectionMsg::DEACTIVATE,
+        }]
+        .into(),
+    });
+
+    // Have the pickup unlock the doors instead of maze deactivation
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B04B1) // Pickup
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ARRIVED,
+        message: structs::ConnectionMsg::SET_TO_ZERO,
+        target_object_id: 0x001B065E, // Activate Rooms Relay
+    });
+
+    // Re-allow deactivation of the maze once it's actually activated
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B0305) // Pop Foot Relay
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ZERO,
+        message: structs::ConnectionMsg::ACTIVATE,
+        target_object_id: 0x001B03FA, // Deactivate Maze Relay
+    });
+
+    // Whenever the door to QAA is interacted with, attempt to disable the maze
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x001B0474) // Door to QAA
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::OPEN,
+        message: structs::ConnectionMsg::SET_TO_ZERO,
+        target_object_id: 0x001B03FA, // Deactivate Maze Relay
+    });
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::CLOSED,
+        message: structs::ConnectionMsg::SET_TO_ZERO,
+        target_object_id: 0x001B03FA, // Deactivate Maze Relay
+    });
 
     Ok(())
 }
@@ -13894,12 +14052,24 @@ fn patch_qol_game_breaking(
 ) {
     // Crashes
     patcher.add_scly_patch(
-        resource_info!("00j_mines_connect.MREA").into(),
+        resource_info!("07_mines_electric.MREA").into(),
         patch_fix_central_dynamo_crash,
     );
     patcher.add_scly_patch(
-        resource_info!("05_under_intro_zoo.MREA").into(), // stop crashing from too much stuff in biohazard containment + our patches
-        patch_fix_central_dynamo_crash,
+        resource_info!("07_mines_electric.MREA").into(),
+        patch_purge_debris_extended,
+    );
+    patcher.add_scly_patch(
+        resource_info!("00j_mines_connect.MREA").into(),
+        patch_purge_debris_extended,
+    );
+    patcher.add_scly_patch(
+        resource_info!("00d_under_intro_hall.MREA").into(),
+        patch_fix_deck_beta_security_hall_crash,
+    );
+    patcher.add_scly_patch(
+        resource_info!("05_under_intro_zoo.MREA").into(),
+        patch_purge_debris_extended,
     );
     patcher.add_scly_patch(
         resource_info!("00p_mines_connect.MREA").into(),
@@ -16041,15 +16211,6 @@ fn build_and_run_patches<'r>(
                 );
             }
 
-            if config.qol_cutscenes == CutsceneMode::Major
-                && is_elevator(room_info.room_id.to_u32())
-            {
-                patcher.add_scly_patch(
-                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                    move |ps, area| patch_remove_cutscenes(ps, area, vec![], vec![], true),
-                );
-            }
-
             let map_default_state = {
                 let mut map_default_state = config.map_default_state;
                 if let Some(level) = level_data.get(world.to_json_key()) {
@@ -16904,7 +17065,15 @@ fn build_and_run_patches<'r>(
 
                     // Some doors have their object IDs changed in non NTSC-U versions
                     // NTSC-K is based on NTSC-U and shouldn't be part of those changes
-                    if [Version::Pal, Version::NtscJ, Version::NtscJTrilogy, Version::NtscUTrilogy, Version::PalTrilogy].contains(&config.version) {
+                    if [
+                        Version::Pal,
+                        Version::NtscJ,
+                        Version::NtscJTrilogy,
+                        Version::NtscUTrilogy,
+                        Version::PalTrilogy,
+                    ]
+                    .contains(&config.version)
+                    {
                         // Tallon Overworld - Temple Security Station
                         if mrea_id == 0xBDB1FCAC
                             && local_dl.door_location.unwrap().instance_id == 0x00070055
@@ -17205,22 +17374,6 @@ fn build_and_run_patches<'r>(
         config.version,
     );
     let skip_frigate = skip_frigate && starting_room.mlvl != World::FrigateOrpheon.mlvl();
-
-    match config.qol_cutscenes {
-        CutsceneMode::Original => {}
-        CutsceneMode::Skippable => {}
-        CutsceneMode::SkippableCompetitive => {}
-        CutsceneMode::Competitive => {
-            patch_qol_competitive_cutscenes(&mut patcher, config.version, skip_frigate);
-        }
-        CutsceneMode::Minor => {
-            patch_qol_minor_cutscenes(&mut patcher, config.version);
-        }
-        CutsceneMode::Major => {
-            patch_qol_minor_cutscenes(&mut patcher, config.version);
-            patch_qol_major_cutscenes(&mut patcher, config.shuffle_pickup_position);
-        }
-    }
 
     let mut smoother_teleports = false;
     for (_, level) in level_data.iter() {
@@ -18420,6 +18573,34 @@ fn build_and_run_patches<'r>(
             resource_info!("STRG_MemoryCard.STRG").into(), // 0x19C3F7F7
             |res| patch_memorycard_strg(res, config.version),
         );
+    }
+
+    /* Run these last for legacy support reasons */
+    match config.qol_cutscenes {
+        CutsceneMode::Original => {}
+        CutsceneMode::Skippable => {}
+        CutsceneMode::SkippableCompetitive => {}
+        CutsceneMode::Competitive => {
+            patch_qol_competitive_cutscenes(&mut patcher, config.version, skip_frigate);
+        }
+        CutsceneMode::Minor => {
+            patch_qol_minor_cutscenes(&mut patcher, config.version);
+        }
+        CutsceneMode::Major => {
+            patch_qol_minor_cutscenes(&mut patcher, config.version);
+            patch_qol_major_cutscenes(&mut patcher, config.shuffle_pickup_position);
+
+            for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+                for room_info in rooms.iter() {
+                    if is_elevator(room_info.room_id.to_u32()) {
+                        patcher.add_scly_patch(
+                            (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                            move |ps, area| patch_remove_cutscenes(ps, area, vec![], vec![], true),
+                        );
+                    }
+                }
+            }
+        }
     }
 
     patcher.run(gc_disc)?;

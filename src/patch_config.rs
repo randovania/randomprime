@@ -1459,7 +1459,9 @@ pub struct PatchConfig {
     pub comment: String,
     pub main_menu_message: String,
 
+    #[serde(skip_serializing)] // skipped for competitive integrity reasons
     pub credits_string: Option<String>,
+
     pub results_string: Option<String>,
     pub artifact_hints: Option<HashMap<String, String>>, // e.g. "Strength":"This item can be found in Ruined Fountain"
     pub required_artifact_count: Option<u32>,
