@@ -1669,9 +1669,8 @@ fn create_zoomer_cmdl_and_ancs<'r>(
     new_txtr1: ResId<res_id::TXTR>,
 ) -> [structs::Resource<'r>; 2] {
     let cmdl = {
-        let cmdl = ResourceData::new(&resources[&resource_info!("Zoomer.CMDL").into()]);
-        let cmdl_bytes = cmdl.decompress().into_owned();
-        let mut cmdl: structs::Cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
+        let cmdl = include_bytes!("../extra_assets/zoomer.CMDL");
+        let mut cmdl = Reader::new(&cmdl[..]).read::<structs::Cmdl>(());
 
         cmdl.material_sets.as_mut_vec()[0].texture_ids.as_mut_vec()[0] = new_txtr1;
 
