@@ -8693,76 +8693,74 @@ fn patch_fix_deck_beta_security_hall_crash(
     let objects = scly.layers.as_mut_vec()[0].objects.as_mut_vec();
 
     // Insert our own load triggers
-    objects.extend_from_slice(
-        &[
-            structs::SclyObject {
-                instance_id: trigger1_id,
-                property_data: structs::Trigger {
-                    name: b"Trigger\0".as_cstr(),
-                    position: [-86.4, 265.1, -67.6].into(),
-                    scale: [10.0, 5.0, 10.0].into(),
-                    damage_info: structs::scly_structs::DamageInfo {
-                        weapon_type: 0,
-                        damage: 0.0,
-                        radius: 0.0,
-                        knockback_power: 0.0,
-                    },
-                    force: [0.0, 0.0, 0.0].into(),
-                    flags: 1,
-                    active: 1,
-                    deactivate_on_enter: 0,
-                    deactivate_on_exit: 0,
-                }
-                .into(),
-                connections: vec![
-                    structs::Connection {
-                        state: structs::ConnectionState::ENTERED,
-                        message: structs::ConnectionMsg::SET_TO_ZERO,
-                        target_object_id: 0x001F0001,
-                    },
-                    structs::Connection {
-                        state: structs::ConnectionState::ENTERED,
-                        message: structs::ConnectionMsg::SET_TO_MAX,
-                        target_object_id: 0x001F0002,
-                    },
-                ]
-                .into(),
-            },
-            structs::SclyObject {
-                instance_id: trigger2_id,
-                property_data: structs::Trigger {
-                    name: b"Trigger\0".as_cstr(),
-                    position: [-94.5, 272.3, -68.6].into(),
-                    scale: [5.0, 10.0, 10.0].into(),
-                    damage_info: structs::scly_structs::DamageInfo {
-                        weapon_type: 0,
-                        damage: 0.0,
-                        radius: 0.0,
-                        knockback_power: 0.0,
-                    },
-                    force: [0.0, 0.0, 0.0].into(),
-                    flags: 1,
-                    active: 1,
-                    deactivate_on_enter: 0,
-                    deactivate_on_exit: 0,
-                }
-                .into(),
-                connections: vec![
-                    structs::Connection {
-                        state: structs::ConnectionState::ENTERED,
-                        message: structs::ConnectionMsg::SET_TO_ZERO,
-                        target_object_id: 0x001F0002,
-                    },
-                    structs::Connection {
-                        state: structs::ConnectionState::ENTERED,
-                        message: structs::ConnectionMsg::SET_TO_MAX,
-                        target_object_id: 0x001F0001,
-                    },
-                ]
-                .into(),
-            },
-        ]
-    );
+    objects.extend_from_slice(&[
+        structs::SclyObject {
+            instance_id: trigger1_id,
+            property_data: structs::Trigger {
+                name: b"Trigger\0".as_cstr(),
+                position: [-86.4, 265.1, -67.6].into(),
+                scale: [10.0, 5.0, 10.0].into(),
+                damage_info: structs::scly_structs::DamageInfo {
+                    weapon_type: 0,
+                    damage: 0.0,
+                    radius: 0.0,
+                    knockback_power: 0.0,
+                },
+                force: [0.0, 0.0, 0.0].into(),
+                flags: 1,
+                active: 1,
+                deactivate_on_enter: 0,
+                deactivate_on_exit: 0,
+            }
+            .into(),
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: 0x001F0001,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_MAX,
+                    target_object_id: 0x001F0002,
+                },
+            ]
+            .into(),
+        },
+        structs::SclyObject {
+            instance_id: trigger2_id,
+            property_data: structs::Trigger {
+                name: b"Trigger\0".as_cstr(),
+                position: [-94.5, 272.3, -68.6].into(),
+                scale: [5.0, 10.0, 10.0].into(),
+                damage_info: structs::scly_structs::DamageInfo {
+                    weapon_type: 0,
+                    damage: 0.0,
+                    radius: 0.0,
+                    knockback_power: 0.0,
+                },
+                force: [0.0, 0.0, 0.0].into(),
+                flags: 1,
+                active: 1,
+                deactivate_on_enter: 0,
+                deactivate_on_exit: 0,
+            }
+            .into(),
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: 0x001F0002,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::ENTERED,
+                    message: structs::ConnectionMsg::SET_TO_MAX,
+                    target_object_id: 0x001F0001,
+                },
+            ]
+            .into(),
+        },
+    ]);
 
     // Disable auto-loading of adjacent rooms
     for obj in objects {
@@ -16213,15 +16211,6 @@ fn build_and_run_patches<'r>(
                 );
             }
 
-            if config.qol_cutscenes == CutsceneMode::Major
-                && is_elevator(room_info.room_id.to_u32())
-            {
-                patcher.add_scly_patch(
-                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                    move |ps, area| patch_remove_cutscenes(ps, area, vec![], vec![], true),
-                );
-            }
-
             let map_default_state = {
                 let mut map_default_state = config.map_default_state;
                 if let Some(level) = level_data.get(world.to_json_key()) {
@@ -17363,22 +17352,6 @@ fn build_and_run_patches<'r>(
         config.version,
     );
     let skip_frigate = skip_frigate && starting_room.mlvl != World::FrigateOrpheon.mlvl();
-
-    match config.qol_cutscenes {
-        CutsceneMode::Original => {}
-        CutsceneMode::Skippable => {}
-        CutsceneMode::SkippableCompetitive => {}
-        CutsceneMode::Competitive => {
-            patch_qol_competitive_cutscenes(&mut patcher, config.version, skip_frigate);
-        }
-        CutsceneMode::Minor => {
-            patch_qol_minor_cutscenes(&mut patcher, config.version);
-        }
-        CutsceneMode::Major => {
-            patch_qol_minor_cutscenes(&mut patcher, config.version);
-            patch_qol_major_cutscenes(&mut patcher, config.shuffle_pickup_position);
-        }
-    }
 
     let mut smoother_teleports = false;
     for (_, level) in level_data.iter() {
@@ -18578,6 +18551,34 @@ fn build_and_run_patches<'r>(
             resource_info!("STRG_MemoryCard.STRG").into(), // 0x19C3F7F7
             |res| patch_memorycard_strg(res, config.version),
         );
+    }
+
+    /* Run these last for legacy support reasons */
+    match config.qol_cutscenes {
+        CutsceneMode::Original => {}
+        CutsceneMode::Skippable => {}
+        CutsceneMode::SkippableCompetitive => {}
+        CutsceneMode::Competitive => {
+            patch_qol_competitive_cutscenes(&mut patcher, config.version, skip_frigate);
+        }
+        CutsceneMode::Minor => {
+            patch_qol_minor_cutscenes(&mut patcher, config.version);
+        }
+        CutsceneMode::Major => {
+            patch_qol_minor_cutscenes(&mut patcher, config.version);
+            patch_qol_major_cutscenes(&mut patcher, config.shuffle_pickup_position);
+
+            for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+                for room_info in rooms.iter() {
+                    if is_elevator(room_info.room_id.to_u32()) {
+                        patcher.add_scly_patch(
+                            (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                            move |ps, area| patch_remove_cutscenes(ps, area, vec![], vec![], true),
+                        );
+                    }
+                }
+            }
+        }
     }
 
     patcher.run(gc_disc)?;
