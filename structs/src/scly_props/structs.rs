@@ -27,16 +27,16 @@ pub struct ActorParameters {
     pub thermal_cmdl: ResId<CMDL>,
     pub thermal_cskr: ResId<CSKR>,
 
-    pub unknown0: u8,
-    pub unknown1: f32,
-    pub unknown2: f32,
+    pub use_global_render_time: u8,
+    pub fade_in_time: f32,
+    pub fade_out_time: f32,
 
     pub visor_params: VisorParameters,
 
-    pub enable_thermal_heat: u8,
-    pub unknown3: u8,
-    pub unknown4: u8,
-    pub unknown5: f32,
+    pub thermal_hot: u8,
+    pub force_render_unsorted: u8,
+    pub no_sort_thermal: u8,
+    pub thermal_damage_mag: f32,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
@@ -61,20 +61,20 @@ pub struct LightParameters {
     #[auto_struct(expect = 14)]
     prop_count: u32,
 
-    pub unknown0: u8,
-    pub unknown1: f32,
+    pub cast_shadow: u8,
+    pub shadow_scale: f32,
     pub shadow_tessellation: u32,
-    pub unknown2: f32,
-    pub unknown3: f32,
-    pub color: GenericArray<f32, U4>, // RGBA
-    pub unknown4: u8,
-    pub world_lighting: u32,
+    pub shadow_alpha: f32,
+    pub max_shadow_light: f32,
+    pub color: GenericArray<f32, U4>,
+    pub make_lights: u8,
+    pub use_world_lighting: u32,
     pub light_recalculation: u32,
-    pub unknown5: GenericArray<f32, U3>,
-    pub unknown6: u32,
-    pub unknown7: u32,
-    pub unknown8: u8,
-    pub light_layer_id: u32,
+    pub lightning_position: GenericArray<f32, U3>,
+    pub num_dynamic_lights: u32,
+    pub num_area_lights: u32,
+    pub ignore_ambient_lightning: u8,
+    pub use_light_set: u32,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]

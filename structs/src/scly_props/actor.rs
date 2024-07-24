@@ -18,11 +18,11 @@ pub struct Actor<'r> {
     pub position: GenericArray<f32, U3>,
     pub rotation: GenericArray<f32, U3>,
     pub scale: GenericArray<f32, U3>,
-    pub hitbox: GenericArray<f32, U3>,
-    pub scan_offset: GenericArray<f32, U3>,
+    pub collision_box: GenericArray<f32, U3>,
+    pub collision_offset: GenericArray<f32, U3>,
 
-    pub unknown1: f32,
-    pub unknown2: f32,
+    pub mass: f32,
+    pub momentum: f32,
 
     pub health_info: HealthInfo,
     pub damage_vulnerability: DamageVulnerability,
@@ -31,17 +31,17 @@ pub struct Actor<'r> {
     pub ancs: AncsProp,
     pub actor_params: ActorParameters,
 
-    pub looping: u8,
-    pub snow: u8,
-    pub solid: u8,
-    pub camera_passthrough: u8,
+    pub is_loop: u8,
+    pub immovable   : u8,
+    pub is_solid: u8,
+    pub is_camera_through: u8,
     pub active: u8,
-    pub unknown8: u32,
-    pub unknown9: f32,
-    pub unknown10: u8,
-    pub unknown11: u8,
-    pub unknown12: u8,
-    pub unknown13: u8,
+    pub render_texture_set: u32,
+    pub xray_alpha: f32,
+    pub thermal_visible_through_geometry: u8,
+    pub draws_shadow: u8,
+    pub scale_animation: u8,
+    pub material_flag_54: u8,
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
