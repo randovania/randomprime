@@ -1000,7 +1000,7 @@ fn patch_door<'r>(
             0x001E000B, // Biohazard Containment
             0x0020000D, // Biotech Research Area 1
             0x000F01D1, // Ruined Courtyard
-            0x001B0088,
+            0x001B0088, 0x0028005C, // Research Core
         ]
         .contains(&door_open_trigger_id);
 
@@ -1928,11 +1928,11 @@ fn patch_door<'r>(
             (0xAC2C58FE, 1), // biohazard containment
             (0x5F2EB7B6, 1), // biotech research area 1
             (0x1921876D, 3), // ruined courtyard
-            (0xA49B2544, 1),
+            (0xA49B2544, 1), // research core
         ]
         .contains(&(mrea_id, door_loc.dock_number))
         {
-            /* Add two relays which can activated/deactivated to control which shield appears */
+            /* Add two relays which can be activated/deactivated to control which shield appears */
             layers[0].objects.as_mut_vec().push(structs::SclyObject {
                 instance_id: activate_new_door_id,
                 connections: vec![
@@ -1966,37 +1966,6 @@ fn patch_door<'r>(
             });
 
             layers[0].objects.as_mut_vec().push(structs::SclyObject {
-                instance_id: update_door_timer_id,
-                property_data: structs::Timer {
-                    name: b"update_door_timer\0".as_cstr(),
-                    start_time: 0.5,
-                    max_random_add: 0.0,
-                    looping: 0,
-                    start_immediately: 0,
-                    active: 1,
-                }
-                .into(),
-                connections: vec![
-                    structs::Connection {
-                        state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::SET_TO_ZERO,
-                        target_object_id: activate_old_door_id,
-                    },
-                    structs::Connection {
-                        state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::SET_TO_ZERO,
-                        target_object_id: activate_new_door_id,
-                    },
-                    structs::Connection {
-                        state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::ACTIVATE,
-                        target_object_id: auto_open_relay_id,
-                    },
-                ]
-                .into(),
-            });
-
-            layers[0].objects.as_mut_vec().push(structs::SclyObject {
                 instance_id: activate_old_door_id,
                 connections: vec![
                     structs::Connection {
@@ -2025,6 +1994,37 @@ fn patch_door<'r>(
                     name: b"activate old door\0".as_cstr(),
                     active: 0,
                 }
+                .into(),
+            });
+
+            layers[0].objects.as_mut_vec().push(structs::SclyObject {
+                instance_id: update_door_timer_id,
+                property_data: structs::Timer {
+                    name: b"update_door_timer\0".as_cstr(),
+                    start_time: 0.5,
+                    max_random_add: 0.0,
+                    looping: 0,
+                    start_immediately: 0,
+                    active: 1,
+                }
+                .into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: activate_old_door_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: activate_new_door_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: auto_open_relay_id,
+                    },
+                ]
                 .into(),
             });
 
@@ -2083,7 +2083,7 @@ fn patch_door<'r>(
                 0xAC2C58FE => (Some(0x001E01DA), Some(0x001E01D8)), // biohazard containment
                 0x5F2EB7B6 => (Some(0x00200027), Some(0x00200025)), // biotech research area 1
                 0x1921876D => (Some(0x000F01D5), Some(0x000F01D6)), // ruined courtyard
-                0xA49B2544 => (Some(0x0028043D), Some(0x0028043C)), // research core
+                0xA49B2544 => (Some(0x0028043D), None), // research core
                 _ => (None, None),
             };
 
@@ -2139,22 +2139,123 @@ fn patch_door<'r>(
                     .contains(&conn.target_object_id)
                 });
 
-                obj.connections.as_mut_vec().push(structs::Connection {
-                    state: structs::ConnectionState::ZERO,
-                    message: structs::ConnectionMsg::RESET_AND_START,
-                    target_object_id: update_door_timer_id,
-                });
-
                 if mrea_id == 0xA49B2544 {
                     // research core
+
+                    // Start with the correct door
+                    let timer = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == update_door_timer_id)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Could not find 0x{:X} in room 0x{:X}",
+                                update_door_timer_id, mrea_id
+                            )
+                        })
+                        .property_data
+                        .as_timer_mut()
+                        .unwrap();
+                    timer.start_immediately = 1;
+
+                    // When the outage happens, deactivate both doors
+                    let obj = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == 0x0028043C)
+                        .unwrap_or_else(|| {
+                            panic!("Could not find 0x0028043C in room 0x{:X}", mrea_id)
+                        });
+
+                    obj.connections.as_mut_vec().extend_from_slice(&[
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: door_shield_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: door_force_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: existing_door_shield_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: existing_door_force_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: auto_open_relay_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: 0x0028005C, // door open trigger
+                        },
+                    ]);
+
+                    let obj = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == update_door_timer_id)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Could not find update_door_timer_id in room 0x{:X}",
+                                mrea_id
+                            )
+                        });
+                    obj.connections
+                        .as_mut_vec()
+                        .retain(|conn| conn.target_object_id != auto_open_relay_id);
+
+                    // The thermal conduit re-activates the appropriate door
                     let obj = layers[0]
                         .objects
                         .iter_mut()
                         .find(|obj| obj.instance_id == 0x0028043F)
-                        .expect("Could not find conduit damageable trigger in research core");
+                        .unwrap_or_else(|| {
+                            panic!("Could not find 0x0028043F in room 0x{:X}", mrea_id)
+                        });
+                    obj.connections.as_mut_vec().extend_from_slice(&[
+                        structs::Connection {
+                            state: structs::ConnectionState::DEAD,
+                            message: structs::ConnectionMsg::RESET_AND_START,
+                            target_object_id: update_door_timer_id,
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::ZERO,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: auto_open_relay_id,
+                        },
+                    ]);
 
+                    // Keep dt and force shield in sync
+                    let obj = layers[0]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == existing_door_force_id)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Could not find existing_door_force_id in room 0x{:X}",
+                                mrea_id
+                            )
+                        });
+                    obj.connections
+                        .as_mut_vec()
+                        .extend_from_slice(&[structs::Connection {
+                            state: structs::ConnectionState::ACTIVE,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: existing_door_shield_id,
+                        }]);
+                } else {
                     obj.connections.as_mut_vec().push(structs::Connection {
-                        state: structs::ConnectionState::DEAD,
+                        state: structs::ConnectionState::ZERO,
                         message: structs::ConnectionMsg::RESET_AND_START,
                         target_object_id: update_door_timer_id,
                     });
@@ -2213,6 +2314,17 @@ fn patch_door<'r>(
                     target_object_id: door_shield_id,
                 },
             ]);
+
+            if mrea_id == 0xA49B2544 {
+                new_door_force
+                    .connections
+                    .as_mut_vec()
+                    .extend_from_slice(&[structs::Connection {
+                        state: structs::ConnectionState::ACTIVE,
+                        message: structs::ConnectionMsg::ACTIVATE,
+                        target_object_id: door_shield_id,
+                    }]);
+            }
 
             new_door_force_data.pattern_txtr0 = door_type_after_open.pattern0_txtr();
             new_door_force_data.pattern_txtr1 = door_type_after_open.pattern1_txtr();
@@ -3101,7 +3213,7 @@ fn patch_remove_water(
 #[derive(Copy, Clone, Debug)]
 pub enum WaterType {
     Normal,
-    Poision,
+    Poison,
     Lava,
     Phazon,
 }
@@ -3110,7 +3222,7 @@ impl WaterType {
     pub fn iter() -> impl Iterator<Item = WaterType> {
         [
             WaterType::Normal,
-            WaterType::Poision,
+            WaterType::Poison,
             WaterType::Lava,
             WaterType::Phazon,
         ]
@@ -3124,7 +3236,7 @@ impl WaterType {
         if string == "water" || string == "normal" {
             WaterType::Normal
         } else if string == "poison" || string == "acid" {
-            WaterType::Poision
+            WaterType::Poison
         } else if string == "lava" || string == "magma" {
             WaterType::Lava
         } else if string == "phazon" {
@@ -3139,18 +3251,21 @@ impl WaterType {
         let water = water_obj.property_data.as_water().unwrap();
 
         let mut deps: Vec<(u32, FourCC)> = vec![
-            (water.txtr1, FourCC::from_bytes(b"TXTR")),
-            (water.txtr2, FourCC::from_bytes(b"TXTR")),
-            (water.txtr3, FourCC::from_bytes(b"TXTR")),
-            (water.txtr4, FourCC::from_bytes(b"TXTR")),
-            (water.refl_map_txtr, FourCC::from_bytes(b"TXTR")),
-            (water.txtr6, FourCC::from_bytes(b"TXTR")),
-            (water.lightmap_txtr, FourCC::from_bytes(b"TXTR")),
-            (water.small_enter_part, FourCC::from_bytes(b"PART")),
-            (water.med_enter_part, FourCC::from_bytes(b"PART")),
-            (water.large_enter_part, FourCC::from_bytes(b"PART")),
-            (water.part4, FourCC::from_bytes(b"PART")),
-            (water.part5, FourCC::from_bytes(b"PART")),
+            (water.pattern_map_1, FourCC::from_bytes(b"TXTR")),
+            (water.pattern_map_2, FourCC::from_bytes(b"TXTR")),
+            (water.color_map, FourCC::from_bytes(b"TXTR")),
+            (water.bump_map, FourCC::from_bytes(b"TXTR")),
+            (water.env_map, FourCC::from_bytes(b"TXTR")),
+            (water.env_bump_map, FourCC::from_bytes(b"TXTR")),
+            (water.lightmap, FourCC::from_bytes(b"TXTR")),
+            (water.splash_particle_1, FourCC::from_bytes(b"PART")),
+            (water.splash_particle_2, FourCC::from_bytes(b"PART")),
+            (water.splash_particle_3, FourCC::from_bytes(b"PART")),
+            (water.visor_runoff_particle, FourCC::from_bytes(b"PART")),
+            (
+                water.unmorph_visor_runoff_particle,
+                FourCC::from_bytes(b"PART"),
+            ),
         ];
         deps.retain(|i| i.0 != 0xffffffff && i.0 != 0);
         deps
@@ -3171,94 +3286,94 @@ impl WaterType {
                         radius: 0.0,
                         knockback_power: 0.0,
                     },
-                    unknown1: [0.0, 0.0, 0.0].into(),
-                    unknown2: 2047,
-                    unknown3: 0,
-                    display_fluid_surface: 1,
-                    txtr1: 2837040919,
-                    txtr2: 2565985674,
-                    txtr3: 3001645351,
-                    txtr4: 4294967295,
-                    refl_map_txtr: 4294967295,
-                    txtr6: 1899158552,
-                    unknown5: [3.0, 3.0, -1.0].into(),
-                    unknown6: 35.0,
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 2047,
+                    thermal_cold: 0,
+                    display_surface: 1,
+                    pattern_map_1: 2837040919,
+                    pattern_map_2: 2565985674,
+                    color_map: 3001645351,
+                    bump_map: 4294967295,
+                    env_map: 4294967295,
+                    env_bump_map: 1899158552,
+                    bump_map_dir: [3.0, 3.0, -1.0].into(),
+                    bump_scale: 35.0,
                     morph_in_time: 5.0,
                     morph_out_time: 5.0,
                     active: 1,
                     fluid_type: 0,
-                    unknown11: 0,
-                    unknown12: 0.65,
+                    unknown1: 0,
+                    alpha: 0.65,
                     fluid_uv_motion: structs::FluidUVMotion {
                         fluid_layer_motion1: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 20.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 20.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
                         fluid_layer_motion2: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 15.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 15.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
                         fluid_layer_motion3: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 30.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 30.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
-                        unknown1: 70.0,
-                        unknown2: 0.0,
+                        time_to_wrap: 70.0,
+                        orientation: 0.0,
                     },
-                    unknown30: 0.0,
-                    unknown31: 10.0,
-                    unknown32: 1.0,
-                    unknown33: 1.0,
-                    unknown34: 0.0,
-                    unknown35: 90.0,
-                    unknown36: 0.0,
-                    unknown37: 0.0,
-                    unknown38: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown39: [0.443137, 0.568627, 0.623529, 1.0].into(),
-                    small_enter_part: 0xffffffff,
-                    med_enter_part: 0xffffffff,
-                    large_enter_part: 0xffffffff,
-                    part4: 0xffffffff,
-                    part5: 0xffffffff,
-                    sound1: 2499,
-                    sound2: 2499,
-                    sound3: 463,
-                    sound4: 464,
-                    sound5: 465,
-                    unknown40: 2.4,
-                    unknown41: 6,
-                    unknown42: 0.0,
-                    unknown43: 1.0,
-                    unknown44: 0.5,
-                    unknown45: 0.8,
-                    unknown46: 0.5,
-                    unknown47: 0.0,
-                    heat_wave_height: 0.0,
-                    heat_wave_speed: 1.0,
-                    heat_wave_color: [1.0, 1.0, 1.0, 1.0].into(),
-                    lightmap_txtr: 231856622,
-                    unknown51: 0.3,
-                    alpha_in_time: 5.0,
-                    alpha_out_time: 5.0,
-                    unknown54: 0,
-                    unknown55: 0,
-                    crash_the_game: 0,
+                    turb_speed: 20.0,
+                    turb_distance: 100.0,
+                    turb_frequence_max: 1.0,
+                    turb_frequence_min: 3.0,
+                    turb_phase_max: 0.0,
+                    turb_phase_min: 90.0,
+                    turb_amplitude_max: 0.0,
+                    turb_amplitude_min: 0.0,
+                    splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    inside_fog_color: [0.443137, 0.568627, 0.623529, 1.0].into(),
+                    splash_particle_1: 1688698462,
+                    splash_particle_2: 678723448,
+                    splash_particle_3: 1571480382,
+                    visor_runoff_particle: 1859537006,
+                    unmorph_visor_runoff_particle: 1390596347,
+                    visor_runoff_sound: 2499,
+                    unmorph_visor_runoff_sound: 2499,
+                    splash_sfx_1: 463,
+                    splash_sfx_2: 464,
+                    splash_sfx_3: 465,
+                    tile_size: 2.4,
+                    tile_subdivisions: 6,
+                    specular_min: 0.0,
+                    specular_max: 1.0,
+                    reflection_size: 0.5,
+                    ripple_intensity: 0.8,
+                    reflection_blend: 0.5,
+                    fog_bias: 0.0,
+                    fog_magnitude: 0.0,
+                    fog_speed: 1.0,
+                    fog_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    lightmap: 4294967295,
+                    units_per_lightmap_texel: 2.3,
+                    alpha_in_time: 1.0,
+                    alpha_out_time: 1.0,
+                    unknown2: 0,
+                    unknown3: 0,
+                    unknown4: 0,
                 })),
             },
-            WaterType::Poision => structs::SclyObject {
+            WaterType::Poison => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
                 property_data: structs::SclyProperty::Water(Box::new(structs::Water {
-                    name: b"poision water\0".as_cstr(),
+                    name: b"poison water\0".as_cstr(),
                     position: [405.3748, -43.92318, 10.530313].into(),
                     scale: [13.0, 30.0, 1.0].into(),
                     damage_info: structs::scly_structs::DamageInfo {
@@ -3267,87 +3382,87 @@ impl WaterType {
                         radius: 0.0,
                         knockback_power: 0.0,
                     },
-                    unknown1: [0.0, 0.0, 0.0].into(),
-                    unknown2: 2047,
-                    unknown3: 0,
-                    display_fluid_surface: 1,
-                    txtr1: 2671389366,
-                    txtr2: 430856216,
-                    txtr3: 1337209902,
-                    txtr4: 4294967295,
-                    refl_map_txtr: 4294967295,
-                    txtr6: 1899158552,
-                    unknown5: [3.0, 3.0, -4.0].into(),
-                    unknown6: 48.0,
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 2047,
+                    thermal_cold: 0,
+                    display_surface: 1,
+                    pattern_map_1: 2671389366,
+                    pattern_map_2: 430856216,
+                    color_map: 1337209902,
+                    bump_map: 4294967295,
+                    env_map: 4294967295,
+                    env_bump_map: 1899158552,
+                    bump_map_dir: [3.0, 3.0, -4.0].into(),
+                    bump_scale: 48.0,
                     morph_in_time: 5.0,
                     morph_out_time: 5.0,
                     active: 1,
                     fluid_type: 1,
-                    unknown11: 0,
-                    unknown12: 0.8,
+                    unknown1: 0,
+                    alpha: 0.8,
                     fluid_uv_motion: structs::FluidUVMotion {
                         fluid_layer_motion1: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 20.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 20.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
                         fluid_layer_motion2: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 10.0,
-                            unknown2: 180.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 10.0,
+                            orientation: 180.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
                         fluid_layer_motion3: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 40.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 25.0,
+                            time_to_wrap: 40.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 25.0,
                         },
-                        unknown1: 100.0,
-                        unknown2: 0.0,
+                        time_to_wrap: 100.0,
+                        orientation: 0.0,
                     },
-                    unknown30: 20.0,
-                    unknown31: 100.0,
-                    unknown32: 1.0,
-                    unknown33: 3.0,
-                    unknown34: 0.0,
-                    unknown35: 90.0,
-                    unknown36: 0.0,
-                    unknown37: 0.0,
-                    unknown38: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown39: [0.619608, 0.705882, 0.560784, 1.0].into(),
-                    small_enter_part: 0xffffffff,
-                    med_enter_part: 0xffffffff,
-                    large_enter_part: 0xffffffff,
-                    part4: 0xffffffff,
-                    part5: 0xffffffff,
-                    sound1: 2499,
-                    sound2: 2499,
-                    sound3: 463,
-                    sound4: 464,
-                    sound5: 465,
-                    unknown40: 2.4,
-                    unknown41: 6,
-                    unknown42: 0.0,
-                    unknown43: 1.0,
-                    unknown44: 0.5,
-                    unknown45: 0.8,
-                    unknown46: 1.0,
-                    unknown47: 0.0,
-                    heat_wave_height: 0.0,
-                    heat_wave_speed: 1.0,
-                    heat_wave_color: [0.784314, 1.0, 0.27451, 1.0].into(),
-                    lightmap_txtr: 1723170806,
-                    unknown51: 0.3,
-                    alpha_in_time: 5.0,
-                    alpha_out_time: 5.0,
-                    unknown54: 0,
-                    unknown55: 0,
-                    crash_the_game: 0,
+                    turb_speed: 20.0,
+                    turb_distance: 100.0,
+                    turb_frequence_max: 1.0,
+                    turb_frequence_min: 3.0,
+                    turb_phase_max: 0.0,
+                    turb_phase_min: 90.0,
+                    turb_amplitude_max: 0.0,
+                    turb_amplitude_min: 0.0,
+                    splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    inside_fog_color: [0.619608, 0.705882, 0.560784, 1.0].into(),
+                    splash_particle_1: 2237216893,
+                    splash_particle_2: 4804096,
+                    splash_particle_3: 3159663901,
+                    visor_runoff_particle: 1859537006,
+                    unmorph_visor_runoff_particle: 1390596347,
+                    visor_runoff_sound: 2499,
+                    unmorph_visor_runoff_sound: 2499,
+                    splash_sfx_1: 463,
+                    splash_sfx_2: 464,
+                    splash_sfx_3: 465,
+                    tile_size: 2.4,
+                    tile_subdivisions: 6,
+                    specular_min: 0.0,
+                    specular_max: 1.0,
+                    reflection_size: 0.5,
+                    ripple_intensity: 0.8,
+                    reflection_blend: 1.0,
+                    fog_bias: 0.0,
+                    fog_magnitude: 0.0,
+                    fog_speed: 1.0,
+                    fog_color: [0.784314, 1.0, 0.27451, 1.0].into(),
+                    lightmap: 4294967295,
+                    units_per_lightmap_texel: 0.5,
+                    alpha_in_time: 1.0,
+                    alpha_out_time: 1.0,
+                    unknown2: 0,
+                    unknown3: 0,
+                    unknown4: 0,
                 })),
             },
             WaterType::Lava => structs::SclyObject {
@@ -3363,87 +3478,87 @@ impl WaterType {
                         radius: 0.0,
                         knockback_power: 0.0,
                     },
-                    unknown1: [0.0, 0.0, 0.0].into(),
-                    unknown2: 2047,
-                    unknown3: 1,
-                    display_fluid_surface: 1,
-                    txtr1: 117134624,
-                    txtr2: 2154768270,
-                    txtr3: 3598011320,
-                    txtr4: 1249771730,
-                    refl_map_txtr: 4294967295,
-                    txtr6: 4294967295,
-                    unknown5: [3.0, 3.0, -4.0].into(),
-                    unknown6: 70.0,
-                    morph_in_time: 5.0,
-                    morph_out_time: 5.0,
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 2047,
+                    thermal_cold: 1,
+                    display_surface: 1,
+                    pattern_map_1: 117134624,
+                    pattern_map_2: 2154768270,
+                    color_map: 3598011320,
+                    bump_map: 1249771730,
+                    env_map: 4294967295,
+                    env_bump_map: 4294967295,
+                    bump_map_dir: [3.0, 3.0, -4.0].into(),
+                    bump_scale: 70.0,
+                    morph_in_time: 15.0,
+                    morph_out_time: 15.0,
                     active: 1,
                     fluid_type: 2,
-                    unknown11: 0,
-                    unknown12: 0.65,
+                    unknown1: 0,
+                    alpha: 0.65,
                     fluid_uv_motion: structs::FluidUVMotion {
                         fluid_layer_motion1: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 30.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 30.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
                         fluid_layer_motion2: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 40.0,
-                            unknown2: 180.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 40.0,
+                            orientation: 180.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
                         fluid_layer_motion3: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 45.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 45.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
-                        unknown1: 70.0,
-                        unknown2: 0.0,
+                        time_to_wrap: 70.0,
+                        orientation: 0.0,
                     },
-                    unknown30: 20.0,
-                    unknown31: 100.0,
-                    unknown32: 1.0,
-                    unknown33: 3.0,
-                    unknown34: 0.0,
-                    unknown35: 90.0,
-                    unknown36: 0.0,
-                    unknown37: 0.0,
-                    unknown38: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown39: [0.631373, 0.270588, 0.270588, 1.0].into(),
-                    small_enter_part: 0xffffffff,
-                    med_enter_part: 0xffffffff,
-                    large_enter_part: 0xffffffff,
-                    part4: 0xffffffff,
-                    part5: 0xffffffff,
-                    sound1: 2412,
-                    sound2: 2412,
-                    sound3: 1373,
-                    sound4: 1374,
-                    sound5: 1375,
-                    unknown40: 2.4,
-                    unknown41: 6,
-                    unknown42: 0.0,
-                    unknown43: 1.0,
-                    unknown44: 0.5,
-                    unknown45: 0.8,
-                    unknown46: 0.5,
-                    unknown47: 1.7,
-                    heat_wave_height: 1.2,
-                    heat_wave_speed: 1.0,
-                    heat_wave_color: [1.0, 0.682353, 0.294118, 1.0].into(),
-                    lightmap_txtr: 4294967295,
-                    unknown51: 0.3,
-                    alpha_in_time: 5.0,
-                    alpha_out_time: 5.0,
-                    unknown54: 4294967295,
-                    unknown55: 4294967295,
-                    crash_the_game: 0,
+                    turb_speed: 20.0,
+                    turb_distance: 100.0,
+                    turb_frequence_max: 1.0,
+                    turb_frequence_min: 3.0,
+                    turb_phase_max: 0.0,
+                    turb_phase_min: 90.0,
+                    turb_amplitude_max: 0.0,
+                    turb_amplitude_min: 0.0,
+                    splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    inside_fog_color: [0.631373, 0.270588, 0.270588, 1.0].into(),
+                    splash_particle_1: 1773746298,
+                    splash_particle_2: 343573999,
+                    splash_particle_3: 1354016026,
+                    visor_runoff_particle: 3917594797,
+                    unmorph_visor_runoff_particle: 1390596347,
+                    visor_runoff_sound: 2412,
+                    unmorph_visor_runoff_sound: 2412,
+                    splash_sfx_1: 1373,
+                    splash_sfx_2: 1374,
+                    splash_sfx_3: 1375,
+                    tile_size: 2.4,
+                    tile_subdivisions: 6,
+                    specular_min: 0.0,
+                    specular_max: 1.0,
+                    reflection_size: 0.5,
+                    ripple_intensity: 0.8,
+                    reflection_blend: 0.5,
+                    fog_bias: 1.7,
+                    fog_magnitude: 1.2,
+                    fog_speed: 1.0,
+                    fog_color: [1.0, 0.682353, 0.294118, 1.0].into(),
+                    lightmap: 4294967295,
+                    units_per_lightmap_texel: 0.3,
+                    alpha_in_time: 1.0,
+                    alpha_out_time: 1.0,
+                    unknown2: 4294967295,
+                    unknown3: 4294967295,
+                    unknown4: 0,
                 })),
             },
             WaterType::Phazon => {
@@ -11024,7 +11139,10 @@ fn patch_dol(
             (0x148, 0x268, 0x27c, 0x284, 0x2c0, 0x2bc, 0x778)
         };
 
-        let spring_ball_patch = ppcasm!(new_text_section_end, {
+        let compute_spring_ball_movement = new_text_section_end;
+        let compute_spring_ball_movement_data = compute_spring_ball_movement + 0x1b4;
+
+        let spring_ball_patch_start = ppcasm!(new_text_section_end, {
                 // stack init (at +0x000)
                 stwu      r1, -0x20(r1);
                 mflr      r0;
@@ -11041,8 +11159,8 @@ fn patch_dol(
                 // function body (at +0x02c)
                 lwz       r14, 0x84c(r30);
                 lwz       r15, 0x8b8(r30);
-                lis       r16, data@h;
-                addi      r16, r16, data@l;
+                lis       r16, { compute_spring_ball_movement_data }@h;
+                addi      r16, r16, { compute_spring_ball_movement_data }@l;
                 lwz       r17, { morph_ball_offset }(r14);
                 lfs       f1, 0x40(r14);
                 stfs      f1, 0x00(r16);
@@ -11052,43 +11170,67 @@ fn patch_dol(
                 stfs      f1, 0x08(r16);
                 lwz       r0, 0x0c(r16);
                 cmplwi    r0, 0;
-                bgt       { new_text_section_end + 0x14c };
+                bgt       { compute_spring_ball_movement + 0x14c };
                 lwz       r0, { movement_state_offset }(r14);
                 cmplwi    r0, 0;
-                beq       { new_text_section_end + 0x84 };
-                b         { new_text_section_end + 0x14c };
+                beq       { compute_spring_ball_movement + 0x84 };
+                b         { compute_spring_ball_movement + 0x14c };
                 cmplwi    r0, 4;
-                bne       { new_text_section_end + 0x14c };
+                bne       { compute_spring_ball_movement + 0x14c };
                 lwz       r0, { out_of_water_ticks_offset }(r14);
                 cmplwi    r0, 2;
-                bne       { new_text_section_end + 0x90 };
+                bne       { compute_spring_ball_movement + 0x90 };
                 lwz       r0, { surface_restraint_type_offset }(r14);
-                b         { new_text_section_end + 0x94 };
+                b         { compute_spring_ball_movement + 0x94 };
                 li        r0, 4;
                 cmplwi    r0, 7;
-                beq       { new_text_section_end + 0x14c };
+                beq       { compute_spring_ball_movement + 0x14c };
                 mr        r3, r28;
                 bl        { symbol_addr!("IsMovementAllowed__10CMorphBallCFv", version) };
                 cmplwi    r3, 0;
-                beq       { new_text_section_end + 0x14c };
-                lwz       r3, 0x0(r15);
-                li        r4, 6;
-                bl        { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) };
-                cmplwi    r3, 0;
-                beq       { new_text_section_end + 0x14c };
+                beq       { compute_spring_ball_movement + 0x14c };
+        });
+
+        new_text_section_end += spring_ball_patch_start.encoded_bytes().len() as u32;
+        new_text_section.extend(spring_ball_patch_start.encoded_bytes());
+
+        let spring_ball_item_condition_patch = if config.spring_ball_item != PickupType::Nothing {
+            let _spring_ball_item_condition_patch = ppcasm!(new_text_section_end, {
+                    lwz       r3, 0x0(r15);
+                    li        r4, { config.spring_ball_item.kind() };
+                    bl        { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) };
+                    cmplwi    r3, 0;
+                    beq       { compute_spring_ball_movement + 0x14c };
+            });
+            _spring_ball_item_condition_patch.encoded_bytes()
+        } else {
+            let _spring_ball_item_condition_patch = ppcasm!(new_text_section_end, {
+                    nop;
+                    nop;
+                    nop;
+                    nop;
+                    nop;
+            });
+            _spring_ball_item_condition_patch.encoded_bytes()
+        };
+
+        new_text_section_end += spring_ball_item_condition_patch.len() as u32;
+        new_text_section.extend(spring_ball_item_condition_patch);
+
+        let spring_ball_patch_end = ppcasm!(new_text_section_end, {
                 lhz       r0, { attached_actor_offset }(r14);
                 cmplwi    r0, 65535;
-                bne       { new_text_section_end + 0x14c };
+                bne       { compute_spring_ball_movement + 0x14c };
                 addi      r3, r14, { energy_drain_offset };
                 bl        { symbol_addr!("GetEnergyDrainIntensity__18CPlayerEnergyDrainCFv", version) };
                 fcmpu     cr0, f1, f14;
-                bgt       { new_text_section_end + 0x14c };
+                bgt       { compute_spring_ball_movement + 0x14c };
                 lwz       r0, 0x187c(r28);
                 cmplwi    r0, 0;
-                bne       { new_text_section_end + 0x14c };
+                bne       { compute_spring_ball_movement + 0x14c };
                 lfs       f1, 0x14(r29);
                 fcmpu     cr0, f1, f14;
-                ble       { new_text_section_end + 0x14c };
+                ble       { compute_spring_ball_movement + 0x14c };
                 lfs       f16, { velocity_offset }(r14);
                 lfs       f17, { velocity_offset + 4 }(r14);
                 mr        r3, r14;
@@ -11099,7 +11241,7 @@ fn patch_dol(
                 stfs      f17, { velocity_offset + 4 }(r14);
                 lfs       f17, 0x1dfc(r17);
                 fcmpu     cr0, f17, f14;
-                ble       { new_text_section_end + 0x130 };
+                ble       { compute_spring_ball_movement + 0x130 };
                 lfs       f17, 0x10(r16);
                 lfs       f16, { velocity_offset + 8 }(r14);
                 fdivs     f16, f16, f17;
@@ -11110,10 +11252,10 @@ fn patch_dol(
                 bl        { symbol_addr!("SetMoveState__7CPlayerFQ27NPlayer20EPlayerMovementStateR13CStateManager", version) };
                 li        r3, 40;
                 stw       r3, 0x0c(r16);
-                b         { new_text_section_end + 0x160 };
+                b         { compute_spring_ball_movement + 0x160 };
                 lwz       r3, 0x0c(r16);
                 cmplwi    r3, 0;
-                beq       { new_text_section_end + 0x160 };
+                beq       { compute_spring_ball_movement + 0x160 };
                 addi      r3, r3, -1;
                 stw       r3, 0x0c(r16);
 
@@ -11151,8 +11293,8 @@ fn patch_dol(
                 .float 1.5;
         });
 
-        new_text_section_end += spring_ball_patch.encoded_bytes().len() as u32;
-        new_text_section.extend(spring_ball_patch.encoded_bytes());
+        new_text_section_end += spring_ball_patch_end.encoded_bytes().len() as u32;
+        new_text_section.extend(spring_ball_patch_end.encoded_bytes());
 
         let spring_ball_cooldown = new_text_section_end - 8;
 

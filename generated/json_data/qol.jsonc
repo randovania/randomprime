@@ -2581,14 +2581,6 @@
                         3212052,
                         3212051
                     ],
-                    "removeConnections": [
-                        {
-                            "senderId": 3211876, // [Relay] Relay - [IN] Make Chozoghost Appear
-                            "targetId": 3212048, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        }
-                    ],
                     "addConnections": [
                         {
                             "senderId": 3211267, // [SpecialFunction] Music Player For Area
@@ -2597,7 +2589,13 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 3211270, // [Switchv] OPEN: Chozo Music / CLOSED: Ghost Music
+                            "senderId": 3211876, // [Relay] Relay - [IN] Make Chozoghost Appear
+                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
+                            "state": "ZERO",
+                            "message": "CLOSE"
+                        },
+                        {
+                            "senderId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
                             "targetId": 3212049, // [StreamedAudio] StreamedAudio - Ruins Samus SW
                             "state": "OPEN",
                             "message": "PLAY"
@@ -2607,24 +2605,6 @@
                             "targetId": 3212048, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
                             "state": "CLOSED",
                             "message": "PLAY"
-                        },
-                        {
-                            "senderId": 3211857, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
-                            "state": "ENTERED",
-                            "message": "CLOSE"
-                        },
-                        {
-                            "senderId": 3211879, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
-                            "state": "ENTERED",
-                            "message": "CLOSE"
-                        },
-                        {
-                            "senderId": 3211874, // [Trigger] Trigger_Ghosttest
-                            "targetId": 3211270, // [Switch] OPEN: Chozo Music / CLOSED: Ghost Music
-                            "state": "ENTERED",
-                            "message": "CLOSE"
                         },
                         {
                             "senderId": 3212043, // [Trigger] Trigger - Play Music Morphball Battle 2

@@ -353,6 +353,8 @@ pub enum PickupModel {
     ArtifactOfNature,
     ArtifactOfStrength,
     Nothing,
+    Zoomer,
+    Cog,
     HealthRefill,
     MissileRefill,
     PowerBombRefill,
@@ -403,6 +405,8 @@ impl PickupModel {
             PickupModel::ArtifactOfNature => "Artifact of Nature",
             PickupModel::ArtifactOfStrength => "Artifact of Strength",
             PickupModel::Nothing => "Nothing",
+            PickupModel::Zoomer => "Zoomer",
+            PickupModel::Cog => "Cog",
             PickupModel::RandovaniaGamecube => "Gamecube",
             PickupModel::HealthRefill => "Health Refill",
             PickupModel::MissileRefill => "Missile Refill",
@@ -424,6 +428,10 @@ impl PickupModel {
             pickup.scale[2] = 0.475;
         } else if self.name() == PickupModel::PowerBomb.name() {
             pickup.actor_params.enable_thermal_heat = 1;
+        } else if self.name() == PickupModel::Cog.name() {
+            pickup.scale[0] = 0.7;
+            pickup.scale[1] = 0.7;
+            pickup.scale[2] = 0.7;
         }
         pickup
     }
@@ -469,6 +477,8 @@ impl PickupModel {
             PickupModel::ArtifactOfNature,
             PickupModel::ArtifactOfStrength,
             PickupModel::Nothing,
+            PickupModel::Zoomer,
+            PickupModel::Cog,
             PickupModel::RandovaniaGamecube,
             PickupModel::HealthRefill,
             PickupModel::MissileRefill,
