@@ -18205,6 +18205,36 @@
                 "Landing Site": {
                     "addConnections": [
                         {
+                            "senderId": 502, // [Timer] Timer Save Delay
+                            "targetId": 715, // [Timer] Keep Trying
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 715, // [Timer] Keep Trying
+                            "targetId": 627, // [SpecialFunction] SpecialFunction Cinematic Skip Save
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 627, // [SpecialFunction] SpecialFunction Cinematic Skip Save
+                            "targetId": 715, // [Timer] Keep Trying
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 472, // [Camera] Cinematic Camera Save
+                            "targetId": 715, // [Timer] Keep Trying
+                            "state": "INACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 519, // [Camera] Cinematic Camera Not Saving
+                            "targetId": 715, // [Timer] Keep Trying
+                            "state": "INACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 465, // [SpecialFunction] SpecialFunction Save Station
                             "targetId": 5, // [Camera] Cinematic Camera Save Skip
                             "state": "ZERO",
@@ -18214,12 +18244,6 @@
                             "senderId": 465, // [SpecialFunction] SpecialFunction Save Station
                             "targetId": 5, // [Camera] Cinematic Camera Save Skip
                             "state": "CLOSED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 627, // [SpecialFunction] SpecialFunction Cinematic Skip Save
-                            "targetId": 5, // [Camera] Cinematic Camera Save Skip
-                            "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
@@ -18498,6 +18522,13 @@
                         {
                             "id": 700, // [Timer] Affirm Skip
                             "time": 0.1
+                        },
+                        {
+                            "id": 715, // [Timer] Keep Trying
+                            "time": 0.001,
+                            "active": false,
+                            "looping": true,
+                            "startImmediately": true
                         }
                     ],
                     "relays": [
