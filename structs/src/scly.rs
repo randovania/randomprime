@@ -496,10 +496,6 @@ macro_rules! build_scly_property {
 
             pub fn guess_kind(&mut self)
             {
-                if self.object_type() == 0x10 { // camera hint (TODO)
-                    return;
-                }
-
                 let (mut reader, object_type) = match *self {
                     SclyProperty::Unknown { ref data, object_type }
                         => (data.clone(), object_type),
