@@ -175,12 +175,6 @@ pub struct WaterConfig {
     pub liquid_type: String,
     pub position: [f32; 3],
     pub scale: [f32; 3],
-    pub morph_in_time: Option<f32>,
-    pub morph_out_time: Option<f32>,
-    pub tile_size: Option<f32>,
-    pub tile_subdivisions: Option<u32>,
-    pub alpha_in_time: Option<f32>,
-    pub alpha_out_time: Option<f32>,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
