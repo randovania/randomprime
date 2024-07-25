@@ -16641,8 +16641,7 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
-                        if let Some(camera_filter_keyframes) = room.camera_filter_keyframes.as_ref()
-                        {
+                        if let Some(camera_filter_keyframes) = room.camera_filter_keyframes.as_ref() {
                             for config in camera_filter_keyframes {
                                 patcher.add_scly_patch(
                                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
@@ -16652,6 +16651,29 @@ fn build_and_run_patches<'r>(
                                 );
                             }
                         }
+
+                        if let Some(new_camera_hints) = room.new_camera_hints.as_ref() {
+                            for config in new_camera_hints {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_new_camera_hint(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
+                        if let Some(camera_hint_triggers) = room.camera_hint_triggers.as_ref() {
+                            for config in camera_hint_triggers {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_camera_hint_trigger(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
 
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {

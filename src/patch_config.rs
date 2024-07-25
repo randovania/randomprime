@@ -832,6 +832,94 @@ pub struct CameraFilterKeyframeConfig {
     pub overlay_texture: Option<u32>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum EBallCameraBehaviour {
+    Default,
+    FreezeLookPosition, // Unused
+    HintBallToCam,
+    HintInitializePosition,
+    HintFixedPosition,
+    HintFixedTransform,
+    PathCameraDesiredPos, // Unused
+    PathCamera,
+    SpindleCamera
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NewCameraHintConfig {
+    pub id: u32,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub priority: Option<u32>,
+    pub behaviour: EBallCameraBehaviour,
+    pub calculate_cam_pos: Option<bool>,
+    pub chase_allowed: Option<bool>,
+    pub boost_allowed: Option<bool>,
+    pub obscure_avoidance: Option<bool>,
+    pub volume_collider: Option<bool>,
+    pub apply_immediately: Option<bool>,
+    pub look_at_ball: Option<bool>,
+    pub hint_distance_selection: Option<bool>,
+    pub hint_distance_self_pos: Option<bool>,
+    pub control_interpolation: Option<bool>,
+    pub sinusoidal_interpolation: Option<bool>,
+    pub sinusoidal_interpolation_hintless: Option<bool>,
+    pub clamp_velocity: Option<bool>,
+    pub skip_cinematic: Option<bool>,
+    pub no_elevation_interp: Option<bool>,
+    pub direct_elevation: Option<bool>,
+    pub override_look_dir: Option<bool>,
+    pub no_elevation_vel_clamp: Option<bool>,
+    pub calculate_transform_from_prev_cam: Option<bool>,
+    pub no_spline: Option<bool>,
+    pub unknown1: Option<bool>,
+    pub unknown2: Option<bool>,
+    pub override_min_dist: Option<bool>,
+    pub min_dist: Option<f32>,
+    pub override_max_dist: Option<bool>,
+    pub max_dist: Option<f32>,
+    pub override_backwards_dist: Option<bool>,
+    pub backwards_dist: Option<f32>,
+    pub override_look_at_offset: Option<bool>,
+    pub look_at_offset: Option<[f32; 3]>,
+    pub override_chase_look_at_offset: Option<bool>,
+    pub chase_look_at_offset: Option<[f32; 3]>,
+    pub ball_to_cam: Option<[f32; 3]>,
+    pub override_fov: Option<bool>,
+    pub fov: Option<f32>,
+    pub override_attitude_range: Option<bool>,
+    pub attitude_range: Option<f32>,
+    pub override_azimuth_range: Option<bool>,
+    pub azimuth_range: Option<f32>,
+    pub override_angle_per_second: Option<bool>,
+    pub angle_per_second: Option<f32>,
+    pub clamp_vel_range: Option<f32>,
+    pub clamp_rot_range: Option<f32>,
+    pub override_elevation: Option<bool>,
+    pub elevation: Option<f32>,
+    pub interpolate_time: Option<f32>,
+    pub clamp_vel_time: Option<f32>,
+    pub control_interp_dur: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CameraHintTriggerConfig {
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub active: Option<bool>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub scale: Option<[f32; 3]>,
+    pub deactivate_on_enter: Option<bool>,
+    pub deactivate_on_exit: Option<bool>,
+}
+
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -1047,6 +1135,8 @@ pub struct RoomConfig {
     pub cameras: Option<Vec<CameraConfig>>,
     pub camera_waypoints: Option<Vec<CameraWaypointConfig>>,
     pub camera_filter_keyframes: Option<Vec<CameraFilterKeyframeConfig>>,
+    pub new_camera_hints: Option<Vec<NewCameraHintConfig>>,
+    pub camera_hint_triggers: Option<Vec<CameraHintTriggerConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1948,6 +2038,8 @@ impl PatchConfigPrivate {
                 extend_option_vec!(cameras, self_room_config, other_room_config);
                 extend_option_vec!(camera_waypoints, self_room_config, other_room_config);
                 extend_option_vec!(camera_filter_keyframes, self_room_config, other_room_config);
+                extend_option_vec!(new_camera_hints, self_room_config, other_room_config);
+                extend_option_vec!(camera_hint_triggers, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
