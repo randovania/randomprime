@@ -2945,6 +2945,12 @@
                                 "description": "Text to display when scanned.",
                                 "type": "string"
                             },
+                            "actorId": {
+                                "description": "The instance ID to use for the cosmetic actor if `combatVisible: true`",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
                             "combatVisible": {
                                 "description": "If true, places a \"Elevator Scan\" actor over the scan point so it visible in all visors.",
                                 "type": "boolean",

@@ -112,6 +112,7 @@ pub struct PickupConfig {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ScanConfig {
     pub id: Option<u32>,
+    pub actor_id: Option<u32>,
     pub layer: Option<u32>,
     pub position: [f32; 3],
     pub combat_visible: Option<bool>,

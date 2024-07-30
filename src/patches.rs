@@ -3684,9 +3684,10 @@ fn patch_add_scan_actor<'r>(
     position: [f32; 3],
     rotation: f32,
     layer: Option<u32>,
+    actor_id: Option<u32>,
 ) -> Result<(), String> {
     let layer = layer.unwrap_or(0) as usize;
-    let instance_id = area.new_object_id_from_layer_id(layer);
+    let instance_id = actor_id.unwrap_or(area.new_object_id_from_layer_id(layer));
     let scly = area.mrea().scly_section_mut();
     scly.layers.as_mut_vec()[layer]
         .objects
@@ -17161,6 +17162,7 @@ fn build_and_run_patches<'r>(
                                 scan.position,
                                 scan.rotation.unwrap_or(0.0),
                                 scan.layer,
+                                scan.actor_id
                             )
                         },
                     );
