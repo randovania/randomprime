@@ -44,7 +44,7 @@ use crate::{
         CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode, FogConfig,
         GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat, LevelConfig,
         PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType, RoomConfig,
-        RunMode, SpecialFunctionType, SuitDamageReduction, Version, Visor,
+        RunMode, SpecialFunctionType, SuitDamageReduction, Version, Visor, TimerConfig
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -16299,6 +16299,47 @@ fn build_and_run_patches<'r>(
                     )
                 },
             );
+
+            for (res, dock_id, timer_id) in vec![
+                (resource_info!("03a_crater.MREA"), 0x00050007, 999910), // infusion chamber
+                (resource_info!("03b_crater.MREA"), 0x0006001B, 999911), // one
+                (resource_info!("03c_crater.MREA"), 0x00070002, 999912), // two
+                (resource_info!("03d_crater.MREA"), 0x00080001, 999913), // three
+                (resource_info!("03e_crater.MREA"), 0x00090005, 999914), // four
+            ] {
+                let timer_config = TimerConfig {
+                    id: timer_id,
+                    time: 0.5,
+                    active: Some(true),
+                    looping: Some(true),
+                    start_immediately: Some(true),
+
+                    layer: None,
+                    max_random_add: None,                    
+                };
+    
+                patcher.add_scly_patch(
+                    res.into(),
+                    move |ps, area| {
+                        patch_add_timer(ps, area, timer_config.clone())
+                    },
+                );
+    
+                let connections = vec![
+                    ConnectionConfig {
+                        sender_id: timer_id,
+                        state: ConnectionState::ZERO,
+                        target_id: dock_id,
+                        message: ConnectionMsg::INCREMENT,
+                    }
+                ];
+                patcher.add_scly_patch(
+                    res.into(),
+                    move |ps, area| {
+                        patch_add_connections(ps, area, &connections)
+                    },
+                );
+            }
         }
     }
 
