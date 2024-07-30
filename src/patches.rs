@@ -9412,6 +9412,15 @@ fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> 
     Ok(())
 }
 
+fn patch_no_hud(res: &mut structs::Resource) -> Result<(), String> {
+    let frme = res.kind.as_frme_mut().unwrap();
+    for widget in frme.widgets.as_mut_vec() {
+        widget.color = [0.0, 0.0, 0.0, 0.0].into();
+    }
+
+    Ok(())
+}
+
 fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
     let frme = res.kind.as_frme_mut().unwrap();
 
@@ -17660,6 +17669,21 @@ fn build_and_run_patches<'r>(
     patcher.add_resource_patch(resource_info!("STRG_Credits.STRG").into(), |res| {
         patch_credits(res, config.version, config, &level_data)
     });
+
+    if config.no_hud {
+        for res in vec![
+            resource_info!("FRME_CombatHud.FRME"),
+            resource_info!("FRME_ScanHud.FRME"),
+            resource_info!("FRME_BallHud.FRME"),
+            resource_info!("FRME_Helmet.FRME"),
+            resource_info!("FRME_BaseHud.FRME"),
+        ] {
+            patcher.add_resource_patch(
+                res.into(),
+                patch_no_hud,
+            );
+        }
+    }
 
     if config.results_string.is_some() {
         patcher.add_resource_patch(resource_info!("STRG_CompletionScreen.STRG").into(), |res| {

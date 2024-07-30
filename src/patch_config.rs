@@ -1397,6 +1397,7 @@ pub struct PatchConfig {
     pub power_bomb_arboretum_sandstone: bool,
     pub visible_bounding_box: bool,
     pub door_destination_scans: bool,
+    pub no_hud: bool,
 
     pub incinerator_drone_config: Option<IncineratorDroneConfig>,
     pub hall_of_the_elders_bomb_slot_covers: Option<HallOfTheEldersBombSlotCoversConfig>,
@@ -1499,6 +1500,7 @@ struct Preferences {
     automatic_crash_screen: Option<bool>,
     visible_bounding_box: Option<bool>,
     door_destination_scans: Option<bool>,
+    no_hud: Option<bool>,
 
     trilogy_disc_path: Option<String>,
     quickplay: Option<bool>,
@@ -2597,6 +2599,7 @@ impl PatchConfigPrivate {
             automatic_crash_screen: self.preferences.automatic_crash_screen.unwrap_or(true),
             visible_bounding_box: self.preferences.visible_bounding_box.unwrap_or(false),
             door_destination_scans: self.preferences.door_destination_scans.unwrap_or(true),
+            no_hud: self.preferences.no_hud.unwrap_or(false),
             artifact_hint_behavior,
             flaahgra_music_files,
             suit_colors: self.preferences.suit_colors.clone(),
