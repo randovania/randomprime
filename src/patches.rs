@@ -17713,10 +17713,10 @@ fn build_and_run_patches<'r>(
     if config.no_hud {
         for res in vec![
             resource_info!("FRME_CombatHud.FRME"),
-            resource_info!("FRME_ScanHud.FRME"),
             resource_info!("FRME_BallHud.FRME"),
-            resource_info!("FRME_Helmet.FRME"),
-            resource_info!("FRME_BaseHud.FRME"),
+            resource_info!("FRME_ScanHud.FRME"),
+            // resource_info!("FRME_Helmet.FRME"),
+            // resource_info!("FRME_BaseHud.FRME"),
         ] {
             patcher.add_resource_patch(
                 res.into(),
