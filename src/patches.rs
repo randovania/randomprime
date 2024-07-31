@@ -16390,8 +16390,7 @@ fn build_and_run_patches<'r>(
                 // this is a hack because something is getting messed up with the MREA objects if this patch never gets used
                 let remove_otrs = config.qol_cosmetic
                     && !(config.shuffle_pickup_position
-                        && room_info.room_id.to_u32() == 0x40C548E9)
-                    && !config.force_vanilla_layout;
+                    && room_info.room_id.to_u32() == 0x40C548E9);
 
                 patcher.add_scly_patch(
                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
@@ -18346,9 +18345,7 @@ fn build_and_run_patches<'r>(
         }
     }
 
-    if !config.force_vanilla_layout {
-        patch_qol_logical(&mut patcher, config, config.version);
-    }
+    patch_qol_logical(&mut patcher, config, config.version);
 
     for (_boss_name, scale) in config.boss_sizes.iter() {
         let boss_name = _boss_name.to_lowercase().replace([' ', '_'], "");

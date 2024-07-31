@@ -2574,11 +2574,11 @@ impl PatchConfigPrivate {
             phazon_elite_without_dynamo: self
                 .game_config
                 .phazon_elite_without_dynamo
-                .unwrap_or(true),
-            main_plaza_door: self.game_config.main_plaza_door.unwrap_or(true),
-            backwards_labs: self.game_config.backwards_labs.unwrap_or(true),
-            backwards_frigate: self.game_config.backwards_frigate.unwrap_or(true),
-            backwards_upper_mines: self.game_config.backwards_upper_mines.unwrap_or(true),
+                .unwrap_or(!force_vanilla_layout),
+            main_plaza_door: self.game_config.main_plaza_door.unwrap_or(!force_vanilla_layout),
+            backwards_labs: self.game_config.backwards_labs.unwrap_or(!force_vanilla_layout),
+            backwards_frigate: self.game_config.backwards_frigate.unwrap_or(!force_vanilla_layout),
+            backwards_upper_mines: self.game_config.backwards_upper_mines.unwrap_or(!force_vanilla_layout),
             backwards_lower_mines: self.game_config.backwards_lower_mines.unwrap_or(false),
             patch_power_conduits: self.game_config.patch_power_conduits.unwrap_or(false),
             remove_mine_security_station_locks: self
@@ -2598,7 +2598,7 @@ impl PatchConfigPrivate {
                 .hall_of_the_elders_bomb_slot_covers,
             automatic_crash_screen: self.preferences.automatic_crash_screen.unwrap_or(true),
             visible_bounding_box: self.preferences.visible_bounding_box.unwrap_or(false),
-            door_destination_scans: self.preferences.door_destination_scans.unwrap_or(true),
+            door_destination_scans: self.preferences.door_destination_scans.unwrap_or(!force_vanilla_layout),
             no_hud: self.preferences.no_hud.unwrap_or(false),
             artifact_hint_behavior,
             flaahgra_music_files,
