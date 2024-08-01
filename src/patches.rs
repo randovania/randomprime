@@ -12629,15 +12629,23 @@ fn patch_final_boss_permadeath<'r>(
         let mut objs_to_remove = Vec::<u32>::new();
         for i in 0..layer_count {
             for obj in layers[i].objects.as_mut_vec() {
-                if (obj.property_data.is_actor() ||
-                    obj.property_data.is_camera() ||
-                    obj.property_data.is_platform() || // TODO: this bit is overkill
-                    obj.property_data.is_trigger() ||
-                    obj.property_data.object_type() == 0x83 ||
-                    obj.property_data.object_type() == 0x84)
+                if (obj.property_data.is_actor()
+                    || obj.property_data.is_camera()
+                    || obj.property_data.is_platform()
+                    || obj.property_data.is_trigger()
+                    || obj.property_data.object_type() == 0x83
+                    || obj.property_data.object_type() == 0x84)
                     && ![
                         0x00050014, // infusion chamber door
                         0x00050013, 0x00050014, 0x0005000E,
+                        // subchamber one teeth
+                        0x00060066, 0x0006007E, 0x00060082, 0x00060065, 0x0006007F, 0x00060083,
+                        0x00060009, 0x00060078, 0x00060059, 0x0006007C, 0x0006000A, 0x00060077,
+                        0x0006006A, 0x00060070, 0x0006006E, 0x00060075, 0x00060069, 0x00060071,
+                        // subchamber two teeth
+                        0x00070029, 0x0007002D, 0x00070031, 0x00070035, 0x00070045, 0x00070049,
+                        0x0007004D, 0x0007002A, 0x0007002E, 0x00070032, 0x00070036, 0x00070046,
+                        0x0007004A, 0x0007004E,
                     ]
                     .contains(&obj.instance_id)
                 {
@@ -17702,9 +17710,11 @@ fn build_and_run_patches<'r>(
     });
 
     if config.no_hud {
-        for res in [resource_info!("FRME_CombatHud.FRME"),
+        for res in [
+            resource_info!("FRME_CombatHud.FRME"),
             resource_info!("FRME_BallHud.FRME"),
-            resource_info!("FRME_ScanHud.FRME")] {
+            resource_info!("FRME_ScanHud.FRME"),
+        ] {
             patcher.add_resource_patch(res.into(), patch_no_hud);
         }
     }
