@@ -9,11 +9,12 @@ use crate::{
     mlvl_wrapper,
     patch_config::{
         ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
-        CameraHintTriggerConfig, CameraFilterKeyframeConfig, CameraWaypointConfig, ControllerActionConfig,
-        CounterConfig, DamageType, FogConfig, GenericTexture, HudmemoConfig, LockOnPoint, NewCameraHintConfig,
-        PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig,
-        SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig,
-        WaterConfig, WaypointConfig, WorldLightFaderConfig,
+        CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
+        ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
+        HudmemoConfig, LockOnPoint, NewCameraHintConfig, PlatformConfig, PlatformType,
+        PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
+        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
+        WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -1938,15 +1939,20 @@ pub fn patch_add_new_camera_hint(
                     hint_distance_selection: config.hint_distance_selection.unwrap_or(false) as u8,
                     hint_distance_self_pos: config.hint_distance_self_pos.unwrap_or(false) as u8,
                     control_interpolation: config.control_interpolation.unwrap_or(false) as u8,
-                    sinusoidal_interpolation: config.sinusoidal_interpolation.unwrap_or(false) as u8,
-                    sinusoidal_interpolation_hintless: config.sinusoidal_interpolation_hintless.unwrap_or(false) as u8,
+                    sinusoidal_interpolation: config.sinusoidal_interpolation.unwrap_or(false)
+                        as u8,
+                    sinusoidal_interpolation_hintless: config
+                        .sinusoidal_interpolation_hintless
+                        .unwrap_or(false) as u8,
                     clamp_velocity: config.clamp_velocity.unwrap_or(false) as u8,
                     skip_cinematic: config.skip_cinematic.unwrap_or(false) as u8,
                     no_elevation_interp: config.no_elevation_interp.unwrap_or(false) as u8,
                     direct_elevation: config.direct_elevation.unwrap_or(false) as u8,
                     override_look_dir: config.override_look_dir.unwrap_or(false) as u8,
                     no_elevation_vel_clamp: config.no_elevation_vel_clamp.unwrap_or(false) as u8,
-                    calculate_transform_from_prev_cam: config.calculate_transform_from_prev_cam.unwrap_or(false) as u8,
+                    calculate_transform_from_prev_cam: config
+                        .calculate_transform_from_prev_cam
+                        .unwrap_or(false) as u8,
                     no_spline: config.no_spline.unwrap_or(false) as u8,
                     unknown21: config.unknown1.unwrap_or(false) as u8,
                     unknown22: config.unknown2.unwrap_or(false) as u8,
@@ -1976,7 +1982,10 @@ pub fn patch_add_new_camera_hint(
                 .into(),
                 chase_look_at_offset: structs::scly_props::structs::BoolVec3 {
                     override_flags: config.override_chase_look_at_offset.unwrap_or(false) as u8,
-                    value: config.chase_look_at_offset.unwrap_or([0.0, 0.0, 0.0]).into(),
+                    value: config
+                        .chase_look_at_offset
+                        .unwrap_or([0.0, 0.0, 0.0])
+                        .into(),
                 }
                 .into(),
 
@@ -2062,19 +2071,26 @@ pub fn patch_add_new_camera_hint(
                 property_data.camera_hint_params.look_at_ball = look_at_ball as u8
             }
             if let Some(hint_distance_selection) = config.hint_distance_selection {
-                property_data.camera_hint_params.hint_distance_selection = hint_distance_selection as u8
+                property_data.camera_hint_params.hint_distance_selection =
+                    hint_distance_selection as u8
             }
             if let Some(hint_distance_self_pos) = config.hint_distance_self_pos {
-                property_data.camera_hint_params.hint_distance_self_pos = hint_distance_self_pos as u8
+                property_data.camera_hint_params.hint_distance_self_pos =
+                    hint_distance_self_pos as u8
             }
             if let Some(control_interpolation) = config.control_interpolation {
                 property_data.camera_hint_params.control_interpolation = control_interpolation as u8
             }
             if let Some(sinusoidal_interpolation) = config.sinusoidal_interpolation {
-                property_data.camera_hint_params.sinusoidal_interpolation = sinusoidal_interpolation as u8
+                property_data.camera_hint_params.sinusoidal_interpolation =
+                    sinusoidal_interpolation as u8
             }
-            if let Some(sinusoidal_interpolation_hintless) = config.sinusoidal_interpolation_hintless {
-                property_data.camera_hint_params.sinusoidal_interpolation_hintless = sinusoidal_interpolation_hintless as u8
+            if let Some(sinusoidal_interpolation_hintless) =
+                config.sinusoidal_interpolation_hintless
+            {
+                property_data
+                    .camera_hint_params
+                    .sinusoidal_interpolation_hintless = sinusoidal_interpolation_hintless as u8
             }
             if let Some(clamp_velocity) = config.clamp_velocity {
                 property_data.camera_hint_params.clamp_velocity = clamp_velocity as u8
@@ -2092,10 +2108,15 @@ pub fn patch_add_new_camera_hint(
                 property_data.camera_hint_params.override_look_dir = override_look_dir as u8
             }
             if let Some(no_elevation_vel_clamp) = config.no_elevation_vel_clamp {
-                property_data.camera_hint_params.no_elevation_vel_clamp = no_elevation_vel_clamp as u8
+                property_data.camera_hint_params.no_elevation_vel_clamp =
+                    no_elevation_vel_clamp as u8
             }
-            if let Some(calculate_transform_from_prev_cam) = config.calculate_transform_from_prev_cam {
-                property_data.camera_hint_params.calculate_transform_from_prev_cam = calculate_transform_from_prev_cam as u8
+            if let Some(calculate_transform_from_prev_cam) =
+                config.calculate_transform_from_prev_cam
+            {
+                property_data
+                    .camera_hint_params
+                    .calculate_transform_from_prev_cam = calculate_transform_from_prev_cam as u8
             }
             if let Some(no_spline) = config.no_spline {
                 property_data.camera_hint_params.no_spline = no_spline as u8
@@ -2131,7 +2152,8 @@ pub fn patch_add_new_camera_hint(
                 property_data.look_at_offset.value = look_at_offset.into()
             }
             if let Some(override_chase_look_at_offset) = config.override_chase_look_at_offset {
-                property_data.chase_look_at_offset.override_flags = override_chase_look_at_offset as u8
+                property_data.chase_look_at_offset.override_flags =
+                    override_chase_look_at_offset as u8
             }
             if let Some(chase_look_at_offset) = config.chase_look_at_offset {
                 property_data.chase_look_at_offset.value = chase_look_at_offset.into()
@@ -2187,14 +2209,7 @@ pub fn patch_add_new_camera_hint(
         };
     }
 
-    add_edit_obj_helper!(
-        area,
-        Some(config.id),
-        config.layer,
-        CameraHint,
-        new,
-        update
-    );
+    add_edit_obj_helper!(area, Some(config.id), config.layer, CameraHint, new, update);
 }
 
 pub fn patch_add_camera_hint_trigger(
@@ -2241,7 +2256,14 @@ pub fn patch_add_camera_hint_trigger(
         };
     }
 
-    add_edit_obj_helper!(area, config.id, config.layer, CameraHintTrigger, new, update);
+    add_edit_obj_helper!(
+        area,
+        config.id,
+        config.layer,
+        CameraHintTrigger,
+        new,
+        update
+    );
 }
 
 pub fn patch_add_platform<'r>(

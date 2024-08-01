@@ -276,6 +276,11 @@
                     "type": "boolean",
                     "default": true
                 },
+                "noHud": {
+                    "description": "If true, removes many hud elements",
+                    "type": "boolean",
+                    "default": false
+                },
                 "trilogyDiscPath": {
                     "description": "The filepath to a Trilogy ISO to restore the intended Flaahgra music.",
                     "type": "string"
@@ -924,11 +929,6 @@
                     "description": "The message displayed on the mission complete screen at the end of the game.",
                     "type": "string",
                     "default": null
-                },
-                "noHud": {
-                    "description": "If true, removes many hud elements",
-                    "type": "boolean",
-                    "default": false
                 },
                 "artifactHints": {
                     "description": "The hint provided to the player when scanning the respective Artifact's totem in Artifact Temple. Supports color modification with &push and &pop delimiters. If left unspecified, defaults to humorous hints which include the room name of the corresponding artifact.",

@@ -44,7 +44,7 @@ use crate::{
         CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode, FogConfig,
         GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat, LevelConfig,
         PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType, RoomConfig,
-        RunMode, SpecialFunctionType, SuitDamageReduction, Version, Visor, TimerConfig
+        RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig, Version, Visor,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -11211,11 +11211,11 @@ fn patch_dol(
             _spring_ball_item_condition_patch.encoded_bytes()
         } else {
             let _spring_ball_item_condition_patch = ppcasm!(new_text_section_end, {
-                    nop;
-                    nop;
-                    nop;
-                    nop;
-                    nop;
+                nop;
+                nop;
+                nop;
+                nop;
+                nop;
             });
             _spring_ball_item_condition_patch.encoded_bytes()
         };
@@ -16314,30 +16314,22 @@ fn build_and_run_patches<'r>(
                     start_immediately: Some(true),
 
                     layer: None,
-                    max_random_add: None,                    
+                    max_random_add: None,
                 };
-    
-                patcher.add_scly_patch(
-                    res.into(),
-                    move |ps, area| {
-                        patch_add_timer(ps, area, timer_config.clone())
-                    },
-                );
-    
-                let connections = vec![
-                    ConnectionConfig {
-                        sender_id: timer_id,
-                        state: ConnectionState::ZERO,
-                        target_id: dock_id,
-                        message: ConnectionMsg::INCREMENT,
-                    }
-                ];
-                patcher.add_scly_patch(
-                    res.into(),
-                    move |ps, area| {
-                        patch_add_connections(ps, area, &connections)
-                    },
-                );
+
+                patcher.add_scly_patch(res.into(), move |ps, area| {
+                    patch_add_timer(ps, area, timer_config.clone())
+                });
+
+                let connections = vec![ConnectionConfig {
+                    sender_id: timer_id,
+                    state: ConnectionState::ZERO,
+                    target_id: dock_id,
+                    message: ConnectionMsg::INCREMENT,
+                }];
+                patcher.add_scly_patch(res.into(), move |ps, area| {
+                    patch_add_connections(ps, area, &connections)
+                });
             }
         }
     }
@@ -16389,7 +16381,7 @@ fn build_and_run_patches<'r>(
                 // this is a hack because something is getting messed up with the MREA objects if this patch never gets used
                 let remove_otrs = config.qol_cosmetic
                     && !(config.shuffle_pickup_position
-                    && room_info.room_id.to_u32() == 0x40C548E9);
+                        && room_info.room_id.to_u32() == 0x40C548E9);
 
                 patcher.add_scly_patch(
                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
@@ -16687,7 +16679,8 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
-                        if let Some(camera_filter_keyframes) = room.camera_filter_keyframes.as_ref() {
+                        if let Some(camera_filter_keyframes) = room.camera_filter_keyframes.as_ref()
+                        {
                             for config in camera_filter_keyframes {
                                 patcher.add_scly_patch(
                                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
@@ -16719,7 +16712,6 @@ fn build_and_run_patches<'r>(
                                 );
                             }
                         }
-
 
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
@@ -17210,7 +17202,7 @@ fn build_and_run_patches<'r>(
                                 scan.position,
                                 scan.rotation.unwrap_or(0.0),
                                 scan.layer,
-                                scan.actor_id
+                                scan.actor_id,
                             )
                         },
                     );
@@ -17710,17 +17702,10 @@ fn build_and_run_patches<'r>(
     });
 
     if config.no_hud {
-        for res in vec![
-            resource_info!("FRME_CombatHud.FRME"),
+        for res in [resource_info!("FRME_CombatHud.FRME"),
             resource_info!("FRME_BallHud.FRME"),
-            resource_info!("FRME_ScanHud.FRME"),
-            // resource_info!("FRME_Helmet.FRME"),
-            // resource_info!("FRME_BaseHud.FRME"),
-        ] {
-            patcher.add_resource_patch(
-                res.into(),
-                patch_no_hud,
-            );
+            resource_info!("FRME_ScanHud.FRME")] {
+            patcher.add_resource_patch(res.into(), patch_no_hud);
         }
     }
 

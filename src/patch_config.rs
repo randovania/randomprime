@@ -838,7 +838,7 @@ pub enum EBallCameraBehaviour {
     HintFixedTransform,
     PathCameraDesiredPos, // Unused
     PathCamera,
-    SpindleCamera
+    SpindleCamera,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -913,7 +913,6 @@ pub struct CameraHintTriggerConfig {
     pub deactivate_on_enter: Option<bool>,
     pub deactivate_on_exit: Option<bool>,
 }
-
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
@@ -2534,13 +2533,9 @@ impl PatchConfigPrivate {
         };
 
         let spring_ball_item = {
-            match self
-                .game_config
-                .spring_ball_item
-                .as_deref()
-            {
+            match self.game_config.spring_ball_item.as_deref() {
                 Some(s) => PickupType::from_str(s),
-                None => PickupType::MorphBallBomb
+                None => PickupType::MorphBallBomb,
             }
         };
 
@@ -2575,10 +2570,22 @@ impl PatchConfigPrivate {
                 .game_config
                 .phazon_elite_without_dynamo
                 .unwrap_or(!force_vanilla_layout),
-            main_plaza_door: self.game_config.main_plaza_door.unwrap_or(!force_vanilla_layout),
-            backwards_labs: self.game_config.backwards_labs.unwrap_or(!force_vanilla_layout),
-            backwards_frigate: self.game_config.backwards_frigate.unwrap_or(!force_vanilla_layout),
-            backwards_upper_mines: self.game_config.backwards_upper_mines.unwrap_or(!force_vanilla_layout),
+            main_plaza_door: self
+                .game_config
+                .main_plaza_door
+                .unwrap_or(!force_vanilla_layout),
+            backwards_labs: self
+                .game_config
+                .backwards_labs
+                .unwrap_or(!force_vanilla_layout),
+            backwards_frigate: self
+                .game_config
+                .backwards_frigate
+                .unwrap_or(!force_vanilla_layout),
+            backwards_upper_mines: self
+                .game_config
+                .backwards_upper_mines
+                .unwrap_or(!force_vanilla_layout),
             backwards_lower_mines: self.game_config.backwards_lower_mines.unwrap_or(false),
             patch_power_conduits: self.game_config.patch_power_conduits.unwrap_or(false),
             remove_mine_security_station_locks: self
@@ -2598,7 +2605,10 @@ impl PatchConfigPrivate {
                 .hall_of_the_elders_bomb_slot_covers,
             automatic_crash_screen: self.preferences.automatic_crash_screen.unwrap_or(true),
             visible_bounding_box: self.preferences.visible_bounding_box.unwrap_or(false),
-            door_destination_scans: self.preferences.door_destination_scans.unwrap_or(!force_vanilla_layout),
+            door_destination_scans: self
+                .preferences
+                .door_destination_scans
+                .unwrap_or(!force_vanilla_layout),
             no_hud: self.preferences.no_hud.unwrap_or(false),
             artifact_hint_behavior,
             flaahgra_music_files,
