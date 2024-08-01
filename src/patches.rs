@@ -40,11 +40,11 @@ use crate::{
     generic_edit::patch_edit_objects,
     mlvl_wrapper,
     patch_config::{
-        ArtifactHintBehavior, BombSlotCover, ConnectionConfig, ConnectionMsg, ConnectionState,
-        CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode, FogConfig,
-        GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat, LevelConfig,
-        PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType, RoomConfig,
-        RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig, Version, Visor,
+        ArtifactHintBehavior, BlockConfig, BombSlotCover, ConnectionConfig, ConnectionMsg,
+        ConnectionState, CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode,
+        FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat,
+        LevelConfig, PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType,
+        RoomConfig, RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig, Version, Visor,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -11979,152 +11979,23 @@ fn patch_subchamber_five_essence_permadeath(
     area.add_layer(b"Disable Bosses Layer\0".as_cstr());
     area.layer_flags.flags &= !(1 << disable_bosses_layer_num);
 
-    let spawn_point_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
-    let player_hint_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
-    let trigger_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
     let timer_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
     let timer2_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
+    let trigger_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
+    let trigger2_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
     let layers = &mut area.mrea().scly_section_mut().layers.as_mut_vec();
 
-    // Inch the cutscene trigger forwards
     // Cutscene trigger disabled by default
-    {
-        let trigger = layers[0]
-            .objects
-            .as_mut_vec()
-            .iter_mut()
-            .find(|obj| obj.instance_id & 0x00FFFFFF == 0x000A0017)
-            .unwrap();
-        let trigger_data = trigger.property_data.as_trigger_mut().unwrap();
-        // trigger_data.position[1] = -265.4421;
-        trigger_data.active = 0;
-    }
-
-    layers[disable_bosses_layer_num]
+    let trigger = layers[0]
         .objects
         .as_mut_vec()
-        .push(structs::SclyObject {
-            instance_id: trigger_id,
-            connections: vec![
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::SET_TO_ZERO,
-                    target_object_id: spawn_point_id,
-                },
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::INCREMENT,
-                    target_object_id: player_hint_id,
-                },
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::SET_TO_MAX,
-                    target_object_id: 0x000A0002, // dock to lair
-                },
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::SET_TO_ZERO,
-                    target_object_id: 0x000A0001, // dock to subchamber four
-                },
-            ]
-            .into(),
-            property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
-                name: b"push into hole\0".as_cstr(),
-                position: [43.704475, -260.3421, -124.530_14].into(),
-                scale: [46.12, 3.078979, 31.992004].into(),
-                damage_info: structs::scly_structs::DamageInfo {
-                    weapon_type: 0,
-                    damage: 0.0,
-                    radius: 0.0,
-                    knockback_power: 0.0,
-                },
-                force: [0.0, -200.0, 300.0].into(),
-                flags: 0x2001, // apply force, detect player
-                active: 1,
-                deactivate_on_enter: 0,
-                deactivate_on_exit: 1,
-            })),
-        });
+        .iter_mut()
+        .find(|obj| obj.instance_id & 0x00FFFFFF == 0x000A0017)
+        .unwrap();
+    let trigger_data = trigger.property_data.as_trigger_mut().unwrap();
+    trigger_data.active = 0;
 
-    layers[disable_bosses_layer_num]
-        .objects
-        .as_mut_vec()
-        .push(structs::SclyObject {
-            instance_id: spawn_point_id,
-            connections: vec![].into(),
-            property_data: structs::SclyProperty::SpawnPoint(Box::new(structs::SpawnPoint {
-                name: b"my spawn point\0".as_cstr(),
-                position: [42.33, -260.3421, -135.5].into(),
-                rotation: [0.0, 0.0, 180.0].into(),
-                power: 0,
-                ice: 0,
-                wave: 0,
-                plasma: 0,
-                missiles: 0,
-                scan_visor: 0,
-                bombs: 0,
-                power_bombs: 0,
-                flamethrower: 0,
-                thermal_visor: 0,
-                charge: 0,
-                super_missile: 0,
-                grapple: 0,
-                xray: 0,
-                ice_spreader: 0,
-                space_jump: 0,
-                morph_ball: 0,
-                combat_visor: 0,
-                boost_ball: 0,
-                spider_ball: 0,
-                power_suit: 0,
-                gravity_suit: 0,
-                varia_suit: 0,
-                phazon_suit: 0,
-                energy_tanks: 0,
-                unknown0: 0,
-                health_refill: 0,
-                unknown1: 0,
-                wavebuster: 0,
-                default_spawn: 0,
-                active: 1,
-                morphed: 0,
-            })),
-        });
-
-    layers[disable_bosses_layer_num]
-        .objects
-        .as_mut_vec()
-        .push(structs::SclyObject {
-            instance_id: player_hint_id,
-            property_data: structs::PlayerHint {
-                name: b"disable controls\0".as_cstr(),
-
-                position: [0.0, 0.0, 0.0].into(),
-                rotation: [0.0, 0.0, 0.0].into(),
-                active: 1,
-                data: structs::PlayerHintStruct {
-                    unknown1: 0,
-                    unknown2: 0,
-                    extend_target_distance: 0,
-                    unknown4: 0,
-                    unknown5: 0,
-                    disable_unmorph: 1,
-                    disable_morph: 1,
-                    disable_controls: 1,
-                    disable_boost: 1,
-                    activate_visor_combat: 0,
-                    activate_visor_scan: 0,
-                    activate_visor_thermal: 0,
-                    activate_visor_xray: 0,
-                    unknown6: 0,
-                    face_object_on_unmorph: 0,
-                },
-                priority: 10,
-            }
-            .into(),
-            connections: vec![].into(),
-        });
-
+    // Enable the cutscene after 0.1s of room load
     layers[0].objects.as_mut_vec().push(structs::SclyObject {
         instance_id: timer_id,
         property_data: structs::Timer {
@@ -12147,24 +12018,95 @@ fn patch_subchamber_five_essence_permadeath(
     layers[disable_bosses_layer_num]
         .objects
         .as_mut_vec()
-        .push(structs::SclyObject {
-            instance_id: timer2_id,
-            property_data: structs::Timer {
-                name: b"disable cutscene trigger\0".as_cstr(),
-                start_time: 0.01,
-                max_random_add: 0.0,
-                looping: 0,
-                start_immediately: 1,
-                active: 1,
-            }
-            .into(),
-            connections: vec![structs::Connection {
-                state: structs::ConnectionState::ZERO,
-                message: structs::ConnectionMsg::DEACTIVATE,
-                target_object_id: timer_id,
-            }]
-            .into(),
-        });
+        .extend_from_slice(&[
+            // Cancel that timer if essence is dead and also force-load the next room
+            structs::SclyObject {
+                instance_id: timer2_id,
+                property_data: structs::Timer {
+                    name: b"disable cutscene trigger\0".as_cstr(),
+                    start_time: 0.01,
+                    max_random_add: 0.0,
+                    looping: 1,
+                    start_immediately: 1,
+                    active: 1,
+                }
+                .into(),
+                connections: vec![structs::Connection {
+                    state: structs::ConnectionState::ZERO,
+                    message: structs::ConnectionMsg::DEACTIVATE,
+                    target_object_id: timer_id,
+                }]
+                .into(),
+            },
+            // Add load trigger for descent
+            structs::SclyObject {
+                instance_id: trigger_id,
+                property_data: structs::Trigger {
+                    name: b"Trigger\0".as_cstr(),
+                    position: [42.0, -287.0, -208.6].into(),
+                    scale: [45.0, 45.0, 20.0].into(),
+                    damage_info: structs::scly_structs::DamageInfo {
+                        weapon_type: 0,
+                        damage: 0.0,
+                        radius: 0.0,
+                        knockback_power: 0.0,
+                    },
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 1,
+                    active: 1,
+                    deactivate_on_enter: 0,
+                    deactivate_on_exit: 0,
+                }
+                .into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::INSIDE,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: 0x000A0001,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::INSIDE,
+                        message: structs::ConnectionMsg::SET_TO_MAX,
+                        target_object_id: 0x000A0002,
+                    },
+                ]
+                .into(),
+            },
+            // Add load trigger for ascent
+            structs::SclyObject {
+                instance_id: trigger2_id,
+                property_data: structs::Trigger {
+                    name: b"Trigger\0".as_cstr(),
+                    position: [42.0, -287.0, -164.8].into(),
+                    scale: [45.0, 45.0, 20.0].into(),
+                    damage_info: structs::scly_structs::DamageInfo {
+                        weapon_type: 0,
+                        damage: 0.0,
+                        radius: 0.0,
+                        knockback_power: 0.0,
+                    },
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 1,
+                    active: 1,
+                    deactivate_on_enter: 0,
+                    deactivate_on_exit: 0,
+                }
+                .into(),
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::INSIDE,
+                        message: structs::ConnectionMsg::SET_TO_MAX,
+                        target_object_id: 0x000A0001,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::INSIDE,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: 0x000A0002,
+                    },
+                ]
+                .into(),
+            },
+        ]);
 
     Ok(())
 }
@@ -12355,6 +12297,8 @@ fn patch_final_boss_permadeath<'r>(
     let mut remove_warp_timer_id = 0;
     let mut change_layer_timer_id = 0;
     let mut special_function_ids = Vec::<u32>::new();
+    let mut pull_from_five_timer_id = 0;
+    let mut pull_from_five_spawn_point_id = 0;
 
     if mrea_id == 0x1A666C55 {
         // lair
@@ -12364,6 +12308,9 @@ fn patch_final_boss_permadeath<'r>(
         player_hint_id = area.new_object_id_from_layer_name("Default");
         unload_subchamber_five_trigger_id = area.new_object_id_from_layer_name("Default");
         remove_warp_timer_id = area.new_object_id_from_layer_id(disable_bosses_layer_num);
+
+        pull_from_five_timer_id = area.new_object_id_from_layer_name("Default");
+        pull_from_five_spawn_point_id = area.new_object_id_from_layer_name("Default");
     }
 
     if mrea_id == 0xA7AC009B || mrea_id == 0x1A666C55
@@ -12399,6 +12346,88 @@ fn patch_final_boss_permadeath<'r>(
                 .as_mut_vec()
                 .retain(|obj| obj.instance_id & 0x00FFFFFF != obj_id);
         }
+
+        // teleport the player into the room from five
+        layers[0].objects.as_mut_vec().push(structs::SclyObject {
+            instance_id: pull_from_five_timer_id,
+            property_data: structs::Timer {
+                name: b"pull player timer\0".as_cstr(),
+                start_time: 0.2,
+                max_random_add: 0.0,
+                looping: 0,
+                start_immediately: 1,
+                active: 1,
+            }
+            .into(),
+            connections: vec![structs::Connection {
+                message: structs::ConnectionMsg::DEACTIVATE,
+                state: structs::ConnectionState::ZERO,
+                target_object_id: actor_id,
+            }]
+            .into(),
+        });
+
+        layers[0].objects.as_mut_vec().push(structs::SclyObject {
+            instance_id: pull_from_five_spawn_point_id,
+            property_data: structs::Timer {
+                name: b"pull player spawn point\0".as_cstr(),
+                start_time: 0.2,
+                max_random_add: 0.0,
+                looping: 0,
+                start_immediately: 1,
+                active: 1,
+            }
+            .into(),
+            connections: vec![structs::Connection {
+                state: structs::ConnectionState::ZERO,
+                target_object_id: pull_from_five_spawn_point_id,
+                message: structs::ConnectionMsg::SET_TO_ZERO,
+            }]
+            .into(),
+        });
+
+        layers[0].objects.as_mut_vec().push(structs::SclyObject {
+            instance_id: pull_from_five_spawn_point_id,
+            connections: vec![].into(),
+            property_data: structs::SpawnPoint {
+                name: b"pull player spawn point\0".as_cstr(),
+                position: [41.5365, -287.8581, -284.6025].into(),
+                rotation: [0.0, 0.0, 0.0].into(),
+                power: 0,
+                ice: 0,
+                wave: 0,
+                plasma: 0,
+                missiles: 0,
+                scan_visor: 0,
+                bombs: 0,
+                power_bombs: 0,
+                flamethrower: 0,
+                thermal_visor: 0,
+                charge: 0,
+                super_missile: 0,
+                grapple: 0,
+                xray: 0,
+                ice_spreader: 0,
+                space_jump: 0,
+                morph_ball: 0,
+                combat_visor: 0,
+                boost_ball: 0,
+                spider_ball: 0,
+                power_suit: 0,
+                gravity_suit: 0,
+                varia_suit: 0,
+                phazon_suit: 0,
+                energy_tanks: 0,
+                unknown0: 0,
+                health_refill: 0,
+                unknown1: 0,
+                wavebuster: 0,
+                default_spawn: 0,
+                active: 1,
+                morphed: 0,
+            }
+            .into(),
+        });
 
         layers[0].objects.as_mut_vec().push(structs::SclyObject {
             instance_id: actor_id,
@@ -12620,6 +12649,11 @@ fn patch_final_boss_permadeath<'r>(
                         message: structs::ConnectionMsg::DEACTIVATE,
                         state: structs::ConnectionState::ZERO,
                         target_object_id: trigger_id,
+                    },
+                    structs::Connection {
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        state: structs::ConnectionState::ZERO,
+                        target_object_id: pull_from_five_timer_id,
                     },
                 ]
                 .into(),
@@ -16290,19 +16324,23 @@ fn build_and_run_patches<'r>(
                 resource_info!("03e_f_crater.MREA").into(), // subchamber five
                 move |ps, area| patch_subchamber_five_essence_permadeath(ps, area),
             );
+
             patcher.add_scly_patch(
-                resource_info!("03f_crater.MREA").into(), // lair
+                resource_info!("03e_f_crater.MREA").into(),
                 move |ps, area| {
-                    patch_add_dock_teleport(
+                    patch_add_block(
                         ps,
                         area,
-                        [42.955_11, -287.172_64, -278.084_35], // source position
-                        [75.0, 75.0, 50.0],                    // source scale
-                        0,                                     // destination dock #
-                        Some([41.5365, -287.8581, -284.6025]),
-                        None,
-                        None,
-                        Some(720915),
+                        game_resources,
+                        BlockConfig {
+                            active: Some(true),
+                            id: None,
+                            layer: Some(1),
+                            position: [42.9551, -287.1726, -240.7044],
+                            scale: Some([50.0, 50.0, 1.0]),
+                            texture: None,
+                        },
+                        false,
                     )
                 },
             );
