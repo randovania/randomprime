@@ -1439,7 +1439,6 @@ pub struct PatchConfig {
     pub starting_visor: Visor,
     pub starting_beam: Beam,
     pub escape_sequence_counts_up: bool,
-    pub enable_ice_traps: bool,
     pub missile_station_pb_refill: bool,
     pub door_open_mode: DoorOpenMode,
 
@@ -1537,7 +1536,6 @@ struct GameConfig {
     starting_visor: Option<String>,
     starting_beam: Option<String>,
     escape_sequence_counts_up: Option<bool>,
-    enable_ice_traps: Option<bool>,
     missile_station_pb_refill: Option<bool>,
     door_open_mode: Option<DoorOpenMode>,
 
@@ -2674,7 +2672,6 @@ impl PatchConfigPrivate {
                 .unwrap_or_else(|| StartingItems::from_u64(1)),
             disable_item_loss: self.game_config.disable_item_loss.unwrap_or(true),
             escape_sequence_counts_up: self.game_config.escape_sequence_counts_up.unwrap_or(false),
-            enable_ice_traps: self.game_config.enable_ice_traps.unwrap_or(false),
             missile_station_pb_refill: self.game_config.missile_station_pb_refill.unwrap_or(false),
             door_open_mode: self
                 .game_config
