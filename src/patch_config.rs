@@ -460,7 +460,7 @@ pub struct SpecialFunctionConfig {
 
     pub layer_change_room_id: Option<u32>,
     pub layer_change_layer_id: Option<u32>,
-    pub item_id: Option<PickupType>,
+    pub item_id: Option<String>,
 
     pub active: Option<bool>,
     pub unknown6: Option<f32>,
@@ -1439,7 +1439,7 @@ pub struct PatchConfig {
     pub starting_visor: Visor,
     pub starting_beam: Beam,
     pub escape_sequence_counts_up: bool,
-    pub enable_ice_traps: bool,
+    pub enable_ice_traps: bool, // deprecated
     pub missile_station_pb_refill: bool,
     pub door_open_mode: DoorOpenMode,
 
@@ -2335,8 +2335,16 @@ impl PatchConfigPrivate {
         if !item_max_capacity.contains_key(&PickupType::EnergyTank) && !force_vanilla_layout {
             item_max_capacity.insert(PickupType::EnergyTank, 200);
         }
+        if !item_max_capacity.contains_key(&PickupType::UnknownItem2) {
+            item_max_capacity.insert(PickupType::UnknownItem2, 2147483647);
+        }
 
-        if item_max_capacity.contains_key(&PickupType::Nothing)
+        if item_max_capacity.contains_key(&PickupType::UnlimitedMissiles)
+            || item_max_capacity.contains_key(&PickupType::UnlimitedPowerBombs)
+            || item_max_capacity.contains_key(&PickupType::MissileLauncher)
+            || item_max_capacity.contains_key(&PickupType::PowerBombLauncher)
+            || item_max_capacity.contains_key(&PickupType::SpringBall)
+            || item_max_capacity.contains_key(&PickupType::Nothing)
             || item_max_capacity.contains_key(&PickupType::FloatyJump)
             || item_max_capacity.contains_key(&PickupType::IceTrap)
         {
@@ -2400,9 +2408,43 @@ impl PatchConfigPrivate {
                 Some(items) => items.clone(),
                 None => {
                     if force_vanilla_layout {
-                        StartingItems::from_u64(2188378143)
+                        // from u64 2188378143
+                        StartingItems {
+                            power_beam: true,
+                            combat_visor: true,
+                            scan_visor: true,
+                            missiles: 15,
+                            energy_tanks: 0,
+                            power_bombs: 0,
+                            wave: false,
+                            ice: false,
+                            plasma: false,
+                            charge: true,
+                            morph_ball: true,
+                            bombs: true,
+                            spider_ball: false,
+                            boost_ball: false,
+                            power_suit: 0,
+                            varia_suit: true,
+                            gravity_suit: false,
+                            phazon_suit: false,
+                            thermal_visor: false,
+                            xray: false,
+                            space_jump: false,
+                            grapple: true,
+                            super_missile: false,
+                            wavebuster: false,
+                            ice_spreader: false,
+                            flamethrower: false,
+                            unknown_item_1: 0,
+                            unlimited_missiles: false,
+                            unlimited_power_bombs: false,
+                            missile_launcher: true,
+                            power_bomb_launcher: true,
+                            spring_ball: false,
+                        }
                     } else {
-                        StartingItems::from_u64(1)
+                        StartingItems::default()
                     }
                 }
             }
@@ -2535,7 +2577,12 @@ impl PatchConfigPrivate {
         let spring_ball_item = {
             match self.game_config.spring_ball_item.as_deref() {
                 Some(s) => PickupType::from_str(s),
-                None => PickupType::MorphBallBomb,
+                None => PickupType::from_str({
+                    match spring_ball {
+                        false => "Spring Ball",
+                        true => "Morph Ball Bomb",
+                    }
+                }),
             }
         };
 
@@ -2674,7 +2721,7 @@ impl PatchConfigPrivate {
                 .unwrap_or_else(|| StartingItems::from_u64(1)),
             disable_item_loss: self.game_config.disable_item_loss.unwrap_or(true),
             escape_sequence_counts_up: self.game_config.escape_sequence_counts_up.unwrap_or(false),
-            enable_ice_traps: self.game_config.enable_ice_traps.unwrap_or(false),
+            enable_ice_traps: self.game_config.enable_ice_traps.unwrap_or(true),
             missile_station_pb_refill: self.game_config.missile_station_pb_refill.unwrap_or(false),
             door_open_mode: self
                 .game_config

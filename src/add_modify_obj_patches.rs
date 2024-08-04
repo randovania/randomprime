@@ -492,9 +492,9 @@ pub fn patch_add_spawn_point(
             varia_suit: 0,
             phazon_suit: 0,
             energy_tanks: 0,
-            unknown0: 0,
+            unknown_item_1: 0,
             health_refill: 0,
-            unknown1: 0,
+            unknown_item_2: 0,
             wavebuster: 0,
             default_spawn: config.default_spawn.unwrap_or(false) as u8,
             active: config.active.unwrap_or(true) as u8,
@@ -613,9 +613,12 @@ pub fn patch_add_special_fn(
     area: &mut mlvl_wrapper::MlvlArea,
     config: SpecialFunctionConfig,
 ) -> Result<(), String> {
-    let default = "".to_string();
-    let unknown0 = config.unknown1.as_ref().unwrap_or(&default);
+    let default_unknown0 = "".to_string();
+    let unknown0 = config.unknown1.as_ref().unwrap_or(&default_unknown0);
     let unknown0 = string_to_cstr(unknown0.clone());
+    let default_item_id = "Power Beam".to_string();
+    let item_id = config.item_id.as_ref().unwrap_or(&default_item_id);
+    let item_id = PickupType::from_str(&item_id[..]) as u32;
 
     macro_rules! new {
         () => {
@@ -630,7 +633,7 @@ pub fn patch_add_special_fn(
                 unknown3: config.unknown4.unwrap_or_default(),
                 layer_change_room_id: config.layer_change_room_id.unwrap_or(0xFFFFFFFF),
                 layer_change_layer_id: config.layer_change_layer_id.unwrap_or(0xFFFFFFFF),
-                item_id: config.item_id.unwrap_or(PickupType::PowerBeam) as u32,
+                item_id,
                 unknown4: config.active.unwrap_or(true) as u8, // active
                 unknown5: config.unknown6.unwrap_or_default(),
                 unknown6: config.spinner1.unwrap_or(0xFFFFFFFF),
@@ -668,8 +671,8 @@ pub fn patch_add_special_fn(
                 property_data.layer_change_layer_id = layer_change_layer_id
             }
             if let Some(item_id) = config.item_id {
-                property_data.item_id = item_id as u32
-            }
+                property_data.item_id = PickupType::from_str(&item_id) as u32;
+            };
             if let Some(active) = config.active {
                 property_data.unknown4 = active as u8
             }

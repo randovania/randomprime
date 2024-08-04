@@ -40,9 +40,9 @@ pub struct SpawnPoint<'r> {
     pub varia_suit: u32,
     pub phazon_suit: u32,
     pub energy_tanks: u32,
-    pub unknown0: u32,
+    pub unknown_item_1: u32,
     pub health_refill: u32,
-    pub unknown1: u32,
+    pub unknown_item_2: u32,
     pub wavebuster: u32,
 
     pub default_spawn: u8,
