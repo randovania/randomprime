@@ -1,16 +1,12 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::DamageInfo;
+use crate::{scly_props::structs::DamageInfo, SclyPropertyData};
 
 // https://github.com/AxioDL/metaforce/blob/1655d229cfdfbd5f792a7c3e84adc862653f70a7/DataSpec/DNAMP1/ScriptObjects/Water.hpp
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Water<'r>
-{
+pub struct Water<'r> {
     #[auto_struct(expect = 63)]
     prop_count: u32,
 
@@ -30,8 +26,8 @@ pub struct Water<'r>
     pub txtr6: u32,
     pub unknown5: GenericArray<f32, U3>,
     pub unknown6: f32,
-    pub unknown7: f32, // morphInTime
-    pub unknown8: f32, // morphOutTime
+    pub morph_in_time: f32,
+    pub morph_out_time: f32,
     pub active: u8,
     pub fluid_type: u32,
     pub unknown11: u8,
@@ -70,8 +66,8 @@ pub struct Water<'r>
     pub heat_wave_color: GenericArray<f32, U4>, // RGBA
     pub lightmap_txtr: u32,
     pub unknown51: f32,
-    pub unknown52: f32, // alphaInTime
-    pub unknown53: f32, // alphaOutTime
+    pub alpha_in_time: f32,
+    pub alpha_out_time: f32,
     pub unknown54: u32,
     pub unknown55: u32,
     pub crash_the_game: u8,
@@ -79,8 +75,7 @@ pub struct Water<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct FluidUVMotion
-{
+pub struct FluidUVMotion {
     pub fluid_layer_motion1: FluidLayerMotion,
     pub fluid_layer_motion2: FluidLayerMotion,
     pub fluid_layer_motion3: FluidLayerMotion,
@@ -90,8 +85,7 @@ pub struct FluidUVMotion
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct FluidLayerMotion
-{
+pub struct FluidLayerMotion {
     pub fluid_uv_motion: u32,
     pub unknown1: f32,
     pub unknown2: f32,
@@ -100,8 +94,7 @@ pub struct FluidLayerMotion
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for Water<'r>
-{
+impl<'r> SclyPropertyData for Water<'r> {
     const OBJECT_TYPE: u8 = 0x20;
     impl_position!();
     impl_scale!();
@@ -109,12 +102,10 @@ impl<'r> SclyPropertyData for Water<'r>
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
-        vec![
-            self.damage_info.clone(),
-        ]
+        vec![self.damage_info]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.damage_info = x[0].clone();
+        self.damage_info = x[0];
     }
 }

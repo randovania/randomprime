@@ -1,12 +1,11 @@
 use auto_struct_macros::auto_struct;
-
 use reader_writer::CStr;
+
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Switch<'r>
-{
+pub struct Switch<'r> {
     #[auto_struct(expect = 4)]
     pub prop_count: u32,
 
@@ -17,7 +16,6 @@ pub struct Switch<'r>
     pub auto_close: u8,
 }
 
-impl<'r> SclyPropertyData for Switch<'r>
-{
+impl<'r> SclyPropertyData for Switch<'r> {
     const OBJECT_TYPE: u8 = 0x56;
 }

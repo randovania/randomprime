@@ -1,17 +1,15 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::{ResId, SclyPropertyData};
-use crate::res_id::*;
-use crate::scly_props::structs::{DamageVulnerability, HealthInfo, VisorParameters};
-
+use crate::{
+    res_id::*,
+    scly_props::structs::{DamageVulnerability, HealthInfo, VisorParameters},
+    ResId, SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct DamageableTrigger<'r>
-{
+pub struct DamageableTrigger<'r> {
     #[auto_struct(expect = 12)]
     pub prop_count: u32,
 
@@ -31,12 +29,11 @@ pub struct DamageableTrigger<'r>
     pub lock_on: u8,
     pub active: u8,
 
-    pub visor_params: VisorParameters
+    pub visor_params: VisorParameters,
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for DamageableTrigger<'r>
-{
+impl<'r> SclyPropertyData for DamageableTrigger<'r> {
     const OBJECT_TYPE: u8 = 0x1A;
 
     impl_position!();
@@ -45,9 +42,7 @@ impl<'r> SclyPropertyData for DamageableTrigger<'r>
     const SUPPORTS_VULNERABILITIES: bool = true;
 
     fn impl_get_vulnerabilities(&self) -> Vec<DamageVulnerability> {
-        vec![
-            self.damage_vulnerability.clone(),
-        ]
+        vec![self.damage_vulnerability.clone()]
     }
 
     fn impl_set_vulnerabilities(&mut self, x: Vec<DamageVulnerability>) {
@@ -57,9 +52,7 @@ impl<'r> SclyPropertyData for DamageableTrigger<'r>
     const SUPPORTS_HEALTH_INFOS: bool = true;
 
     fn impl_get_health_infos(&self) -> Vec<HealthInfo> {
-        vec![
-            self.health_info.clone()
-        ]
+        vec![self.health_info.clone()]
     }
 
     fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {

@@ -1,24 +1,18 @@
-#[macro_use]
-extern crate clap;
+use std::{collections::HashMap, convert::TryInto, fs::File, iter, path::Path};
 
-use image::{ColorType, ImageDecoder};
-use image::codecs::png::{PngDecoder, PngEncoder};
-
-use structs::{Txtr, TxtrFormat, TxtrPaletteFormat};
-use libsquish_wrapper::{compress_dxt1gcn_block, decompress_dxt1gcn_block};
+use clap::{clap_app, crate_authors, crate_version};
+use image::{
+    codecs::png::{PngDecoder, PngEncoder},
+    ColorType, ImageDecoder,
+};
+use randomprime::txtr_conversions::{compress_dxt1gcn_block, decompress_dxt1gcn_block};
 use reader_writer::{Readable, Reader, Writable};
-
-use std::convert::TryInto;
-use std::collections::HashMap;
-use std::fs::File;
-use std::iter;
-use std::path::Path;
+use structs::{Txtr, TxtrFormat, TxtrPaletteFormat};
 
 fn txtr2png(input: &Path, output: &Path, mipmap: usize) -> Result<(), String> {
-    let input_file = File::open(input)
-        .map_err(|e| format!("Failed to open input file: {}", e))?;
-    let output_file = File::create(output)
-        .map_err(|e| format!("Failed to open output file: {}", e))?;
+    let input_file = File::open(input).map_err(|e| format!("Failed to open input file: {}", e))?;
+    let output_file =
+        File::create(output).map_err(|e| format!("Failed to open output file: {}", e))?;
     let mmap = unsafe { memmap::Mmap::map(&input_file) }
         .map_err(|e| format!("Failed to map input file: {}", e))?;
     let mut reader = Reader::new(&mmap[..]);
@@ -27,7 +21,10 @@ fn txtr2png(input: &Path, output: &Path, mipmap: usize) -> Result<(), String> {
     let mut txtr: Txtr = reader.read(());
 
     if mipmap > txtr.pixel_data.len() {
-        Err(format!("TXTR only contains {} mipmaps", txtr.pixel_data.len()))?;
+        Err(format!(
+            "TXTR only contains {} mipmaps",
+            txtr.pixel_data.len()
+        ))?;
     }
 
     let w = txtr.width as usize >> mipmap;
@@ -42,7 +39,10 @@ fn txtr2png(input: &Path, output: &Path, mipmap: usize) -> Result<(), String> {
     let (block_w, block_h) = txtr.format.block_dimensions();
 
     let mut decoded_block = vec![0u8; channel_count * block_w * block_h];
-    for (i, block) in mipmap_data.chunks(txtr.format.bytes_per_block()).enumerate() {
+    for (i, block) in mipmap_data
+        .chunks(txtr.format.bytes_per_block())
+        .enumerate()
+    {
         txtr.format.decode_block(block, &mut decoded_block[..]);
         let outer_x = (i % (w / block_w)) * block_w;
         let outer_y = (i / (w / block_w)) * block_h;
@@ -61,29 +61,32 @@ fn txtr2png(input: &Path, output: &Path, mipmap: usize) -> Result<(), String> {
     }
 
     let encoder = PngEncoder::new(output_file);
-    encoder.encode(
-        &decompressed_pixels[..],
-        w as u32,
-        h as u32,
-        color_type,
-    ).map_err(|e| format!("Failed to encode PNG: {}", e))?;
+    encoder
+        .encode(&decompressed_pixels[..], w as u32, h as u32, color_type)
+        .map_err(|e| format!("Failed to encode PNG: {}", e))?;
 
     Ok(())
 }
 
-fn png2txtr(input: &Path, output: &Path, mipmap_count: Option<u8>, mut format: TxtrFormat)
-    -> Result<(), String>
-{
-    let input_file = File::open(input)
-        .map_err(|e| format!("Failed to open input file: {}", e))?;
-    let output_file = File::create(output)
-        .map_err(|e| format!("Failed to open output file: {}", e))?;
+fn png2txtr(
+    input: &Path,
+    output: &Path,
+    mipmap_count: Option<u8>,
+    mut format: TxtrFormat,
+) -> Result<(), String> {
+    let input_file = File::open(input).map_err(|e| format!("Failed to open input file: {}", e))?;
+    let output_file =
+        File::create(output).map_err(|e| format!("Failed to open output file: {}", e))?;
 
     let decoder = PngDecoder::new(input_file)
         .map_err(|e| format!("Failed to decode input file as PNG: {}", e))?;
     let color_type: ColorType = format.color_type();
     if decoder.color_type() != color_type {
-        Err(format!("Incorrect PNG type {:?} for TXTR format {:?}", decoder.color_type(), format))?
+        Err(format!(
+            "Incorrect PNG type {:?} for TXTR format {:?}",
+            decoder.color_type(),
+            format
+        ))?
     }
     let (w, h) = decoder.dimensions();
     let (w, h) = (w as usize, h as usize);
@@ -99,10 +102,12 @@ fn png2txtr(input: &Path, output: &Path, mipmap_count: Option<u8>, mut format: T
     let channel_count = color_type.channel_count() as usize;
 
     let mut uncompressed_pixels = vec![0u8; decoder.total_bytes() as usize];
-    decoder.read_image(&mut uncompressed_pixels[..])
+    decoder
+        .read_image(&mut uncompressed_pixels[..])
         .map_err(|e| format!("Error reading input PNG: {}", e))?;
 
-    format.compute_palette(&uncompressed_pixels[..])
+    format
+        .compute_palette(&uncompressed_pixels[..])
         .map_err(|()| "Image contains too many colors for choosen paletted format")?;
 
     let max_mipmaps_for_fomat = match format {
@@ -113,12 +118,14 @@ fn png2txtr(input: &Path, output: &Path, mipmap_count: Option<u8>, mut format: T
                 i += 1
             }
             i
-        },
+        }
     };
     let max_mipmaps = mipmap_count.unwrap_or(max_mipmaps_for_fomat);
     if max_mipmaps > max_mipmaps_for_fomat {
-        Err(format!("Specified format supports a max of {} mipmaps for this image",
-                    max_mipmaps_for_fomat))?
+        Err(format!(
+            "Specified format supports a max of {} mipmaps for this image",
+            max_mipmaps_for_fomat
+        ))?
     }
 
     let mut mipmaps = vec![];
@@ -142,8 +149,9 @@ fn png2txtr(input: &Path, output: &Path, mipmap_count: Option<u8>, mut format: T
                     } else {
                         ((outer_y + inner_y) * w + outer_x + inner_x) * channel_count
                     };
-                    block_pixels[block_start..block_start + channel_count]
-                        .copy_from_slice(&uncompressed_pixels[image_start..image_start + channel_count]);
+                    block_pixels[block_start..block_start + channel_count].copy_from_slice(
+                        &uncompressed_pixels[image_start..image_start + channel_count],
+                    );
                 }
             }
             format.encode_block(block, &block_pixels[..]);
@@ -171,27 +179,32 @@ fn png2txtr(input: &Path, output: &Path, mipmap_count: Option<u8>, mut format: T
 
     txtr.write_to(&mut &output_file)
         .map_err(|e| format!("Error writing TXTR: {}", e))?;
-    reader_writer::padding::pad_bytes(32, txtr.size()).write_to(&mut &output_file)
+    reader_writer::padding::pad_bytes(32, txtr.size())
+        .write_to(&mut &output_file)
         .map_err(|e| format!("Error writing padding: {}", e))?;
 
     Ok(())
 }
 
-fn box_filter_pixels(pixels: &[u8], w: usize, h: usize, chan_count: usize, discretize_alpha: bool)
-    -> Vec<u8>
-{
+fn box_filter_pixels(
+    pixels: &[u8],
+    w: usize,
+    h: usize,
+    chan_count: usize,
+    discretize_alpha: bool,
+) -> Vec<u8> {
     let mut output = Vec::with_capacity(w * h * chan_count / 4);
     for iy in 0..h / 2 {
         for ix in 0..w / 2 {
             let y = iy * 2;
             let x = ix * 2;
             for c in 0..chan_count {
-                output.push(((
-                        (pixels[(y * w + x) * chan_count + c] as u16)
+                output.push(
+                    (((pixels[(y * w + x) * chan_count + c] as u16)
                         + (pixels[(y * w + x + 1) * chan_count + c] as u16)
-                        + (pixels[((y + 1) * w + x ) * chan_count + c] as u16)
-                        + (pixels[((y + 1) * w + x + 1) * chan_count + c] as u16)
-                    ) / 4) as u8
+                        + (pixels[((y + 1) * w + x) * chan_count + c] as u16)
+                        + (pixels[((y + 1) * w + x + 1) * chan_count + c] as u16))
+                        / 4) as u8,
                 );
                 if discretize_alpha && c == chan_count - 1 {
                     let last = output.last_mut().unwrap();
@@ -207,7 +220,7 @@ fn box_filter_pixels(pixels: &[u8], w: usize, h: usize, chan_count: usize, discr
 
 // XXX The following conversion functions are borrowed from URDE https://github.com/AxioDL/urde/blob/master/DataSpec/DNACommon/TXTR.cpp
 fn convert3to8(v: u8) -> u8 {
-    (v << 5) | (v << 2)| (v >> 1)
+    (v << 5) | (v << 2) | (v >> 1)
 }
 
 fn convert4to8(v: u8) -> u8 {
@@ -224,7 +237,8 @@ fn convert6to8(v: u8) -> u8 {
 
 fn encode_rgb5a3(pixel: [u8; 4]) -> [u8; 2] {
     let v = if pixel[3] == 0xff {
-        0x8000 | ((pixel[0] as u16 >> 3) << 10)
+        0x8000
+            | ((pixel[0] as u16 >> 3) << 10)
             | ((pixel[1] as u16 >> 3) << 5)
             | (pixel[2] as u16 >> 3)
     } else {
@@ -237,9 +251,7 @@ fn encode_rgb5a3(pixel: [u8; 4]) -> [u8; 2] {
 }
 
 fn encode_rgb565(pixel: [u8; 3]) -> [u8; 2] {
-    let v = ((pixel[0] as u16 >> 3) << 11)
-            | ((pixel[1] as u16 >> 2) << 5)
-            | ((pixel[2] as u16 >> 3));
+    let v = ((pixel[0] as u16 >> 3) << 11) | ((pixel[1] as u16 >> 2) << 5) | (pixel[2] as u16 >> 3);
     v.to_be_bytes()
 }
 
@@ -277,7 +289,7 @@ trait TxtrFormatExt {
     fn block_dimensions(&self) -> (usize, usize);
     fn flipped(&self) -> bool;
     fn compute_palette(&mut self, pixels: &[u8]) -> Result<(), ()>;
-    fn decode_block(&self, block: &[u8], pixels: &mut[u8]);
+    fn decode_block(&self, block: &[u8], pixels: &mut [u8]);
     fn encode_block(&self, block: &mut [u8], pixels: &[u8]);
     fn from_str(s: &str) -> Result<TxtrFormat, ()>;
 }
@@ -290,7 +302,7 @@ impl TxtrFormatExt for TxtrFormat {
             TxtrFormat::Ia4 => ColorType::La8,
             TxtrFormat::Ia8 => ColorType::La8,
             TxtrFormat::C4(fmt, _) | TxtrFormat::C8(fmt, _) => match fmt {
-                TxtrPaletteFormat::Ia8  => ColorType::La8,
+                TxtrPaletteFormat::Ia8 => ColorType::La8,
                 TxtrPaletteFormat::Rgb565 => ColorType::Rgb8,
                 TxtrPaletteFormat::Rgb5A3 => ColorType::Rgba8,
             },
@@ -332,12 +344,8 @@ impl TxtrFormatExt for TxtrFormat {
     }
 
     fn flipped(&self) -> bool {
-        match self {
-            TxtrFormat::C4(_, _) | TxtrFormat::C8(_, _) => false,
-            _ => true,
-        }
+        !matches!(self, TxtrFormat::C4(_, _) | TxtrFormat::C8(_, _))
     }
-
 
     fn compute_palette(&mut self, pixels: &[u8]) -> Result<(), ()> {
         let (fmt, buf) = match self {
@@ -353,8 +361,7 @@ impl TxtrFormatExt for TxtrFormat {
                 TxtrPaletteFormat::Rgb5A3 => encode_rgb5a3(chunk.try_into().unwrap()),
             };
             let pv_len = palette_values.len();
-            let idx = *palette_values.entry(encoded)
-                .or_insert(pv_len);
+            let idx = *palette_values.entry(encoded).or_insert(pv_len);
             if idx * 2 + 2 >= buf.len() {
                 Err(())?;
             }
@@ -363,7 +370,7 @@ impl TxtrFormatExt for TxtrFormat {
         Ok(())
     }
 
-    fn decode_block(&self, block: &[u8], pixels: &mut[u8]) {
+    fn decode_block(&self, block: &[u8], pixels: &mut [u8]) {
         assert_eq!(block.len(), self.bytes_per_block());
         let channel_count = self.color_type().channel_count() as usize;
         assert_eq!(
@@ -376,17 +383,18 @@ impl TxtrFormatExt for TxtrFormat {
                     pixel_bytes[0] = convert4to8(texel_byte >> 4);
                     pixel_bytes[1] = convert4to8(texel_byte & 0xf);
                 }
-            },
+            }
             TxtrFormat::I8 => pixels.copy_from_slice(block),
             TxtrFormat::Ia4 => {
                 for (texel_byte, pixel_bytes) in block.iter().zip(pixels.chunks_mut(2)) {
                     pixel_bytes[0] = convert4to8(texel_byte >> 4);
                     pixel_bytes[1] = convert4to8(texel_byte & 0xf);
                 }
-            },
+            }
             TxtrFormat::Ia8 => pixels.copy_from_slice(block),
             TxtrFormat::C4(fmt, palette) => {
-                let iter = block.iter()
+                let iter = block
+                    .iter()
                     .flat_map(|texel| iter::once(texel >> 4).chain(iter::once(texel & 0xf)))
                     .map(|nibble| nibble as usize)
                     .zip(pixels.chunks_mut(self.color_type().channel_count() as usize));
@@ -397,16 +405,17 @@ impl TxtrFormatExt for TxtrFormat {
                         TxtrPaletteFormat::Rgb565 => {
                             let decoded = decode_rgb565(texel_from_palette.try_into().unwrap());
                             pixel_bytes.copy_from_slice(&decoded[..]);
-                        },
+                        }
                         TxtrPaletteFormat::Rgb5A3 => {
                             let decoded = decode_rgb5a3(texel_from_palette.try_into().unwrap());
                             pixel_bytes.copy_from_slice(&decoded[..]);
-                        },
+                        }
                     }
                 }
-            },
+            }
             TxtrFormat::C8(fmt, palette) => {
-                let iter = block.iter()
+                let iter = block
+                    .iter()
                     .map(|byte| *byte as usize)
                     .zip(pixels.chunks_mut(self.color_type().channel_count() as usize));
                 for (texel_byte, pixel_bytes) in iter {
@@ -416,33 +425,28 @@ impl TxtrFormatExt for TxtrFormat {
                         TxtrPaletteFormat::Rgb565 => {
                             let decoded = decode_rgb565(texel_from_palette.try_into().unwrap());
                             pixel_bytes.copy_from_slice(&decoded[..]);
-                        },
+                        }
                         TxtrPaletteFormat::Rgb5A3 => {
                             let decoded = decode_rgb5a3(texel_from_palette.try_into().unwrap());
                             pixel_bytes.copy_from_slice(&decoded[..]);
-                        },
+                        }
                     }
                 }
-            },
+            }
             TxtrFormat::Rgb565 => {
                 for (texel, pixel) in block.chunks(2).zip(pixels.chunks_mut(3)) {
                     pixel.copy_from_slice(&decode_rgb565(texel.try_into().unwrap())[..]);
                 }
-            },
+            }
             TxtrFormat::Rgb5A3 => {
                 for (texel, pixel) in block.chunks(2).zip(pixels.chunks_mut(4)) {
                     pixel.copy_from_slice(&decode_rgb5a3(texel.try_into().unwrap())[..]);
                 }
-            },
+            }
             TxtrFormat::Rgba8 => pixels.copy_from_slice(block),
             TxtrFormat::Cmpr => {
-                let mut decoded_dxt1_block = [[0u8; 4]; 16];
                 for i in 0..4 {
-                    decompress_dxt1gcn_block(
-                        &mut decoded_dxt1_block,
-                        block[i * 8..(i + 1) * 8].try_into().unwrap(),
-                    );
-
+                    let decoded_dxt1_block = decompress_dxt1gcn_block(&block[i * 8..(i + 1) * 8]);
                     let outer_x = i % 2 * 4;
                     let outer_y = i / 2 * 4;
                     for (k, decoded_pixel) in decoded_dxt1_block.iter().enumerate() {
@@ -452,7 +456,7 @@ impl TxtrFormatExt for TxtrFormat {
                         pixels[start..start + 4].copy_from_slice(&decoded_pixel[..]);
                     }
                 }
-            },
+            }
         }
     }
 
@@ -468,19 +472,18 @@ impl TxtrFormatExt for TxtrFormat {
                 for (block_byte, pixel_bytes) in block.iter_mut().zip(pixels.chunks(2)) {
                     *block_byte = (pixel_bytes[1] >> 4) | ((pixel_bytes[0] >> 4) << 4);
                 }
-            },
+            }
             TxtrFormat::I8 => block.copy_from_slice(pixels),
             TxtrFormat::Ia4 => {
                 for (block_byte, pixel_bytes) in block.iter_mut().zip(pixels.chunks(2)) {
                     *block_byte = (pixel_bytes[1] >> 4) | ((pixel_bytes[0] >> 4) << 4);
                 }
-            },
+            }
             TxtrFormat::Ia8 => block.copy_from_slice(pixels),
             TxtrFormat::C4(fmt, palette) => {
                 let mut map = HashMap::with_capacity(palette.len() / 2);
                 for (i, texel) in palette.chunks(2).enumerate() {
-                    map.entry([texel[0], texel[1]])
-                        .or_insert(i);
+                    map.entry([texel[0], texel[1]]).or_insert(i);
                 }
                 let cc = self.color_type().channel_count() as usize;
                 for (texel, pixels) in block.iter_mut().zip(pixels.chunks(cc * 2)) {
@@ -495,7 +498,7 @@ impl TxtrFormatExt for TxtrFormat {
                     }
                     *texel = nibbles[1] | (nibbles[0] << 4);
                 }
-            },
+            }
             TxtrFormat::C8(fmt, palette) => {
                 let mut map = HashMap::with_capacity(palette.len() / 2);
                 for (i, texel) in palette.chunks(2).enumerate() {
@@ -510,21 +513,21 @@ impl TxtrFormatExt for TxtrFormat {
                     };
                     *texel = map[&encoded] as u8;
                 }
-            },
+            }
             TxtrFormat::Rgb565 => {
                 for (texel, pixel) in block.chunks_mut(2).zip(pixels.chunks(3)) {
                     texel.copy_from_slice(&encode_rgb565(pixel.try_into().unwrap())[..]);
                 }
-            },
+            }
             TxtrFormat::Rgb5A3 => {
                 for (texel, pixel) in block.chunks_mut(2).zip(pixels.chunks(4)) {
                     texel.copy_from_slice(&encode_rgb5a3(pixel.try_into().unwrap())[..]);
                 }
-            },
+            }
             TxtrFormat::Rgba8 => block.copy_from_slice(pixels),
             TxtrFormat::Cmpr => {
                 let mut sub_block_pixels = [[0u8; 4]; 16];
-                for (i, sub_block) in block.chunks_mut(8).enumerate()  {
+                for (i, sub_block) in block.chunks_mut(8).enumerate() {
                     let outer_x = i % 2 * 4;
                     let outer_y = i / 2 * 4;
                     for (k, sub_block_pixel) in sub_block_pixels.iter_mut().enumerate() {
@@ -534,13 +537,9 @@ impl TxtrFormatExt for TxtrFormat {
                         sub_block_pixel[..].copy_from_slice(&pixels[start..start + 4]);
                     }
 
-                    compress_dxt1gcn_block(
-                        &sub_block_pixels,
-                        sub_block.try_into().unwrap(),
-                    );
-
+                    compress_dxt1gcn_block(sub_block_pixels, sub_block);
                 }
-            },
+            }
         }
     }
 
@@ -551,11 +550,23 @@ impl TxtrFormatExt for TxtrFormat {
             "ia4" => Ok(TxtrFormat::Ia4),
             "ia8" => Ok(TxtrFormat::Ia8),
             "c4(ia8)" => Ok(TxtrFormat::C4(TxtrPaletteFormat::Ia8, Default::default())),
-            "c4(rgb565)" => Ok(TxtrFormat::C4(TxtrPaletteFormat::Rgb565, Default::default())),
-            "c4(rgb5a3)" => Ok(TxtrFormat::C4(TxtrPaletteFormat::Rgb5A3, Default::default())),
+            "c4(rgb565)" => Ok(TxtrFormat::C4(
+                TxtrPaletteFormat::Rgb565,
+                Default::default(),
+            )),
+            "c4(rgb5a3)" => Ok(TxtrFormat::C4(
+                TxtrPaletteFormat::Rgb5A3,
+                Default::default(),
+            )),
             "c8(ia8)" => Ok(TxtrFormat::C8(TxtrPaletteFormat::Ia8, Default::default())),
-            "c8(rgb565)" => Ok(TxtrFormat::C8(TxtrPaletteFormat::Rgb565, Default::default())),
-            "c8(rgb5a3)" => Ok(TxtrFormat::C8(TxtrPaletteFormat::Rgb5A3, Default::default())),
+            "c8(rgb565)" => Ok(TxtrFormat::C8(
+                TxtrPaletteFormat::Rgb565,
+                Default::default(),
+            )),
+            "c8(rgb5a3)" => Ok(TxtrFormat::C8(
+                TxtrPaletteFormat::Rgb5A3,
+                Default::default(),
+            )),
             "rgb565" => Ok(TxtrFormat::Rgb565),
             "rgb5a3" => Ok(TxtrFormat::Rgb5A3),
             "rgba8" => Ok(TxtrFormat::Rgba8),
@@ -578,7 +589,6 @@ impl TxtrPaletteFormatExt for TxtrPaletteFormat {
         }
     }
 }
-
 
 fn main() {
     let app = clap_app!(app =>
@@ -628,7 +638,11 @@ fn main() {
         ("txtr2png", Some(matches)) => txtr2png(
             matches.value_of("input").unwrap().as_ref(),
             matches.value_of("output").unwrap().as_ref(),
-            matches.value_of("mipmap").unwrap_or("0").parse::<usize>().unwrap(),
+            matches
+                .value_of("mipmap")
+                .unwrap_or("0")
+                .parse::<usize>()
+                .unwrap(),
         ),
         ("png2txtr", Some(matches)) => png2txtr(
             matches.value_of("input").unwrap().as_ref(),

@@ -1,15 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::scly_props::structs::ScannableParameters;
-use crate::SclyPropertyData;
+use crate::{scly_props::structs::ScannableParameters, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PointOfInterest<'r>
-{
+pub struct PointOfInterest<'r> {
     #[auto_struct(expect = 6)]
     prop_count: u32,
 
@@ -23,8 +19,7 @@ pub struct PointOfInterest<'r>
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for PointOfInterest<'r>
-{
+impl<'r> SclyPropertyData for PointOfInterest<'r> {
     const OBJECT_TYPE: u8 = 0x42;
     impl_position!();
     impl_rotation!();

@@ -8,9 +8,9 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-phf = { version = "0.8", default-features = false }
-proc-macro2 = "1"
-syn = "1"
+phf.workspace = true
+proc-macro2.workspace = true
+syn.workspace = true
 
 [build-dependencies]
-phf_codegen = "0.8"
+phf_codegen.workspace = true

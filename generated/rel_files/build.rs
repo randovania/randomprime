@@ -1,16 +1,9 @@
-use std::env;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
-use std::process::Command;
+use std::{env, fs::File, io::Write, path::Path, process::Command};
 
-use dol_linker::{read_symbol_table, link_obj_files_to_bin, link_obj_files_to_rel};
-
+use dol_linker::{link_obj_files_to_bin, link_obj_files_to_rel, read_symbol_table};
 use walkdir::WalkDir;
 
-
-fn invoke_cargo(ppc_manifest: &Path, package: &str)
-{
+fn invoke_cargo(ppc_manifest: &Path, package: &str) {
     let output = Command::new("rustup")
         .arg("run")
         .arg("stable")
@@ -33,12 +26,11 @@ fn invoke_cargo(ppc_manifest: &Path, package: &str)
         .output()
         .expect("Failed to compile ppc crate");
     if !output.status.success() {
-        panic!("{:#?}", output.stderr);
+        panic!("{}", String::from_utf8_lossy(&output.stderr));
     }
 }
 
-fn main()
-{
+fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir);
 
@@ -54,9 +46,7 @@ fn main()
         .join("powerpc-unknown-linux-gnu")
         .join("release");
 
-    let symbol_table_dir = root_dir
-        .join("..")
-        .join("dol_symbol_table");
+    let symbol_table_dir = root_dir.join("..").join("dol_symbol_table");
 
     invoke_cargo(&ppc_manifest, "rel_loader");
     invoke_cargo(&ppc_manifest, "rel_patches");
@@ -73,7 +63,8 @@ fn main()
             *os_arena_hi,
             &symbol_table,
             &bin_path,
-        ).unwrap();
+        )
+        .unwrap();
         let map_path = bin_path.with_extension("bin.map");
         {
             let mut map_file = File::create(map_path).unwrap();
@@ -83,8 +74,7 @@ fn main()
         }
 
         for (sym_name, addr) in symbols_map {
-            symbol_table.entry(sym_name)
-                .or_insert(addr);
+            symbol_table.entry(sym_name).or_insert(addr);
         }
 
         let rel_path = out_dir.join(format!("patches_{}.rel", version));
@@ -92,15 +82,14 @@ fn main()
             [target_dir.join("librel_patches.a")].iter(),
             &symbol_table,
             &rel_path,
-        ).unwrap();
+        )
+        .unwrap();
     }
 
-    let walkdir = WalkDir::new(ppc_dir)
-        .into_iter()
-        .filter_entry(|entry| {
-            let name = entry.file_name().to_str().unwrap_or("");
-            !name.starts_with(".") && name != "target"
-        });
+    let walkdir = WalkDir::new(ppc_dir).into_iter().filter_entry(|entry| {
+        let name = entry.file_name().to_str().unwrap_or("");
+        !name.starts_with('.') && name != "target"
+    });
     for entry in walkdir {
         let entry = entry.unwrap();
         println!("cargo:rerun-if-changed={}", entry.path().display());

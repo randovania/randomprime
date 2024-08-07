@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::{impl_position, impl_rotation};
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
+
+use crate::{impl_position, impl_rotation, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct AIJumpPoint<'r>
-{
+pub struct AIJumpPoint<'r> {
     #[auto_struct(expect = 5)]
     pub prop_count: u32,
 
@@ -20,8 +17,7 @@ pub struct AIJumpPoint<'r>
     pub apex: f32,
 }
 
-impl<'r> SclyPropertyData for AIJumpPoint<'r>
-{
+impl<'r> SclyPropertyData for AIJumpPoint<'r> {
     const OBJECT_TYPE: u8 = 0x5B;
 
     impl_position!();

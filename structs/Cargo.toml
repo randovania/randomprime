@@ -4,10 +4,8 @@ version = "0.1.0"
 authors = ["April Wade <wayedt@gmail.com>"]
 edition = "2021"
 
-workspace = ".."
-
 [dependencies]
-auto_struct_macros = { path = "../auto_struct_macros" }
-resource_info_table = { path = "../generated/resource_info_table" }
-reader_writer = { path = "../reader_writer" }
-serde = { version = "1.0", features = ["derive"] }
+auto_struct_macros.workspace = true
+resource_info_table.workspace = true
+reader_writer.workspace = true
+serde.workspace = true

@@ -1,34 +1,32 @@
 #![recursion_limit = "128"]
 
 extern crate proc_macro;
-extern crate proc_macro2;
-#[macro_use] extern crate quote;
-#[macro_use] extern crate syn;
 
 use std::fmt::Display;
 
-use quote::ToTokens;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use syn::{Expr, Field, Ident, Pat, ItemStruct, Type};
-use syn::parse::{Error, Parse, Parser, ParseStream, Result};
-use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
+use quote::{quote, quote_spanned, ToTokens};
+use syn::{
+    parenthesized,
+    parse::{Error, Parse, ParseStream, Parser, Result},
+    parse_macro_input,
+    punctuated::Punctuated,
+    spanned::Spanned,
+    Expr, Field, Ident, ItemStruct, Pat, Token, Type,
+};
 
-fn err<A, T: Display>(span: Span, message: T) -> Result<A>
-{
+fn err<A, T: Display>(span: Span, message: T) -> Result<A> {
     Err(Error::new(span, message))
 }
 
-struct AutoStructField
-{
+struct AutoStructField {
     ident: Ident,
     ty: Type,
     kind: AutoStructFieldKind,
 }
 
-enum AutoStructFieldKind
-{
+enum AutoStructFieldKind {
     PadAlign(Expr),
     Derivable(Expr, Expr),
     IteratorDerivable(Expr, Expr),
@@ -37,11 +35,12 @@ enum AutoStructFieldKind
     Simple(Expr),
 }
 
-impl AutoStructField
-{
-    fn from_raw(field: &Field, raw: Option<RawAutoStructAttr>, init: Option<RawAutoStructAttr>)
-        -> Result<Self>
-    {
+impl AutoStructField {
+    fn from_raw(
+        field: &Field,
+        raw: Option<RawAutoStructAttr>,
+        init: Option<RawAutoStructAttr>,
+    ) -> Result<Self> {
         let init_was_none = init.is_none();
         let init_expr = init
             .map(|init| syn::parse2::<Expr>(init.tts))
@@ -53,7 +52,7 @@ impl AutoStructField
                 ident: field.ident.clone().unwrap(),
                 ty: field.ty.clone(),
                 kind: AutoStructFieldKind::Simple(init_expr),
-            })
+            });
         };
 
         let kind = if raw.ident == "derive" {
@@ -62,22 +61,27 @@ impl AutoStructField
             AutoStructFieldKind::Expected(syn::parse2(raw.tts)?, init_expr)
         } else if raw.ident == "literal" {
             if !init_was_none {
-                err(raw.ident.span(), "`literal` auto_struct field cant have an initializer")?;
+                err(
+                    raw.ident.span(),
+                    "`literal` auto_struct field cant have an initializer",
+                )?;
             }
             AutoStructFieldKind::Literal(syn::parse2(raw.tts)?)
         } else if raw.ident == "derive_from_iter" {
             AutoStructFieldKind::IteratorDerivable(syn::parse2(raw.tts)?, init_expr)
         } else if raw.ident == "pad_align" {
             if !init_was_none {
-                err(raw.ident.span(), "`pad_align` auto_struct field cant have an initializer")?;
+                err(
+                    raw.ident.span(),
+                    "`pad_align` auto_struct field cant have an initializer",
+                )?;
             }
             // PadAlign is a little magic; it overrides the field type
             return Ok(AutoStructField {
                 ident: field.ident.clone().unwrap(),
                 ty: syn::parse_str("reader_writer::PaddingBlackhole")?,
                 kind: AutoStructFieldKind::PadAlign(syn::parse2(raw.tts)?),
-            })
-
+            });
         } else {
             err(raw.ident.span(), "Unknown auto_struct field kind")?
         };
@@ -85,12 +89,11 @@ impl AutoStructField
         Ok(AutoStructField {
             ident: field.ident.clone().unwrap(),
             ty: field.ty.clone(),
-            kind: kind,
+            kind,
         })
     }
 
-    fn has_storage(&self) -> bool
-    {
+    fn has_storage(&self) -> bool {
         match self.kind {
             AutoStructFieldKind::PadAlign(_) => false,
             AutoStructFieldKind::Derivable(_, _) => false,
@@ -101,8 +104,7 @@ impl AutoStructField
         }
     }
 
-    fn needs_offset(&self) -> bool
-    {
+    fn needs_offset(&self) -> bool {
         match self.kind {
             AutoStructFieldKind::PadAlign(_) => true,
             AutoStructFieldKind::Derivable(_, _) => false,
@@ -113,8 +115,7 @@ impl AutoStructField
         }
     }
 
-    fn read_expr(&self, struct_name: &Ident) -> proc_macro2::TokenStream
-    {
+    fn read_expr(&self, struct_name: &Ident) -> proc_macro2::TokenStream {
         match &self.kind {
             AutoStructFieldKind::PadAlign(aligned) => quote! {
                 {
@@ -147,14 +148,13 @@ impl AutoStructField
                         __tmp__
                     }
                 }
-            },
+            }
             AutoStructFieldKind::Literal(expr) => quote!(#expr),
             AutoStructFieldKind::Simple(init) => quote!(__reader__.read(#init)),
         }
     }
 
-    fn write_expr(&self) -> Option<proc_macro2::TokenStream>
-    {
+    fn write_expr(&self) -> Option<proc_macro2::TokenStream> {
         match &self.kind {
             AutoStructFieldKind::PadAlign(aligned) => Some(quote! {
                 reader_writer::PaddingBlackhole(reader_writer::pad_bytes_count(
@@ -171,12 +171,11 @@ impl AutoStructField
             AutoStructFieldKind::Simple(_) => {
                 let ident = &self.ident;
                 Some(quote!(self.#ident))
-            },
+            }
         }
     }
 
-    fn write_type(&self) -> Option<proc_macro2::TokenStream>
-    {
+    fn write_type(&self) -> Option<proc_macro2::TokenStream> {
         let ty = &self.ty;
         match &self.kind {
             AutoStructFieldKind::Literal(_) => None,
@@ -189,17 +188,14 @@ impl AutoStructField
 }
 
 #[derive(Clone)]
-struct RawAutoStructAttr
-{
+struct RawAutoStructAttr {
     ident: Ident,
     eq: Option<Token![=]>,
     tts: proc_macro2::TokenStream,
 }
 
-impl Parse for RawAutoStructAttr
-{
-    fn parse(input: ParseStream) -> Result<Self>
-    {
+impl Parse for RawAutoStructAttr {
+    fn parse(input: ParseStream) -> Result<Self> {
         let ident = input.parse()?;
         if input.peek(Token![=]) {
             Ok(RawAutoStructAttr {
@@ -217,17 +213,14 @@ impl Parse for RawAutoStructAttr
     }
 }
 
-struct DeriveOptions
-{
+struct DeriveOptions {
     readable: bool,
     writable: bool,
     fixed_size: bool,
 }
 
-impl Parse for DeriveOptions
-{
-    fn parse(input: ParseStream) -> Result<Self>
-    {
+impl Parse for DeriveOptions {
+    fn parse(input: ParseStream) -> Result<Self> {
         let mut options = DeriveOptions {
             readable: false,
             writable: false,
@@ -259,18 +252,15 @@ impl Parse for DeriveOptions
     }
 }
 
-struct AutoStructDecl
-{
+struct AutoStructDecl {
     struct_: ItemStruct,
     fields: Vec<AutoStructField>,
     args_pat: Pat,
     args_ty: Type,
 }
 
-impl AutoStructDecl
-{
-    fn from_struct(decl: syn::ItemStruct) -> Result<Self>
-    {
+impl AutoStructDecl {
+    fn from_struct(decl: syn::ItemStruct) -> Result<Self> {
         let mut as_struct = AutoStructDecl {
             struct_: decl,
             fields: vec![],
@@ -291,7 +281,6 @@ impl AutoStructDecl
             std::mem::swap(&mut fields.named, &mut old_fields);
 
             for mut field in old_fields {
-
                 let mut as_attrs = vec![];
                 for attr in field.attrs.iter() {
                     if attr.path.is_ident("auto_struct") {
@@ -301,7 +290,7 @@ impl AutoStructDecl
                             Punctuated::<RawAutoStructAttr, Token![,]>::parse_terminated(&content)
                         };
                         let attrs = parser.parse2(attr.tokens.clone())?;
-                        if attrs.len() == 0 {
+                        if attrs.is_empty() {
                             err(attr.span(), "Empty auto_struct attribute")?;
                         }
                         as_attrs.extend(attrs.into_iter());
@@ -313,27 +302,34 @@ impl AutoStructDecl
                 for raw_attr in as_attrs {
                     if raw_attr.ident == "init" {
                         if init_attr.is_some() {
-                            err(raw_attr.ident.span(),
-                                "Each field may have only 1 auto_struct(init) attribute"
+                            err(
+                                raw_attr.ident.span(),
+                                "Each field may have only 1 auto_struct(init) attribute",
                             )?;
                         } else {
                             init_attr = Some(raw_attr);
                         }
+                    } else if kind_attr.is_some() {
+                        err(
+                            raw_attr.ident.span(),
+                            "Each field may have only 1 non init auto_struct attribute",
+                        )?;
                     } else {
-                        if kind_attr.is_some() {
-                            err(raw_attr.ident.span(),
-                                "Each field may have only 1 non init auto_struct attribute"
-                            )?;
-                        } else {
-                            kind_attr = Some(raw_attr);
-                        }
+                        kind_attr = Some(raw_attr);
                     }
                 }
 
-                if kind_attr.as_ref().map(|raw_attr| raw_attr.ident == "args").unwrap_or(false) {
+                if kind_attr
+                    .as_ref()
+                    .map(|raw_attr| raw_attr.ident == "args")
+                    .unwrap_or(false)
+                {
                     let kind_attr = kind_attr.unwrap();
                     if let Some(init_attr) = &init_attr {
-                        err(init_attr.ident.span(), "auto_struct args may not have an initializer")?
+                        err(
+                            init_attr.ident.span(),
+                            "auto_struct args may not have an initializer",
+                        )?
                     }
                     if seen_args {
                         err(kind_attr.ident.span(), "duplicate auto_struct args decl")?
@@ -346,13 +342,15 @@ impl AutoStructDecl
                         syn::parse2((&field.ident).into_token_stream())?
                     };
                     as_struct.args_ty = field.ty;
-                    continue
+                    continue;
                 }
 
                 let as_field = AutoStructField::from_raw(&field, kind_attr, init_attr)?;
 
                 if as_field.has_storage() {
-                    field.attrs.retain(|attr| !attr.path.is_ident("auto_struct"));
+                    field
+                        .attrs
+                        .retain(|attr| !attr.path.is_ident("auto_struct"));
                     fields.named.push(field);
                 }
 
@@ -363,20 +361,24 @@ impl AutoStructDecl
         Ok(as_struct)
     }
 
-    fn readable_impl_tokens(&self, fixed_size: bool) -> proc_macro2::TokenStream
-    {
+    fn readable_impl_tokens(&self, fixed_size: bool) -> proc_macro2::TokenStream {
         // If the struct contains a type parameter named R, use that for our Reader argument to
         // the Readable trait. Otherwise, we need to create a new generic parameter (still
         // named R) just for the impl.
         let mut generics = self.struct_.generics.clone();
         let (_, type_gens, _) = self.struct_.generics.split_for_impl();
         let reader_lifetime = {
-            let reader_lifetime_arg = self.struct_.generics.lifetimes()
+            let reader_lifetime_arg = self
+                .struct_
+                .generics
+                .lifetimes()
                 .find(|ld| ld.lifetime.ident == "r");
             if let Some(arg) = reader_lifetime_arg {
                 arg.clone()
             } else {
-                generics.params.push(syn::GenericParam::Lifetime(syn::parse_str("'r").unwrap()));
+                generics
+                    .params
+                    .push(syn::GenericParam::Lifetime(syn::parse_str("'r").unwrap()));
                 syn::parse_str("'r").unwrap()
             }
         };
@@ -385,7 +387,9 @@ impl AutoStructDecl
         let name = &self.struct_.ident;
 
         let size_fn = if fixed_size {
-            let types = self.fields.iter()
+            let types = self
+                .fields
+                .iter()
                 .filter(|field| field.write_expr().is_some())
                 .map(|field| &field.ty);
 
@@ -396,7 +400,9 @@ impl AutoStructDecl
                 }
             }
         } else {
-            let storage_idents = self.fields.iter()
+            let storage_idents = self
+                .fields
+                .iter()
                 .filter(|field| field.has_storage())
                 .map(|field| &field.ident);
             let tys = self.fields.iter().filter_map(|field| field.write_type());
@@ -421,7 +427,9 @@ impl AutoStructDecl
         let tys = self.fields.iter().map(|field| &field.ty);
         let read_exprs = self.fields.iter().map(|field| field.read_expr(name));
 
-        let storage_idents = self.fields.iter()
+        let storage_idents = self
+            .fields
+            .iter()
             .filter(|field| field.has_storage())
             .map(|field| &field.ident);
 
@@ -465,13 +473,14 @@ impl AutoStructDecl
     // {
     // }
 
-    fn writable_impl_tokens(&self) -> proc_macro2::TokenStream
-    {
+    fn writable_impl_tokens(&self) -> proc_macro2::TokenStream {
         let name = &self.struct_.ident;
         let (impl_gens, type_gens, where_clause) = self.struct_.generics.split_for_impl();
 
         let exprs = self.fields.iter().filter_map(|field| field.write_expr());
-        let idents = self.fields.iter()
+        let idents = self
+            .fields
+            .iter()
             .filter(|field| field.has_storage())
             .map(|field| &field.ident);
         let tys = self.fields.iter().filter_map(|field| field.write_type());
@@ -491,12 +500,9 @@ impl AutoStructDecl
                 }
             }
         }
-
     }
 
-    fn struct_and_impl_tokens(self, options: DeriveOptions) -> proc_macro2::TokenStream
-    {
-
+    fn struct_and_impl_tokens(self, options: DeriveOptions) -> proc_macro2::TokenStream {
         let readable_tokens = if options.readable {
             self.readable_impl_tokens(options.fixed_size)
         } else {
@@ -518,12 +524,15 @@ impl AutoStructDecl
     }
 }
 
-
 #[proc_macro_attribute]
 pub fn auto_struct(attr: TokenStream, tokens: TokenStream) -> TokenStream {
     if attr.is_empty() {
-        return Error::new(Span::call_site(), "auto_struct attribute must have arguments")
-                .to_compile_error().into();
+        return Error::new(
+            Span::call_site(),
+            "auto_struct attribute must have arguments",
+        )
+        .to_compile_error()
+        .into();
     }
     let options = parse_macro_input!(attr as DeriveOptions);
     let decl = parse_macro_input!(tokens as syn::ItemStruct);
@@ -535,4 +544,3 @@ pub fn auto_struct(attr: TokenStream, tokens: TokenStream) -> TokenStream {
 
     as_struct.struct_and_impl_tokens(options).into()
 }
-

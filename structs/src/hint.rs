@@ -1,13 +1,11 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{CStr, LazyArray};
 
-use crate::ResId;
-use crate::res_id::*;
+use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Hint<'r>
-{
+pub struct Hint<'r> {
     #[auto_struct(expect = 0x00BADBAD)]
     magic: u32,
     #[auto_struct(expect = 1)]
@@ -21,8 +19,7 @@ pub struct Hint<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct HintDetails<'r>
-{
+pub struct HintDetails<'r> {
     pub hint_name: CStr<'r>,
     pub intermediate_time: f32,
     pub normal_time: f32,
@@ -37,8 +34,7 @@ pub struct HintDetails<'r>
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct HintLocation
-{
+pub struct HintLocation {
     pub mlvl: ResId<MLVL>,
     pub mrea: ResId<MREA>,
     pub target_room_index: u32,

@@ -1,11 +1,11 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
     "title": "Randomprime API",
-    "description": "Input format for randomprime's JSON API. The JSON schema can be found [here](https://toasterparty.github.io/randomprime/randomprime.schema.json).",
+    "description": "Input format for randomprime's JSON API. The JSON schema can be found [here](https://randovania.org/randomprime/randomprime.schema.json).",
     "type": "object",
     "properties": {
         "$schema": {
-            "description": "The URL of the JSON schema. Typically `https://toasterparty.github.io/randomprime/randomprime.schema.json`.",
+            "description": "The URL of the JSON schema. Typically `https://randovania.org/randomprime/randomprime.schema.json`.",
             "type": "string"
         },
         "runMode": {
@@ -271,6 +271,16 @@
                     "type": "boolean",
                     "default": false
                 },
+                "doorDestinationScans": {
+                    "description": "If true, the patcher will automatically place a scan point on doors when modifying which room that door connects to.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "noHud": {
+                    "description": "If true, removes many hud elements",
+                    "type": "boolean",
+                    "default": false
+                },
                 "trilogyDiscPath": {
                     "description": "The filepath to a Trilogy ISO to restore the intended Flaahgra music.",
                     "type": "string"
@@ -353,9 +363,17 @@
                     "default": false
                 },
                 "staggeredSuitDamage": {
-                    "description": "Damage reduction depends on how many suits you have, not which.",
-                    "type": "boolean",
-                    "default": false
+                    "description": "Configure how suit damage reduction is calculated.\n- `Default` or `false`: Based on strongest suit.\n- `Progressive` or `true`: Based on number of suits.\n- `Additive`: Individual suits provide added damage reduction.\nNOTE: boolean values are deprecated.",
+                    "type": [
+                        "string",
+                        "boolean"
+                    ],
+                    "enum": [
+                        "Default",
+                        "Progressive",
+                        "Additive"
+                    ],
+                    "default": "Default"
                 },
                 "heatDamagePerSec": {
                     "description": "Configure how much damage per second you take in heated rooms when you don't have the proper protection.",
@@ -1097,6 +1115,11 @@
                     "type": "boolean",
                     "default": false,
                     "deprecated": true
+                },
+                "patchWallcrawling": {
+                    "description": "If true, it becomes nearly impossible to transition most doors while oob.",
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "required": [],
@@ -2724,7 +2747,7 @@
                                 "type": "string"
                             },
                             "hudmemoText": {
-                                "description": "The text displayed to the user when the pickup is obtained. Defaults to `type acquired!`.",
+                                "description": "The text displayed to the user when the pickup is obtained. Defaults to `<type> Acquired!`.",
                                 "type": "string"
                             },
                             "maxIncrease": {
@@ -2786,6 +2809,8 @@
                                     "Artifact of Nature",
                                     "Artifact of Strength",
                                     "Nothing",
+                                    "Zoomer",
+                                    "Cog",
                                     "Gamecube",
                                     "Health Refill",
                                     "Missile Refill",
@@ -2864,6 +2889,11 @@
                                     "Phazon"
                                 ]
                             },
+                            "active": {
+                                "description": "Default active state of the liquid.",
+                                "type": "boolean",
+                                "default": true
+                            },
                             "position": {
                                 "description": "Point at which the liquid is centerd.",
                                 "$ref": "#/$defs/vector3"
@@ -2905,6 +2935,13 @@
                                 "minimum": 0,
                                 "maximum": 16777215
                             },
+                            "layer": {
+                                "description": "Layer",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0,
+                                "maximum": 63
+                            },
                             "position": {
                                 "description": "Position of the scan point.",
                                 "$ref": "#/$defs/vector3"
@@ -2912,6 +2949,12 @@
                             "text": {
                                 "description": "Text to display when scanned.",
                                 "type": "string"
+                            },
+                            "actorId": {
+                                "description": "The instance ID to use for the cosmetic actor if `combatVisible: true`",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
                             },
                             "combatVisible": {
                                 "description": "If true, places a \"Elevator Scan\" actor over the scan point so it visible in all visors.",
@@ -2989,6 +3032,11 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "active": {
+                                "description": "Default active state of the platform.",
+                                "type": "boolean",
+                                "default": true
+                            },
                             "position": {
                                 "description": "The position of the platform.",
                                 "$ref": "#/$defs/vector3"
@@ -3003,11 +3051,16 @@
                                 ]
                             },
                             "type": {
-                                "description": "Pick what type of platform.",
+                                "description": "Pick what type of platform.\n- `Metal`: Circular floating platform found in Phazon Processing Center.\n- `Snow`: Coarse circular floating platform found in Phendrana Canyon.\n- `Block`: A perfect cube, close to 1x1x1 game units\n- `HalfBlock`: Same as `Block`, but half as tall\n- `LongBlock`: Same as `HalfBlock`, but twice as long\n- `BombBox`: Multi-stage destructible box found in Magmoor Caverns - Transport Tunnel A. It's collision does not rotate\n- `Empty`: A platform without any textures or collision. This is useful for making non-platform objects follow a path of waypoints.",
                                 "type": "string",
                                 "enum": [
                                     "Metal",
-                                    "Snow"
+                                    "Snow",
+                                    "Block",
+                                    "HalfBlock",
+                                    "LongBlock",
+                                    "BombBox",
+                                    "Empty"
                                 ],
                                 "default": "Metal"
                             },
@@ -3025,11 +3078,25 @@
                     }
                 },
                 "cameraHints": {
-                    "description": "Add camera hint + camera hint trigger pairs to this room. They are somewhat broken.",
+                    "deprecated": true,
+                    "description": "[Deprecated] Add camera hint + camera hint trigger pairs to this room. They are somewhat broken. Use `newCameraHints` instead.",
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
+                            "layer": {
+                                "description": "Layer of the pair of objects",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0,
+                                "maximum": 63
+                            },
+                            "triggerId": {
+                                "description": "Instance ID of the trigger used. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
+                            },
                             "triggerPos": {
                                 "description": "Position of the trigger.",
                                 "$ref": "#/$defs/vector3"
@@ -3037,6 +3104,12 @@
                             "triggerScale": {
                                 "description": "Extent of the trigger.",
                                 "$ref": "#/$defs/vector3Positive"
+                            },
+                            "cameraId": {
+                                "description": "Instance ID of the camera object. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
                             },
                             "cameraPos": {
                                 "description": "Position of the Camera Hint.",
@@ -3121,6 +3194,12 @@
                                 "description": "Position of the point",
                                 "$ref": "#/$defs/vector3"
                             },
+                            "layer": {
+                                "description": "Layer # to place the lockOnPoint at",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 63
+                            },
                             "isGrapple": {
                                 "description": "If true, adds grapple functionality to this point.",
                                 "type": "boolean",
@@ -3162,11 +3241,11 @@
                     }
                 },
                 "fog": {
-                    "description": "Edit the ambient fog settings for this room.",
+                    "description": "Edit the ambient fog settings for this room. Use \"distanceFogs\" if you need a more specific use case.",
                     "type": "object",
                     "properties": {
                         "mode": {
-                            "description": "[Deprecated]",
+                            "description": "[Deprecated] Fog is always mode=1",
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 15,
@@ -3174,8 +3253,9 @@
                             "deprecated": true
                         },
                         "explicit": {
+                            "description": "[Deprecated] There is no need to set this",
                             "type": "boolean",
-                            "default": true
+                            "deprecated": true
                         },
                         "color": {
                             "description": "RGBA fog color for this room.",
@@ -3686,11 +3766,21 @@
                             },
                             "position": {
                                 "description": "Position of the trigger.",
-                                "$ref": "#/$defs/vector3"
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
                             },
                             "scale": {
                                 "description": "Extent of the trigger.",
-                                "$ref": "#/$defs/vector3Positive"
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [
+                                    5,
+                                    5,
+                                    5
+                                ]
                             },
                             "force": {
                                 "description": "If the apply force flag is enabled, this is the force applied.",
@@ -3729,10 +3819,7 @@
                                 "default": false
                             }
                         },
-                        "required": [
-                            "position",
-                            "scale"
-                        ],
+                        "required": [],
                         "additionalProperties": false
                     }
                 },
@@ -3965,7 +4052,7 @@
                     }
                 },
                 "actorRotates": {
-                    "description": "",
+                    "description": "Add/modify actor rotates in this room. These objects are used to script the rotation of platforms, actors, etc...",
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -3977,18 +4064,23 @@
                                 "$ref": "#/$defs/addModifyLayer"
                             },
                             "rotation": {
+                                "description": "The amount to rotate relative to the object's rotation",
                                 "$ref": "#/$defs/vector3"
                             },
                             "timeScale": {
+                                "description": "The amount of time it takes to rotate the distances specified by `\"rotation\"`",
                                 "type": "number"
                             },
                             "updateActors": {
+                                "description": "If true, the rotation is applied repeatedly",
                                 "type": "boolean"
                             },
                             "updateOnCreation": {
+                                "description": "If true, start applying rotation immediately. Otherwise, apply rotation when `\"ACTION\"` message is received",
                                 "type": "boolean"
                             },
                             "updateActive": {
+                                "description": "The default active state of this object",
                                 "type": "boolean"
                             }
                         },
@@ -4038,12 +4130,12 @@
                                 ]
                             },
                             "speed": {
-                                "description": "",
+                                "description": "Speed at which objects travel towards this waypoint, measured in units/sec.",
                                 "type": "number",
                                 "exclusiveMinimum": 0.0
                             },
                             "pause": {
-                                "description": "",
+                                "description": "Time in seconds which a following object will pause after it has `ARRIVED` at this waypoint before proceeding to the `NEXT`. Does not apply to platforms unfortunately.",
                                 "type": "number",
                                 "exclusiveMinimum": 0.0
                             },
@@ -4262,6 +4354,929 @@
                         ],
                         "additionalProperties": false
                     }
+                },
+                "distanceFogs": {
+                    "description": "Add/modify distanceFog objects to this room. If you just want to set the global ambient fog level for this room, see \"fog\".",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the distanceFog object.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "mode": {
+                                "description": "[Deprecated] Fog is always mode=1",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 15,
+                                "default": 1,
+                                "deprecated": true
+                            },
+                            "explicit": {
+                                "description": "If true, this fog is applied as ambient fog without the need to send it an ACTION message.",
+                                "type": "boolean"
+                            },
+                            "color": {
+                                "description": "RGBA fog color for this room.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    0.8,
+                                    0.8,
+                                    0.9,
+                                    0.0
+                                ]
+                            },
+                            "range": {
+                                "description": "X and Y axis ranges for the fog of this room.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "exclusiveMinimum": 0.0
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "default": [
+                                    30.0,
+                                    40.0
+                                ]
+                            },
+                            "colorDelta": {
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "rangeDelta": {
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                },
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "default": [
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                    }
+                },
+                "bombSlots": {
+                    "description": "Add one or more bomb slots to this room. By default they allow the player to use them once before releasing the player and deactivating.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "damageableTriggerId": {
+                                "description": "The instance ID to use for the bomb slot's damageable trigger. Add a connection from this object with `\"state\":\"DEAD\"` to make something happen when the bomb slot is activated.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "platformId": {
+                                "description": "ID to use for the slot platform",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "actorId": {
+                                "description": "ID to use for the glow ring actor",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "ballTriggerId": {
+                                "description": "ID to use for the ball trigger object",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "activateSlotId": {
+                                "description": "If provided, the patcher will add a relay with this ID which, if sent `\"message\"`: \"SET_TO_ZERO\", will *activate* the bomb slot.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "deactivateSlotId": {
+                                "description": "If provided, the patcher will add a relay with this ID which, if sent `\"message\"`: \"SET_TO_ZERO\", will *deactivate* the bomb slot.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "The default enabled/disabled state of the bomb slot.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "The `[X, Y, Z]` coordinates of the bomb slot",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "rotation": {
+                                "description": "The `[pitch, roll, yaw]` of the bomb slot",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "releaseBallDelayS": {
+                                "description": "Number of seconds after bomb slot activation until the ball is released.",
+                                "type": "number",
+                                "default": 2,
+                                "exclusiveMinimum": 0
+                            }
+                        },
+                        "required": [
+                            "damageableTriggerId",
+                            "position",
+                            "rotation"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "controllerActions": {
+                    "description": "Add ControllerAction objects in this room. It will send a signal upon press and release, entering the `OPEN` and `CLOSED` state respectively.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the ControllerAction object.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "action": {
+                                "description": "Select an action that matches the desired button on the controller. Example: `Morph` is the X button. (Note that the majority of these are unused or share the same button)",
+                                "type": "string",
+                                "enum": [
+                                    "Forward",
+                                    "Backward",
+                                    "TurnLeft",
+                                    "TurnRight",
+                                    "StrafeLeft",
+                                    "StrafeRight",
+                                    "LookLeft",
+                                    "LookRight",
+                                    "LookUp",
+                                    "LookDown",
+                                    "JumpOrBoost",
+                                    "FireOrBomb",
+                                    "MissileOrPowerBomb",
+                                    "Morph",
+                                    "AimUp",
+                                    "AimDown",
+                                    "CycleBeamUp",
+                                    "CycleBeamDown",
+                                    "CycleItem",
+                                    "PowerBeam",
+                                    "IceBeam",
+                                    "WaveBeam",
+                                    "PlasmaBeam",
+                                    "ToggleHolster",
+                                    "OrbitClose",
+                                    "OrbitFar",
+                                    "OrbitObject",
+                                    "OrbitSelect",
+                                    "OrbitConfirm",
+                                    "OrbitLeft",
+                                    "OrbitRight",
+                                    "OrbitUp",
+                                    "OrbitDown",
+                                    "LookHold1",
+                                    "LookHold2",
+                                    "LookZoomIn",
+                                    "LookZoomOut",
+                                    "AimHold",
+                                    "MapCircleUp",
+                                    "MapCircleDown",
+                                    "MapCircleLeft",
+                                    "MapCircleRight",
+                                    "MapMoveForward",
+                                    "MapMoveBack",
+                                    "MapMoveLeft",
+                                    "MapMoveRight",
+                                    "MapZoomIn",
+                                    "MapZoomOut",
+                                    "SpiderBall",
+                                    "ChaseCamera",
+                                    "XRayVisor",
+                                    "ThermoVisor",
+                                    "EnviroVisor",
+                                    "NoVisor",
+                                    "VisorMenu",
+                                    "VisorUp",
+                                    "VisorDown",
+                                    "Unknown1",
+                                    "Unknown2",
+                                    "UseShield",
+                                    "ScanItem",
+                                    "Unknown3",
+                                    "Unknown4",
+                                    "Unknown5",
+                                    "Unknown6",
+                                    "PreviousPauseScreen",
+                                    "NextPauseScreen",
+                                    "Unknown7",
+                                    "None"
+                                ]
+                            },
+                            "oneShot": {
+                                "description": "Specify if the object will deactivate after being used",
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "action"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "playerActors": {
+                    "description": "Add playerActors to this room. The animation used is the one of Samus riding an elevator. I was too lazy to add all the dependencies to the room, so the game may stutter substantially when loading a room with one of these.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the player actor.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "The position of the platform.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "The rotation of the platform.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "worldLightFaders": {
+                    "description": "Add worldLightFaders to this room. These objects dim the room to the specified level when they receive the `ACTION` script message.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the worldLightFader.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "fadedLightLevel": {
+                                "description": "Amount to scale light by where 1.0 is unchanged light level.",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            },
+                            "fadeSpeed": {
+                                "description": "Rate at which to execute the fade (higher is faster)",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "cameras": {
+                    "description": "Add cameras to this room. These are used for cutscenes.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "The position of the camera. Will get overridden if specified a CAMERA_PATH.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "The rotation of the camera. Will get overridden if specified a CAMERA_TARGET.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "active": {
+                                "description": "Default active state of the camera. Generally it should stay deactivated until activated via a script message, unless it's desired to immediately start upon room load.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "shotDuration": {
+                                "description": "Duration of the cutscene. Will affect the speed of the camera as well.",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0,
+                                "default": 5.0
+                            },
+                            "lookAtPlayer": {
+                                "description": "Specify if the camera will look at the player. Similar to the cutscene in Hall of the Elders. Will get overridden if specified a CAMERA_TARGET.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "outOfPlayerEye": {
+                                "description": "Specify if the camera will come out of the player's view before following it's specified path.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "intoPlayerEye": {
+                                "description": "Specify if the camera will end up at the player's current view. Similar to the end of Parasite Queen's intro cutscene.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "drawPlayer": {
+                                "description": "Specify if the player will be visible during the cutscene. Only the Morph Ball can be visible.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "disableInput": {
+                                "description": "Specify if the player's control will be stopped during the cutscene.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "unknown": {
+                                "description": "Doesn't seem to do anything.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "finishCinematicSkip": {
+                                "description": "It's use is unknown.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fieldOfView": {
+                                "description": "Specify the field of view of the camera. Will get overridden by the CameraWaypoint's FoV setting.",
+                                "type": "number",
+                                "default": 70.0,
+                                "exclusiveMinimum": 0.0
+                            },
+                            "checkFailsafe": {
+                                "description": "If true, the player will be frozen in place during the cutscene.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "disableOutOfInto": {
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "cameraWaypoints": {
+                    "description": "Add CameraWaypoints to this room, these are often used alongside camreas to indicate it's path and view via `CAMERA_PATH` and `CAMERA_TARGET` respectively.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "The position of the CameraWaypoint.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "The rotation of the CameraWaypoint.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "active": {
+                                "description": "Default active state of the CameraWaypoint.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fov": {
+                                "description": "Used to specify the field of view of the camera if it's used as a `CAMERA_PATH`",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0,
+                                "exclusiveMaximum": 1000000.0,
+                                "default:": 5.0
+                            },
+                            "unknown": {
+                                "description": "Doesn't seem to do anything.",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0,
+                                "maximum": 2147483647
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "cameraFilterKeyframes": {
+                    "description": "Add CameraFilterKeyframe objects in this room. They can display certain filters on the screen ranging from black bars seen in cutscenes to screen flashes of any color. `overlay_texture` feature is currently incomplete.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default active state of the ControllerAction object.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "filterType": {
+                                "description": "Specify the desired type of filter.",
+                                "type": "string",
+                                "enum": [
+                                    "Passthrough",
+                                    "Multiply",
+                                    "Invert",
+                                    "Add",
+                                    "Subtract",
+                                    "Blend",
+                                    "Widescreen",
+                                    "SceneAdd",
+                                    "NoColor",
+                                    "InvDstMultiply"
+                                ],
+                                "default": "Multiply"
+                            },
+                            "filterShape": {
+                                "description": "Specify the desired shape of the filter.",
+                                "type": "string",
+                                "enum": [
+                                    "Fullscreen",
+                                    "FullscreenHalvesLeftRight",
+                                    "FullscreenHalvesTopBottom",
+                                    "FullscreenQuarters",
+                                    "CinemaBars",
+                                    "ScanLinesEven",
+                                    "ScanLinesOdd",
+                                    "RandomStatic",
+                                    "CookieCutterDepthRandomStatic"
+                                ],
+                                "default": "CinemaBars"
+                            },
+                            "filterIndex": {
+                                "description": "The index of the filter. The highest index will be the one to be drawn on top of the other filters with a lower index number.",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0
+                            },
+                            "filterGroup": {
+                                "description": "It's use is currently unknown.",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0
+                            },
+                            "color": {
+                                "description": "The color of the filter.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ]
+                            },
+                            "fadeInTime": {
+                                "description": "Specify the speed in which the filter will fade in.",
+                                "type": "number",
+                                "default": 0.0,
+                                "minimum": 0.0
+                            },
+                            "fadeOutTime": {
+                                "description": "Specify the speed in which the filter will fade out.",
+                                "type": "number",
+                                "default": 0.0,
+                                "minimum": 0.0
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "filterType",
+                            "filterShape"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "newCameraHints": {
+                    "description": "Add CameraHint objects to this room. They are used to manipulate the Morph Ball camera in various ways. Recommended to use in conjunction with `cameraHintTriggers`",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "The position of the CameraHint.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "rotation": {
+                                "description": "The rotation of the CameraHint.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "active": {
+                                "description": "Default active state of the CameraHint.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "priority": {
+                                "type": "integer",
+                                "default": 10
+                            },
+                            "behaviour": {
+                                "type": "string",
+                                "enum": [
+                                    "Default",
+                                    "FreezeLookPosition",
+                                    "HintBallToCam",
+                                    "HintInitializePosition",
+                                    "HintFixedPosition",
+                                    "HintFixedTransform",
+                                    "PathCameraDesiredPos",
+                                    "PathCamera",
+                                    "SpindleCamera"
+                                ],
+                                "default": "Default"
+                            },
+                            "calculateCamPos": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "chaseAllowed": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "boostAllowed": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "obscureAvoidance": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "volumeCollider": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "applyImmediately": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "lookAtBall": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "hintDistanceSelection": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "hintDistanceSelfPos": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "sinusoidalInterpolation": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "sinusoidalInterpolationHintless": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "clampVelocity": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "skipCinematic": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "noElevationInterp": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "overrideLookDir": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "noElevationVelClamp": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "calculateTransformFromPrevCam": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "noSpline": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "unknown1": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "unknown2": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "overrideMinDist": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "minDist": {
+                                "description": "Requires `overrideMinDist` to be true to work.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 8.0
+                            },
+                            "overrideMaxDist": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "maxDist": {
+                                "description": "Requires `overrideMaxDist` to be true to work.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 8.0
+                            },
+                            "overrideBackwardsDist": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "backwardsDist": {
+                                "description": "Requires `overrideBackwardsDist` to be true to work.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 8.0
+                            },
+                            "overrideLookAtOffset": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "lookAtOffset": {
+                                "description": "Requires `overrideLookAtOffset` to be true to work.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "overrideChaseLookAtOffset": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "chaseLookAtOffset": {
+                                "description": "Requires `overrideChaseLookAtOffset` to be true to work.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "ballToCam": {
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "overrideFov": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fov": {
+                                "description": "Requires `overrideFov` to be true to work. 55.0 = Morph Ball Camera Fov",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 55.0
+                            },
+                            "overrideAttitudeRange": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "attitudeRange": {
+                                "description": "Requires `overrideAttitudeRange` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 90.0
+                            },
+                            "overrideAzimuthRange": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "azimuthRange": {
+                                "description": "Requires `overrideAzimuthRange` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 90.0
+                            },
+                            "overrideAnglePerSecond": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "anglePerSecond": {
+                                "description": "Requires `overrideAnglePerSecond` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 120.0
+                            },
+                            "clampVelRange": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 10.0
+                            },
+                            "clampRotRange": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 120.0
+                            },
+                            "overrideElevation": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "elevation": {
+                                "description": "Requires `overrideElevation` to be true to work",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 2.7
+                            },
+                            "interpolateTime": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.5
+                            },
+                            "clampVelTime": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 2.0
+                            },
+                            "controlInterpDur": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "position",
+                            "rotation",
+                            "behaviour"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "cameraHintTriggers": {
+                    "description": "Add CameraHintTrigger objects to this room. They behave like regular triggers but they can be rotated and have less properties",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active": {
+                                "description": "Default activate state of the trigger",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "Position of the trigger.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "Rotation of the trigger.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "scale": {
+                                "description": "Extent of the trigger.",
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [
+                                    5.0,
+                                    5.0,
+                                    5.0
+                                ]
+                            },
+                            "deactivateOnEnter": {
+                                "description": "Disable this trigger when entered.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "deactivateOnExit": {
+                                "description": "Disable this trigger when exited.",
+                                "type": "boolean",
+                                "default": false
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false
@@ -4333,7 +5348,7 @@
                 "Chozo Ruins:Watery Hall Access",
                 "Chozo Ruins:Watery Hall",
                 "Chozo Ruins:West Furnace Access",
-                "EndCinema:EndCinema",
+                "End Cinema:End Cinema",
                 "Frigate Orpheon:Air Lock",
                 "Frigate Orpheon:Biohazard Containment",
                 "Frigate Orpheon:Biotech Research Area 1",

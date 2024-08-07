@@ -1,17 +1,13 @@
-use auto_struct_macros::auto_struct;
-
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-
-use crate::ResId;
-use crate::res_id::*;
-
 use std::marker::PhantomData;
+
+use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*};
+
+use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct Scan<'r>
-{
+pub struct Scan<'r> {
     #[auto_struct(expect = 5)]
     version: u32,
     #[auto_struct(expect = 0x0BADBEEF)]
@@ -33,8 +29,7 @@ pub struct Scan<'r>
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone)]
-pub struct ScanImage
-{
+pub struct ScanImage {
     pub txtr: ResId<TXTR>,
     pub appearance_percent: f32,
     pub image_position: u32,
@@ -44,10 +39,8 @@ pub struct ScanImage
     pub fade_duration: f32,
 }
 
-impl Default for ScanImage
-{
-    fn default() -> Self
-    {
+impl Default for ScanImage {
+    fn default() -> Self {
         ScanImage {
             txtr: ResId::invalid(),
             appearance_percent: 0.0,
@@ -61,8 +54,7 @@ impl Default for ScanImage
 }
 
 #[test]
-fn test_scan_size()
-{
+fn test_scan_size() {
     use reader_writer::Readable;
     assert_eq!(Scan::fixed_size().unwrap(), 0xA0);
 }

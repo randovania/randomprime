@@ -1,19 +1,16 @@
+use std::{io, iter::Peekable};
+
 use auto_struct_macros::auto_struct;
-use reader_writer::{CStr, FourCC, IteratorArray, LazyArray, Readable, Reader, RoArray,
-                    RoArrayIter, Writable};
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
+use reader_writer::{
+    generic_array::GenericArray, typenum::*, CStr, FourCC, IteratorArray, LazyArray, Readable,
+    Reader, RoArray, RoArrayIter, Writable,
+};
 
-use crate::ResId;
-use crate::res_id::*;
-
-use std::io;
-use std::iter::Peekable;
+use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct Mlvl<'r>
-{
+pub struct Mlvl<'r> {
     #[auto_struct(expect = 0xDEAFBABE)]
     magic: u32,
 
@@ -65,11 +62,9 @@ pub struct Mlvl<'r>
     _pad: (),
 }
 
-
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug)]
-pub struct MemoryRelayConn
-{
+pub struct MemoryRelayConn {
     pub sender_id: u32,
     pub target_id: u32,
     pub message: u16,
@@ -78,8 +73,7 @@ pub struct MemoryRelayConn
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct Area<'r>
-{
+pub struct Area<'r> {
     pub area_name_strg: ResId<STRG>,
     pub area_transform: GenericArray<f32, U12>,
     pub area_bounding_box: GenericArray<f32, U6>,
@@ -105,8 +99,7 @@ pub struct Area<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct AreaDependenciesInner<'r>
-{
+pub struct AreaDependenciesInner<'r> {
     #[auto_struct(derive = dependencies.len() as u32)]
     dependencies_count: u32,
     #[auto_struct(init = (dependencies_count as usize, ()))]
@@ -122,35 +115,31 @@ pub struct AreaDependenciesInner<'r>
 // by an offset array. This is difficult to model, so it uses hand-written reading/
 // writing code.
 #[derive(Clone, Debug)]
-pub struct AreaDependencies<'r>
-{
-    pub deps: IteratorArray<'r, LazyArray<'r, Dependency>, LayerDepCountIter<'r>>
+pub struct AreaDependencies<'r> {
+    pub deps: IteratorArray<'r, LazyArray<'r, Dependency>, LayerDepCountIter<'r>>,
 }
 
-impl<'r> Readable<'r> for AreaDependencies<'r>
-{
+impl<'r> Readable<'r> for AreaDependencies<'r> {
     type Args = ();
-    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self {
         let inner: AreaDependenciesInner = reader.read(());
 
         let mut data_start = inner.dependencies.data_start();
         let iter = LayerDepCountIter::new(inner);
-        AreaDependencies { deps: data_start.read(iter), }
+        AreaDependencies {
+            deps: data_start.read(iter),
+        }
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         let deps_count: usize = self.deps.iter().map(|i| i.len()).sum();
         let s = u32::fixed_size().unwrap();
         s * (2 + self.deps.len()) + Dependency::fixed_size().unwrap() * deps_count
     }
 }
 
-impl<'r> Writable for AreaDependencies<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for AreaDependencies<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let mut sum = 0;
         let deps_count: u32 = self.deps.clone().iter().map(|i| i.len() as u32).sum();
         sum += deps_count.write_to(writer)?;
@@ -167,16 +156,13 @@ impl<'r> Writable for AreaDependencies<'r>
 }
 
 #[derive(Clone, Debug)]
-pub struct LayerDepCountIter<'r>
-{
+pub struct LayerDepCountIter<'r> {
     deps_len: u32,
     offsets_iter: Peekable<RoArrayIter<'r, u32>>,
 }
 
-impl<'r> LayerDepCountIter<'r>
-{
-    fn new(inner: AreaDependenciesInner<'r>) -> LayerDepCountIter<'r>
-    {
+impl<'r> LayerDepCountIter<'r> {
+    fn new(inner: AreaDependenciesInner<'r>) -> LayerDepCountIter<'r> {
         LayerDepCountIter {
             deps_len: inner.dependencies.len() as u32,
             offsets_iter: inner.dependency_offsets.iter().peekable(),
@@ -184,41 +170,34 @@ impl<'r> LayerDepCountIter<'r>
     }
 }
 
-impl<'r> Iterator for LayerDepCountIter<'r>
-{
+impl<'r> Iterator for LayerDepCountIter<'r> {
     type Item = (usize, ());
-    fn next(&mut self) -> Option<Self::Item>
-    {
+    fn next(&mut self) -> Option<Self::Item> {
         let start = self.offsets_iter.next();
         let end = self.offsets_iter.peek().unwrap_or(&self.deps_len);
         start.map(|start| ((end - start) as usize, ()))
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>)
-    {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         self.offsets_iter.size_hint()
     }
 }
 
-impl<'r> ExactSizeIterator for LayerDepCountIter<'r>
-{
-    fn len(&self) -> usize
-    {
+impl<'r> ExactSizeIterator for LayerDepCountIter<'r> {
+    fn len(&self) -> usize {
         self.offsets_iter.len()
     }
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug, PartialEq)]
-pub struct Dependency
-{
+pub struct Dependency {
     pub asset_id: u32,
     pub asset_type: FourCC,
 }
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct Dock<'r>
-{
+pub struct Dock<'r> {
     #[auto_struct(derive = connecting_docks.len() as u32 )]
     connecting_dock_count: u32,
     #[auto_struct(init = (connecting_dock_count as usize, ()))]
@@ -232,33 +211,28 @@ pub struct Dock<'r>
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug)]
-pub struct DockConnection
-{
+pub struct DockConnection {
     pub array_index: u32,
     pub dock_index: u32,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug)]
-pub struct AudioGroup
-{
+pub struct AudioGroup {
     pub group_id: u32,
     pub agsc: ResId<AGSC>,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug)]
-pub struct AreaLayerFlags
-{
+pub struct AreaLayerFlags {
     pub layer_count: u32,
     pub flags: u64,
 }
 
-
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug)]
-struct AreaLayerNamesArgs<'r>
-{
+struct AreaLayerNamesArgs<'r> {
     #[auto_struct(derive = layer_names.len() as u32)]
     layer_names_count: u32,
     #[auto_struct(init = (layer_names_count as usize, ()))]
@@ -275,10 +249,8 @@ struct AreaLayerNamesArgs<'r>
 #[derive(Clone, Debug)]
 pub struct AreaLayerNames<'r>(Vec<Vec<CStr<'r>>>);
 
-impl<'r> AreaLayerNames<'r>
-{
-    pub fn new(offsets: RoArray<'r, u32>, names: RoArray<'r, CStr<'r>>) -> AreaLayerNames<'r>
-    {
+impl<'r> AreaLayerNames<'r> {
+    pub fn new(offsets: RoArray<'r, u32>, names: RoArray<'r, CStr<'r>>) -> AreaLayerNames<'r> {
         use std::iter::once;
 
         // XXX We're assuming offsets is ordered
@@ -301,41 +273,44 @@ impl<'r> AreaLayerNames<'r>
         AreaLayerNames(names_vec)
     }
 
-    pub fn names_for_area(&self, area: usize) -> Option<&Vec<CStr<'r>>>
-    {
+    pub fn names_for_area(&self, area: usize) -> Option<&Vec<CStr<'r>>> {
         self.0.get(area)
     }
 
-    pub fn mut_names_for_area(&mut self, area: usize) -> Option<&mut Vec<CStr<'r>>>
-    {
+    pub fn mut_names_for_area(&mut self, area: usize) -> Option<&mut Vec<CStr<'r>>> {
         self.0.get_mut(area)
     }
 }
 
-impl<'r> Readable<'r> for AreaLayerNames<'r>
-{
+impl<'r> Readable<'r> for AreaLayerNames<'r> {
     type Args = u32;
-    fn read_from(reader: &mut Reader<'r>, count: u32) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, count: u32) -> Self {
         let args: AreaLayerNamesArgs = reader.read(());
         assert_eq!(args.layer_names_offsets.len(), count as usize);
         AreaLayerNames::new(args.layer_names_offsets, args.layer_names)
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         // TODO: It might be nice to cache this
-        u32::fixed_size().unwrap() * (self.0.len() + 2) +
-            self.0.iter().flat_map(|i| i).map(|s| s.to_bytes_with_nul().len()).sum::<usize>()
+        u32::fixed_size().unwrap() * (self.0.len() + 2)
+            + self
+                .0
+                .iter()
+                .flatten()
+                .map(|s| s.to_bytes_with_nul().len())
+                .sum::<usize>()
     }
 }
 
-impl<'r> Writable for AreaLayerNames<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for AreaLayerNames<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let mut sum = 0;
-        sum += self.0.iter().map(|area| area.len() as u32).sum::<u32>().write_to(writer)?;
+        sum += self
+            .0
+            .iter()
+            .map(|area| area.len() as u32)
+            .sum::<u32>()
+            .write_to(writer)?;
         sum += self.0.write_to(writer)?;
 
         sum += (self.0.len() as u32).write_to(writer)?;

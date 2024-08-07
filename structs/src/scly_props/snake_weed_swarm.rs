@@ -1,16 +1,14 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
-use crate::SclyPropertyData;
-use crate::scly_props::structs::{ActorParameters, AncsProp, DamageInfo};
-
+use crate::{
+    scly_props::structs::{ActorParameters, AncsProp, DamageInfo},
+    SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct SnakeWeedSwarm<'r>
-{
+pub struct SnakeWeedSwarm<'r> {
     #[auto_struct(expect = 25)]
     pub prop_count: u32,
 
@@ -48,8 +46,7 @@ pub struct SnakeWeedSwarm<'r>
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for SnakeWeedSwarm<'r>
-{
+impl<'r> SclyPropertyData for SnakeWeedSwarm<'r> {
     const OBJECT_TYPE: u8 = 0x6D;
     impl_position!();
     impl_scale!();
@@ -57,12 +54,10 @@ impl<'r> SclyPropertyData for SnakeWeedSwarm<'r>
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 
     fn impl_get_damage_infos(&self) -> Vec<DamageInfo> {
-        vec![
-            self.damage_info.clone(),
-        ]
+        vec![self.damage_info]
     }
 
     fn impl_set_damage_infos(&mut self, x: Vec<DamageInfo>) {
-        self.damage_info = x[0].clone();
+        self.damage_info = x[0];
     }
 }

@@ -1,13 +1,11 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{LazyArray, RoArray};
 
-use crate::ResId;
-use crate::res_id::*;
+use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct Savw<'r>
-{
+pub struct Savw<'r> {
     #[auto_struct(expect = 0xC001D00D)]
     magic: u32,
 
@@ -47,17 +45,14 @@ pub struct Savw<'r>
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug)]
-pub struct LayerToggle
-{
+pub struct LayerToggle {
     pub area_id: u32,
     pub layer_index: u32,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Clone, Debug)]
-pub struct ScannableObject
-{
+pub struct ScannableObject {
     pub scan: ResId<SCAN>,
     pub logbook_category: u32,
 }
-

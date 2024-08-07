@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct SpawnPoint<'r>
-{
+pub struct SpawnPoint<'r> {
     #[auto_struct(expect = 35)]
     prop_count: u32,
 
@@ -54,8 +51,7 @@ pub struct SpawnPoint<'r>
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for SpawnPoint<'r>
-{
+impl<'r> SclyPropertyData for SpawnPoint<'r> {
     const OBJECT_TYPE: u8 = 0x0F;
     impl_position!();
     impl_rotation!();

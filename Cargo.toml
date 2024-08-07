@@ -6,35 +6,35 @@ edition = "2021"
 
 [dependencies]
 adler32 = "1.0"
-clap = "2.9"
+clap.workspace = true
 encoding = "0.2"
 enum-map = { version = "0.6", features = ["serde"] }
 flate2 = "1.0"
 image = { version = "0.23", default-features = false, features = ["png"] }
+lazy_static = "1.4"
+memmap.workspace = true
+nalgebra = "0.32"
+nod = "1.1"
 num-bigint = "0.2"
 num-integer = "0.1"
 num-traits = "0.2"
-memmap = "0.7"
-serde = { version = "1.0", features = ["derive"] }
+rand = "0.7"
+serde.workspace = true
 serde_json = "1.0"
 ssmarshal = "1"
-rand = "0.7"
 winapi = "0.3"
-lazy_static = "1.4"
 
-
-auto_struct_macros = { path = "auto_struct_macros" }
+auto_struct_macros.workspace = true
 dol_linker = { path = "dol_linker" }
 dol_symbol_table = { path = "generated/dol_symbol_table" }
 json_data = { path = "generated/json_data" }
 json_strip = { path = "generated/json_strip" }
-libsquish_wrapper = { path = "libsquish_wrapper" }
-nod_wrapper = { path = "nod_wrapper" }
 ppcasm = { path = "ppcasm" }
-reader_writer = { path = "reader_writer" }
+reader_writer.workspace = true
 rel_files = { path = "generated/rel_files" }
-resource_info_table = { path = "generated/resource_info_table" }
+resource_info_table.workspace = true
 structs = { path = "structs" }
+texpresso = "2.0.1"
 
 [profile.release]
 lto = "thin"
@@ -44,20 +44,34 @@ panic = "unwind"
 members = [
     "auto_struct_macros",
     "dol_linker",
-        "generated/rel_files",
-        "generated/resource_info_table",
-            "generated/resource_info_table/resource_info_table_macro",
-        "generated/dol_symbol_table",
-            "generated/dol_symbol_table/dol_symbol_table_macro",
-        "generated/json_data",
-        "generated/json_strip",
-    "libsquish_wrapper",
-    "nod_wrapper",
+    "generated/rel_files",
+    "generated/resource_info_table",
+    "generated/resource_info_table/resource_info_table_macro",
+    "generated/dol_symbol_table",
+    "generated/dol_symbol_table/dol_symbol_table_macro",
+    "generated/json_data",
+    "generated/json_strip",
     "ppcasm",
-        "ppcasm/ppcasm_macro",
+    "ppcasm/ppcasm_macro",
     "reader_writer",
     "structs",
 ]
+
+[workspace.dependencies]
+auto_struct_macros.path = "auto_struct_macros"
+byteorder = "1.2"
+cc = "1.0"
+clap = "2.9"
+generic-array = "0.14"
+memmap = "0.7"
+phf = { version = "0.8", default-features = false }
+phf_codegen = "0.8"
+proc-macro2 = "1.0"
+quote = "1.0"
+reader_writer.path = "reader_writer"
+resource_info_table.path = "generated/resource_info_table"
+serde = { version = "1.0", features = ["derive"] }
+syn = { version = "1.0", features = ["full"] }
 
 [lib]
 name = "randomprime"

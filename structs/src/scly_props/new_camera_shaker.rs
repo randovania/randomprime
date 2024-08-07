@@ -1,14 +1,11 @@
 use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use reader_writer::CStr;
-use reader_writer::typenum::*;
-use reader_writer::generic_array::GenericArray;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct NewCameraShaker<'r>
-{
+pub struct NewCameraShaker<'r> {
     #[auto_struct(expect = 8)]
     pub prop_count: u32,
 
@@ -28,8 +25,7 @@ pub struct NewCameraShaker<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct NewCameraShakerComponent
-{
+pub struct NewCameraShakerComponent {
     pub unknown1: u32,
     pub unknown2: u8,
     pub am: NewCameraShakePoint,
@@ -38,8 +34,7 @@ pub struct NewCameraShakerComponent
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct NewCameraShakePoint
-{
+pub struct NewCameraShakePoint {
     pub unknown1: u32,
     pub unknown2: u8,
     pub attack_time: f32,
@@ -48,7 +43,6 @@ pub struct NewCameraShakePoint
     pub magnitude: f32,
 }
 
-impl<'r> SclyPropertyData for NewCameraShaker<'r>
-{
+impl<'r> SclyPropertyData for NewCameraShaker<'r> {
     const OBJECT_TYPE: u8 = 0x89;
 }

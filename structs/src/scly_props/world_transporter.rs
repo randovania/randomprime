@@ -1,25 +1,13 @@
-use auto_struct_macros::auto_struct;
+use std::{borrow::Cow, ffi::CString};
 
-use reader_writer::{
-    CStr,
-    CStrConversionExtension,
-    typenum::*,
-    generic_array::GenericArray,
-};
-use crate::{
-    {ResId, SclyPropertyData},
-    res_id::*,
-    scly_props::structs::AncsProp
-};
-use std::{
-    borrow::Cow,
-    ffi::CString
-};
+use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr, CStrConversionExtension};
+
+use crate::{res_id::*, scly_props::structs::AncsProp, ResId, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct WorldTransporter<'r>
-{
+pub struct WorldTransporter<'r> {
     #[auto_struct(derive = 21 + 5 * pal_additions.is_some() as u32)]
     prop_count: u32,
 
@@ -47,14 +35,12 @@ pub struct WorldTransporter<'r>
     pub show_delay: f32,
 
     #[auto_struct(init = if prop_count == 26 { Some(()) } else { None })]
-    pub pal_additions: Option<WorldTransporterPalAdditions<'r>>
+    pub pal_additions: Option<WorldTransporterPalAdditions<'r>>,
 }
-
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct WorldTransporterPalAdditions<'r>
-{
+pub struct WorldTransporterPalAdditions<'r> {
     pub audio_stream: CStr<'r>,
     pub unknown0: u8,
     pub unknown1: f32,
@@ -62,15 +48,19 @@ pub struct WorldTransporterPalAdditions<'r>
     pub unknown3: f32,
 }
 
-impl<'r> SclyPropertyData for WorldTransporter<'r>
-{
+impl<'r> SclyPropertyData for WorldTransporter<'r> {
     const OBJECT_TYPE: u8 = 0x062;
 }
 
-impl<'r> WorldTransporter<'r>
-{
-    pub fn warp(mlvl: u32, mrea: u32, teleporter_name: &str, font: ResId<FONT>, strg: ResId<STRG>, is_pal: bool) -> Self
-    {
+impl<'r> WorldTransporter<'r> {
+    pub fn warp(
+        mlvl: u32,
+        mrea: u32,
+        teleporter_name: &str,
+        font: ResId<FONT>,
+        strg: ResId<STRG>,
+        is_pal: bool,
+    ) -> Self {
         let pal_additions = if is_pal {
             Some(WorldTransporterPalAdditions {
                 audio_stream: b"\0".as_cstr(),
@@ -82,7 +72,7 @@ impl<'r> WorldTransporter<'r>
         } else {
             None
         };
-        
+
         WorldTransporter {
             name: Cow::Owned(CString::new(teleporter_name).unwrap()),
             active: 1,

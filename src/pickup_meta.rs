@@ -1,9 +1,8 @@
 use std::mem;
 
-use serde::{Serialize, Deserialize};
-
 use reader_writer::{FourCC, Reader};
-use structs::{Connection, ConnectionMsg, ConnectionState, Pickup, ResId, res_id};
+use serde::{Deserialize, Serialize};
+use structs::{res_id, Connection, ConnectionMsg, ConnectionState, Pickup, ResId};
 
 use crate::custom_assets::custom_asset_ids;
 
@@ -11,8 +10,7 @@ use crate::custom_assets::custom_asset_ids;
  * Pickup kind as defined by the game engine
  */
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub enum PickupType
-{
+pub enum PickupType {
     PowerBeam = 0,
     IceBeam,
     WaveBeam,
@@ -59,60 +57,57 @@ pub enum PickupType
     IceTrap,
 }
 
-impl PickupType
-{
-    pub fn name(&self) -> &'static str
-    {
+impl PickupType {
+    pub fn name(&self) -> &'static str {
         match self {
-            PickupType::PowerBeam           => "Power Beam"           ,
-            PickupType::IceBeam             => "Ice Beam"             ,
-            PickupType::WaveBeam            => "Wave Beam"            ,
-            PickupType::PlasmaBeam          => "Plasma Beam"          ,
-            PickupType::Missile             => "Missile"              ,
-            PickupType::ScanVisor           => "Scan Visor"           ,
-            PickupType::MorphBallBomb       => "Morph Ball Bomb"      ,
-            PickupType::PowerBomb           => "Power Bomb"           ,
-            PickupType::Flamethrower        => "Flamethrower"         ,
-            PickupType::ThermalVisor        => "Thermal Visor"        ,
-            PickupType::ChargeBeam          => "Charge Beam"          ,
-            PickupType::SuperMissile        => "Super Missile"        ,
-            PickupType::GrappleBeam         => "Grapple Beam"         ,
-            PickupType::XRayVisor           => "X-Ray Visor"          ,
-            PickupType::IceSpreader         => "Ice Spreader"         ,
-            PickupType::SpaceJumpBoots      => "Space Jump Boots"     ,
-            PickupType::MorphBall           => "Morph Ball"           ,
-            PickupType::CombatVisor         => "Combat Visor"         ,
-            PickupType::BoostBall           => "Boost Ball"           ,
-            PickupType::SpiderBall          => "Spider Ball"          ,
-            PickupType::PowerSuit           => "Power Suit"           ,
-            PickupType::GravitySuit         => "Gravity Suit"         ,
-            PickupType::VariaSuit           => "Varia Suit"           ,
-            PickupType::PhazonSuit          => "Phazon Suit"          ,
-            PickupType::EnergyTank          => "Energy Tank"          ,
-            PickupType::UnknownItem1        => "Unknown Item 1"       ,
-            PickupType::HealthRefill        => "Health Refill"        ,
-            PickupType::UnknownItem2        => "Unknown Item 2"       ,
-            PickupType::Wavebuster          => "Wavebuster"           ,
-            PickupType::ArtifactOfTruth     => "Artifact Of Truth"    ,
-            PickupType::ArtifactOfStrength  => "Artifact Of Strength" ,
-            PickupType::ArtifactOfElder     => "Artifact Of Elder"    ,
-            PickupType::ArtifactOfWild      => "Artifact Of Wild"     ,
+            PickupType::PowerBeam => "Power Beam",
+            PickupType::IceBeam => "Ice Beam",
+            PickupType::WaveBeam => "Wave Beam",
+            PickupType::PlasmaBeam => "Plasma Beam",
+            PickupType::Missile => "Missile",
+            PickupType::ScanVisor => "Scan Visor",
+            PickupType::MorphBallBomb => "Morph Ball Bomb",
+            PickupType::PowerBomb => "Power Bomb",
+            PickupType::Flamethrower => "Flamethrower",
+            PickupType::ThermalVisor => "Thermal Visor",
+            PickupType::ChargeBeam => "Charge Beam",
+            PickupType::SuperMissile => "Super Missile",
+            PickupType::GrappleBeam => "Grapple Beam",
+            PickupType::XRayVisor => "X-Ray Visor",
+            PickupType::IceSpreader => "Ice Spreader",
+            PickupType::SpaceJumpBoots => "Space Jump Boots",
+            PickupType::MorphBall => "Morph Ball",
+            PickupType::CombatVisor => "Combat Visor",
+            PickupType::BoostBall => "Boost Ball",
+            PickupType::SpiderBall => "Spider Ball",
+            PickupType::PowerSuit => "Power Suit",
+            PickupType::GravitySuit => "Gravity Suit",
+            PickupType::VariaSuit => "Varia Suit",
+            PickupType::PhazonSuit => "Phazon Suit",
+            PickupType::EnergyTank => "Energy Tank",
+            PickupType::UnknownItem1 => "Unknown Item 1",
+            PickupType::HealthRefill => "Health Refill",
+            PickupType::UnknownItem2 => "Unknown Item 2",
+            PickupType::Wavebuster => "Wavebuster",
+            PickupType::ArtifactOfTruth => "Artifact Of Truth",
+            PickupType::ArtifactOfStrength => "Artifact Of Strength",
+            PickupType::ArtifactOfElder => "Artifact Of Elder",
+            PickupType::ArtifactOfWild => "Artifact Of Wild",
             PickupType::ArtifactOfLifegiver => "Artifact Of Lifegiver",
-            PickupType::ArtifactOfWarrior   => "Artifact Of Warrior"  ,
-            PickupType::ArtifactOfChozo     => "Artifact Of Chozo"    ,
-            PickupType::ArtifactOfNature    => "Artifact Of Nature"   ,
-            PickupType::ArtifactOfSun       => "Artifact Of Sun"      ,
-            PickupType::ArtifactOfWorld     => "Artifact Of World"    ,
-            PickupType::ArtifactOfSpirit    => "Artifact Of Spirit"   ,
-            PickupType::ArtifactOfNewborn   => "Artifact Of Newborn"  ,
-            PickupType::Nothing             => "Nothing"              ,
-            PickupType::FloatyJump          => "Floaty Jump"          ,
-            PickupType::IceTrap             => "Ice Trap"                 ,
+            PickupType::ArtifactOfWarrior => "Artifact Of Warrior",
+            PickupType::ArtifactOfChozo => "Artifact Of Chozo",
+            PickupType::ArtifactOfNature => "Artifact Of Nature",
+            PickupType::ArtifactOfSun => "Artifact Of Sun",
+            PickupType::ArtifactOfWorld => "Artifact Of World",
+            PickupType::ArtifactOfSpirit => "Artifact Of Spirit",
+            PickupType::ArtifactOfNewborn => "Artifact Of Newborn",
+            PickupType::Nothing => "Nothing",
+            PickupType::FloatyJump => "Floaty Jump",
+            PickupType::IceTrap => "Ice Trap",
         }
     }
 
-    pub fn iter() -> impl Iterator<Item = PickupType>
-    {
+    pub fn iter() -> impl Iterator<Item = PickupType> {
         [
             PickupType::PowerBeam,
             PickupType::IceBeam,
@@ -158,11 +153,12 @@ impl PickupType
             PickupType::Nothing,
             PickupType::FloatyJump,
             PickupType::IceTrap,
-        ].iter().map(|i| *i)
+        ]
+        .iter()
+        .copied()
     }
 
-    pub fn kind(&self) -> u32
-    {
+    pub fn kind(&self) -> u32 {
         match self {
             PickupType::FloatyJump => PickupType::Nothing.kind(),
             PickupType::IceTrap => PickupType::Nothing.kind(),
@@ -170,6 +166,7 @@ impl PickupType
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(string: &str) -> Self {
         let string = string.to_lowercase();
         let string = string.trim();
@@ -180,21 +177,13 @@ impl PickupType
         }
 
         // Alternate Names
-        if vec!["combat"]
-            .contains(&string)
-        {
+        if ["combat"].contains(&string) {
             return PickupType::CombatVisor;
-        } else if vec!["scan"]
-            .contains(&string)
-        {
+        } else if ["scan"].contains(&string) {
             return PickupType::ScanVisor;
-        } else if vec!["thermal"]
-            .contains(&string)
-        {
+        } else if ["thermal"].contains(&string) {
             return PickupType::ThermalVisor;
-        } else if vec!["x-ray", "xray", "x-ray visor", "xray visor"]
-            .contains(&string)
-        {
+        } else if ["x-ray", "xray", "x-ray visor", "xray visor"].contains(&string) {
             return PickupType::XRayVisor;
         }
 
@@ -204,7 +193,10 @@ impl PickupType
     // This is kind of a hack, but we need to index FJ and Nothing seperately
     pub fn asset_index(&self) -> u32 {
         let kind = self.kind();
-        if kind == PickupType::Nothing.kind() && self.name() == PickupType::FloatyJump.name() && self.name() == PickupType::IceTrap.name() {
+        if kind == PickupType::Nothing.kind()
+            && self.name() == PickupType::FloatyJump.name()
+            && self.name() == PickupType::IceTrap.name()
+        {
             kind + 1
         } else {
             kind
@@ -215,7 +207,9 @@ impl PickupType
      * asset IDs of default text (e.g. "Power Bombs Acquired")
      */
     pub fn scan_strg(&self) -> ResId<res_id::STRG> {
-        ResId::<res_id::STRG>::new(custom_asset_ids::DEFAULT_PICKUP_SCAN_STRGS.to_u32() + (*self as u32))
+        ResId::<res_id::STRG>::new(
+            custom_asset_ids::DEFAULT_PICKUP_SCAN_STRGS.to_u32() + (*self as u32),
+        )
     }
 
     pub fn scan(&self) -> ResId<res_id::SCAN> {
@@ -223,12 +217,13 @@ impl PickupType
     }
 
     pub fn hudmemo_strg(&self) -> ResId<res_id::STRG> {
-        ResId::<res_id::STRG>::new(custom_asset_ids::DEFAULT_PICKUP_HUDMEMO_STRGS.to_u32() + (*self as u32))
+        ResId::<res_id::STRG>::new(
+            custom_asset_ids::DEFAULT_PICKUP_HUDMEMO_STRGS.to_u32() + (*self as u32),
+        )
     }
 }
 
-pub fn pickup_type_for_pickup(pickup: &structs::Pickup) -> Option<PickupType>
-{
+pub fn pickup_type_for_pickup(pickup: &structs::Pickup) -> Option<PickupType> {
     match pickup.kind {
         4 => Some(PickupType::Missile),
         24 => Some(PickupType::EnergyTank),
@@ -270,8 +265,7 @@ pub fn pickup_type_for_pickup(pickup: &structs::Pickup) -> Option<PickupType>
     }
 }
 
-pub fn pickup_model_for_pickup(pickup: &structs::Pickup) -> Option<PickupModel>
-{
+pub fn pickup_model_for_pickup(pickup: &structs::Pickup) -> Option<PickupModel> {
     match pickup.kind {
         4 if pickup.max_increase > 0 => Some(PickupModel::Missile),
         4 if pickup.max_increase == 0 => Some(PickupModel::MissileRefill),
@@ -319,8 +313,7 @@ pub fn pickup_model_for_pickup(pickup: &structs::Pickup) -> Option<PickupModel>
 /* CMDL which exist in the vanilla game, or are custom-made for randomprime */
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum PickupModel
-{
+pub enum PickupModel {
     Missile,
     EnergyTank,
     Visor, // Scan Visor
@@ -361,6 +354,8 @@ pub enum PickupModel
     ArtifactOfNature,
     ArtifactOfStrength,
     Nothing,
+    Zoomer,
+    Cog,
     HealthRefill,
     MissileRefill,
     PowerBombRefill,
@@ -369,62 +364,61 @@ pub enum PickupModel
     RandovaniaGamecube,
 }
 
-impl PickupModel
-{
-    pub fn name(&self) -> &'static str
-    {
+impl PickupModel {
+    pub fn name(&self) -> &'static str {
         match self {
-            PickupModel::Missile =>             "Missile",
-            PickupModel::EnergyTank =>          "Energy Tank",
-            PickupModel::Visor =>               "Visor",
-            PickupModel::CombatVisor =>         "Combat Visor",
-            PickupModel::ThermalVisor =>        "Thermal Visor",
-            PickupModel::XRayVisor =>           "X-Ray Visor",
-            PickupModel::VariaSuit =>           "Varia Suit",
-            PickupModel::GravitySuit =>         "Gravity Suit",
-            PickupModel::PhazonSuit =>          "Phazon Suit",
-            PickupModel::MorphBall =>           "Morph Ball",
-            PickupModel::BoostBall =>           "Boost Ball",
-            PickupModel::SpiderBall =>          "Spider Ball",
-            PickupModel::MorphBallBomb =>       "Morph Ball Bomb",
-            PickupModel::PowerBombExpansion =>  "Power Bomb Expansion",
-            PickupModel::PowerBomb =>           "Power Bomb",
-            PickupModel::ChargeBeam =>          "Charge Beam",
-            PickupModel::SpaceJumpBoots =>      "Space Jump Boots",
-            PickupModel::GrappleBeam =>         "Grapple Beam",
-            PickupModel::SuperMissile =>        "Super Missile",
-            PickupModel::Wavebuster =>          "Wavebuster",
-            PickupModel::IceSpreader =>         "Ice Spreader",
-            PickupModel::Flamethrower =>        "FlamethrowerOld",
-            PickupModel::FlamethrowerNew =>     "Flamethrower",
-            PickupModel::PowerBeam =>           "Power Beam",
-            PickupModel::WaveBeam =>            "Wave Beam",
-            PickupModel::IceBeam =>             "Ice Beam",
-            PickupModel::PlasmaBeam =>          "Plasma Beam",
+            PickupModel::Missile => "Missile",
+            PickupModel::EnergyTank => "Energy Tank",
+            PickupModel::Visor => "Visor",
+            PickupModel::CombatVisor => "Combat Visor",
+            PickupModel::ThermalVisor => "Thermal Visor",
+            PickupModel::XRayVisor => "X-Ray Visor",
+            PickupModel::VariaSuit => "Varia Suit",
+            PickupModel::GravitySuit => "Gravity Suit",
+            PickupModel::PhazonSuit => "Phazon Suit",
+            PickupModel::MorphBall => "Morph Ball",
+            PickupModel::BoostBall => "Boost Ball",
+            PickupModel::SpiderBall => "Spider Ball",
+            PickupModel::MorphBallBomb => "Morph Ball Bomb",
+            PickupModel::PowerBombExpansion => "Power Bomb Expansion",
+            PickupModel::PowerBomb => "Power Bomb",
+            PickupModel::ChargeBeam => "Charge Beam",
+            PickupModel::SpaceJumpBoots => "Space Jump Boots",
+            PickupModel::GrappleBeam => "Grapple Beam",
+            PickupModel::SuperMissile => "Super Missile",
+            PickupModel::Wavebuster => "Wavebuster",
+            PickupModel::IceSpreader => "Ice Spreader",
+            PickupModel::Flamethrower => "FlamethrowerOld",
+            PickupModel::FlamethrowerNew => "Flamethrower",
+            PickupModel::PowerBeam => "Power Beam",
+            PickupModel::WaveBeam => "Wave Beam",
+            PickupModel::IceBeam => "Ice Beam",
+            PickupModel::PlasmaBeam => "Plasma Beam",
             PickupModel::ArtifactOfLifegiver => "Artifact of Lifegiver",
-            PickupModel::ArtifactOfWild =>      "Artifact of Wild",
-            PickupModel::ArtifactOfWorld =>     "Artifact of World",
-            PickupModel::ArtifactOfSun =>       "Artifact of Sun",
-            PickupModel::ArtifactOfElder =>     "Artifact of Elder",
-            PickupModel::ArtifactOfSpirit =>    "Artifact of Spirit",
-            PickupModel::ArtifactOfTruth =>     "Artifact of Truth",
-            PickupModel::ArtifactOfChozo =>     "Artifact of Chozo",
-            PickupModel::ArtifactOfWarrior =>   "Artifact of Warrior",
-            PickupModel::ArtifactOfNewborn =>   "Artifact of Newborn",
-            PickupModel::ArtifactOfNature =>    "Artifact of Nature",
-            PickupModel::ArtifactOfStrength =>  "Artifact of Strength",
-            PickupModel::Nothing =>             "Nothing",
-            PickupModel::RandovaniaGamecube =>  "Gamecube",
-            PickupModel::HealthRefill =>        "Health Refill",
-            PickupModel::MissileRefill =>       "Missile Refill",
-            PickupModel::PowerBombRefill =>     "Power Bomb Refill",
-            PickupModel::ShinyMissile =>        "Shiny Missile",
-            PickupModel::IceTrap =>             "Ice Trap",
+            PickupModel::ArtifactOfWild => "Artifact of Wild",
+            PickupModel::ArtifactOfWorld => "Artifact of World",
+            PickupModel::ArtifactOfSun => "Artifact of Sun",
+            PickupModel::ArtifactOfElder => "Artifact of Elder",
+            PickupModel::ArtifactOfSpirit => "Artifact of Spirit",
+            PickupModel::ArtifactOfTruth => "Artifact of Truth",
+            PickupModel::ArtifactOfChozo => "Artifact of Chozo",
+            PickupModel::ArtifactOfWarrior => "Artifact of Warrior",
+            PickupModel::ArtifactOfNewborn => "Artifact of Newborn",
+            PickupModel::ArtifactOfNature => "Artifact of Nature",
+            PickupModel::ArtifactOfStrength => "Artifact of Strength",
+            PickupModel::Nothing => "Nothing",
+            PickupModel::Zoomer => "Zoomer",
+            PickupModel::Cog => "Cog",
+            PickupModel::RandovaniaGamecube => "Gamecube",
+            PickupModel::HealthRefill => "Health Refill",
+            PickupModel::MissileRefill => "Missile Refill",
+            PickupModel::PowerBombRefill => "Power Bomb Refill",
+            PickupModel::ShinyMissile => "Shiny Missile",
+            PickupModel::IceTrap => "Ice Trap",
         }
     }
 
-    pub fn pickup_data<'a>(&self) -> Pickup
-    {
+    pub fn pickup_data(&self) -> Pickup {
         let mut pickup: Pickup = Reader::new(self.raw_pickup_data()).read(());
         if self.name() == PickupModel::Nothing.name() {
             pickup.scale[0] = 1.0;
@@ -436,12 +430,15 @@ impl PickupModel
             pickup.scale[2] = 0.475;
         } else if self.name() == PickupModel::PowerBomb.name() {
             pickup.actor_params.enable_thermal_heat = 1;
+        } else if self.name() == PickupModel::Cog.name() {
+            pickup.scale[0] = 0.7;
+            pickup.scale[1] = 0.7;
+            pickup.scale[2] = 0.7;
         }
         pickup
     }
 
-    pub fn iter() -> impl Iterator<Item = PickupModel>
-    {
+    pub fn iter() -> impl Iterator<Item = PickupModel> {
         [
             PickupModel::Missile,
             PickupModel::EnergyTank,
@@ -483,15 +480,20 @@ impl PickupModel
             PickupModel::ArtifactOfNature,
             PickupModel::ArtifactOfStrength,
             PickupModel::Nothing,
+            PickupModel::Zoomer,
+            PickupModel::Cog,
             PickupModel::RandovaniaGamecube,
             PickupModel::HealthRefill,
             PickupModel::MissileRefill,
             PickupModel::PowerBombRefill,
             PickupModel::ShinyMissile,
             PickupModel::IceTrap,
-        ].iter().map(|i| *i)
+        ]
+        .iter()
+        .copied()
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(string: &str) -> Option<Self> {
         let string = string.to_lowercase();
         let string = string.trim();
@@ -502,34 +504,22 @@ impl PickupModel
         }
 
         // Alternate Names
-        if vec!["combat"]
-            .contains(&string)
-        {
+        if ["combat"].contains(&string) {
             return Some(PickupModel::CombatVisor);
-        } else if vec!["scan", "scan visor"]
-            .contains(&string)
-        {
+        } else if ["scan", "scan visor"].contains(&string) {
             return Some(PickupModel::Visor);
-        } else if vec!["thermal"]
-            .contains(&string)
-        {
+        } else if ["thermal"].contains(&string) {
             return Some(PickupModel::ThermalVisor);
-        } else if vec!["x-ray", "xray", "x-ray visor", "xray visor"]
-            .contains(&string)
-        {
+        } else if ["x-ray", "xray", "x-ray visor", "xray visor"].contains(&string) {
             return Some(PickupModel::XRayVisor);
         }
 
-        if vec!["randovania", "placeholder"]
-            .contains(&string)
-        {
+        if ["randovania", "placeholder"].contains(&string) {
             return Some(PickupModel::RandovaniaGamecube);
         }
 
         // Placeholder Mapping
-        if vec!["power suit", "power beam"]
-            .contains(&string)
-        {
+        if ["power suit", "power beam"].contains(&string) {
             return Some(PickupModel::RandovaniaGamecube);
         }
 
@@ -541,57 +531,56 @@ impl PickupModel
      */
     pub fn from_type(pickup_type: PickupType) -> Self {
         match pickup_type {
-            PickupType::PowerBeam           => PickupModel::PowerBeam,
-            PickupType::IceBeam             => PickupModel::IceBeam,
-            PickupType::WaveBeam            => PickupModel::WaveBeam,
-            PickupType::PlasmaBeam          => PickupModel::PlasmaBeam,
-            PickupType::Missile             => PickupModel::Missile,
-            PickupType::ScanVisor           => PickupModel::Visor,
-            PickupType::MorphBallBomb       => PickupModel::MorphBallBomb,
-            PickupType::PowerBomb           => PickupModel::PowerBomb,
-            PickupType::Flamethrower        => PickupModel::FlamethrowerNew,
-            PickupType::ThermalVisor        => PickupModel::ThermalVisor,
-            PickupType::ChargeBeam          => PickupModel::ChargeBeam,
-            PickupType::SuperMissile        => PickupModel::SuperMissile,
-            PickupType::GrappleBeam         => PickupModel::GrappleBeam,
-            PickupType::XRayVisor           => PickupModel::XRayVisor,
-            PickupType::IceSpreader         => PickupModel::IceSpreader,
-            PickupType::SpaceJumpBoots      => PickupModel::SpaceJumpBoots,
-            PickupType::MorphBall           => PickupModel::MorphBall,
-            PickupType::CombatVisor         => PickupModel::CombatVisor,
-            PickupType::BoostBall           => PickupModel::BoostBall,
-            PickupType::SpiderBall          => PickupModel::SpiderBall,
-            PickupType::PowerSuit           => PickupModel::RandovaniaGamecube,
-            PickupType::GravitySuit         => PickupModel::GravitySuit,
-            PickupType::VariaSuit           => PickupModel::VariaSuit,
-            PickupType::PhazonSuit          => PickupModel::PhazonSuit,
-            PickupType::EnergyTank          => PickupModel::EnergyTank,
-            PickupType::UnknownItem1        => PickupModel::RandovaniaGamecube,
-            PickupType::HealthRefill        => PickupModel::HealthRefill,
-            PickupType::UnknownItem2        => PickupModel::RandovaniaGamecube,
-            PickupType::Wavebuster          => PickupModel::Wavebuster,
-            PickupType::ArtifactOfTruth     => PickupModel::ArtifactOfTruth,
-            PickupType::ArtifactOfStrength  => PickupModel::ArtifactOfStrength,
-            PickupType::ArtifactOfElder     => PickupModel::ArtifactOfElder,
-            PickupType::ArtifactOfWild      => PickupModel::ArtifactOfWild,
+            PickupType::PowerBeam => PickupModel::PowerBeam,
+            PickupType::IceBeam => PickupModel::IceBeam,
+            PickupType::WaveBeam => PickupModel::WaveBeam,
+            PickupType::PlasmaBeam => PickupModel::PlasmaBeam,
+            PickupType::Missile => PickupModel::Missile,
+            PickupType::ScanVisor => PickupModel::Visor,
+            PickupType::MorphBallBomb => PickupModel::MorphBallBomb,
+            PickupType::PowerBomb => PickupModel::PowerBomb,
+            PickupType::Flamethrower => PickupModel::FlamethrowerNew,
+            PickupType::ThermalVisor => PickupModel::ThermalVisor,
+            PickupType::ChargeBeam => PickupModel::ChargeBeam,
+            PickupType::SuperMissile => PickupModel::SuperMissile,
+            PickupType::GrappleBeam => PickupModel::GrappleBeam,
+            PickupType::XRayVisor => PickupModel::XRayVisor,
+            PickupType::IceSpreader => PickupModel::IceSpreader,
+            PickupType::SpaceJumpBoots => PickupModel::SpaceJumpBoots,
+            PickupType::MorphBall => PickupModel::MorphBall,
+            PickupType::CombatVisor => PickupModel::CombatVisor,
+            PickupType::BoostBall => PickupModel::BoostBall,
+            PickupType::SpiderBall => PickupModel::SpiderBall,
+            PickupType::PowerSuit => PickupModel::RandovaniaGamecube,
+            PickupType::GravitySuit => PickupModel::GravitySuit,
+            PickupType::VariaSuit => PickupModel::VariaSuit,
+            PickupType::PhazonSuit => PickupModel::PhazonSuit,
+            PickupType::EnergyTank => PickupModel::EnergyTank,
+            PickupType::UnknownItem1 => PickupModel::RandovaniaGamecube,
+            PickupType::HealthRefill => PickupModel::HealthRefill,
+            PickupType::UnknownItem2 => PickupModel::RandovaniaGamecube,
+            PickupType::Wavebuster => PickupModel::Wavebuster,
+            PickupType::ArtifactOfTruth => PickupModel::ArtifactOfTruth,
+            PickupType::ArtifactOfStrength => PickupModel::ArtifactOfStrength,
+            PickupType::ArtifactOfElder => PickupModel::ArtifactOfElder,
+            PickupType::ArtifactOfWild => PickupModel::ArtifactOfWild,
             PickupType::ArtifactOfLifegiver => PickupModel::ArtifactOfLifegiver,
-            PickupType::ArtifactOfWarrior   => PickupModel::ArtifactOfWarrior,
-            PickupType::ArtifactOfChozo     => PickupModel::ArtifactOfChozo,
-            PickupType::ArtifactOfNature    => PickupModel::ArtifactOfNature,
-            PickupType::ArtifactOfSun       => PickupModel::ArtifactOfSun,
-            PickupType::ArtifactOfWorld     => PickupModel::ArtifactOfWorld,
-            PickupType::ArtifactOfSpirit    => PickupModel::ArtifactOfSpirit,
-            PickupType::ArtifactOfNewborn   => PickupModel::ArtifactOfNewborn,
-            PickupType::Nothing             => PickupModel::Nothing,
-            PickupType::FloatyJump          => PickupModel::RandovaniaGamecube,
-            PickupType::IceTrap             => PickupModel::IceTrap,
+            PickupType::ArtifactOfWarrior => PickupModel::ArtifactOfWarrior,
+            PickupType::ArtifactOfChozo => PickupModel::ArtifactOfChozo,
+            PickupType::ArtifactOfNature => PickupModel::ArtifactOfNature,
+            PickupType::ArtifactOfSun => PickupModel::ArtifactOfSun,
+            PickupType::ArtifactOfWorld => PickupModel::ArtifactOfWorld,
+            PickupType::ArtifactOfSpirit => PickupModel::ArtifactOfSpirit,
+            PickupType::ArtifactOfNewborn => PickupModel::ArtifactOfNewborn,
+            PickupType::Nothing => PickupModel::Nothing,
+            PickupType::FloatyJump => PickupModel::RandovaniaGamecube,
+            PickupType::IceTrap => PickupModel::IceTrap,
         }
     }
 }
 
 /// Lookup a pre-computed AABB for a pickup's CMDL
-pub fn aabb_for_pickup_cmdl(id: structs::ResId<structs::res_id::CMDL>) -> Option<[f32; 6]>
-{
+pub fn aabb_for_pickup_cmdl(id: structs::ResId<structs::res_id::CMDL>) -> Option<[f32; 6]> {
     let id: u32 = id.into();
     // The aabb array is sorted, so we can binary search.
     if let Ok(idx) = PICKUP_CMDL_AABBS.binary_search_by_key(&id, |&(k, _)| k) {
@@ -605,38 +594,34 @@ pub fn aabb_for_pickup_cmdl(id: structs::ResId<structs::res_id::CMDL>) -> Option
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct PickupLocation
-{
+pub struct PickupLocation {
     pub location: ScriptObjectLocation,
     pub attainment_audio: ScriptObjectLocation,
     pub hudmemo: ScriptObjectLocation,
     pub memory_relay: ScriptObjectLocation,
     pub post_pickup_relay_connections: &'static [Connection],
-    pub position: [f32;3],
+    pub position: [f32; 3],
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct DoorLocation
-{
+pub struct DoorLocation {
     pub door_location: Option<ScriptObjectLocation>,
-    pub door_rotation: Option<[f32;3]>,
+    pub door_rotation: Option<[f32; 3]>,
     pub door_force_locations: &'static [ScriptObjectLocation],
     pub door_shield_locations: &'static [ScriptObjectLocation],
     pub dock_number: u32,
-    pub dock_position: [f32;3],
-    pub dock_scale: [f32;3],
+    pub dock_position: [f32; 3],
+    pub dock_scale: [f32; 3],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct ScriptObjectLocation
-{
+pub struct ScriptObjectLocation {
     pub layer: u32,
     pub instance_id: u32,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct RoomInfo
-{
+pub struct RoomInfo {
     pub room_id: ResId<res_id::MREA>,
     name: &'static str, // use name() for handling of the duplicate Connection Elevator to Deck Beta
     pub name_id: ResId<res_id::STRG>,
@@ -648,16 +633,13 @@ pub struct RoomInfo
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ObjectsToRemove
-{
+pub struct ObjectsToRemove {
     pub layer: u32,
     pub instance_ids: &'static [u32],
 }
 
-impl RoomInfo
-{
-    pub fn index(&self) -> usize
-    {
+impl RoomInfo {
+    pub fn index(&self) -> usize {
         let mut i = 0;
         for (_, rooms) in ROOM_INFO.iter() {
             for room_info in rooms.iter() {
@@ -671,8 +653,7 @@ impl RoomInfo
         panic!("Could not find room {}", self.name)
     }
 
-    pub fn name(&self) -> &'static str
-    {
+    pub fn name(&self) -> &'static str {
         match self.room_id.to_u32() {
             0x6ED3231B => "Connection Elevator to Deck Beta (2)",
             _ => self.name,

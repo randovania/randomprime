@@ -1,67 +1,60 @@
-use auto_struct_macros::auto_struct;
-use reader_writer::{
-    Reader, Readable, Writable, CStr, generic_array::GenericArray, typenum::*,
-};
 use std::io;
 
+use auto_struct_macros::auto_struct;
+use reader_writer::{generic_array::GenericArray, typenum::*, CStr, Readable, Reader, Writable};
+
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
-pub enum Ctwk<'r>
-{
-    CtwkGame(CtwkGame<'r>),
-    CtwkPlayer(CtwkPlayer<'r>),
-    CtwkPlayerGun(CtwkPlayerGun<'r>),
-    CtwkBall(CtwkBall<'r>),
-    CtwkGuiColors(CtwkGuiColors<'r>),
+pub enum Ctwk<'r> {
+    Game(CtwkGame<'r>),
+    Player(CtwkPlayer<'r>),
+    PlayerGun(CtwkPlayerGun<'r>),
+    Ball(CtwkBall<'r>),
+    GuiColors(CtwkGuiColors<'r>),
 }
 
-impl<'r> Writable for Ctwk<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for Ctwk<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match self {
-            Ctwk::CtwkGame(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkPlayer(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkPlayerGun(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkBall(ctwk) => ctwk.write_to(writer),
-            Ctwk::CtwkGuiColors(ctwk) => ctwk.write_to(writer),
+            Ctwk::Game(ctwk) => ctwk.write_to(writer),
+            Ctwk::Player(ctwk) => ctwk.write_to(writer),
+            Ctwk::PlayerGun(ctwk) => ctwk.write_to(writer),
+            Ctwk::Ball(ctwk) => ctwk.write_to(writer),
+            Ctwk::GuiColors(ctwk) => ctwk.write_to(writer),
         }
     }
 }
 
-impl<'r> Readable<'r> for Ctwk<'r>
-{
+impl<'r> Readable<'r> for Ctwk<'r> {
     type Args = ();
-    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, (): ()) -> Self {
         // TODO: This will not work for every CTWK, need a way to differentiate:
         //  - PlayerControls from PlayerControls2 (size == 288)
         //  - Ball from GunRes (size == 480)
         match reader.len() {
-             96 => Ctwk::CtwkGame(reader.read(())),
-            800 => Ctwk::CtwkPlayer(reader.read(())),
-            512 => Ctwk::CtwkPlayerGun(reader.read(())),
-            480 => Ctwk::CtwkBall(reader.read(())),
-            2368 => Ctwk::CtwkGuiColors(reader.read(())),
+            96 => Ctwk::Game(reader.read(())),
+            800 => Ctwk::Player(reader.read(())),
+            512 => Ctwk::PlayerGun(reader.read(())),
+            480 => Ctwk::Ball(reader.read(())),
+            2368 => Ctwk::GuiColors(reader.read(())),
             _ => panic!("Unhandled CTWK size - {}", reader.len()),
         }
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         match self {
-            Ctwk::CtwkGame(ctwk) => ctwk.size(),
-            Ctwk::CtwkPlayer(ctwk) => ctwk.size(),
-            Ctwk::CtwkPlayerGun(ctwk) => ctwk.size(),
-            Ctwk::CtwkBall(ctwk) => ctwk.size(),
-            Ctwk::CtwkGuiColors(ctwk) => ctwk.size(),
+            Ctwk::Game(ctwk) => ctwk.size(),
+            Ctwk::Player(ctwk) => ctwk.size(),
+            Ctwk::PlayerGun(ctwk) => ctwk.size(),
+            Ctwk::Ball(ctwk) => ctwk.size(),
+            Ctwk::GuiColors(ctwk) => ctwk.size(),
         }
     }
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct CtwkGame<'r>
-{
+pub struct CtwkGame<'r> {
     pub start: Reader<'r>,
     pub world_prefix: CStr<'r>,
     pub default_room: CStr<'r>,
@@ -92,8 +85,7 @@ pub struct CtwkGame<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct CtwkPlayer<'r>
-{
+pub struct CtwkPlayer<'r> {
     // Copied from URDE. Note that the URDE header files are arbitrarily ordered. You need to view the .cpp to see the actual order
     pub start: Reader<'r>,
     pub max_translational_acceleration: GenericArray<f32, U8>,
@@ -267,23 +259,21 @@ pub struct CtwkPlayer<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct SShotParam
-{
+pub struct SShotParam {
     pub weapon_type: i32,
-//    pub charged : u8,
-//    pub combo : u8,
-//    pub insta_kill : u8,
+    //    pub charged : u8,
+    //    pub combo : u8,
+    //    pub insta_kill : u8,
     pub damage: f32,
     pub radius_damage: f32,
     pub radius: f32,
     pub knockback: f32,
-//    pub no_immunity: u8,
+    //    pub no_immunity: u8,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct SWeaponInfo
-{
+pub struct SWeaponInfo {
     pub cool_down: f32,
     pub normal: SShotParam,
     pub charged: SShotParam,
@@ -291,8 +281,7 @@ pub struct SWeaponInfo
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct CtwkPlayerGun<'r>
-{
+pub struct CtwkPlayerGun<'r> {
     pub start: Reader<'r>,
     pub up_look_angle: f32,
     pub down_look_angle: f32,
@@ -328,8 +317,7 @@ pub struct CtwkPlayerGun<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct CtwkBall<'r>
-{
+pub struct CtwkBall<'r> {
     pub start: Reader<'r>,
     pub max_translation_accel: GenericArray<f32, U8>,
     pub translation_friction: GenericArray<f32, U8>,
@@ -361,12 +349,11 @@ pub struct CtwkBall<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Clone, Debug)]
-pub struct CtwkGuiColors<'r>
-{
+pub struct CtwkGuiColors<'r> {
     pub start: Reader<'r>,
-    pub colors: GenericArray<GenericArray<f32,U4>, U112>, // Set of 112 RGBA values
+    pub colors: GenericArray<GenericArray<f32, U4>, U112>, // Set of 112 RGBA values
     pub visor_count: u32,
-    pub visor_colors: GenericArray<GenericArray<GenericArray<f32,U4>, U7>, U5>, // Set of 7 RGBA values repeated for 5 visors
+    pub visor_colors: GenericArray<GenericArray<GenericArray<f32, U4>, U7>, U5>, // Set of 7 RGBA values repeated for 5 visors
 
     #[auto_struct(pad_align = 32)]
     _pad: (),

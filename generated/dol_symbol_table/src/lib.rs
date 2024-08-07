@@ -1,10 +1,14 @@
 pub use dol_symbol_table_macro::{
-    mp1_100_symbol, mp1_101_symbol, mp1_102_symbol, mp1_pal_symbol, mp1_kor_symbol, mp1_jpn_symbol,
+    mp1_100_symbol,
+    mp1_101_symbol,
+    mp1_102_symbol,
+    mp1_jpn_symbol,
     // mp1_trilogy_ntsc_j_symbol, mp1_trilogy_ntsc_u_symbol, mp1_trilogy_pal_symbol,
+    mp1_kor_symbol,
+    mp1_pal_symbol,
 };
 
-pub struct Mp1Symbol
-{
+pub struct Mp1Symbol {
     pub addr_0_00: Option<u32>,
     pub addr_0_01: Option<u32>,
     pub addr_0_02: Option<u32>,
@@ -30,5 +34,5 @@ macro_rules! mp1_symbol {
             // addr_trilogy_ntsc_j: $crate::mp1_trilogy_ntsc_j_symbol!($syn_name),
             // addr_trilogy_pal: $crate::mp1_trilogy_pal_symbol!($syn_name),
         }
-    }
+    };
 }

@@ -1,20 +1,16 @@
-use auto_struct_macros::auto_struct;
+use std::io;
 
+use auto_struct_macros::auto_struct;
 use reader_writer::{
+    generic_array::{typenum::*, GenericArray},
     CStr, FourCC, LazyArray, Readable, Reader, RoArray, Writable,
 };
-use reader_writer::generic_array::GenericArray;
-use reader_writer::generic_array::typenum:: *;
 
-use crate::ResId;
-use crate::res_id::*;
-
-use std::io;
+use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct Frme<'r>
-{
+pub struct Frme<'r> {
     pub version: u32,
     pub unknown0: u32,
 
@@ -22,7 +18,7 @@ pub struct Frme<'r>
             .filter(|w| w.kind.fourcc() == b"MODL".into())
             .count() as u32
         )]
-    model_count: u32,// TODO: derive?
+    model_count: u32, // TODO: derive?
     pub unknown1: u32,
 
     #[auto_struct(derive = widgets.len() as u32)]
@@ -37,8 +33,7 @@ pub struct Frme<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct FrmeWidget<'r>
-{
+pub struct FrmeWidget<'r> {
     #[auto_struct(args)]
     version: u32,
 
@@ -70,27 +65,24 @@ pub struct FrmeWidget<'r>
 }
 
 #[derive(Clone, Debug)]
-pub enum FrmeWidgetKind<'r>
-{
-    Head,// HWIG
-    Base,// BWIG
-    Camera(CameraWidget),// CAMR
-    Light(LightWidget),// LITE
-    Model(ModelWidget),// MODL
-    TextPane(TextPaneWidget),// TXPN
-    Meter(MeterWidget),// METR
-    Energy(EnergyWidget),// ENRG
-    Group(GroupWidget),// GRUP
+pub enum FrmeWidgetKind<'r> {
+    Head,                         // HWIG
+    Base,                         // BWIG
+    Camera(CameraWidget),         // CAMR
+    Light(LightWidget),           // LITE
+    Model(ModelWidget),           // MODL
+    TextPane(TextPaneWidget),     // TXPN
+    Meter(MeterWidget),           // METR
+    Energy(EnergyWidget),         // ENRG
+    Group(GroupWidget),           // GRUP
     TableGroup(TableGroupWidget), // TBGP
-    Pane(PaneWidget),// PANE
-    Slider(SliderWidget),// SLGP
-    Image(ImageWidget<'r>), // IMGP
+    Pane(PaneWidget),             // PANE
+    Slider(SliderWidget),         // SLGP
+    Image(ImageWidget<'r>),       // IMGP
 }
 
-impl<'r> FrmeWidgetKind<'r>
-{
-    pub fn fourcc(&self) -> FourCC
-    {
+impl<'r> FrmeWidgetKind<'r> {
+    pub fn fourcc(&self) -> FourCC {
         match self {
             FrmeWidgetKind::Head => b"HWIG".into(),
             FrmeWidgetKind::Base => b"BWIG".into(),
@@ -109,11 +101,9 @@ impl<'r> FrmeWidgetKind<'r>
     }
 }
 
-impl<'r> Readable<'r> for FrmeWidgetKind<'r>
-{
+impl<'r> Readable<'r> for FrmeWidgetKind<'r> {
     type Args = (FourCC, u32);
-    fn read_from(reader: &mut Reader<'r>, (fourcc, version): Self::Args) -> Self
-    {
+    fn read_from(reader: &mut Reader<'r>, (fourcc, version): Self::Args) -> Self {
         if fourcc == b"HWIG".into() {
             FrmeWidgetKind::Head
         } else if fourcc == b"BWIG".into() {
@@ -145,8 +135,7 @@ impl<'r> Readable<'r> for FrmeWidgetKind<'r>
         }
     }
 
-    fn size(&self) -> usize
-    {
+    fn size(&self) -> usize {
         match self {
             FrmeWidgetKind::Head => 0,
             FrmeWidgetKind::Base => 0,
@@ -165,10 +154,8 @@ impl<'r> Readable<'r> for FrmeWidgetKind<'r>
     }
 }
 
-impl<'r> Writable for FrmeWidgetKind<'r>
-{
-    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64>
-    {
+impl<'r> Writable for FrmeWidgetKind<'r> {
+    fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match self {
             FrmeWidgetKind::Head => Ok(0),
             FrmeWidgetKind::Base => Ok(0),
@@ -187,11 +174,9 @@ impl<'r> Writable for FrmeWidgetKind<'r>
     }
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct CameraWidget
-{
+pub struct CameraWidget {
     #[auto_struct(derive = if perspective_projection.is_some() {
             assert!(orthographic_projection.is_none());
             0
@@ -207,11 +192,9 @@ pub struct CameraWidget
     pub orthographic_projection: Option<GenericArray<f32, U6>>,
 }
 
-
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct LightWidget
-{
+pub struct LightWidget {
     pub light_type: u32,
 
     pub dist_c: f32,
@@ -228,15 +211,13 @@ pub struct LightWidget
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct EnergyWidget
-{
+pub struct EnergyWidget {
     pub txtr: ResId<TXTR>,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct MeterWidget
-{
+pub struct MeterWidget {
     pub unknown: u8,
     pub no_round_up: u8,
     pub max_capacity: u32,
@@ -245,16 +226,14 @@ pub struct MeterWidget
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct GroupWidget
-{
+pub struct GroupWidget {
     pub default_worker: u16,
     pub unknown: u8,
 }
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct TableGroupWidget
-{
+pub struct TableGroupWidget {
     pub element_count: u16,
     pub unknown0: u16,
     pub unknown1: u32,
@@ -274,8 +253,7 @@ pub struct TableGroupWidget
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct SliderWidget
-{
+pub struct SliderWidget {
     pub min: f32,
     pub max: f32,
     pub curr: f32,
@@ -284,8 +262,7 @@ pub struct SliderWidget
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct PaneWidget
-{
+pub struct PaneWidget {
     pub x_dim: f32,
     pub z_dim: f32,
     pub scale_center: GenericArray<f32, U3>,
@@ -293,8 +270,7 @@ pub struct PaneWidget
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct TextPaneWidget
-{
+pub struct TextPaneWidget {
     #[auto_struct(args)]
     version: u32,
 
@@ -320,8 +296,7 @@ pub struct TextPaneWidget
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ImageWidget<'r>
-{
+pub struct ImageWidget<'r> {
     pub texture: ResId<TXTR>,
     pub unknown0: u32,
     pub unknown1: u32,
@@ -339,8 +314,7 @@ pub struct ImageWidget<'r>
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]
-pub struct ModelWidget
-{
+pub struct ModelWidget {
     pub model: ResId<CMDL>,
     pub blend_mode: u32,
     pub light_mask: u32,

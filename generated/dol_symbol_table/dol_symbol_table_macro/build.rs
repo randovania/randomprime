@@ -1,12 +1,13 @@
-use std::env;
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::path::Path;
+use std::{
+    env,
+    fs::File,
+    io::{BufRead, BufReader, BufWriter, Write},
+    path::Path,
+};
 
-fn main()
-{
+fn main() {
     let output_path = Path::new(&env::var("OUT_DIR").unwrap()).join("codegen.rs");
-    let mut output_file = BufWriter::new(File::create(&output_path).unwrap());
+    let mut output_file = BufWriter::new(File::create(output_path).unwrap());
 
     const GAME_VERSIONS: &[(&str, &str)] = &[
         ("1.00.txt", "MP1_100_SYMBOL_TABLE"),
@@ -30,11 +31,13 @@ fn main()
             &mut output_file,
             "static {}: phf::Map<&'static str, u32> = ",
             table_name,
-        ).unwrap();
-        let symbols = symbol_file.lines()
+        )
+        .unwrap();
+        let symbols = symbol_file
+            .lines()
             .filter_map(|line| {
                 let line = line.unwrap();
-                if line.len() == 0 {
+                if line.is_empty() {
                     None
                 } else {
                     assert_eq!(&line[..2], "0x");
@@ -50,6 +53,6 @@ fn main()
             map_generator.entry(&sym_name[..], &format!("0x{:X}", sym_addr));
         }
         write!(&mut output_file, "{}", map_generator.build()).unwrap();
-        write!(&mut output_file, ";\n").unwrap();
+        writeln!(&mut output_file, ";").unwrap();
     }
 }
