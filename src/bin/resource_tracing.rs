@@ -1058,20 +1058,23 @@ fn create_flamethrower(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         .is_none());
 }
 
-fn create_power_beam(pickup_table: &mut HashMap<PickupModel, PickupData>)
-{
+fn create_power_beam(pickup_table: &mut HashMap<PickupModel, PickupData>) {
     let mut bytes = Vec::new();
     {
         let mut pickup = Reader::new(&pickup_table[&PickupModel::IceBeam].bytes)
-            .read::<Pickup>(()).clone();
+            .read::<Pickup>(())
+            .clone();
         pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Power Beam\0").unwrap());
         pickup.cmdl = custom_asset_ids::POWER_BEAM_PICKUP_CMDL;
         pickup.ancs.file_id = custom_asset_ids::POWER_BEAM_PICKUP_ANCS;
         pickup.write_to(&mut bytes).unwrap();
     }
 
-    let mut deps: HashSet<_> = pickup_table[&PickupModel::IceBeam].deps.iter()
-        .filter(|i| ![
+    let mut deps: HashSet<_> = pickup_table[&PickupModel::IceBeam]
+        .deps
+        .iter()
+        .filter(|i| {
+            ![
             // b"SCAN".into(),
             // b"STRG".into(),
             // b"CMDL".into(),
@@ -1080,7 +1083,9 @@ fn create_power_beam(pickup_table: &mut HashMap<PickupModel, PickupData>)
             // b"ANIM".into(),
             // b"EVNT".into(),
             // b"TXTR".into(),
-        ].contains(&i.fourcc))
+        ]
+            .contains(&i.fourcc)
+        })
         .cloned()
         .collect();
 
@@ -1095,11 +1100,16 @@ fn create_power_beam(pickup_table: &mut HashMap<PickupModel, PickupData>)
         ResourceKey::from(custom_asset_ids::POWER_BEAM_PART_TXTR),
     ]);
 
-    assert!(pickup_table.insert(PickupModel::PowerBeam, PickupData {
-        bytes,
-        deps,
-        attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
-    }).is_none());
+    assert!(pickup_table
+        .insert(
+            PickupModel::PowerBeam,
+            PickupData {
+                bytes,
+                deps,
+                attainment_audio_file_name: b"/audio/jin_itemattain.dsp\0".to_vec(),
+            }
+        )
+        .is_none());
 }
 
 fn create_combat_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
