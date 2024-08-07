@@ -3973,29 +3973,31 @@ fn modify_pickups_in_mrea<'r>(
 
     let mut pickup_config = pickup_config.clone();
 
-    let scly = area.mrea().scly_section();
-    let layers = &scly.layers;
+    if force_vanilla_layout {
+        let scly = area.mrea().scly_section();
+        let layers = &scly.layers;
 
-    let layer = layers
-        .iter()
-        .nth(pickup_location.location.layer as usize)
-        .unwrap();
+        let layer = layers
+            .iter()
+            .nth(pickup_location.location.layer as usize)
+            .unwrap();
 
-    let pickup = layer
-        .objects
-        .iter()
-        .find(|obj| obj.instance_id == pickup_location.location.instance_id)
-        .unwrap();
+        let pickup = layer
+            .objects
+            .iter()
+            .find(|obj| obj.instance_id == pickup_location.location.instance_id)
+            .unwrap();
 
-    let pickup = pickup.property_data.as_pickup().unwrap();
+        let pickup = pickup.property_data.as_pickup().unwrap();
 
-    let pickup_model = pickup_model_for_pickup(&pickup)
-        .unwrap_or_else(|| panic!("could not derrive pickup model in room 0x{:X}", mrea_id));
-    let pickup_type = pickup_type_for_pickup(&pickup)
-        .unwrap_or_else(|| panic!("could not derrive pickup type in room 0x{:X}", mrea_id));
+        let pickup_model = pickup_model_for_pickup(&pickup)
+            .unwrap_or_else(|| panic!("could not derrive pickup model in room 0x{:X}", mrea_id));
+        let pickup_type = pickup_type_for_pickup(&pickup)
+            .unwrap_or_else(|| panic!("could not derrive pickup type in room 0x{:X}", mrea_id));
 
-    pickup_config.model = Some(pickup_model.name().to_string());
-    pickup_config.pickup_type = pickup_type.name().to_string();
+        pickup_config.model = Some(pickup_model.name().to_string());
+        pickup_config.pickup_type = pickup_type.name().to_string();
+    }
 
     let area_internal_id = area.mlvl_area.internal_id;
     let mut rng = StdRng::seed_from_u64(seed);
