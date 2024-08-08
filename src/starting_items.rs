@@ -28,6 +28,7 @@ pub struct StartingItems {
     pub wavebuster: bool,
     pub ice_spreader: bool,
     pub flamethrower: bool,
+    pub unknown1: i32,
 }
 
 impl StartingItems {
@@ -64,6 +65,7 @@ impl StartingItems {
             wavebuster: fetch_bits(1) == 1,
             ice_spreader: fetch_bits(1) == 1,
             flamethrower: fetch_bits(1) == 1,
+            unknown1: 12,
         }
     }
 
@@ -93,6 +95,7 @@ impl StartingItems {
         spawn_point.wavebuster = self.wavebuster as u32;
         spawn_point.ice_spreader = self.ice_spreader as u32;
         spawn_point.flamethrower = self.flamethrower as u32;
+        spawn_point.unknown1 = self.unknown1 as u32;
     }
 
     /// Custom deserializataion function that accepts an int as well as the usual struct/object
@@ -140,6 +143,7 @@ impl StartingItems {
             && !self.wavebuster
             && !self.ice_spreader
             && !self.flamethrower
+            && self.unknown1 == 0
     }
 }
 
@@ -171,6 +175,7 @@ impl Default for StartingItems {
             wavebuster: false,
             ice_spreader: false,
             flamethrower: false,
+            unknown1: 12,
         }
     }
 }
