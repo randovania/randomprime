@@ -8796,6 +8796,24 @@ fn patch_purge_debris_extended(
     Ok(())
 }
 
+fn patch_reshape_biotech_water(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+    let objects = layer.objects.as_mut_vec();
+    let obj = objects
+        .iter_mut()
+        .find(|obj| obj.instance_id == 0x00200011)
+        .expect("Couldn't find biotech research area 1 water");
+    let water = obj.property_data.as_water_mut().unwrap();
+    water.position = [-62.0382, 219.6796, -38.5024].into();
+    water.scale = [59.062996, 72.790009, 98.012009].into();
+
+    Ok(())
+}
+
 fn patch_fix_deck_beta_security_hall_crash(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -14262,6 +14280,10 @@ fn patch_qol_game_breaking(
     patcher.add_scly_patch(
         resource_info!("05_under_intro_zoo.MREA").into(),
         patch_purge_debris_extended,
+    );
+    patcher.add_scly_patch(
+        resource_info!("05_under_intro_specimen_chamber.MREA").into(),
+        patch_reshape_biotech_water,
     );
     patcher.add_scly_patch(
         resource_info!("00p_mines_connect.MREA").into(),
