@@ -7971,6 +7971,19 @@ fn patch_backwards_lower_mines_eqa(
     Ok(())
 }
 
+fn patch_backwards_lower_mines_eq(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    // pal/jp
+    area.mrea().scly_section_mut().layers.as_mut_vec()[0]
+        .objects
+        .as_mut_vec()
+        .retain(|obj| obj.instance_id & 0x00FFFFFF != 0x001A04EC);
+
+    Ok(())
+}
+
 fn patch_backwards_lower_mines_mqb(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -8809,7 +8822,7 @@ fn patch_reshape_biotech_water(
         .expect("Couldn't find biotech research area 1 water");
     let water = obj.property_data.as_water_mut().unwrap();
     water.position = [-62.0382, 219.6796, -38.5024].into();
-    water.scale = [59.062996, 72.790009, 98.012009].into();
+    water.scale = [59.062996, 72.790_01, 98.012_01].into();
 
     Ok(())
 }
@@ -14502,6 +14515,10 @@ fn patch_qol_logical(patcher: &mut PrimePatcher, config: &PatchConfig, version: 
         patcher.add_scly_patch(
             resource_info!("00p_mines_connect.MREA").into(),
             patch_backwards_lower_mines_pca,
+        );
+        patcher.add_scly_patch(
+            resource_info!("12_mines_eliteboss.MREA").into(),
+            patch_backwards_lower_mines_eq,
         );
         patcher.add_scly_patch(
             resource_info!("00o_mines_connect.MREA").into(),
