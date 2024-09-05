@@ -2384,16 +2384,6 @@ fn patch_add_item<'r>(
     // Pickup to use for game functionality //
     let pickup_type = PickupType::from_str(&pickup_config.pickup_type);
 
-    if pickup_type == PickupType::FloatyJump {
-        let deps = WaterType::Normal.dependencies();
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
-            asset_id: file_id,
-            asset_type: fourcc,
-        });
-
-        area.add_dependencies(game_resources, 0, deps_iter);
-    }
-
     let extern_model = if pickup_config.model.is_some() {
         extern_models.get(pickup_config.model.as_ref().unwrap())
     } else {
@@ -2813,17 +2803,8 @@ fn patch_add_item<'r>(
     // );
 
     // generate object IDs before borrowing scly section as mutable
-    let mut floaty_contraption_id = [0, 0, 0, 0];
     let mut poi_id = 0;
     let mut special_fn_artifact_layer_change_id = 0;
-    if pickup_type == PickupType::FloatyJump {
-        floaty_contraption_id = [
-            area.new_object_id_from_layer_id(new_layer_idx),
-            area.new_object_id_from_layer_id(new_layer_idx),
-            area.new_object_id_from_layer_id(new_layer_idx),
-            area.new_object_id_from_layer_id(new_layer_idx),
-        ];
-    }
     let special_function_id = area.new_object_id_from_layer_id(new_layer_idx);
     let four_ids = [
         area.new_object_id_from_layer_id(new_layer_idx),
@@ -2843,26 +2824,6 @@ fn patch_add_item<'r>(
 
     let scly = area.mrea().scly_section_mut();
     let layers = scly.layers.as_mut_vec();
-
-    if pickup_type == PickupType::FloatyJump {
-        place_floaty_contraption(
-            layers[0].objects.as_mut_vec(),
-            floaty_contraption_id[0],
-            floaty_contraption_id[1],
-            floaty_contraption_id[2],
-            floaty_contraption_id[3],
-            pickup_position,
-        );
-
-        pickup_obj
-            .connections
-            .as_mut_vec()
-            .push(structs::Connection {
-                state: structs::ConnectionState::ARRIVED,
-                message: structs::ConnectionMsg::RESET_AND_START,
-                target_object_id: floaty_contraption_id[0],
-            });
-    }
 
     if shuffle_position || *pickup_config.jumbo_scan.as_ref().unwrap_or(&false) {
         layers[new_layer_idx]
@@ -4064,16 +4025,6 @@ fn modify_pickups_in_mrea<'r>(
     // Pickup to use for game functionality //
     let pickup_type = PickupType::from_str(&pickup_config.pickup_type);
 
-    if pickup_type == PickupType::FloatyJump {
-        let deps = WaterType::Normal.dependencies();
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
-            asset_id: file_id,
-            asset_type: fourcc,
-        });
-
-        area.add_dependencies(game_resources, 0, deps_iter);
-    }
-
     let extern_model = if pickup_config.model.is_some() {
         extern_models.get(pickup_config.model.as_ref().unwrap())
     } else {
@@ -4193,7 +4144,6 @@ fn modify_pickups_in_mrea<'r>(
     let post_pickup_relay_id = area.new_object_id_from_layer_name("Default");
     let mut special_fn_artifact_layer_change_id = 0;
     let mut trigger_id = 0;
-    let mut floaty_contraption_id = [0, 0, 0, 0];
 
     let pickup_kind = pickup_type.kind();
     if (29..=40).contains(&pickup_kind) {
@@ -4203,15 +4153,6 @@ fn modify_pickups_in_mrea<'r>(
     // Fix chapel IS
     if mrea_id == 0x40C548E9 {
         trigger_id = area.new_object_id_from_layer_name("Default");
-    }
-
-    if pickup_type == PickupType::FloatyJump {
-        floaty_contraption_id = [
-            area.new_object_id_from_layer_id(0),
-            area.new_object_id_from_layer_id(0),
-            area.new_object_id_from_layer_id(0),
-            area.new_object_id_from_layer_id(0),
-        ];
     }
 
     let four_ids = [
@@ -4509,14 +4450,6 @@ fn modify_pickups_in_mrea<'r>(
         });
     }*/
 
-    if pickup_type == PickupType::FloatyJump {
-        additional_connections.push(structs::Connection {
-            state: structs::ConnectionState::ARRIVED,
-            message: structs::ConnectionMsg::RESET_AND_START,
-            target_object_id: floaty_contraption_id[0],
-        });
-    }
-
     if jumbo_poi {
         layers[0].objects.as_mut_vec().push(structs::SclyObject {
             instance_id: jumbo_poi_special_function_id,
@@ -4596,17 +4529,6 @@ fn modify_pickups_in_mrea<'r>(
                 .as_mut_vec()
                 .extend_from_slice(&additional_connections);
         }
-    }
-
-    if pickup_type == PickupType::FloatyJump {
-        place_floaty_contraption(
-            layers[0].objects.as_mut_vec(),
-            floaty_contraption_id[0],
-            floaty_contraption_id[1],
-            floaty_contraption_id[2],
-            floaty_contraption_id[3],
-            position,
-        );
     }
 
     if jumbo_poi {
@@ -4694,115 +4616,6 @@ fn modify_pickups_in_mrea<'r>(
     update_attainment_audio(attainment_audio, pickup_type);
 
     Ok(())
-}
-
-fn place_floaty_contraption(
-    objects: &mut Vec<structs::SclyObject>,
-    timer1_id: u32, // send RESET_AND_START to this ID to give floaty
-    timer2_id: u32,
-    water_id: u32,
-    camera_id: u32,
-    position: [f32; 3],
-) {
-    if timer1_id == 0
-        || timer2_id == 0
-        || water_id == 0
-        || camera_id == 0
-        || timer1_id == timer2_id
-        || timer1_id == water_id
-        || timer1_id == camera_id
-        || timer2_id == water_id
-        || timer2_id == camera_id
-        || water_id == camera_id
-    {
-        panic!("something went wrong making floaty contraption");
-    }
-
-    let mut water_obj = WaterType::Normal.to_obj();
-    water_obj.instance_id = water_id;
-
-    let water = water_obj.property_data.as_water_mut().unwrap();
-    water.position = position.into();
-    water.scale = [5.0, 5.0, 5.0].into();
-    water.active = 0;
-
-    objects.push(water_obj);
-
-    objects.push(structs::SclyObject {
-        instance_id: timer1_id,
-        property_data: structs::Timer {
-            name: b"floaty timer1\0".as_cstr(),
-
-            start_time: 1.0 / 60.0,
-            max_random_add: 0.0,
-            looping: 0,
-            start_immediately: 0,
-            active: 1,
-        }
-        .into(),
-        connections: vec![
-            structs::Connection {
-                state: structs::ConnectionState::ZERO,
-                message: structs::ConnectionMsg::ACTIVATE,
-                target_object_id: water_id,
-            },
-            structs::Connection {
-                state: structs::ConnectionState::ZERO,
-                message: structs::ConnectionMsg::RESET_AND_START,
-                target_object_id: timer2_id,
-            },
-            structs::Connection {
-                state: structs::ConnectionState::ZERO,
-                message: structs::ConnectionMsg::ACTIVATE,
-                target_object_id: camera_id,
-            },
-        ]
-        .into(),
-    });
-
-    objects.push(structs::SclyObject {
-        instance_id: timer2_id,
-        property_data: structs::Timer {
-            name: b"floaty timer2\0".as_cstr(),
-
-            start_time: 1.0 / 60.0,
-            max_random_add: 0.0,
-            looping: 0,
-            start_immediately: 0,
-            active: 1,
-        }
-        .into(),
-        connections: vec![structs::Connection {
-            state: structs::ConnectionState::ZERO,
-            message: structs::ConnectionMsg::DEACTIVATE,
-            target_object_id: water_id,
-        }]
-        .into(),
-    });
-
-    objects.push(structs::SclyObject {
-        instance_id: camera_id,
-        property_data: structs::Camera {
-            name: b"floaty camera\0".as_cstr(),
-
-            position: [position[0], position[1], position[2] + 5.0].into(),
-            rotation: [0.0, 0.0, 0.0].into(),
-            active: 0,
-            shot_duration: 2.0 / 60.0,
-            look_at_player: 0,
-            out_of_player_eye: 0,
-            into_player_eye: 0,
-            draw_player: 0,
-            disable_input: 1,
-            unknown: 0,
-            finish_cine_skip: 0,
-            field_of_view: 140.0,
-            check_failsafe: 1,
-            disable_out_of_into: 0,
-        }
-        .into(),
-        connections: vec![].into(),
-    });
 }
 
 fn update_pickup(
@@ -11508,7 +11321,7 @@ fn patch_dol(
             // check if it is ice trap
         check_ice_trap:
             cmpwi        r29, { PickupType::IceTrap.kind() };
-            bne          continue_init_power_up;
+            bne          check_floaty_jump;
             mr           r16, r5;
             lwz          r3, 0x84c(r25);
             mr           r4, r25;
@@ -11532,6 +11345,27 @@ fn patch_dol(
             andis        r4, r4, 0x7fff;
             stw          r4, 0x0(r5);
         not_dead_from_ice_trap:
+            b            end_init_power_up;
+
+        check_floaty_jump:
+            cmpwi        r29, { PickupType::FloatyJump.kind() };
+            bne          continue_init_power_up;
+            lwz          r3, 0x84c(r25);
+            lwz          r4, 0xe4(r3);
+            cmpwi        r14, 0;
+            blt          remove_floaty_jump;
+            li           r5, 0x4000; // 4 << 12 => Fluid Count = 0b100
+            or           r4, r4, r5;
+            lis          r5, 0x41a0; // 20.0
+            b            apply_floaty_jump;
+        remove_floaty_jump:
+            li           r5, 0x7000; // 7 << 12 => Fluid Count = 0b111
+            nor          r5, r5, r5;
+            and          r4, r4, r5;
+            lis          r5, 0;
+        apply_floaty_jump:
+            stw          r4, 0xe4(r3);
+            stw          r5, 0x828(r3);
             b            end_init_power_up;
 
             // check for max capacity
