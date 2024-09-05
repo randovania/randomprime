@@ -11468,6 +11468,8 @@ fn patch_dol(
         check_custom_item:
             cmpwi        r29, { PickupType::ArtifactOfNewborn.kind() };
             ble          continue_init_power_up;
+            cmpwi        r29, { PickupType::Nothing.kind() };
+            bge          check_missile_launcher;
             li           r3, { PickupType::UnknownItem2.kind() };
             rlwinm       r0, r3, 0x3, 0x0, 0x1c;
             add          r3, r31, r0;
@@ -11487,6 +11489,7 @@ fn patch_dol(
         set_custom_item:
             stw          r4, 0x0(r3);
 
+        check_missile_launcher:
             // check if it is missile launcher
             cmpwi        r29, { PickupType::MissileLauncher.kind() };
             bne          check_power_bomb;
