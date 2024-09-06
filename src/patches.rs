@@ -11258,10 +11258,10 @@ fn patch_dol(
     } else {
         (0xe4, 0x828)
     };
-    let life_time_offset = if [Version::Pal, Version::NtscJ].contains(&version) {
-        0x27c
+    let (probability_offset, life_time_offset) = if [Version::Pal, Version::NtscJ].contains(&version) {
+        (0x274, 0x27c)
     } else {
-        0x26c
+        (0x264, 0x26c)
     };
     let custom_item_initialize_power_up_hook = ppcasm!(symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x1c, {
             b            { new_text_section_end };
@@ -11274,10 +11274,13 @@ fn patch_dol(
             lis          r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@h;
             addi         r15, r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@l;
 
-            // add to item total if pickup isn't disappearing
-            lwz          r3, 0x14(r1);
-            lwz          r3, { life_time_offset }(r3);
+            // add to item total if pickup isn't disappearing and has 100% probability to spawn
+            lwz          r4, 0x14(r1);
+            lwz          r3, { life_time_offset }(r4);
             cmpwi        r3, 0;
+            lhz          r3, { probability_offset }(r4);
+            bne          check_custom_item;
+            cmpwi        r3, 0x42c8;
             bne          check_custom_item;
             li           r3, { PickupType::PowerSuit.kind() };
             rlwinm       r0, r3, 0x3, 0x0, 0x1c;
