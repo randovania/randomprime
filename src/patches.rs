@@ -754,7 +754,11 @@ fn patch_door<'r>(
             .into(),
         });
 
-        let door_shield_location = door_loc.door_shield_locations[0];
+        let door_shield_location = match (mrea_id, door_loc.dock_number) {
+            (0xD5CDB809, 4) => ScriptObjectLocation {layer: 0, instance_id: 0x20004}, // main plaza
+            _ => door_loc.door_shield_locations[0],
+        };
+
         let door_shield = layers[door_shield_location.layer as usize]
             .objects
             .iter_mut()
@@ -1896,23 +1900,27 @@ fn patch_door<'r>(
 
         /* Create new door shield from existing */
         {
-            let door_shield = {
-                let mut door_shield = None;
-                for door_shield_location in door_loc.door_shield_locations.iter() {
-                    door_shield = layers[door_shield_location.layer as usize]
-                        .objects
-                        .iter_mut()
-                        .find(|obj| obj.instance_id == door_shield_location.instance_id);
-                    if door_shield.is_some() {
-                        break;
+
+            let door_shield = match (mrea_id, door_loc.dock_number) {
+                (0xD5CDB809, 4) => layers[0 as usize].objects.iter_mut().find(|obj|obj.instance_id == 0x20004).unwrap(), // main plaza
+                _ => {
+                    let mut door_shield = None;
+                    for door_shield_location in door_loc.door_shield_locations.iter() {
+                        door_shield = layers[door_shield_location.layer as usize]
+                            .objects
+                            .iter_mut()
+                            .find(|obj| obj.instance_id == door_shield_location.instance_id);
+                        if door_shield.is_some() {
+                            break;
+                        }
                     }
+                    door_shield.unwrap_or_else(|| {
+                        panic!(
+                            "Could not find suitable door shield actor in room 0x{:X}",
+                            mrea_id
+                        )
+                    })
                 }
-                door_shield.unwrap_or_else(|| {
-                    panic!(
-                        "Could not find suitable door shield actor in room 0x{:X}",
-                        mrea_id
-                    )
-                })
             };
 
             let mut new_door_shield = door_shield.clone();
@@ -2265,27 +2273,30 @@ fn patch_door<'r>(
 
         /* Create new damageable trigger from existing */
         {
-            let door_force = {
-                let mut door_force = None;
-                for door_force_location in door_loc.door_force_locations.iter() {
-                    let obj = layers[door_force_location.layer as usize]
-                        .objects
-                        .iter()
-                        .find(|obj| obj.instance_id == door_force_location.instance_id);
-
-                    if obj.is_none() {
-                        continue;
+            let door_force = match (mrea_id, door_loc.dock_number) {
+                (0xD5CDB809, 4) => layers[0 as usize].objects.iter().find(|obj|obj.instance_id == 0x2000F).unwrap(), // main plaza
+                _ => {
+                    let mut door_force = None;
+                    for door_force_location in door_loc.door_force_locations.iter() {
+                        let obj = layers[door_force_location.layer as usize]
+                            .objects
+                            .iter()
+                            .find(|obj| obj.instance_id == door_force_location.instance_id);
+    
+                        if obj.is_none() {
+                            continue;
+                        }
+    
+                        door_force = obj;
+                        break;
                     }
-
-                    door_force = obj;
-                    break;
-                }
-                door_force.unwrap_or_else(|| {
-                    panic!(
-                        "Could not find suitable door damageable trigger in room 0x{:X}",
-                        mrea_id
-                    )
-                })
+                    door_force.unwrap_or_else(|| {
+                        panic!(
+                            "Could not find suitable door damageable trigger in room 0x{:X}",
+                            mrea_id
+                        )
+                    })
+                },
             };
 
             let mut new_door_force = structs::SclyObject {
@@ -14462,13 +14473,6 @@ fn patch_qol_game_breaking(
 }
 
 fn patch_qol_logical(patcher: &mut PrimePatcher, config: &PatchConfig, version: Version) {
-    if config.main_plaza_door {
-        patcher.add_scly_patch(
-            resource_info!("01_mainplaza.MREA").into(),
-            make_main_plaza_locked_door_two_ways,
-        );
-    }
-
     if config.phazon_elite_without_dynamo {
         patcher.add_scly_patch(resource_info!("03_mines.MREA").into(), |_ps, area| {
             let flags = &mut area.layer_flags.flags;
@@ -16419,6 +16423,13 @@ fn build_and_run_patches<'r>(
                 });
             }
         }
+    }
+
+    if config.main_plaza_door {
+        patcher.add_scly_patch(
+            resource_info!("01_mainplaza.MREA").into(),
+            make_main_plaza_locked_door_two_ways,
+        );
     }
 
     // Patch pickups
