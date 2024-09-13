@@ -755,7 +755,10 @@ fn patch_door<'r>(
         });
 
         let door_shield_location = match (mrea_id, door_loc.dock_number) {
-            (0xD5CDB809, 4) => ScriptObjectLocation {layer: 0, instance_id: 0x20004}, // main plaza
+            (0xD5CDB809, 4) => ScriptObjectLocation {
+                layer: 0,
+                instance_id: 0x20004,
+            }, // main plaza
             _ => door_loc.door_shield_locations[0],
         };
 
@@ -1900,9 +1903,12 @@ fn patch_door<'r>(
 
         /* Create new door shield from existing */
         {
-
             let door_shield = match (mrea_id, door_loc.dock_number) {
-                (0xD5CDB809, 4) => layers[0 as usize].objects.iter_mut().find(|obj|obj.instance_id == 0x20004).unwrap(), // main plaza
+                (0xD5CDB809, 4) => layers[0_usize]
+                    .objects
+                    .iter_mut()
+                    .find(|obj| obj.instance_id == 0x20004)
+                    .unwrap(), // main plaza
                 _ => {
                     let mut door_shield = None;
                     for door_shield_location in door_loc.door_shield_locations.iter() {
@@ -2274,7 +2280,11 @@ fn patch_door<'r>(
         /* Create new damageable trigger from existing */
         {
             let door_force = match (mrea_id, door_loc.dock_number) {
-                (0xD5CDB809, 4) => layers[0 as usize].objects.iter().find(|obj|obj.instance_id == 0x2000F).unwrap(), // main plaza
+                (0xD5CDB809, 4) => layers[0_usize]
+                    .objects
+                    .iter()
+                    .find(|obj| obj.instance_id == 0x2000F)
+                    .unwrap(), // main plaza
                 _ => {
                     let mut door_force = None;
                     for door_force_location in door_loc.door_force_locations.iter() {
@@ -2282,11 +2292,11 @@ fn patch_door<'r>(
                             .objects
                             .iter()
                             .find(|obj| obj.instance_id == door_force_location.instance_id);
-    
+
                         if obj.is_none() {
                             continue;
                         }
-    
+
                         door_force = obj;
                         break;
                     }
@@ -2296,7 +2306,7 @@ fn patch_door<'r>(
                             mrea_id
                         )
                     })
-                },
+                }
             };
 
             let mut new_door_force = structs::SclyObject {
@@ -8827,13 +8837,13 @@ fn patch_reshape_biotech_water(
     let scly = area.mrea().scly_section_mut();
     let layer = &mut scly.layers.as_mut_vec()[0];
     let objects = layer.objects.as_mut_vec();
-    let obj = objects
-        .iter_mut()
-        .find(|obj| obj.instance_id == 0x00200011)
-        .expect("Couldn't find biotech research area 1 water");
-    let water = obj.property_data.as_water_mut().unwrap();
-    water.position = [-62.0382, 219.6796, -38.5024].into();
-    water.scale = [59.062996, 72.790_01, 98.012_01].into();
+    let obj = objects.iter_mut().find(|obj| obj.instance_id == 0x00200011);
+
+    if let Some(obj) = obj {
+        let water = obj.property_data.as_water_mut().unwrap();
+        water.position = [-62.0382, 219.6796, -38.5024].into();
+        water.scale = [59.062996, 72.790_01, 98.012_01].into();
+    }
 
     Ok(())
 }
@@ -17034,8 +17044,19 @@ fn build_and_run_patches<'r>(
                             );
                         }
 
-                        let submerge = room.submerge.unwrap_or(false);
-                        if room.remove_water.unwrap_or(false) || submerge {
+                        let (remove, submerge) = {
+                            let remove = room.remove_water.unwrap_or(false);
+                            let submerge = room.submerge.unwrap_or(false);
+                            match room_info.room_id.to_u32() {
+                                // tallon - biotech research area 1
+                                0x5F2EB7B6 => {
+                                    (remove && !submerge, false) // avoid conflict with gamebreaking qol patch
+                                }
+                                _ => (remove || submerge, submerge),
+                            }
+                        };
+
+                        if remove {
                             patcher.add_scly_patch(
                                 (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                 move |_ps, area| patch_remove_water(_ps, area, submerge),
