@@ -11469,7 +11469,6 @@ fn patch_dol(
     new_text_section_end += custom_item_has_power_up_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_has_power_up_patch.encoded_bytes());
 
-    // TODO: Fix it for PAL
     let custom_item_get_item_amount_hook = ppcasm!(symbol_addr!("GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType", version), {
             b            { new_text_section_end };
     });
