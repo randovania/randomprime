@@ -2520,8 +2520,10 @@ fn patch_add_item<'r>(
             0
         } else if pickup_config.curr_increase.is_some() {
             pickup_config.curr_increase.unwrap()
-        } else if pickup_type == PickupType::Missile {
+        } else if [PickupType::Missile, PickupType::MissileLauncher].contains(&pickup_type) {
             5
+        } else if pickup_type == PickupType::PowerBombLauncher {
+            4
         } else if pickup_type == PickupType::HealthRefill {
             50
         } else {
@@ -4657,8 +4659,10 @@ fn update_pickup(
             0
         } else if pickup_config.curr_increase.is_some() {
             pickup_config.curr_increase.unwrap()
-        } else if pickup_type == PickupType::Missile {
+        } else if [PickupType::Missile, PickupType::MissileLauncher].contains(&pickup_type) {
             5
+        } else if pickup_type == PickupType::PowerBombLauncher {
+            4
         } else if pickup_type == PickupType::HealthRefill {
             50
         } else {
