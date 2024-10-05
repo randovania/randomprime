@@ -11257,10 +11257,10 @@ fn patch_dol(
 
     // custom item support
     let first_custom_item_idx = -1 * (PickupType::ArtifactOfNewborn.kind() + 1) as i32;
-    let (actor_flags_offset, fluid_depth_offset) = if [Version::Pal, Version::NtscJ, Version::NtscU0_02].contains(&version) {
-        (0xf0, 0x838)
+    let (actor_flags_offset, out_of_water_ticks_offset, fluid_depth_offset) = if [Version::Pal, Version::NtscJ, Version::NtscU0_02].contains(&version) {
+        (0xf0, 0x2c0, 0x838)
     } else {
-        (0xe4, 0x828)
+        (0xe4, 0x2b0, 0x828)
     };
     let (probability_offset, life_time_offset) = if [Version::Pal, Version::NtscJ].contains(&version) {
         (0x274, 0x27c)
@@ -11364,25 +11364,47 @@ fn patch_dol(
         not_dead_from_ice_trap:
             b            end_init_power_up;
 
+            // check if it is floaty jump
         check_floaty_jump:
             cmpwi        r29, { PickupType::FloatyJump.kind() };
             bne          continue_init_power_up;
             lwz          r3, 0x84c(r30);
-            lwz          r4, { actor_flags_offset }(r3);
+            lwz          r0, { out_of_water_ticks_offset }(r3);
+            lwz          r5, { actor_flags_offset }(r3);
+            mr           r4, r5;
+            srwi         r5, r5, 14; // remove bits on the right of fluid count
+            andi         r5, r5, 7;  // remove bits on the left of fluid count
+
+            // remove fluid counts
+            lis          r6, 0xffff;
+            ori          r6, r6, 0x3fff;
+            and          r4, r4, r6;
+
             cmpwi        r14, 0;
             blt          remove_floaty_jump;
-            li           r5, 0x4000; // 4 << 12 => Fluid Count = 0b100
-            or           r4, r4, r5;
+            addi         r5, r5, 1;  // add 1 to fluid count
+            andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
+            slwi         r5, r5, 14;
+            or           r4, r4, r5; // actor flags |= (value << 14)
+            cmpwi        r0, 2;      // check if we are in water
+            bne          apply_underwater_floaty_jump;
             lis          r5, 0x41a0; // 20.0
             b            apply_floaty_jump;
         remove_floaty_jump:
-            li           r5, 0x7000; // 7 << 12 => Fluid Count = 0b111
-            nor          r5, r5, r5; // flip bits
-            and          r4, r4, r5; // set Fluid Count to 0b000
+            cmpwi        r5, 0;
+            ble          do_not_decrement_fluid_count;
+            addi         r5, r5, -1; // subtract 1 to fluid count
+        do_not_decrement_fluid_count:
+            andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
+            slwi         r5, r5, 14;
+            or           r4, r4, r5; // actor flags |= (value << 14)
+            cmpwi        r0, 2;      // check if we are in water
+            bne          apply_underwater_floaty_jump;
             lis          r5, 0;
         apply_floaty_jump:
-            stw          r4, { actor_flags_offset }(r3);
             stw          r5, { fluid_depth_offset }(r3);
+        apply_underwater_floaty_jump:
+            stw          r4, { actor_flags_offset }(r3);
             b            end_init_power_up;
 
             // check for max capacity
