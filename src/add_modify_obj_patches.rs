@@ -616,9 +616,15 @@ pub fn patch_add_special_fn(
     let default_unknown0 = "".to_string();
     let unknown0 = config.unknown1.as_ref().unwrap_or(&default_unknown0);
     let unknown0 = string_to_cstr(unknown0.clone());
-    let default_item_id = "Power Beam".to_string();
-    let item_id = config.item_id.as_ref().unwrap_or(&default_item_id);
-    let item_id = PickupType::from_str(&item_id[..]) as u32;
+    let pickup_type = match config.item_id.as_ref() {
+        Some(item_id) => {
+            PickupType::from_str(item_id)
+        },
+        None => {
+            PickupType::PowerBeam
+        },
+    };
+    let item_id = pickup_type as u32;
 
     macro_rules! new {
         () => {
