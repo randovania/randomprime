@@ -1,3 +1,5 @@
+use crate::pickup_meta::PickupType;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,6 +19,7 @@ pub struct StartingItems {
     pub bombs: bool,
     pub spider_ball: bool,
     pub boost_ball: bool,
+    pub power_suit: u32,
     pub varia_suit: bool,
     pub gravity_suit: bool,
     pub phazon_suit: bool,
@@ -28,6 +31,12 @@ pub struct StartingItems {
     pub wavebuster: bool,
     pub ice_spreader: bool,
     pub flamethrower: bool,
+    pub unknown_item_1: u32,
+    pub unlimited_missiles: bool,
+    pub unlimited_power_bombs: bool,
+    pub missile_launcher: bool,
+    pub power_bomb_launcher: bool,
+    pub spring_ball: bool,
 }
 
 impl StartingItems {
@@ -53,6 +62,7 @@ impl StartingItems {
             bombs: fetch_bits(1) == 1,
             spider_ball: fetch_bits(1) == 1,
             boost_ball: fetch_bits(1) == 1,
+            power_suit: 0,
             varia_suit: fetch_bits(1) == 1,
             gravity_suit: fetch_bits(1) == 1,
             phazon_suit: fetch_bits(1) == 1,
@@ -64,6 +74,12 @@ impl StartingItems {
             wavebuster: fetch_bits(1) == 1,
             ice_spreader: fetch_bits(1) == 1,
             flamethrower: fetch_bits(1) == 1,
+            unknown_item_1: 0,
+            unlimited_missiles: false,
+            unlimited_power_bombs: false,
+            missile_launcher: true,
+            power_bomb_launcher: true,
+            spring_ball: false,
         }
     }
 
@@ -82,6 +98,7 @@ impl StartingItems {
         spawn_point.bombs = self.bombs as u32;
         spawn_point.spider_ball = self.spider_ball as u32;
         spawn_point.boost_ball = self.boost_ball as u32;
+        spawn_point.power_suit = 0;
         spawn_point.varia_suit = self.varia_suit as u32;
         spawn_point.gravity_suit = self.gravity_suit as u32;
         spawn_point.phazon_suit = self.phazon_suit as u32;
@@ -93,6 +110,24 @@ impl StartingItems {
         spawn_point.wavebuster = self.wavebuster as u32;
         spawn_point.ice_spreader = self.ice_spreader as u32;
         spawn_point.flamethrower = self.flamethrower as u32;
+        spawn_point.unknown_item_1 = self.unknown_item_1 as u32;
+        let mut unknown_item_2 = 0;
+        if self.unlimited_missiles {
+            unknown_item_2 |= PickupType::UnlimitedMissiles.custom_item_value();
+        }
+        if self.unlimited_power_bombs {
+            unknown_item_2 |= PickupType::UnlimitedPowerBombs.custom_item_value();
+        }
+        if self.missile_launcher {
+            unknown_item_2 |= PickupType::MissileLauncher.custom_item_value();
+        }
+        if self.power_bomb_launcher {
+            unknown_item_2 |= PickupType::PowerBombLauncher.custom_item_value();
+        }
+        if self.spring_ball {
+            unknown_item_2 |= PickupType::SpringBall.custom_item_value();
+        }
+        spawn_point.unknown_item_2 = unknown_item_2 as u32;
     }
 
     /// Custom deserializataion function that accepts an int as well as the usual struct/object
@@ -140,6 +175,11 @@ impl StartingItems {
             && !self.wavebuster
             && !self.ice_spreader
             && !self.flamethrower
+            && !self.unlimited_missiles
+            && !self.unlimited_power_bombs
+            && !self.missile_launcher
+            && !self.power_bomb_launcher
+            && !self.spring_ball
     }
 }
 
@@ -160,6 +200,7 @@ impl Default for StartingItems {
             bombs: false,
             spider_ball: false,
             boost_ball: false,
+            power_suit: 0,
             varia_suit: false,
             gravity_suit: false,
             phazon_suit: false,
@@ -171,6 +212,12 @@ impl Default for StartingItems {
             wavebuster: false,
             ice_spreader: false,
             flamethrower: false,
+            unknown_item_1: 0,
+            unlimited_missiles: false,
+            unlimited_power_bombs: false,
+            missile_launcher: true,
+            power_bomb_launcher: true,
+            spring_ball: false
         }
     }
 }

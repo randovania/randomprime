@@ -327,9 +327,22 @@
                     "type": "string"
                 },
                 "springBall": {
-                    "description": "Restores the Spring Ball feature from Metroid Prime Trilogy. Use C-Stick Up while being morphed to use Spring Ball. NOTE: You need Morph Ball Bombs to use Spring Ball just like in Metroid Prime Trilogy.",
+                    "description": "[Deprecated] Restores the Spring Ball feature from Metroid Prime Trilogy. Use C-Stick Up while being morphed to use Spring Ball. NOTE: You need Morph Ball Bombs to use Spring Ball just like in Metroid Prime Trilogy.",
                     "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "deprecated": true
+                },
+                "springBallItem": {
+                    "description": "Spring Ball will require this item to be obtained before being able to use it.",
+                    "$ref": "#/$defs/pickupType",
+                    "not": {
+                        "enum": [
+                            "Nothing",
+                            "Floaty Jump",
+                            "Ice Trap"
+                        ]
+                    },
+                    "default": "Spring Ball"
                 },
                 "warpToStart": {
                     "description": "Refusing to save at any Save Station while holding L + R will warp you to the starting location (by default, Samus' Ship in Tallon Overworld: Landing Site)",
@@ -470,9 +483,10 @@
                     "default": false
                 },
                 "enableIceTraps": {
-                    "description": "Set to true if Ice Traps items are used in this layout.",
+                    "description": "[Deprecated] Does not do anything anymore",
                     "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "deprecated": true
                 },
                 "missileStationPbRefill": {
                     "description": "If enabled, Missile Stations also refill Power Bomb ammunition.",
@@ -2492,6 +2506,12 @@
                     "type": "boolean",
                     "default": false
                 },
+                "powerSuit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295,
+                    "default": 0
+                },
                 "variaSuit": {
                     "type": "boolean",
                     "default": false
@@ -2535,6 +2555,32 @@
                 "flamethrower": {
                     "type": "boolean",
                     "default": false
+                },
+                "unknownItem1": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295,
+                    "default": 0
+                },
+                "unlimitedMissiles": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "unlimitedPowerBombs": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "missileLauncher": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "powerBombLauncher": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "springBall": {
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "required": [
@@ -2552,6 +2598,7 @@
                 "bombs",
                 "spiderBall",
                 "boostBall",
+                "powerSuit",
                 "variaSuit",
                 "gravitySuit",
                 "phazonSuit",
@@ -2562,7 +2609,13 @@
                 "superMissile",
                 "wavebuster",
                 "iceSpreader",
-                "flamethrower"
+                "flamethrower",
+                "unknownItem1",
+                "unlimitedMissiles",
+                "unlimitedPowerBombs",
+                "missileLauncher",
+                "powerBombLauncher",
+                "springBall"
             ],
             "default": {
                 "combatVisor": true,
@@ -2579,6 +2632,7 @@
                 "bombs": false,
                 "spiderBall": false,
                 "boostBall": false,
+                "powerSuit": 0,
                 "variaSuit": false,
                 "gravitySuit": false,
                 "phazonSuit": false,
@@ -2589,7 +2643,13 @@
                 "superMissile": false,
                 "wavebuster": false,
                 "iceSpreader": false,
-                "flamethrower": false
+                "flamethrower": false,
+                "unknownItem1": 0,
+                "unlimitedMissiles": false,
+                "unlimitedPowerBombs": false,
+                "missileLauncher": true,
+                "powerBombLauncher": true,
+                "springBall": false
             },
             "additionalProperties": false
         },
@@ -2693,53 +2753,7 @@
                             },
                             "type": {
                                 "description": "Defines what is acquired when the pickup is obtained.",
-                                "type": "string",
-                                "enum": [
-                                    "Power Beam",
-                                    "Ice Beam",
-                                    "Wave Beam",
-                                    "Plasma Beam",
-                                    "Missile",
-                                    "Scan Visor",
-                                    "Morph Ball Bomb",
-                                    "Power Bomb",
-                                    "Flamethrower",
-                                    "Thermal Visor",
-                                    "Charge Beam",
-                                    "Super Missile",
-                                    "Grapple Beam",
-                                    "X-Ray Visor",
-                                    "Ice Spreader",
-                                    "Space Jump Boots",
-                                    "Morph Ball",
-                                    "Combat Visor",
-                                    "Boost Ball",
-                                    "Spider Ball",
-                                    "Power Suit",
-                                    "Gravity Suit",
-                                    "Varia Suit",
-                                    "Phazon Suit",
-                                    "Energy Tank",
-                                    "Unknown Item 1",
-                                    "Health Refill",
-                                    "Unknown Item 2",
-                                    "Wavebuster",
-                                    "Artifact of Truth",
-                                    "Artifact of Strength",
-                                    "Artifact of Elder",
-                                    "Artifact of Wild",
-                                    "Artifact of Lifegiver",
-                                    "Artifact of Warrior",
-                                    "Artifact of Chozo",
-                                    "Artifact of Nature",
-                                    "Artifact of Sun",
-                                    "Artifact of World",
-                                    "Artifact of Spirit",
-                                    "Artifact of Newborn",
-                                    "Nothing",
-                                    "Floaty Jump",
-                                    "Ice Trap"
-                                ],
+                                "$ref": "#/$defs/pickupType",
                                 "default": "Nothing"
                             },
                             "scanText": {
@@ -3918,51 +3932,16 @@
                                 "default": 0
                             },
                             "itemId": {
-                                "type": "string",
-                                "enum": [
-                                    "PowerBeam",
-                                    "IceBeam",
-                                    "WaveBeam",
-                                    "PlasmaBeam",
-                                    "Missile",
-                                    "ScanVisor",
-                                    "MorphBallBomb",
-                                    "PowerBomb",
-                                    "Flamethrower",
-                                    "ThermalVisor",
-                                    "ChargeBeam",
-                                    "SuperMissile",
-                                    "GrappleBeam",
-                                    "XRayVisor",
-                                    "IceSpreader",
-                                    "SpaceJumpBoots",
-                                    "MorphBall",
-                                    "CombatVisor",
-                                    "BoostBall",
-                                    "SpiderBall",
-                                    "PowerSuit",
-                                    "GravitySuit",
-                                    "VariaSuit",
-                                    "PhazonSuit",
-                                    "EnergyTank",
-                                    "UnknownItem1",
-                                    "HealthRefill",
-                                    "UnknownItem2",
-                                    "Wavebuster",
-                                    "ArtifactOfTruth",
-                                    "ArtifactOfStrength",
-                                    "ArtifactOfElder",
-                                    "ArtifactOfWild",
-                                    "ArtifactOfLifegiver",
-                                    "ArtifactOfWarrior",
-                                    "ArtifactOfChozo",
-                                    "ArtifactOfNature",
-                                    "ArtifactOfSun",
-                                    "ArtifactOfWorld",
-                                    "ArtifactOfSpirit",
-                                    "ArtifactOfNewborn"
-                                ],
-                                "default": "PowerBeam"
+                                "description": "Any custom items will be stored in UnknownItem2",
+                                "$ref": "#/$defs/pickupType",
+                                "not": {
+                                    "enum": [
+                                        "Nothing",
+                                        "Floaty Jump",
+                                        "Ice Trap"
+                                    ]
+                                },
+                                "default": "Power Beam"
                             },
                             "active": {
                                 "type": "boolean",
@@ -5819,6 +5798,60 @@
                 "Phazon",
                 "Disabled",
                 "Enemy"
+            ]
+        },
+        "pickupType": {
+            "type": "string",
+            "enum": [
+                "Power Beam",
+                "Ice Beam",
+                "Wave Beam",
+                "Plasma Beam",
+                "Missile",
+                "Scan Visor",
+                "Morph Ball Bomb",
+                "Power Bomb",
+                "Flamethrower",
+                "Thermal Visor",
+                "Charge Beam",
+                "Super Missile",
+                "Grapple Beam",
+                "X-Ray Visor",
+                "Ice Spreader",
+                "Space Jump Boots",
+                "Morph Ball",
+                "Combat Visor",
+                "Boost Ball",
+                "Spider Ball",
+                "Power Suit",
+                "Gravity Suit",
+                "Varia Suit",
+                "Phazon Suit",
+                "Energy Tank",
+                "Unknown Item 1",
+                "Health Refill",
+                "Unknown Item 2",
+                "Wavebuster",
+                "Artifact of Truth",
+                "Artifact of Strength",
+                "Artifact of Elder",
+                "Artifact of Wild",
+                "Artifact of Lifegiver",
+                "Artifact of Warrior",
+                "Artifact of Chozo",
+                "Artifact of Nature",
+                "Artifact of Sun",
+                "Artifact of World",
+                "Artifact of Spirit",
+                "Artifact of Newborn",
+                "Unlimited Missiles",
+                "Unlimited Power Bombs",
+                "Missile Launcher",
+                "Main Power Bomb",
+                "Spring Ball",
+                "Nothing",
+                "Floaty Jump",
+                "Ice Trap"
             ]
         }
     }
