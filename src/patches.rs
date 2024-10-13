@@ -11391,8 +11391,15 @@ fn patch_dol(
             lis          r5, 0x41a0; // 20.0
             b            apply_floaty_jump;
         remove_floaty_jump:
+            cmpwi        r0, 2;      // check if we are in water
+            bne          do_not_decrement_fluid_count_more_than_one;
             cmpwi        r5, 0;
             ble          do_not_decrement_fluid_count;
+            b            decrement_fluid_count;
+        do_not_decrement_fluid_count_more_than_one:
+            cmpwi        r5, 1;
+            ble          do_not_decrement_fluid_count;
+        decrement_fluid_count:
             addi         r5, r5, -1; // subtract 1 to fluid count
         do_not_decrement_fluid_count:
             andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
