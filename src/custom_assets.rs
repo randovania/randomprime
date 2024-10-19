@@ -1367,16 +1367,14 @@ pub fn collect_game_resources<'r>(
     ];
     looking_for.extend(custom_scan_point_deps);
 
-    if config.enable_ice_traps {
-        let player_freeze_deps: Vec<(u32, FourCC)> = vec![
-            resource_info!("breakFreezeVisor.PART").into(),
-            resource_info!("Frost1TXTR.TXTR").into(),
-            resource_info!("75DAC95C.PART").into(),
-            resource_info!("zorch1_snow3.TXTR").into(),
-            resource_info!("C28C7348.PART").into(),
-        ];
-        looking_for.extend(player_freeze_deps);
-    }
+    let player_freeze_deps: Vec<(u32, FourCC)> = vec![
+        resource_info!("breakFreezeVisor.PART").into(),
+        resource_info!("Frost1TXTR.TXTR").into(),
+        resource_info!("75DAC95C.PART").into(),
+        resource_info!("zorch1_snow3.TXTR").into(),
+        resource_info!("C28C7348.PART").into(),
+    ];
+    looking_for.extend(player_freeze_deps);
 
     // Dependencies read from paks and custom assets will go here //
     let mut found = HashMap::with_capacity(looking_for.len());

@@ -38,7 +38,7 @@ pub enum PickupType {
     EnergyTank,
     UnknownItem1,
     HealthRefill,
-    UnknownItem2,
+    UnknownItem2, // now used for custom items
     Wavebuster,
     ArtifactOfTruth,
     ArtifactOfStrength,
@@ -52,6 +52,11 @@ pub enum PickupType {
     ArtifactOfWorld,
     ArtifactOfSpirit,
     ArtifactOfNewborn,
+    UnlimitedMissiles,
+    UnlimitedPowerBombs,
+    MissileLauncher,
+    PowerBombLauncher,
+    SpringBall,
     Nothing,
     FloatyJump,
     IceTrap,
@@ -101,6 +106,11 @@ impl PickupType {
             PickupType::ArtifactOfWorld => "Artifact Of World",
             PickupType::ArtifactOfSpirit => "Artifact Of Spirit",
             PickupType::ArtifactOfNewborn => "Artifact Of Newborn",
+            PickupType::UnlimitedMissiles => "Unlimited Missiles",
+            PickupType::UnlimitedPowerBombs => "Unlimited Power Bombs",
+            PickupType::MissileLauncher => "Missile Launcher",
+            PickupType::PowerBombLauncher => "Main Power Bomb",
+            PickupType::SpringBall => "Spring Ball",
             PickupType::Nothing => "Nothing",
             PickupType::FloatyJump => "Floaty Jump",
             PickupType::IceTrap => "Ice Trap",
@@ -150,6 +160,11 @@ impl PickupType {
             PickupType::ArtifactOfWorld,
             PickupType::ArtifactOfSpirit,
             PickupType::ArtifactOfNewborn,
+            PickupType::UnlimitedMissiles,
+            PickupType::UnlimitedPowerBombs,
+            PickupType::MissileLauncher,
+            PickupType::PowerBombLauncher,
+            PickupType::SpringBall,
             PickupType::Nothing,
             PickupType::FloatyJump,
             PickupType::IceTrap,
@@ -161,9 +176,17 @@ impl PickupType {
     pub fn kind(&self) -> u32 {
         match self {
             PickupType::FloatyJump => PickupType::Nothing.kind(),
-            PickupType::IceTrap => PickupType::Nothing.kind(),
             _ => *self as u32,
         }
+    }
+
+    pub fn custom_item_value(&self) -> i32
+    {
+        if self.kind() <= PickupType::ArtifactOfNewborn.kind() || self.kind() >= PickupType::Nothing.kind() {
+            panic!("PickupType needs to be a custom item to return a custom item value");
+        }
+
+        2_i32.pow(self.kind() - PickupType::ArtifactOfNewborn.kind() - 1) as i32
     }
 
     #[allow(clippy::should_implement_trait)]
@@ -261,6 +284,11 @@ pub fn pickup_type_for_pickup(pickup: &structs::Pickup) -> Option<PickupType> {
         36 => Some(PickupType::ArtifactOfNature),
         30 => Some(PickupType::ArtifactOfStrength),
         26 if pickup.curr_increase == 20 => Some(PickupType::HealthRefill),
+        41 => Some(PickupType::UnlimitedMissiles),
+        42 => Some(PickupType::UnlimitedPowerBombs),
+        43 => Some(PickupType::MissileLauncher),
+        44 => Some(PickupType::PowerBombLauncher),
+        47 => Some(PickupType::IceTrap),
         _ => None,
     }
 }
@@ -306,6 +334,11 @@ pub fn pickup_model_for_pickup(pickup: &structs::Pickup) -> Option<PickupModel> 
         36 => Some(PickupModel::ArtifactOfNature),
         30 => Some(PickupModel::ArtifactOfStrength),
         26 if pickup.curr_increase == 20 => Some(PickupModel::HealthRefill),
+        41 => Some(PickupModel::MissileRefill),
+        42 => Some(PickupModel::PowerBombRefill),
+        43 => Some(PickupModel::Missile),
+        44 => Some(PickupModel::PowerBomb),
+        47 => Some(PickupModel::IceTrap),
         _ => None,
     }
 }
@@ -569,6 +602,11 @@ impl PickupModel {
             PickupType::ArtifactOfWorld => PickupModel::ArtifactOfWorld,
             PickupType::ArtifactOfSpirit => PickupModel::ArtifactOfSpirit,
             PickupType::ArtifactOfNewborn => PickupModel::ArtifactOfNewborn,
+            PickupType::UnlimitedMissiles => PickupModel::MissileRefill,
+            PickupType::UnlimitedPowerBombs => PickupModel::PowerBombRefill,
+            PickupType::MissileLauncher => PickupModel::Missile,
+            PickupType::PowerBombLauncher => PickupModel::PowerBomb,
+            PickupType::SpringBall => PickupModel::RandovaniaGamecube,
             PickupType::Nothing => PickupModel::Nothing,
             PickupType::FloatyJump => PickupModel::RandovaniaGamecube,
             PickupType::IceTrap => PickupModel::IceTrap,

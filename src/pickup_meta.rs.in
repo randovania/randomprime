@@ -10359,6 +10359,11 @@ impl PickupType
             PickupType::ArtifactOfWorld => "audio/jin_artifact.dsp\0",
             PickupType::ArtifactOfSpirit => "audio/jin_artifact.dsp\0",
             PickupType::ArtifactOfNewborn => "audio/jin_artifact.dsp\0",
+            PickupType::UnlimitedMissiles => "/audio/itm_x_short_02.dsp\0",
+            PickupType::UnlimitedPowerBombs => "/audio/itm_x_short_02.dsp\0",
+            PickupType::MissileLauncher => "audio/jin_itemattain.dsp\0",
+            PickupType::PowerBombLauncher => "audio/jin_itemattain.dsp\0",
+            PickupType::SpringBall => "audio/jin_itemattain.dsp\0",
             PickupType::Nothing => "/audio/itm_x_short_02.dsp\0",
             PickupType::FloatyJump => "/audio/itm_x_short_02.dsp\0",
             PickupType::IceTrap => "/audio/evt_x_event_00.dsp\0", // being a bit trolly here
