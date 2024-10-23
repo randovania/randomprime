@@ -813,6 +813,11 @@
                     "type": "boolean",
                     "default": false
                 },
+                "greatTreeHallBarsOpened": {
+                    "description": "Bars in Tallon Overworld - Great Tree Hall are pre-opened.",
+                    "type": "boolean",
+                    "default": false
+                },
                 "incineratorDroneConfig": {
                     "description": "Replace the 'random add' timer values us in the Incinerator Drone miniboss fight with constants.",
                     "type": "object",

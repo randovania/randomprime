@@ -15657,6 +15657,37 @@ fn patch_arboretum_sandstone(patcher: &mut PrimePatcher<'_, '_>) {
     });
 }
 
+fn make_great_tree_hall_bars_opened(patcher: &mut PrimePatcher<'_, '_>)
+{
+    patcher.add_scly_patch(resource_info!("04_over_tree.MREA").into(), |_ps, area| {
+        let (gate_solved_layer_idx, gate_unsolved_layer_idx) = (
+            area.get_layer_id_from_name("Gate Solved"),
+            area.get_layer_id_from_name("Gate Unsolved"),
+        );
+        let flags = &mut area.layer_flags.flags;
+        *flags |= 1 << gate_solved_layer_idx; // Turn on "Gate Solved"
+        *flags &= !(1 << gate_unsolved_layer_idx); // Turn off "Gate Unsolved"
+
+        // disable scan point for closed bars
+        area.set_memory_relay_active(0x002402c8, 1);
+
+        let scly = area.mrea().scly_section_mut();
+
+        // activate solved bars
+        let obj = scly.layers
+                      .as_mut_vec()[0]
+                      .objects
+                      .iter_mut()
+                      .find(|obj| obj.instance_id & 0xffff == 0x1F6)
+                      .and_then(|obj| obj.property_data.as_platform_mut())
+                      .unwrap();
+
+        obj.active = 1;
+
+        Ok(())
+    });
+}
+
 pub fn patch_iso<T>(config: PatchConfig, mut pn: T) -> Result<(), String>
 where
     T: structs::ProgressNotifier,
@@ -17944,6 +17975,10 @@ fn build_and_run_patches<'r>(
 
     if config.power_bomb_arboretum_sandstone {
         patch_arboretum_sandstone(&mut patcher);
+    }
+
+    if config.great_tree_hall_bars_opened {
+        make_great_tree_hall_bars_opened(&mut patcher);
     }
 
     if let Some(bomb_slot_covers) = config.hall_of_the_elders_bomb_slot_covers {

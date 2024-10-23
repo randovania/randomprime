@@ -1394,6 +1394,7 @@ pub struct PatchConfig {
     pub remove_mine_security_station_locks: bool,
     pub remove_hive_mecha: bool,
     pub power_bomb_arboretum_sandstone: bool,
+    pub great_tree_hall_bars_opened: bool,
     pub visible_bounding_box: bool,
     pub door_destination_scans: bool,
     pub no_hud: bool,
@@ -1554,6 +1555,7 @@ struct GameConfig {
     remove_mine_security_station_locks: Option<bool>,
     remove_hive_mecha: Option<bool>,
     power_bomb_arboretum_sandstone: Option<bool>,
+    great_tree_hall_bars_opened: Option<bool>,
 
     incinerator_drone_config: Option<IncineratorDroneConfig>,
     maze_seeds: Option<Vec<u32>>,
@@ -2643,6 +2645,10 @@ impl PatchConfigPrivate {
             power_bomb_arboretum_sandstone: self
                 .game_config
                 .power_bomb_arboretum_sandstone
+                .unwrap_or(false),
+            great_tree_hall_bars_opened: self
+                .game_config
+                .great_tree_hall_bars_opened
                 .unwrap_or(false),
 
             incinerator_drone_config: self.game_config.incinerator_drone_config.clone(),
