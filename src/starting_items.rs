@@ -2,40 +2,76 @@ use crate::pickup_meta::PickupType;
 
 use serde::{Deserialize, Serialize};
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartingItems {
+    #[serde(default = "default_true")]
     pub combat_visor: bool,
+    #[serde(default = "default_true")]
     pub power_beam: bool,
+    #[serde(default = "default_true")]
     pub scan_visor: bool,
+    #[serde(default)]
     pub missiles: i32,
+    #[serde(default)]
     pub energy_tanks: i8,
+    #[serde(default)]
     pub power_bombs: i8,
+    #[serde(default)]
     pub wave: bool,
+    #[serde(default)]
     pub ice: bool,
+    #[serde(default)]
     pub plasma: bool,
+    #[serde(default)]
     pub charge: bool,
+    #[serde(default)]
     pub morph_ball: bool,
+    #[serde(default)]
     pub bombs: bool,
+    #[serde(default)]
     pub spider_ball: bool,
+    #[serde(default)]
     pub boost_ball: bool,
+    #[serde(default)]
     pub power_suit: u32,
+    #[serde(default)]
     pub varia_suit: bool,
+    #[serde(default)]
     pub gravity_suit: bool,
+    #[serde(default)]
     pub phazon_suit: bool,
+    #[serde(default)]
     pub thermal_visor: bool,
+    #[serde(default)]
     pub xray: bool,
+    #[serde(default)]
     pub space_jump: bool,
+    #[serde(default)]
     pub grapple: bool,
+    #[serde(default)]
     pub super_missile: bool,
+    #[serde(default)]
     pub wavebuster: bool,
+    #[serde(default)]
     pub ice_spreader: bool,
+    #[serde(default)]
     pub flamethrower: bool,
+    #[serde(default)]
     pub unknown_item_1: u32,
+    #[serde(default)]
     pub unlimited_missiles: bool,
+    #[serde(default)]
     pub unlimited_power_bombs: bool,
+    #[serde(default = "default_true")]
     pub missile_launcher: bool,
+    #[serde(default = "default_true")]
     pub power_bomb_launcher: bool,
+    #[serde(default)]
     pub spring_ball: bool,
 }
 
