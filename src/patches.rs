@@ -11524,6 +11524,14 @@ fn patch_dol(
             andi         r22, r3, { PickupType::MissileLauncher.custom_item_value() };
             cmpwi        r3, 0;
             beq          no_launcher;
+            // check for missile capacity
+            li           r3, { PickupType::Missile.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r21, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited missiles
             andi         r22, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
             cmpwi        r3, 0;
@@ -11538,6 +11546,14 @@ fn patch_dol(
             andi         r22, r3, { PickupType::PowerBombLauncher.custom_item_value() };
             cmpwi        r3, 0;
             beq          no_launcher;
+            // check for power bomb capacity
+            li           r3, { PickupType::PowerBomb.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r21, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited power bombs
             andi         r22, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
             cmpwi        r3, 0;
@@ -11575,7 +11591,7 @@ fn patch_dol(
             // preload unknown item 2 for future checks in the function
             li           r15, { PickupType::UnknownItem2.kind() };
             rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-            add          r15, r3, r0;
+            add          r15, r14, r0;
             addi         r15, r15, 0x2c;
             lwz          r15, 0x0(r15);
 
@@ -11585,6 +11601,14 @@ fn patch_dol(
             andi         r15, r3, { PickupType::MissileLauncher.custom_item_value() };
             cmpwi        r3, 0;
             beq          no_launcher;
+            // check for missile capacity
+            li           r3, { PickupType::Missile.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r14, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited missiles
             andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
             cmpwi        r3, 0;
@@ -11599,6 +11623,14 @@ fn patch_dol(
             andi         r15, r3, { PickupType::PowerBombLauncher.custom_item_value() };
             cmpwi        r3, 0;
             beq          no_launcher;
+            // check for power bomb capacity
+            li           r3, { PickupType::PowerBomb.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r14, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited power bombs
             andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
             cmpwi        r3, 0;
