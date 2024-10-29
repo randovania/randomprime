@@ -11480,7 +11480,7 @@ fn patch_dol(
     let custom_item_has_power_up_patch = ppcasm!(new_text_section_end, {
             // check custom item in unknown item 2
             cmpwi        r4, { PickupType::ArtifactOfNewborn.kind() };
-            ble          { new_text_section_end + 0x34 };
+            ble          not_custom_item;
             li           r15, { PickupType::UnknownItem2.kind() };
             rlwinm       r0, r15, 0x3, 0x0, 0x1c;
             add          r15, r3, r0;
@@ -11494,6 +11494,7 @@ fn patch_dol(
             blr;
 
             // restore previous context
+        not_custom_item:
             andi         r15, r15, 0;
             cmpwi        r4, 0;
             b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
@@ -11518,37 +11519,56 @@ fn patch_dol(
             lwz          r22, 0x0(r22);
 
             cmpwi        r4, { PickupType::Missile.kind() };
-            bne          { new_text_section_end + 0x40 };
+            bne          check_power_bomb;
             // check for missile launcher
             andi         r22, r3, { PickupType::MissileLauncher.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x68 };
+            beq          no_launcher;
+            // check for missile capacity
+            li           r3, { PickupType::Missile.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r21, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited missiles
             andi         r22, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x78 };
+            beq          not_unlimited_or_not_pb_missiles;
             li           r3, 255;
-            b            { new_text_section_end + 0x6c };
+            b            is_unlimited;
 
+        check_power_bomb:
             cmpwi        r4, { PickupType::PowerBomb.kind() };
-            bne          { new_text_section_end + 0x78 };
+            bne          not_unlimited_or_not_pb_missiles;
             // check for power bomb launcher
             andi         r22, r3, { PickupType::PowerBombLauncher.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x68 };
+            beq          no_launcher;
+            // check for power bomb capacity
+            li           r3, { PickupType::PowerBomb.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r21, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited power bombs
             andi         r22, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x78 };
+            beq          not_unlimited_or_not_pb_missiles;
             li           r3, 8;
-            b            { new_text_section_end + 0x6c };
+            b            is_unlimited;
 
+        no_launcher:
             li           r3, 0;
-
+        is_unlimited:
             andi         r21, r21, 0;
             andi         r22, r22, 0;
             blr;
 
+        not_unlimited_or_not_pb_missiles:
             // restore previous context
             mr           r3, r21;
             andi         r21, r21, 0;
@@ -11571,42 +11591,61 @@ fn patch_dol(
             // preload unknown item 2 for future checks in the function
             li           r15, { PickupType::UnknownItem2.kind() };
             rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-            add          r15, r3, r0;
+            add          r15, r14, r0;
             addi         r15, r15, 0x2c;
             lwz          r15, 0x0(r15);
 
             cmpwi        r4, { PickupType::Missile.kind() };
-            bne          { new_text_section_end + 0x40 };
+            bne          check_power_bomb;
             // check for missile launcher
             andi         r15, r3, { PickupType::MissileLauncher.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x68 };
+            beq          no_launcher;
+            // check for missile capacity
+            li           r3, { PickupType::Missile.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r14, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited missiles
             andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x78 };
+            beq          not_unlimited_or_not_pb_missiles;
             li           r3, 255;
-            b            { new_text_section_end + 0x6c };
+            b            is_unlimited;
 
+        check_power_bomb:
             cmpwi        r4, { PickupType::PowerBomb.kind() };
-            bne          { new_text_section_end + 0x78 };
+            bne          not_unlimited_or_not_pb_missiles;
             // check for power bomb launcher
             andi         r15, r3, { PickupType::PowerBombLauncher.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x68 };
+            beq          no_launcher;
+            // check for power bomb capacity
+            li           r3, { PickupType::PowerBomb.kind() };
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r14, r0;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
             // check for unlimited power bombs
             andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x78 };
+            beq          not_unlimited_or_not_pb_missiles;
             li           r3, 8;
-            b            { new_text_section_end + 0x6c };
+            b            is_unlimited;
 
+        no_launcher:
             li           r3, 0;
-
+        is_unlimited:
             andi         r14, r14, 0;
             andi         r15, r15, 0;
             blr;
 
+        not_unlimited_or_not_pb_missiles:
             // restore previous context
             mr           r3, r14;
             andi         r14, r14, 0;
@@ -11634,25 +11673,27 @@ fn patch_dol(
             lwz          r15, 0x0(r15);
 
             cmpwi        r4, { PickupType::Missile.kind() };
-            bne          { new_text_section_end + 0x30 };
+            bne          check_power_bomb;
             // check for unlimited missiles
             andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x54 };
-            b            { new_text_section_end + 0x48 };
+            beq          not_unlimited_or_not_pb_missiles;
+            b            is_unlimited;
 
+        check_power_bomb:
             cmpwi        r4, { PickupType::PowerBomb.kind() };
-            bne          { new_text_section_end + 0x54 };
+            bne          not_unlimited_or_not_pb_missiles;
             // check for unlimited power bombs
             andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
             cmpwi        r3, 0;
-            beq          { new_text_section_end + 0x54 };
-            b            { new_text_section_end + 0x48 };
+            beq          not_unlimited_or_not_pb_missiles;
 
+        is_unlimited:
             andi         r14, r14, 0;
             andi         r15, r15, 0;
             blr;
 
+        not_unlimited_or_not_pb_missiles:
             // restore previous context
             mr           r3, r14;
             andi         r14, r14, 0;
