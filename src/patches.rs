@@ -9425,7 +9425,11 @@ fn patch_credits(
         ("David 'Zoid' Kirsch".to_string(), "Zoid Kirsch".to_string()),
         Languages::All,
     );
-
+    res.kind.as_strg_mut().unwrap().edit_strings(
+        ("Kerry Anne Odem".to_string(), "Kerry Ann Odem".to_string()),
+        Languages::All,
+    );
+    
     Ok(())
 }
 
