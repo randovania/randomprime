@@ -9423,10 +9423,13 @@ fn patch_credits(
     /* https://mobile.twitter.com/ZoidCTF/status/1542699504041750528 */
     res.kind.as_strg_mut().unwrap().edit_strings(
         ("David 'Zoid' Kirsch".to_string(), "Zoid Kirsch".to_string()),
+        Languages::All,
+    );
+    res.kind.as_strg_mut().unwrap().edit_strings(
         ("Kerry Anne Odem".to_string(), "Kerry Ann Odem".to_string()),
         Languages::All,
     );
-
+    
     Ok(())
 }
 
