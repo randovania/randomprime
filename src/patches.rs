@@ -8836,6 +8836,23 @@ fn patch_main_quarry_door_lock_pal(
     Ok(())
 }
 
+fn patch_cen_dyna_door_lock_pal(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[1];
+
+    let locked_door_actor_obj_id = 0x001b06a1; // Door Lock to Quarantine Access A
+
+    let locked_door_actor_obj = layer
+        .objects
+        .as_mut_vec()
+        .retain(|obj| obj.instance_id & 0x00FFFFFF != locked_door_actor_obj_id);
+
+    Ok(())
+}
+
 fn patch_mines_security_station_soft_lock(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -14562,6 +14579,10 @@ fn patch_qol_game_breaking(
             patcher.add_scly_patch(
                 resource_info!("01_mines_mainplaza.MREA").into(),
                 patch_main_quarry_door_lock_pal,
+            );
+            patcher.add_scly_patch(
+                resource_info!("07_mines_electric.MREA").into(),
+                patch_cen_dyna_door_lock_pal,
             );
         }
     }
