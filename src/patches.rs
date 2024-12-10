@@ -8836,6 +8836,27 @@ fn patch_main_quarry_door_lock_pal(
     Ok(())
 }
 
+fn patch_frost_cave_metroid_pal(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
+    let metroid = layers[3] // 3 is Don't Load layer
+        .objects
+        .iter_mut()
+        .find(|obj| obj.instance_id & 0x00FFFFFF == 0x00290199)
+        .unwrap()
+        .clone();
+
+    layers[2].objects.as_mut_vec().push(metroid.clone()); // 2 is 1st Pass layer
+    layers[3]
+        .objects
+        .as_mut_vec()
+        .retain(|obj| obj.instance_id & 0x00FFFFFF != 0x00290199);
+
+    Ok(())
+}
+
 fn patch_mines_security_station_soft_lock(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -14562,6 +14583,10 @@ fn patch_qol_game_breaking(
             patcher.add_scly_patch(
                 resource_info!("01_mines_mainplaza.MREA").into(),
                 patch_main_quarry_door_lock_pal,
+            );
+            patcher.add_scly_patch(
+                resource_info!("15_ice_cave_a.MREA").into(),
+                patch_frost_cave_metroid_pal,
             );
         }
     }
