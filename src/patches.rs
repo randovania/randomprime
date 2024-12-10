@@ -8845,7 +8845,7 @@ fn patch_cen_dyna_door_lock_pal(
 
     let locked_door_actor_obj_id = 0x001b06a1; // Door Lock to Quarantine Access A
 
-    let locked_door_actor_obj = layer
+    layer
         .objects
         .as_mut_vec()
         .retain(|obj| obj.instance_id & 0x00FFFFFF != locked_door_actor_obj_id);
