@@ -11590,10 +11590,10 @@ fn patch_dol(
 
         no_launcher:
             li           r3, 0;
-        is_unlimited:
             lis          r3, r3_backup@h;
             addi         r3, r3, r3_backup@l;
             lwz          r3, 0x0(r3);
+        is_unlimited:
             lis          r4, r4_backup@h;
             addi         r4, r4, r4_backup@l;
             lwz          r4, 0x0(r4);
