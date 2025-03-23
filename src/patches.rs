@@ -16960,6 +16960,15 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
+                        if let Some(area_attributes) = room.area_attributes.as_ref() {
+                            patcher.add_scly_patch(
+                                (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                move |ps, area| {
+                                    patch_edit_area_attributes(ps, area, &area_attributes, game_resources)
+                                },
+                            );
+                        }
+
                         if room.cutscene_skip_fns.is_some() {
                             for special_fn_id in room.cutscene_skip_fns.as_ref().unwrap() {
                                 patcher.add_scly_patch(

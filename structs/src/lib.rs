@@ -31,6 +31,7 @@ pub mod scly_props {
     pub mod actor;
     pub mod actor_key_frame;
     pub mod actor_rotate;
+    pub mod area_attributes;
     pub mod ball_trigger;
     pub mod camera;
     pub mod camera_blur_keyframe;
@@ -133,7 +134,7 @@ pub mod scly_props {
     // bosses
     pub use self::beetle::*;
     pub use self::{
-        actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ambient_ai::*,
+        actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, area_attributes::*, ambient_ai::*,
         atomic_alpha::*, atomic_beta::*, babygoth::*, ball_trigger::*, bloodflower::*, burrower::*,
         camera::*, camera_blur_keyframe::*, camera_filter_keyframe::*, camera_hint::*,
         camera_hint_trigger::*, camera_pitch_volume::*, camera_waypoint::*, chozo_ghost::*,
@@ -181,7 +182,7 @@ pub use scly_props::ai_jump_point::*;
 // bosses
 pub use scly_props::beetle::*;
 pub use scly_props::{
-    actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ambient_ai::*,
+    actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, area_attributes::*, ambient_ai::*,
     atomic_alpha::*, atomic_beta::*, babygoth::*, ball_trigger::*, bloodflower::*, burrower::*,
     camera::*, camera_blur_keyframe::*, camera_filter_keyframe::*, camera_hint::*,
     camera_hint_trigger::*, camera_pitch_volume::*, camera_waypoint::*, chozo_ghost::*,

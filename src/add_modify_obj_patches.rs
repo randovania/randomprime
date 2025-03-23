@@ -8,17 +8,18 @@ use crate::{
     door_meta::DoorType,
     mlvl_wrapper,
     patch_config::{
-        ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
+        ActorKeyFrameConfig, ActorRotateConfig, AreaAttributesConfig, BlockConfig, BombSlotConfig, CameraConfig,
         CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
         ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
         HudmemoConfig, LockOnPoint, NewCameraHintConfig, PlatformConfig, PlatformType,
         PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
-        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
+        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig, WeatherType, PhazonType,
         WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
     pickup_meta::PickupType,
+    structs::LightLayer,
 };
 
 macro_rules! add_edit_obj_helper {
@@ -191,6 +192,134 @@ pub fn patch_add_streamed_audio(
     }
 
     add_edit_obj_helper!(area, config.id, config.layer, StreamedAudio, new, update);
+}
+
+pub fn patch_edit_area_attributes<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    config: &AreaAttributesConfig,
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+) -> Result<(), String> {
+
+    if let Some(object_lighting_level) = config.object_lighting_level {
+        let any = area
+            .mrea()
+            .lights_section()
+            .light_layers
+            .iter()
+            .any(|light| light.light_type == 0x0);
+
+        if any {
+            let lights = area.mrea().lights_section_mut();
+            let lights = lights.light_layers.as_mut_vec();
+
+            for light in lights {
+                if light.light_type != 0x0 {
+                    // local ambient
+                    continue;
+                }
+
+                println!("{:?}", light);
+
+                light.brightness = object_lighting_level;
+            }
+        } else {
+            let lights = area.mrea().lights_section_mut();
+            let lights = lights.light_layers.as_mut_vec();
+
+            lights.push(LightLayer {
+                light_type: 0, // local ambient
+                color: [0.1, 0.1, 0.1].into(),
+                position: [239.0, -58.0, 22.0].into(),
+                direction: [0.0, 1.0, 0.0].into(),
+                brightness: 0.8,
+                spot_cutoff: 0.0,
+                unknown0: 0.0,
+                unknown1: 0,
+                unknown2: 0.0,
+                falloff_type: 0, // constant
+                unknown3: 0.0,
+            });
+        }
+    }
+
+    let instance_id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let layers = scly.layers.as_mut_vec();
+
+    let area_attributes = {
+        let mut area_attributes = None;
+        for layer in layers.iter_mut() {
+            let obj = layer.objects.as_mut_vec().iter_mut().find(|obj| obj.property_data.is_area_attributes());
+            if let Some(obj) = obj {
+                area_attributes = Some(obj.property_data.as_area_attributes_mut().unwrap());
+                break;
+            }
+        }
+        
+        if let Some(area_attributes) = area_attributes {
+            area_attributes
+        } else {
+            // the room doesn't have one so we'll add one to the default layer and return that instead
+            
+            let obj = structs::SclyObject {
+                instance_id,
+                property_data: structs::AreaAttributes {
+                    _a: std::marker::PhantomData,
+                    load: 1,
+                    skybox_enabled: 1,
+                    weather: WeatherType::None as u32,
+                    env_fx_density: 1.0,
+                    thermal_heat: 0.0,
+                    xray_fog_distance: 1.0,
+                    world_lighting_level: 1.0,
+                    skybox: res_id::ResId::invalid(),
+                    phazon_type: PhazonType::None as u32,
+                }
+                .into(),
+                connections: vec![].into(),
+            };
+
+            let objects = layers[0].objects.as_mut_vec();
+            objects.push(obj);
+            objects.last_mut().unwrap().property_data.as_area_attributes_mut().unwrap()
+        }
+    };
+
+    if let Some(skybox_enabled) = config.skybox_enabled {
+        area_attributes.skybox_enabled = skybox_enabled as u8;
+    }
+
+    if let Some(weather) = config.weather {
+        area_attributes.weather = weather as u32;
+    }
+
+    if let Some(env_fx_density) = config.env_fx_density {
+        area_attributes.env_fx_density = env_fx_density;
+    }
+
+    if let Some(thermal_heat) = config.thermal_heat {
+        area_attributes.thermal_heat = thermal_heat;
+    }
+
+    if let Some(xray_fog_distance) = config.xray_fog_distance {
+        area_attributes.xray_fog_distance = xray_fog_distance;
+    }
+
+    if let Some(world_lighting_level) = config.world_lighting_level {
+        area_attributes.world_lighting_level = world_lighting_level;
+    }
+
+    if let Some(skybox) = config.skybox {
+        area_attributes.skybox = ResId::<res_id::CMDL>::new(skybox);
+    }
+
+    if let Some(phazon_type) = config.phazon_type {
+        area_attributes.phazon_type = phazon_type as u32;
+    }
+
+    Ok(())
 }
 
 pub fn patch_add_liquid<'r>(

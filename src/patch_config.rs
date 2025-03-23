@@ -483,6 +483,37 @@ pub struct ActorRotateConfig {
     pub update_active: bool,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum WeatherType {
+    None,
+    Snow,
+    Rain,
+    Bubbles,
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum PhazonType {
+    None,
+    Blue,
+    Orange,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AreaAttributesConfig {
+    pub skybox_enabled: Option<bool>,
+    pub weather: Option<WeatherType>,
+    pub env_fx_density: Option<f32>,
+    pub thermal_heat: Option<f32>,
+    pub xray_fog_distance: Option<f32>,
+    pub world_lighting_level: Option<f32>,
+    pub object_lighting_level: Option<f32>,
+    pub skybox: Option<u32>,
+    pub phazon_type: Option<PhazonType>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StreamedAudioConfig {
@@ -1094,10 +1125,7 @@ pub struct RoomConfig {
     pub lock_on_points: Option<Vec<LockOnPoint>>,
     pub fog: Option<FogConfig>,
     pub ambient_lighting_scale: Option<f32>, // 1.0 is default lighting
-    pub enviornmental_effect: Option<EnviornmentalEffect>,
-    pub initial_enviornmental_effect: Option<f32>,
-    pub initial_thermal_heat_level: Option<f32>,
-    pub xray_fog_distance: Option<f32>,
+    pub area_attributes: Option<AreaAttributesConfig>,
     pub escape_sequences: Option<Vec<EscapeSequenceConfig>>,
     pub repositions: Option<Vec<RepositionConfig>>,
     pub hudmemos: Option<Vec<HudmemoConfig>>,
