@@ -180,13 +180,14 @@ impl PickupType {
         }
     }
 
-    pub fn custom_item_value(&self) -> i32
-    {
-        if self.kind() <= PickupType::ArtifactOfNewborn.kind() || self.kind() >= PickupType::Nothing.kind() {
+    pub fn custom_item_value(&self) -> i32 {
+        if self.kind() <= PickupType::ArtifactOfNewborn.kind()
+            || self.kind() >= PickupType::Nothing.kind()
+        {
             panic!("PickupType needs to be a custom item to return a custom item value");
         }
 
-        2_i32.pow(self.kind() - PickupType::ArtifactOfNewborn.kind() - 1) as i32
+        2_i32.pow(self.kind() - PickupType::ArtifactOfNewborn.kind() - 1)
     }
 
     #[allow(clippy::should_implement_trait)]
@@ -622,7 +623,7 @@ pub fn aabb_for_pickup_cmdl(id: structs::ResId<structs::res_id::CMDL>) -> Option
         // The arrays contents are stored as u32s to reduce percision loss from
         // being converted to/from decimal literals. We use mem::transmute to
         // convert the u32s into f32s.
-        Some(unsafe { mem::transmute(PICKUP_CMDL_AABBS[idx].1) })
+        Some(unsafe { mem::transmute::<[u32; 6], [f32; 6]>(PICKUP_CMDL_AABBS[idx].1) })
     } else {
         None
     }

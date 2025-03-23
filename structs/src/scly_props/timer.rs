@@ -18,6 +18,6 @@ pub struct Timer<'r> {
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for Timer<'r> {
+impl SclyPropertyData for Timer<'_> {
     const OBJECT_TYPE: u8 = 0x5;
 }

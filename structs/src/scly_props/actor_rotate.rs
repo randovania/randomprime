@@ -17,7 +17,7 @@ pub struct ActorRotate<'r> {
     pub update_active: u8,
 }
 
-impl<'r> SclyPropertyData for ActorRotate<'r> {
+impl SclyPropertyData for ActorRotate<'_> {
     const OBJECT_TYPE: u8 = 0x39;
 
     impl_rotation!();

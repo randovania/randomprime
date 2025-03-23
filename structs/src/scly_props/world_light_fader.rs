@@ -15,6 +15,6 @@ pub struct WorldLightFader<'r> {
     pub fade_speed: f32,
 }
 
-impl<'r> SclyPropertyData for WorldLightFader<'r> {
+impl SclyPropertyData for WorldLightFader<'_> {
     const OBJECT_TYPE: u8 = 0x82;
 }

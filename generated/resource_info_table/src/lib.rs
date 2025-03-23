@@ -10,7 +10,7 @@ pub struct ResourceInfo {
     pub paks: &'static [&'static [u8]],
 }
 
-impl<'a, 'b> From<ResourceInfo> for (&'a [&'b [u8]], u32, FourCC) {
+impl From<ResourceInfo> for (&'_ [&'_ [u8]], u32, FourCC) {
     fn from(val: ResourceInfo) -> Self {
         (val.paks, val.res_id, val.fourcc)
     }
@@ -22,7 +22,7 @@ impl From<ResourceInfo> for (u32, FourCC) {
     }
 }
 
-impl<'a> From<ResourceInfo> for (&'a [u8], u32) {
+impl From<ResourceInfo> for (&'_ [u8], u32) {
     fn from(val: ResourceInfo) -> Self {
         assert_eq!(val.paks.len(), 1);
         (val.paks[0], val.res_id)

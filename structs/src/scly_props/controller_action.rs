@@ -16,6 +16,6 @@ pub struct ControllerAction<'r> {
     pub one_shot: u8,
 }
 
-impl<'r> SclyPropertyData for ControllerAction<'r> {
+impl SclyPropertyData for ControllerAction<'_> {
     const OBJECT_TYPE: u8 = 0x55;
 }

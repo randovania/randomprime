@@ -84,7 +84,7 @@ enum ResourceListElem<'r> {
     Inst(Resource<'r>),
 }
 
-impl<'r> ResourceListElem<'r> {
+impl ResourceListElem<'_> {
     fn len(&self) -> usize {
         match *self {
             ResourceListElem::Array(ref array) => array.len(),
@@ -153,7 +153,7 @@ impl<'r> Readable<'r> for ResourceList<'r> {
     }
 }
 
-impl<'r> Writable for ResourceList<'r> {
+impl Writable for ResourceList<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let mut s = 0;
         for i in self.iter() {
@@ -163,7 +163,7 @@ impl<'r> Writable for ResourceList<'r> {
     }
 }
 
-impl<'r> fmt::Debug for ResourceList<'r> {
+impl fmt::Debug for ResourceList<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "ResourceList {{ list: {:?} }}", self.list)
     }
@@ -392,20 +392,20 @@ pub struct ResourceListCursorAdvancer<'r, 'list, 'cursor> {
     cursor: &'cursor mut ResourceListCursor<'r, 'list>,
 }
 
-impl<'r, 'list, 'cursor> Drop for ResourceListCursorAdvancer<'r, 'list, 'cursor> {
+impl Drop for ResourceListCursorAdvancer<'_, '_, '_> {
     fn drop(&mut self) {
         self.cursor.next()
     }
 }
 
-impl<'r, 'list, 'cursor> ops::Deref for ResourceListCursorAdvancer<'r, 'list, 'cursor> {
+impl<'r, 'list> ops::Deref for ResourceListCursorAdvancer<'r, 'list, '_> {
     type Target = ResourceListCursor<'r, 'list>;
     fn deref(&self) -> &Self::Target {
         &*self.cursor
     }
 }
 
-impl<'r, 'list, 'cursor> ops::DerefMut for ResourceListCursorAdvancer<'r, 'list, 'cursor> {
+impl ops::DerefMut for ResourceListCursorAdvancer<'_, '_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.cursor
     }
@@ -453,7 +453,7 @@ pub struct Resource<'r> {
     pub original_offset: u32,
 }
 
-impl<'r> Resource<'r> {
+impl Resource<'_> {
     pub fn resource_info(&self, offset: u32) -> ResourceInfo {
         ResourceInfo {
             compressed: self.compressed as u32,
@@ -501,7 +501,7 @@ impl<'r> Readable<'r> for Resource<'r> {
     }
 }
 
-impl<'r> Writable for Resource<'r> {
+impl Writable for Resource<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let bytes_written = self.kind.write_to(writer)?;
         let padding_written = pad_bytes(32, bytes_written as usize).write_to(writer)?;

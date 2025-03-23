@@ -20,6 +20,6 @@ pub struct DistanceFog<'r> {
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for DistanceFog<'r> {
+impl SclyPropertyData for DistanceFog<'_> {
     const OBJECT_TYPE: u8 = 0x35;
 }

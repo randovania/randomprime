@@ -18,7 +18,7 @@ pub struct SpiderBallWaypoint<'r> {
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for SpiderBallWaypoint<'r> {
+impl SclyPropertyData for SpiderBallWaypoint<'_> {
     const OBJECT_TYPE: u8 = 0x2C;
     impl_position!();
     impl_rotation!();

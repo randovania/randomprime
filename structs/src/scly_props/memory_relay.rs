@@ -14,6 +14,6 @@ pub struct MemoryRelay<'r> {
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for MemoryRelay<'r> {
+impl SclyPropertyData for MemoryRelay<'_> {
     const OBJECT_TYPE: u8 = 0x13;
 }
