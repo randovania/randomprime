@@ -81,7 +81,7 @@ extern "C" {
 }
 
 pub unsafe fn malloc(len: usize) -> *mut c_void {
-    operator_new(len, c"??".as_ptr(), c"??".as_ptr())
+    operator_new(len, b"??\0".as_ptr(), b"??\0".as_ptr())
 }
 
 struct Mp1Allocator;
