@@ -62,6 +62,7 @@ unsafe extern "C" fn setup_global_state() {
 #[patch_fn(kind = call,
            target = "FinishedLoading__19SNewFileSelectFrame" + 0x34,
            version = Pal)]
+#[allow(clippy::manual_c_str_literals)]
 unsafe extern "C" fn update_main_menu_text(
     frame: *mut CGuiFrame,
     widget_name: *const u8,
