@@ -18851,6 +18851,8 @@ fn build_and_run_patches<'r>(
         "MidiData.pak",
         "NoARAM.pak",
         "SamusGun.pak",
+        // only used in Wii version
+        "Strings.pak",
     ];
 
     if config.difficulty_behavior != DifficultyBehavior::Either {
