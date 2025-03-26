@@ -543,7 +543,7 @@ impl<'a> Relocation<'a> {
             (ElfRelocationType::R_PPC_REL14_BRTAKEN, Some(addr), _)
             | (ElfRelocationType::R_PPC_ADDR14_BRTAKEN, _, Some(addr)) => {
                 let addr = bounds_check_and_mask(14, addr);
-                ((read_instr() & 0xffdf0003) | addr | 1 << 21)
+                ((read_instr() & 0xffdf0003) | addr | (1 << 21))
                     .to_be_bytes()
                     .to_vec()
             }

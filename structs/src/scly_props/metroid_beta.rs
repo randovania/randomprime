@@ -27,7 +27,7 @@ pub struct MetroidBeta<'r> {
     pub dont_care: u8,
 }
 
-impl<'r> SclyPropertyData for MetroidBeta<'r> {
+impl SclyPropertyData for MetroidBeta<'_> {
     const OBJECT_TYPE: u8 = 0x27;
 
     impl_position!();

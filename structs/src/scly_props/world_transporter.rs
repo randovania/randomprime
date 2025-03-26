@@ -48,11 +48,11 @@ pub struct WorldTransporterPalAdditions<'r> {
     pub unknown3: f32,
 }
 
-impl<'r> SclyPropertyData for WorldTransporter<'r> {
+impl SclyPropertyData for WorldTransporter<'_> {
     const OBJECT_TYPE: u8 = 0x062;
 }
 
-impl<'r> WorldTransporter<'r> {
+impl WorldTransporter<'_> {
     pub fn warp(
         mlvl: u32,
         mrea: u32,

@@ -16,6 +16,6 @@ pub struct PickupGenerator<'r> {
     pub frequency: f32,
 }
 
-impl<'r> SclyPropertyData for PickupGenerator<'r> {
+impl SclyPropertyData for PickupGenerator<'_> {
     const OBJECT_TYPE: u8 = 0x40;
 }

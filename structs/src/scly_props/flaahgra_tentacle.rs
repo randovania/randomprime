@@ -22,7 +22,7 @@ pub struct FlaahgraTentacle<'r> {
     pub actor_params: ActorParameters,
 }
 
-impl<'r> SclyPropertyData for FlaahgraTentacle<'r> {
+impl SclyPropertyData for FlaahgraTentacle<'_> {
     const OBJECT_TYPE: u8 = 0x5C;
 
     impl_position!();

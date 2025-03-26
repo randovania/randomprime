@@ -1302,7 +1302,7 @@ impl<'de> Deserialize<'de> for SuitDamageReduction {
     {
         struct SuitDamageReductionVisitor;
 
-        impl<'de> Visitor<'de> for SuitDamageReductionVisitor {
+        impl Visitor<'_> for SuitDamageReductionVisitor {
             type Value = SuitDamageReduction;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -2335,9 +2335,9 @@ impl PatchConfigPrivate {
         if !item_max_capacity.contains_key(&PickupType::EnergyTank) && !force_vanilla_layout {
             item_max_capacity.insert(PickupType::EnergyTank, 200);
         }
-        if !item_max_capacity.contains_key(&PickupType::UnknownItem2) {
-            item_max_capacity.insert(PickupType::UnknownItem2, 2147483647);
-        }
+        item_max_capacity
+            .entry(PickupType::UnknownItem2)
+            .or_insert(2147483647);
 
         if item_max_capacity.contains_key(&PickupType::UnlimitedMissiles)
             || item_max_capacity.contains_key(&PickupType::UnlimitedPowerBombs)

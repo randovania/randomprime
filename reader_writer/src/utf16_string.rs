@@ -36,13 +36,13 @@ impl<'r> Readable<'r> for Utf16beStr<'r> {
     }
 }
 
-impl<'r, 'r2> cmp::PartialEq<Utf16beStr<'r2>> for Utf16beStr<'r> {
+impl<'r2> cmp::PartialEq<Utf16beStr<'r2>> for Utf16beStr<'_> {
     fn eq(&self, other: &Utf16beStr<'r2>) -> bool {
         self.chars().eq(other.chars())
     }
 }
 
-impl<'r> cmp::PartialEq<str> for Utf16beStr<'r> {
+impl cmp::PartialEq<str> for Utf16beStr<'_> {
     fn eq(&self, other: &str) -> bool {
         self.chars()
             .map(|r| r.unwrap_or(REPLACEMENT_CHARACTER))
@@ -50,13 +50,13 @@ impl<'r> cmp::PartialEq<str> for Utf16beStr<'r> {
     }
 }
 
-impl<'r> fmt::Debug for Utf16beStr<'r> {
+impl fmt::Debug for Utf16beStr<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         fmt::Debug::fmt(&self.chars().map(|i| i.unwrap()).collect::<String>(), f)
     }
 }
 
-impl<'r> Writable for Utf16beStr<'r> {
+impl Writable for Utf16beStr<'_> {
     fn write_to<W: io::Write>(&self, w: &mut W) -> io::Result<u64> {
         w.write_all(&self.0)?;
         Ok(self.0.len() as u64)
@@ -66,7 +66,7 @@ impl<'r> Writable for Utf16beStr<'r> {
 #[derive(Clone, Debug)]
 pub struct U16beIter<'r>(Reader<'r>);
 
-impl<'r> Iterator for U16beIter<'r> {
+impl Iterator for U16beIter<'_> {
     type Item = u16;
     fn next(&mut self) -> Option<Self::Item> {
         if self.0.len() > 0 {
@@ -129,20 +129,21 @@ impl<'r> LazyUtf16beStr<'r> {
         }
     }
 }
-impl<'r> cmp::PartialEq<str> for LazyUtf16beStr<'r> {
+
+impl cmp::PartialEq<str> for LazyUtf16beStr<'_> {
     fn eq(&self, other: &str) -> bool {
         self.chars().eq(other.chars())
     }
 }
 
-impl<'r, 'r2> cmp::PartialEq<Utf16beStr<'r2>> for LazyUtf16beStr<'r> {
+impl<'r2> cmp::PartialEq<Utf16beStr<'r2>> for LazyUtf16beStr<'_> {
     fn eq(&self, other: &Utf16beStr<'r2>) -> bool {
         self.chars()
             .eq(other.chars().map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)))
     }
 }
 
-impl<'r, 'r2> cmp::PartialEq<LazyUtf16beStr<'r2>> for LazyUtf16beStr<'r> {
+impl<'r2> cmp::PartialEq<LazyUtf16beStr<'r2>> for LazyUtf16beStr<'_> {
     fn eq(&self, other: &LazyUtf16beStr<'r2>) -> bool {
         self.chars().eq(other.chars())
     }
@@ -163,7 +164,7 @@ impl<'r> Readable<'r> for LazyUtf16beStr<'r> {
     }
 }
 
-impl<'r> Writable for LazyUtf16beStr<'r> {
+impl Writable for LazyUtf16beStr<'_> {
     fn write_to<W: io::Write>(&self, w: &mut W) -> io::Result<u64> {
         match *self {
             LazyUtf16beStr::Borrowed(ref s) => {
@@ -187,7 +188,7 @@ pub enum LazyUtf16beStrChars<'r, 's> {
     Borrowed(DecodeUtf16<U16beIter<'r>>),
 }
 
-impl<'r, 's> Iterator for LazyUtf16beStrChars<'r, 's> {
+impl Iterator for LazyUtf16beStrChars<'_, '_> {
     type Item = char;
     fn next(&mut self) -> Option<Self::Item> {
         match *self {
@@ -199,8 +200,8 @@ impl<'r, 's> Iterator for LazyUtf16beStrChars<'r, 's> {
     }
 }
 
-impl<'r> From<String> for LazyUtf16beStr<'r> {
-    fn from(s: String) -> LazyUtf16beStr<'r> {
+impl From<String> for LazyUtf16beStr<'_> {
+    fn from(s: String) -> Self {
         // Verify null-terminator
         assert!(s.ends_with('\u{0}'));
         LazyUtf16beStr::Owned(s)

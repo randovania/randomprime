@@ -16,7 +16,7 @@ pub trait WithRead: fmt::Debug {
     }
 }
 
-impl<'r> Clone for Box<dyn WithRead + 'r> {
+impl Clone for Box<dyn WithRead + '_> {
     fn clone(&self) -> Self {
         self.boxed()
     }

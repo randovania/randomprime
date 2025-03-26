@@ -29,7 +29,7 @@ pub struct Drone<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Drone<'r> {
+impl SclyPropertyData for Drone<'_> {
     const OBJECT_TYPE: u8 = 0x43;
 
     impl_position!();

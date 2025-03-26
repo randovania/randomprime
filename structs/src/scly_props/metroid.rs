@@ -32,7 +32,7 @@ pub struct Metroid<'r> {
     pub dont_care: u8,
 }
 
-impl<'r> SclyPropertyData for Metroid<'r> {
+impl SclyPropertyData for Metroid<'_> {
     const OBJECT_TYPE: u8 = 0x44;
 
     impl_position!();

@@ -14,6 +14,6 @@ pub struct CameraBlurKeyframe<'r> {
     pub unknowns: GenericArray<u8, U5>,
 }
 
-impl<'r> SclyPropertyData for CameraBlurKeyframe<'r> {
+impl SclyPropertyData for CameraBlurKeyframe<'_> {
     const OBJECT_TYPE: u8 = 0x19;
 }

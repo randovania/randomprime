@@ -21,7 +21,7 @@ pub struct BallTrigger<'r> {
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for BallTrigger<'r> {
+impl SclyPropertyData for BallTrigger<'_> {
     const OBJECT_TYPE: u8 = 0x48;
 
     impl_position!();
