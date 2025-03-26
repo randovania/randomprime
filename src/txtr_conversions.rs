@@ -296,8 +296,8 @@ pub fn decompress_dxt1gcn_block(block: &[u8]) -> [[u8; 4]; 16] {
 }
 
 fn reverse_byte(byte: u8) -> u8 {
-    (byte & 0b00000011) << 6
-        | (byte & 0b00001100) << 2
-        | (byte & 0b00110000) >> 2
-        | (byte & 0b11000000) >> 6
+    ((byte & 0b00000011) << 6)
+        | ((byte & 0b00001100) << 2)
+        | ((byte & 0b00110000) >> 2)
+        | ((byte & 0b11000000) >> 6)
 }

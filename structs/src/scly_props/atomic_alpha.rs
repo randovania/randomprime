@@ -29,7 +29,7 @@ pub struct AtomicAlpha<'r> {
     pub apply_beam_attraction: u8,
 }
 
-impl<'r> SclyPropertyData for AtomicAlpha<'r> {
+impl SclyPropertyData for AtomicAlpha<'_> {
     const OBJECT_TYPE: u8 = 0x72;
 
     impl_position!();

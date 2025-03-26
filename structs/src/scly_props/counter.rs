@@ -17,6 +17,6 @@ pub struct Counter<'r> {
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for Counter<'r> {
+impl SclyPropertyData for Counter<'_> {
     const OBJECT_TYPE: u8 = 0x06;
 }

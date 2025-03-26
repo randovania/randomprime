@@ -81,7 +81,7 @@ pub enum FrmeWidgetKind<'r> {
     Image(ImageWidget<'r>),       // IMGP
 }
 
-impl<'r> FrmeWidgetKind<'r> {
+impl FrmeWidgetKind<'_> {
     pub fn fourcc(&self) -> FourCC {
         match self {
             FrmeWidgetKind::Head => b"HWIG".into(),
@@ -154,7 +154,7 @@ impl<'r> Readable<'r> for FrmeWidgetKind<'r> {
     }
 }
 
-impl<'r> Writable for FrmeWidgetKind<'r> {
+impl Writable for FrmeWidgetKind<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match self {
             FrmeWidgetKind::Head => Ok(0),

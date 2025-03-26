@@ -43,7 +43,7 @@ pub struct PlayerHint<'r> {
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for PlayerHint<'r> {
+impl SclyPropertyData for PlayerHint<'_> {
     const OBJECT_TYPE: u8 = 0x3E;
     impl_position!();
     impl_rotation!();

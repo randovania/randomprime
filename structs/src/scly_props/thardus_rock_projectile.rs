@@ -28,7 +28,7 @@ pub struct ThardusRockProjectile<'r> {
     pub afsm: u32,
 }
 
-impl<'r> SclyPropertyData for ThardusRockProjectile<'r> {
+impl SclyPropertyData for ThardusRockProjectile<'_> {
     const OBJECT_TYPE: u8 = 0x5F;
 
     impl_position!();

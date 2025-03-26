@@ -24,7 +24,7 @@ pub struct Geemer<'r> {
     pub dont_cares: GenericArray<u8, U40>,
 }
 
-impl<'r> SclyPropertyData for Geemer<'r> {
+impl SclyPropertyData for Geemer<'_> {
     const OBJECT_TYPE: u8 = 0x70;
 
     impl_position!();

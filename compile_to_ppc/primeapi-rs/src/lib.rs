@@ -80,6 +80,7 @@ extern "C" {
     fn free(ptr: *const c_void);
 }
 
+#[allow(clippy::manual_c_str_literals)]
 pub unsafe fn malloc(len: usize) -> *mut c_void {
     operator_new(len, b"??\0".as_ptr(), b"??\0".as_ptr())
 }

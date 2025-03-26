@@ -27,7 +27,7 @@ pub struct PhazonHealingNodule<'r> {
     pub target_locator: CStr<'r>,
 }
 
-impl<'r> SclyPropertyData for PhazonHealingNodule<'r> {
+impl SclyPropertyData for PhazonHealingNodule<'_> {
     const OBJECT_TYPE: u8 = 0x88;
 
     impl_position!();

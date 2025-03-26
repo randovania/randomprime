@@ -37,7 +37,7 @@ pub struct AtomicBeta<'r> {
     pub unknown10: f32,
 }
 
-impl<'r> SclyPropertyData for AtomicBeta<'r> {
+impl SclyPropertyData for AtomicBeta<'_> {
     const OBJECT_TYPE: u8 = 0x77;
 
     impl_position!();

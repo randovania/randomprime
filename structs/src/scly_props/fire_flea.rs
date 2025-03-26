@@ -26,7 +26,7 @@ pub struct FireFlea<'r> {
     pub unknown3: f32,
 }
 
-impl<'r> SclyPropertyData for FireFlea<'r> {
+impl SclyPropertyData for FireFlea<'_> {
     const OBJECT_TYPE: u8 = 0x36;
 
     impl_position!();

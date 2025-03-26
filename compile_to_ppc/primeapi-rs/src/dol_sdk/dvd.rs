@@ -103,13 +103,13 @@ impl Drop for DVDFileInfo {
     }
 }
 
-impl<'a> Drop for AsyncDVDReadHandle<'a> {
+impl Drop for AsyncDVDReadHandle<'_> {
     fn drop(&mut self) {
         while !self.is_finished() {}
     }
 }
 
-impl<'a> AsyncDVDReadHandle<'a> {
+impl AsyncDVDReadHandle<'_> {
     #[inline(always)]
     pub fn is_finished(&self) -> bool {
         unsafe { ptr::read_volatile(self.state_ptr.as_ptr()) == 0x00 }
