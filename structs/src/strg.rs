@@ -162,13 +162,13 @@ impl<'r> Strg<'r> {
 #[doc(hidden)]
 #[derive(Clone, Debug)]
 pub struct StrgLangIter<'r>(usize, RoArrayIter<'r, StrgLang>);
-impl<'r> Iterator for StrgLangIter<'r> {
+impl Iterator for StrgLangIter<'_> {
     type Item = (usize, FourCC);
     fn next(&mut self) -> Option<Self::Item> {
         self.1.next().map(|i| (self.0, i.lang))
     }
 }
-impl<'r> ExactSizeIterator for StrgLangIter<'r> {
+impl ExactSizeIterator for StrgLangIter<'_> {
     fn len(&self) -> usize {
         self.1.len()
     }

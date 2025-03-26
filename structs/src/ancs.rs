@@ -313,7 +313,7 @@ impl<'r> Readable<'r> for MetaAnimation<'r> {
     }
 }
 
-impl<'r> Writable for MetaAnimation<'r> {
+impl Writable for MetaAnimation<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         Ok(match self {
             MetaAnimation::Play(i) => 0u32.write_to(writer)? + i.write_to(writer)?,
@@ -409,7 +409,7 @@ impl<'r> Readable<'r> for MetaTransition<'r> {
     }
 }
 
-impl<'r> Writable for MetaTransition<'r> {
+impl Writable for MetaTransition<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         Ok(match self {
             MetaTransition::Animation(i) => 0u32.write_to(writer)? + i.write_to(writer)?,

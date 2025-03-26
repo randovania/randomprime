@@ -32,7 +32,7 @@ pub struct Puffer<'r> {
     pub dont_care: u32,
 }
 
-impl<'r> SclyPropertyData for Puffer<'r> {
+impl SclyPropertyData for Puffer<'_> {
     const OBJECT_TYPE: u8 = 0x79;
 
     impl_position!();

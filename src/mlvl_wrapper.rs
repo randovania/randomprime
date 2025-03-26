@@ -50,7 +50,7 @@ impl<'r> MlvlEditor<'r> {
     }
 }
 
-impl<'r, 'mlvl, 'cursor, 'list> MlvlArea<'r, 'mlvl, 'cursor, 'list> {
+impl<'r> MlvlArea<'r, '_, '_, '_> {
     pub fn mrea_file_id(&mut self) -> u32 {
         self.mrea_cursor.peek().unwrap().file_id
     }

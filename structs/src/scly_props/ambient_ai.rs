@@ -29,7 +29,7 @@ pub struct AmbientAI<'r> {
     pub dont_care: GenericArray<u8, U125>,
 }
 
-impl<'r> SclyPropertyData for AmbientAI<'r> {
+impl SclyPropertyData for AmbientAI<'_> {
     const OBJECT_TYPE: u8 = 0x75;
 
     impl_position!();

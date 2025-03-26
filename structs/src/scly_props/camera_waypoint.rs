@@ -19,7 +19,7 @@ pub struct CameraWaypoint<'r> {
     pub unknown: u32,
 }
 
-impl<'r> SclyPropertyData for CameraWaypoint<'r> {
+impl SclyPropertyData for CameraWaypoint<'_> {
     const OBJECT_TYPE: u8 = 0xD;
 
     impl_position!();

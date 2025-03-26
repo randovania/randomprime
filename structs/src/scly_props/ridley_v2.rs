@@ -62,7 +62,7 @@ pub struct RidleyV2<'r> {
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for RidleyV2<'r> {
+impl SclyPropertyData for RidleyV2<'_> {
     const OBJECT_TYPE: u8 = 0x7B;
     impl_position!();
     impl_rotation!();

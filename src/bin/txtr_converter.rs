@@ -269,7 +269,7 @@ fn decode_rgb5a3(texel: [u8; 2]) -> [u8; 4] {
             convert4to8(((v >> 8) & 0xf) as u8),
             convert4to8(((v >> 4) & 0xf) as u8),
             convert4to8((v & 0xf) as u8),
-            convert3to8((v >> 12 & 0x7) as u8),
+            convert3to8(((v >> 12) & 0x7) as u8),
         ]
     }
 }

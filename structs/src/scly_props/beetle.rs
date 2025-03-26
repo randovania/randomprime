@@ -31,7 +31,7 @@ pub struct Beetle<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Beetle<'r> {
+impl SclyPropertyData for Beetle<'_> {
     const OBJECT_TYPE: u8 = 0x16;
 
     impl_position!();

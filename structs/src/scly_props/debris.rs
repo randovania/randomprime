@@ -24,7 +24,7 @@ pub struct Debris<'r> {
     pub dont_care3: u8,
 }
 
-impl<'r> SclyPropertyData for Debris<'r> {
+impl SclyPropertyData for Debris<'_> {
     const OBJECT_TYPE: u8 = 0x1B;
 
     impl_position!();

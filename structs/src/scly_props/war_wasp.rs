@@ -35,7 +35,7 @@ pub struct WarWasp<'r> {
     pub sound: u32,
 }
 
-impl<'r> SclyPropertyData for WarWasp<'r> {
+impl SclyPropertyData for WarWasp<'_> {
     const OBJECT_TYPE: u8 = 0x21;
 
     impl_position!();

@@ -7341,7 +7341,7 @@ fn patch_audio_override<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
     id: u32,
-    file_name: &'r Vec<u8>,
+    file_name: &'r [u8],
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
     let layers = &mut scly.layers.as_mut_vec();
@@ -9429,7 +9429,7 @@ fn patch_credits(
         ("Kerry Anne Odem".to_string(), "Kerry Ann Odem".to_string()),
         Languages::All,
     );
-    
+
     Ok(())
 }
 
@@ -9613,6 +9613,7 @@ fn create_rel_config_file(spawn_room: SpawnRoomData, quickplay: bool) -> Vec<u8>
     buf
 }
 
+#[rustfmt::skip]
 #[allow(clippy::too_many_arguments)]
 fn patch_dol(
     file: &mut structs::FstEntryFile,
@@ -10961,7 +10962,13 @@ fn patch_dol(
 
     // TO-DO :
     // Set spring ball item on Trilogy
-    if [Version::NtscJTrilogy, Version::NtscUTrilogy, Version::PalTrilogy].contains(&version) {
+    if [
+        Version::NtscJTrilogy,
+        Version::NtscUTrilogy,
+        Version::PalTrilogy,
+    ]
+    .contains(&version)
+    {
     } else {
         // call compute spring ball movement
         #[rustfmt::skip]
@@ -11260,256 +11267,282 @@ fn patch_dol(
     }
 
     // custom item support
-    let first_custom_item_idx = -1 * (PickupType::ArtifactOfNewborn.kind() + 1) as i32;
-    let (actor_flags_offset, out_of_water_ticks_offset, fluid_depth_offset) = if [Version::Pal, Version::NtscJ, Version::NtscU0_02].contains(&version) {
-        (0xf0, 0x2c0, 0x838)
-    } else {
-        (0xe4, 0x2b0, 0x828)
-    };
-    let (probability_offset, life_time_offset) = if [Version::Pal, Version::NtscJ].contains(&version) {
-        (0x274, 0x27c)
-    } else {
-        (0x264, 0x26c)
-    };
-    let custom_item_initialize_power_up_hook = ppcasm!(symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x1c, {
-            b            { new_text_section_end };
-    });
+    let first_custom_item_idx = -((PickupType::ArtifactOfNewborn.kind() + 1) as i32);
+    let (actor_flags_offset, out_of_water_ticks_offset, fluid_depth_offset) =
+        if [Version::Pal, Version::NtscJ, Version::NtscU0_02].contains(&version) {
+            (0xf0, 0x2c0, 0x838)
+        } else {
+            (0xe4, 0x2b0, 0x828)
+        };
+    let (probability_offset, life_time_offset) =
+        if [Version::Pal, Version::NtscJ].contains(&version) {
+            (0x274, 0x27c)
+        } else {
+            (0x264, 0x26c)
+        };
+    let custom_item_initialize_power_up_hook = ppcasm!(
+        symbol_addr!(
+            "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
+            version
+        ) + 0x1c,
+        {
+            b {
+                new_text_section_end
+            };
+        }
+    );
     dol_patcher.ppcasm_patch(&custom_item_initialize_power_up_hook)?;
 
     let custom_item_initialize_power_up_patch = ppcasm!(new_text_section_end, {
-            mr           r29, r4;
-            mr           r14, r5;
-            lis          r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@h;
-            addi         r15, r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@l;
+        mr           r29, r4;
+        mr           r14, r5;
+        lis          r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@h;
+        addi         r15, r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@l;
 
-            // add to item total if pickup isn't disappearing and has 100% probability to spawn
-            lwz          r4, 0x14(r1);
-            lwz          r3, { life_time_offset }(r4);
-            cmpwi        r3, 0;
-            lhz          r3, { probability_offset }(r4);
-            bne          check_custom_item;
-            cmpwi        r3, 0x42c8;
-            bne          check_custom_item;
-            li           r3, { PickupType::PowerSuit.kind() };
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r31, r0;
-            addi         r3, r3, 0x28;
-            lwz          r4, 0x4(r3);
-            addi         r4, r4, 1;
-            stw          r4, 0x4(r3);
+        // add to item total if pickup isn't disappearing and has 100% probability to spawn
+        lwz          r4, 0x14(r1);
+        lwz          r3, { life_time_offset }(r4);
+        cmpwi        r3, 0;
+        lhz          r3, { probability_offset }(r4);
+        bne          check_custom_item;
+        cmpwi        r3, 0x42c8;
+        bne          check_custom_item;
+        li           r3, { PickupType::PowerSuit.kind() };
+        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+        add          r3, r31, r0;
+        addi         r3, r3, 0x28;
+        lwz          r4, 0x4(r3);
+        addi         r4, r4, 1;
+        stw          r4, 0x4(r3);
 
-            // add/remove custom item to unknown item 2
-        check_custom_item:
-            cmpwi        r29, { PickupType::ArtifactOfNewborn.kind() };
-            ble          continue_init_power_up;
-            cmpwi        r29, { PickupType::Nothing.kind() };
-            bge          check_missile_launcher;
-            li           r3, { PickupType::UnknownItem2.kind() };
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r31, r0;
-            addi         r3, r3, 0x2c;
-            li           r4, { first_custom_item_idx };
-            add          r4, r4, r29;
-            li           r0, 1;
-            slw          r0, r4, r4;
-            lwz          r0, 0x0(r3);
-            cmpwi        r14, 0;
-            blt          remove_custom_item;
-            or           r0, r4, r4;
-            b            set_custom_item;
-        remove_custom_item:
-            not          r4, r4;
-            and          r0, r4, r4;
-        set_custom_item:
-            stw          r4, 0x0(r3);
+        // add/remove custom item to unknown item 2
+    check_custom_item:
+        cmpwi        r29, { PickupType::ArtifactOfNewborn.kind() };
+        ble          continue_init_power_up;
+        cmpwi        r29, { PickupType::Nothing.kind() };
+        bge          check_missile_launcher;
+        li           r3, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+        add          r3, r31, r0;
+        addi         r3, r3, 0x2c;
+        li           r4, { first_custom_item_idx };
+        add          r4, r4, r29;
+        li           r0, 1;
+        slw          r0, r4, r4;
+        lwz          r0, 0x0(r3);
+        cmpwi        r14, 0;
+        blt          remove_custom_item;
+        or           r0, r4, r4;
+        b            set_custom_item;
+    remove_custom_item:
+        not          r4, r4;
+        and          r0, r4, r4;
+    set_custom_item:
+        stw          r4, 0x0(r3);
 
-        check_missile_launcher:
-            // check if it is missile launcher
-            cmpwi        r29, { PickupType::MissileLauncher.kind() };
-            bne          check_power_bomb;
-            li           r3, { PickupType::Missile.kind() };
-            lwz          r0, { PickupType::Missile.kind() * 4 }(r15);
-            b            incr_capacity;
+    check_missile_launcher:
+        // check if it is missile launcher
+        cmpwi        r29, { PickupType::MissileLauncher.kind() };
+        bne          check_power_bomb;
+        li           r3, { PickupType::Missile.kind() };
+        lwz          r0, { PickupType::Missile.kind() * 4 }(r15);
+        b            incr_capacity;
 
-            // check if it is power bomb launcher
-        check_power_bomb:
-            cmpwi        r29, { PickupType::PowerBombLauncher.kind() };
-            bne          check_ice_trap;
-            li           r3, { PickupType::PowerBomb.kind() };
-            lwz          r0, { PickupType::PowerBomb.kind() * 4 }(r15);
-            b            incr_capacity;
+        // check if it is power bomb launcher
+    check_power_bomb:
+        cmpwi        r29, { PickupType::PowerBombLauncher.kind() };
+        bne          check_ice_trap;
+        li           r3, { PickupType::PowerBomb.kind() };
+        lwz          r0, { PickupType::PowerBomb.kind() * 4 }(r15);
+        b            incr_capacity;
 
-            // check if it is ice trap
-        check_ice_trap:
-            cmpwi        r29, { PickupType::IceTrap.kind() };
-            bne          check_floaty_jump;
-            mr           r16, r5;
-            lwz          r3, 0x84c(r30);
-            mr           r4, r25;
-            lis          r5, 0x6FC0;
-            ori          r5, r5, 0x3D46;
-            li           r6, 0xC34;
-            lis          r7, 0x2B75;
-            ori          r7, r7, 0x7945;
-            bl           { symbol_addr!("Freeze__7CPlayerFR13CStateManagerUiUsUi", version) };
-            lis          r5, data@h;
-            addi         r5, r5, data@l;
-            lfs          f14, 0x0(r5);
-            lwz          r5, 0x8b8(r30);
-            lwz          r5, 0x0(r5);
-            lfs          f15, 0x0c(r5);
-            fsubs        f15, f15, f14;
-            stfs         f15, 0x0c(r5);
-            fcmpu        cr0, f15, f28;
-            bgt          not_dead_from_ice_trap;
-            lwz          r4, 0x0(r5);
-            andis        r4, r4, 0x7fff;
-            stw          r4, 0x0(r5);
-        not_dead_from_ice_trap:
-            b            end_init_power_up;
+        // check if it is ice trap
+    check_ice_trap:
+        cmpwi        r29, { PickupType::IceTrap.kind() };
+        bne          check_floaty_jump;
+        mr           r16, r5;
+        lwz          r3, 0x84c(r30);
+        mr           r4, r25;
+        lis          r5, 0x6FC0;
+        ori          r5, r5, 0x3D46;
+        li           r6, 0xC34;
+        lis          r7, 0x2B75;
+        ori          r7, r7, 0x7945;
+        bl           { symbol_addr!("Freeze__7CPlayerFR13CStateManagerUiUsUi", version) };
+        lis          r5, data@h;
+        addi         r5, r5, data@l;
+        lfs          f14, 0x0(r5);
+        lwz          r5, 0x8b8(r30);
+        lwz          r5, 0x0(r5);
+        lfs          f15, 0x0c(r5);
+        fsubs        f15, f15, f14;
+        stfs         f15, 0x0c(r5);
+        fcmpu        cr0, f15, f28;
+        bgt          not_dead_from_ice_trap;
+        lwz          r4, 0x0(r5);
+        andis        r4, r4, 0x7fff;
+        stw          r4, 0x0(r5);
+    not_dead_from_ice_trap:
+        b            end_init_power_up;
 
-            // check if it is floaty jump
-        check_floaty_jump:
-            cmpwi        r29, { PickupType::FloatyJump.kind() };
-            bne          continue_init_power_up;
-            lwz          r3, 0x84c(r30);
-            lwz          r0, { out_of_water_ticks_offset }(r3);
-            lwz          r5, { actor_flags_offset }(r3);
-            mr           r4, r5;
-            srwi         r5, r5, 14; // remove bits on the right of fluid count
-            andi         r5, r5, 7;  // remove bits on the left of fluid count
+        // check if it is floaty jump
+    check_floaty_jump:
+        cmpwi        r29, { PickupType::FloatyJump.kind() };
+        bne          continue_init_power_up;
+        lwz          r3, 0x84c(r30);
+        lwz          r0, { out_of_water_ticks_offset }(r3);
+        lwz          r5, { actor_flags_offset }(r3);
+        mr           r4, r5;
+        srwi         r5, r5, 14; // remove bits on the right of fluid count
+        andi         r5, r5, 7;  // remove bits on the left of fluid count
 
-            // remove fluid counts
-            lis          r6, 0xffff;
-            ori          r6, r6, 0x3fff;
-            and          r4, r4, r6;
+        // remove fluid counts
+        lis          r6, 0xffff;
+        ori          r6, r6, 0x3fff;
+        and          r4, r4, r6;
 
-            cmpwi        r14, 0;
-            blt          remove_floaty_jump;
-            addi         r5, r5, 1;  // add 1 to fluid count
-            andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
-            slwi         r5, r5, 14;
-            or           r4, r4, r5; // actor flags |= (value << 14)
-            cmpwi        r0, 2;      // check if we are in water
-            bne          apply_underwater_floaty_jump;
-            lis          r5, 0x41a0; // 20.0
-            b            apply_floaty_jump;
-        remove_floaty_jump:
-            cmpwi        r0, 2;      // check if we are in water
-            bne          do_not_decrement_fluid_count_more_than_one;
-            cmpwi        r5, 0;
-            ble          do_not_decrement_fluid_count;
-            b            decrement_fluid_count;
-        do_not_decrement_fluid_count_more_than_one:
-            cmpwi        r5, 1;
-            ble          do_not_decrement_fluid_count;
-        decrement_fluid_count:
-            addi         r5, r5, -1; // subtract 1 to fluid count
-        do_not_decrement_fluid_count:
-            andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
-            slwi         r5, r5, 14;
-            or           r4, r4, r5; // actor flags |= (value << 14)
-            cmpwi        r0, 2;      // check if we are in water
-            bne          apply_underwater_floaty_jump;
-            lis          r5, 0;
-        apply_floaty_jump:
-            stw          r5, { fluid_depth_offset }(r3);
-        apply_underwater_floaty_jump:
-            stw          r4, { actor_flags_offset }(r3);
-            b            end_init_power_up;
+        cmpwi        r14, 0;
+        blt          remove_floaty_jump;
+        addi         r5, r5, 1;  // add 1 to fluid count
+        andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
+        slwi         r5, r5, 14;
+        or           r4, r4, r5; // actor flags |= (value << 14)
+        cmpwi        r0, 2;      // check if we are in water
+        bne          apply_underwater_floaty_jump;
+        lis          r5, 0x41a0; // 20.0
+        b            apply_floaty_jump;
+    remove_floaty_jump:
+        cmpwi        r0, 2;      // check if we are in water
+        bne          do_not_decrement_fluid_count_more_than_one;
+        cmpwi        r5, 0;
+        ble          do_not_decrement_fluid_count;
+        b            decrement_fluid_count;
+    do_not_decrement_fluid_count_more_than_one:
+        cmpwi        r5, 1;
+        ble          do_not_decrement_fluid_count;
+    decrement_fluid_count:
+        addi         r5, r5, -1; // subtract 1 to fluid count
+    do_not_decrement_fluid_count:
+        andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
+        slwi         r5, r5, 14;
+        or           r4, r4, r5; // actor flags |= (value << 14)
+        cmpwi        r0, 2;      // check if we are in water
+        bne          apply_underwater_floaty_jump;
+        lis          r5, 0;
+    apply_floaty_jump:
+        stw          r5, { fluid_depth_offset }(r3);
+    apply_underwater_floaty_jump:
+        stw          r4, { actor_flags_offset }(r3);
+        b            end_init_power_up;
 
-            // check for max capacity
-        incr_capacity:
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r31, r0;
-            addi         r3, r3, 0x28;
-            lwz          r4, 0x4(r3);
-            add          r4, r4, r14;
-            cmpw         r4, r0;
-            ble          incr_capacity_check_for_negative;
-            mr           r4, r0;
-            b            incr_capacity_set_capacity;
-        incr_capacity_check_for_negative:
-            cmpwi        r4, 0;
-            bge          incr_capacity_set_capacity;
-            li           r4, 0;
-        incr_capacity_set_capacity:
-            stw          r4, 0x4(r3);
+        // check for max capacity
+    incr_capacity:
+        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+        add          r3, r31, r0;
+        addi         r3, r3, 0x28;
+        lwz          r4, 0x4(r3);
+        add          r4, r4, r14;
+        cmpw         r4, r0;
+        ble          incr_capacity_check_for_negative;
+        mr           r4, r0;
+        b            incr_capacity_set_capacity;
+    incr_capacity_check_for_negative:
+        cmpwi        r4, 0;
+        bge          incr_capacity_set_capacity;
+        li           r4, 0;
+    incr_capacity_set_capacity:
+        stw          r4, 0x4(r3);
 
-            // check for max amount
-            lwz          r4, 0x0(r3);
-            add          r4, r4, r14;
-            lwz          r0, 0x4(r3);
-            cmpw         r4, r0;
-            ble          incr_amount_check_for_negative;
-            mr           r4, r0;
-            b            incr_amount_set_amount;
-        incr_amount_check_for_negative:
-            cmpwi        r4, 0;
-            bge          incr_amount_set_amount;
-            li           r4, 0;
-        incr_amount_set_amount:
-            stw          r4, 0x0(r3);
+        // check for max amount
+        lwz          r4, 0x0(r3);
+        add          r4, r4, r14;
+        lwz          r0, 0x4(r3);
+        cmpw         r4, r0;
+        ble          incr_amount_check_for_negative;
+        mr           r4, r0;
+        b            incr_amount_set_amount;
+    incr_amount_check_for_negative:
+        cmpwi        r4, 0;
+        bge          incr_amount_set_amount;
+        li           r4, 0;
+    incr_amount_set_amount:
+        stw          r4, 0x0(r3);
 
-        end_init_power_up:
-            mr           r5, r14;
-            andi         r14, r14, 0;
-            andi         r15, r15, 0;
-            andi         r16, r16, 0;
-            fmr          f14, f28;
-            fmr          f15, f28;
-            b            { symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x108 };
+    end_init_power_up:
+        mr           r5, r14;
+        andi         r14, r14, 0;
+        andi         r15, r15, 0;
+        andi         r16, r16, 0;
+        fmr          f14, f28;
+        fmr          f15, f28;
+        b            { symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x108 };
 
-            // restore previous context
-        continue_init_power_up:
-            mr           r5, r14;
-            andi         r14, r14, 0;
-            andi         r15, r15, 0;
-            andi         r16, r16, 0;
-            fmr          f14, f28;
-            fmr          f15, f28;
-            cmpwi        r29, 0;
-            b            { symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x20 };
-        data:
-            .float    75.0;
-        });
+        // restore previous context
+    continue_init_power_up:
+        mr           r5, r14;
+        andi         r14, r14, 0;
+        andi         r15, r15, 0;
+        andi         r16, r16, 0;
+        fmr          f14, f28;
+        fmr          f15, f28;
+        cmpwi        r29, 0;
+        b            { symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x20 };
+    data:
+        .float    75.0;
+    });
 
     new_text_section_end += custom_item_initialize_power_up_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_initialize_power_up_patch.encoded_bytes());
 
-    let custom_item_has_power_up_hook = ppcasm!(symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version), {
-            b            { new_text_section_end };
-    });
+    let custom_item_has_power_up_hook = ppcasm!(
+        symbol_addr!(
+            "HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType",
+            version
+        ),
+        {
+            b {
+                new_text_section_end
+            };
+        }
+    );
     dol_patcher.ppcasm_patch(&custom_item_has_power_up_hook)?;
     let custom_item_has_power_up_patch = ppcasm!(new_text_section_end, {
-            // check custom item in unknown item 2
-            cmpwi        r4, { PickupType::ArtifactOfNewborn.kind() };
-            ble          not_custom_item;
-            li           r15, { PickupType::UnknownItem2.kind() };
-            rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-            add          r15, r3, r0;
-            addi         r15, r15, 0x2c;
-            li           r3, { first_custom_item_idx };
-            add          r3, r3, r4;
-            lwz          r0, 0x0(r15);
-            srw          r0, r3, r3;
-            andi         r3, r3, 1;
-            andi         r15, r15, 0;
-            blr;
+        // check custom item in unknown item 2
+        cmpwi        r4, { PickupType::ArtifactOfNewborn.kind() };
+        ble          not_custom_item;
+        li           r15, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
+        add          r15, r3, r0;
+        addi         r15, r15, 0x2c;
+        li           r3, { first_custom_item_idx };
+        add          r3, r3, r4;
+        lwz          r0, 0x0(r15);
+        srw          r0, r3, r3;
+        andi         r3, r3, 1;
+        andi         r15, r15, 0;
+        blr;
 
-            // restore previous context
-        not_custom_item:
-            andi         r15, r15, 0;
-            cmpwi        r4, 0;
-            b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
-        });
+        // restore previous context
+    not_custom_item:
+        andi         r15, r15, 0;
+        cmpwi        r4, 0;
+        b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
+    });
 
     new_text_section_end += custom_item_has_power_up_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_has_power_up_patch.encoded_bytes());
 
-    let custom_item_get_item_amount_hook = ppcasm!(symbol_addr!("GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType", version), {
-            b            { new_text_section_end };
-    });
+    let custom_item_get_item_amount_hook = ppcasm!(
+        symbol_addr!(
+            "GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType",
+            version
+        ),
+        {
+            b {
+                new_text_section_end
+            };
+        }
+    );
     dol_patcher.ppcasm_patch(&custom_item_get_item_amount_hook)?;
     let custom_item_get_item_amount_patch = ppcasm!(new_text_section_end, {
             // backup arguments
@@ -11623,127 +11656,143 @@ fn patch_dol(
     new_text_section_end += custom_item_get_item_amount_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_get_item_amount_patch.encoded_bytes());
 
-    let custom_item_get_item_capacity_hook = ppcasm!(symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version), {
-            b            { new_text_section_end };
-    });
+    let custom_item_get_item_capacity_hook = ppcasm!(
+        symbol_addr!(
+            "GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType",
+            version
+        ),
+        {
+            b {
+                new_text_section_end
+            };
+        }
+    );
     dol_patcher.ppcasm_patch(&custom_item_get_item_capacity_hook)?;
     let custom_item_get_item_capacity_patch = ppcasm!(new_text_section_end, {
-            // backup arguments
-            mr           r14, r3;
+        // backup arguments
+        mr           r14, r3;
 
-            // preload unknown item 2 for future checks in the function
-            li           r15, { PickupType::UnknownItem2.kind() };
-            rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-            add          r15, r14, r0;
-            addi         r15, r15, 0x2c;
-            lwz          r15, 0x0(r15);
+        // preload unknown item 2 for future checks in the function
+        li           r15, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
+        add          r15, r14, r0;
+        addi         r15, r15, 0x2c;
+        lwz          r15, 0x0(r15);
 
-            cmpwi        r4, { PickupType::Missile.kind() };
-            bne          check_power_bomb;
-            // check for missile launcher
-            andi         r15, r3, { PickupType::MissileLauncher.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          no_launcher;
-            // check for missile capacity
-            li           r3, { PickupType::Missile.kind() };
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r14, r0;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            cmpwi        r3, 0;
-            ble          no_launcher;
-            // check for unlimited missiles
-            andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
-            li           r3, 255;
-            b            is_unlimited;
+        cmpwi        r4, { PickupType::Missile.kind() };
+        bne          check_power_bomb;
+        // check for missile launcher
+        andi         r15, r3, { PickupType::MissileLauncher.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          no_launcher;
+        // check for missile capacity
+        li           r3, { PickupType::Missile.kind() };
+        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+        add          r3, r14, r0;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        cmpwi        r3, 0;
+        ble          no_launcher;
+        // check for unlimited missiles
+        andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
+        li           r3, 255;
+        b            is_unlimited;
 
-        check_power_bomb:
-            cmpwi        r4, { PickupType::PowerBomb.kind() };
-            bne          not_unlimited_or_not_pb_missiles;
-            // check for power bomb launcher
-            andi         r15, r3, { PickupType::PowerBombLauncher.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          no_launcher;
-            // check for power bomb capacity
-            li           r3, { PickupType::PowerBomb.kind() };
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r14, r0;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            cmpwi        r3, 0;
-            ble          no_launcher;
-            // check for unlimited power bombs
-            andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
-            li           r3, 8;
-            b            is_unlimited;
+    check_power_bomb:
+        cmpwi        r4, { PickupType::PowerBomb.kind() };
+        bne          not_unlimited_or_not_pb_missiles;
+        // check for power bomb launcher
+        andi         r15, r3, { PickupType::PowerBombLauncher.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          no_launcher;
+        // check for power bomb capacity
+        li           r3, { PickupType::PowerBomb.kind() };
+        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+        add          r3, r14, r0;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        cmpwi        r3, 0;
+        ble          no_launcher;
+        // check for unlimited power bombs
+        andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
+        li           r3, 8;
+        b            is_unlimited;
 
-        no_launcher:
-            li           r3, 0;
-        is_unlimited:
-            andi         r14, r14, 0;
-            andi         r15, r15, 0;
-            blr;
+    no_launcher:
+        li           r3, 0;
+    is_unlimited:
+        andi         r14, r14, 0;
+        andi         r15, r15, 0;
+        blr;
 
-        not_unlimited_or_not_pb_missiles:
-            // restore previous context
-            mr           r3, r14;
-            andi         r14, r14, 0;
-            andi         r15, r15, 0;
-            cmpwi        r4, 0;
-            b            { symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
-        });
+    not_unlimited_or_not_pb_missiles:
+        // restore previous context
+        mr           r3, r14;
+        andi         r14, r14, 0;
+        andi         r15, r15, 0;
+        cmpwi        r4, 0;
+        b            { symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
+    });
 
     new_text_section_end += custom_item_get_item_capacity_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_get_item_capacity_patch.encoded_bytes());
 
-    let custom_item_decr_pickup_hook = ppcasm!(symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version), {
-            b            { new_text_section_end };
-    });
+    let custom_item_decr_pickup_hook = ppcasm!(
+        symbol_addr!(
+            "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
+            version
+        ),
+        {
+            b {
+                new_text_section_end
+            };
+        }
+    );
     dol_patcher.ppcasm_patch(&custom_item_decr_pickup_hook)?;
     let custom_item_decr_pickup_patch = ppcasm!(new_text_section_end, {
-            // backup arguments
-            mr           r14, r3;
+        // backup arguments
+        mr           r14, r3;
 
-            // preload unknown item 2 for future checks in the function
-            li           r15, { PickupType::UnknownItem2.kind() };
-            rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-            add          r15, r3, r0;
-            addi         r15, r15, 0x2c;
-            lwz          r15, 0x0(r15);
+        // preload unknown item 2 for future checks in the function
+        li           r15, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
+        add          r15, r3, r0;
+        addi         r15, r15, 0x2c;
+        lwz          r15, 0x0(r15);
 
-            cmpwi        r4, { PickupType::Missile.kind() };
-            bne          check_power_bomb;
-            // check for unlimited missiles
-            andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
-            b            is_unlimited;
+        cmpwi        r4, { PickupType::Missile.kind() };
+        bne          check_power_bomb;
+        // check for unlimited missiles
+        andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
+        b            is_unlimited;
 
-        check_power_bomb:
-            cmpwi        r4, { PickupType::PowerBomb.kind() };
-            bne          not_unlimited_or_not_pb_missiles;
-            // check for unlimited power bombs
-            andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
+    check_power_bomb:
+        cmpwi        r4, { PickupType::PowerBomb.kind() };
+        bne          not_unlimited_or_not_pb_missiles;
+        // check for unlimited power bombs
+        andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
 
-        is_unlimited:
-            andi         r14, r14, 0;
-            andi         r15, r15, 0;
-            blr;
+    is_unlimited:
+        andi         r14, r14, 0;
+        andi         r15, r15, 0;
+        blr;
 
-        not_unlimited_or_not_pb_missiles:
-            // restore previous context
-            mr           r3, r14;
-            andi         r14, r14, 0;
-            andi         r15, r15, 0;
-            cmpwi        r4, 0;
-            b            { symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x4 };
-        });
+    not_unlimited_or_not_pb_missiles:
+        // restore previous context
+        mr           r3, r14;
+        andi         r14, r14, 0;
+        andi         r15, r15, 0;
+        cmpwi        r4, 0;
+        b            { symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x4 };
+    });
 
     new_text_section_end += custom_item_decr_pickup_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_decr_pickup_patch.encoded_bytes());
@@ -15914,7 +15963,7 @@ fn export_logbook(gc_disc: &mut structs::GcDisc, config: &PatchConfig) -> Result
             }
 
             let entry_name = string_table[1].clone().into_string().replace('\u{0}', "");
-            if entry_name.replace(' ', "") == "" {
+            if entry_name.replace(' ', "").is_empty() {
                 continue; // lore, but not logbook entry
             }
 

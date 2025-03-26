@@ -46,7 +46,7 @@ pub struct SnakeWeedSwarm<'r> {
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for SnakeWeedSwarm<'r> {
+impl SclyPropertyData for SnakeWeedSwarm<'_> {
     const OBJECT_TYPE: u8 = 0x6D;
     impl_position!();
     impl_scale!();

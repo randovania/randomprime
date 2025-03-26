@@ -30,7 +30,7 @@ pub struct PuddleToadGamma<'r> {
     pub dlcn: u32,
 }
 
-impl<'r> SclyPropertyData for PuddleToadGamma<'r> {
+impl SclyPropertyData for PuddleToadGamma<'_> {
     const OBJECT_TYPE: u8 = 0x34;
 
     impl_position!();
