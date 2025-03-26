@@ -1134,6 +1134,11 @@
                     "description": "If true, it becomes nearly impossible to transition most doors while oob.",
                     "type": "boolean",
                     "default": false
+                },
+                "blastShieldLockon": {
+                    "description": "If true, blast shields placed by randomprime will be targetable in combat visor",
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "required": [],

@@ -569,6 +569,7 @@ fn this_near_that(this: [f32; 3], that: [f32; 3]) -> bool {
         && f32::abs(this[2] - that[2]) < 2.7
 }
 
+#[allow(clippy::too_many_arguments)]
 fn patch_door<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -577,6 +578,7 @@ fn patch_door<'r>(
     blast_shield_type: Option<BlastShieldType>,
     door_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     door_open_mode: DoorOpenMode,
+    lock_on: bool,
 ) -> Result<(), String> {
     const DO_GIBBS: bool = false;
 
@@ -1148,22 +1150,26 @@ fn patch_door<'r>(
             }
         };
 
-        let lock_on = match blast_shield_type {
-            BlastShieldType::Missile => true,
-            BlastShieldType::PowerBomb => false,
-            BlastShieldType::Super => true,
-            BlastShieldType::Wavebuster => true,
-            BlastShieldType::Icespreader => true,
-            BlastShieldType::Flamethrower => true,
-            BlastShieldType::Charge => true,
-            BlastShieldType::Grapple => false,
-            BlastShieldType::Bomb => false,
-            BlastShieldType::Phazon => true,
-            BlastShieldType::Thermal => true,
-            BlastShieldType::XRay => true,
-            BlastShieldType::Scan => false,
-            BlastShieldType::None => false,
-            BlastShieldType::Unchanged => false,
+        let lock_on = if lock_on {
+            match blast_shield_type {
+                BlastShieldType::Missile => true,
+                BlastShieldType::PowerBomb => false,
+                BlastShieldType::Super => true,
+                BlastShieldType::Wavebuster => true,
+                BlastShieldType::Icespreader => true,
+                BlastShieldType::Flamethrower => true,
+                BlastShieldType::Charge => true,
+                BlastShieldType::Grapple => false,
+                BlastShieldType::Bomb => false,
+                BlastShieldType::Phazon => true,
+                BlastShieldType::Thermal => true,
+                BlastShieldType::XRay => true,
+                BlastShieldType::Scan => false,
+                BlastShieldType::None => false,
+                BlastShieldType::Unchanged => false,
+            }
+        } else {
+            false
         };
 
         let dt = structs::SclyObject {
@@ -17669,6 +17675,7 @@ fn build_and_run_patches<'r>(
                                 blast_shield_type,
                                 game_resources,
                                 config.door_open_mode,
+                                config.blast_shield_lockon,
                             )
                         },
                     );

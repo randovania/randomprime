@@ -1474,6 +1474,7 @@ pub struct PatchConfig {
     pub difficulty_behavior: DifficultyBehavior,
     pub legacy_block_size: bool,
     pub patch_wallcrawling: bool,
+    pub blast_shield_lockon: bool,
     pub ctwk_config: CtwkConfig,
 }
 
@@ -1574,6 +1575,7 @@ struct GameConfig {
     difficulty_behavior: Option<DifficultyBehavior>,
     legacy_block_size: Option<bool>,
     patch_wallcrawling: Option<bool>,
+    blast_shield_lockon: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -2711,6 +2713,7 @@ impl PatchConfigPrivate {
                 .unwrap_or(DifficultyBehavior::Either),
             legacy_block_size: self.game_config.legacy_block_size.unwrap_or(false),
             patch_wallcrawling: self.game_config.patch_wallcrawling.unwrap_or(false),
+            blast_shield_lockon: self.game_config.blast_shield_lockon.unwrap_or(false),
             map_default_state,
 
             starting_items,
