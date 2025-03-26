@@ -40,7 +40,7 @@ impl<W: Write + Seek> GczWriter<W> {
     pub fn new(mut file: W, uncompressed_size: u64) -> io::Result<Box<GczWriter<W>>> {
         file.seek(io::SeekFrom::Start(0))?;
 
-        let num_blocks = ((uncompressed_size + block_size!() - 1) / block_size!()) as usize;
+        let num_blocks = uncompressed_size.div_ceil(block_size!()) as usize;
         let mut header_bytes = 32 + 12 * num_blocks;
         while header_bytes > 0 {
             let l = min(block_size!(), header_bytes);

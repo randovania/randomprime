@@ -33,7 +33,7 @@ pub struct GunTurret<'r> {
     pub dont_care: GenericArray<u8, U146>,
 }
 
-impl<'r> SclyPropertyData for GunTurret<'r> {
+impl SclyPropertyData for GunTurret<'_> {
     const OBJECT_TYPE: u8 = 0x64;
 
     impl_position!();

@@ -45,7 +45,7 @@ pub struct Platform<'r> {
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Platform<'r> {
+impl SclyPropertyData for Platform<'_> {
     const OBJECT_TYPE: u8 = 0x8;
     impl_position!();
     impl_rotation!();

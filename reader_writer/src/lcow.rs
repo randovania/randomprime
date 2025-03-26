@@ -8,7 +8,7 @@ pub enum LCow<'r, T> {
     Owned(T),
 }
 
-impl<'r, T> Clone for LCow<'r, T>
+impl<T> Clone for LCow<'_, T>
 where
     T: Clone,
 {
@@ -20,7 +20,7 @@ where
     }
 }
 
-impl<'r, T> LCow<'r, T>
+impl<T> LCow<'_, T>
 where
     T: Clone,
 {
@@ -32,7 +32,7 @@ where
     }
 }
 
-impl<'r, T> Deref for LCow<'r, T> {
+impl<T> Deref for LCow<'_, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         match *self {
@@ -42,7 +42,7 @@ impl<'r, T> Deref for LCow<'r, T> {
     }
 }
 
-impl<'r, T> Borrow<T> for LCow<'r, T> {
+impl<T> Borrow<T> for LCow<'_, T> {
     fn borrow(&self) -> &T {
         match *self {
             LCow::Borrowed(r) => r,
@@ -51,7 +51,7 @@ impl<'r, T> Borrow<T> for LCow<'r, T> {
     }
 }
 
-impl<'r, T> fmt::Debug for LCow<'r, T>
+impl<T> fmt::Debug for LCow<'_, T>
 where
     T: fmt::Debug,
 {

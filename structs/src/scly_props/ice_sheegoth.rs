@@ -36,7 +36,7 @@ pub struct IceSheegoth<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for IceSheegoth<'r> {
+impl SclyPropertyData for IceSheegoth<'_> {
     const OBJECT_TYPE: u8 = 0x4B;
 
     impl_position!();

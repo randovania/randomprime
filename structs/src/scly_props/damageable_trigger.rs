@@ -33,7 +33,7 @@ pub struct DamageableTrigger<'r> {
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for DamageableTrigger<'r> {
+impl SclyPropertyData for DamageableTrigger<'_> {
     const OBJECT_TYPE: u8 = 0x1A;
 
     impl_position!();

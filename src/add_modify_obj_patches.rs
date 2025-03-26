@@ -617,12 +617,8 @@ pub fn patch_add_special_fn(
     let unknown0 = config.unknown1.as_ref().unwrap_or(&default_unknown0);
     let unknown0 = string_to_cstr(unknown0.clone());
     let pickup_type = match config.item_id.as_ref() {
-        Some(item_id) => {
-            PickupType::from_str(item_id)
-        },
-        None => {
-            PickupType::PowerBeam
-        },
+        Some(item_id) => PickupType::from_str(item_id),
+        None => PickupType::PowerBeam,
     };
     let item_id = pickup_type as u32;
 

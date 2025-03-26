@@ -28,7 +28,7 @@ pub struct FishCloud<'r> {
     pub done_care3: u8,
 }
 
-impl<'r> SclyPropertyData for FishCloud<'r> {
+impl SclyPropertyData for FishCloud<'_> {
     const OBJECT_TYPE: u8 = 0x4F;
 
     impl_position!();

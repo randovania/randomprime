@@ -143,7 +143,7 @@ pub struct ExoProjectileInfo {
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for MetroidPrimeStage1<'r> {
+impl SclyPropertyData for MetroidPrimeStage1<'_> {
     const OBJECT_TYPE: u8 = 0x84;
 
     impl_position!();
