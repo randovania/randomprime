@@ -3072,7 +3072,31 @@
                             "message": "PLAY"
                         },
                         {
+                            "senderId": 131088, // [SpecialFunction] Music Player For Area
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 131088, // [SpecialFunction] Music Player For Area
+                            "targetId": 132989, // [Timer] Disallow Replay
+                            "state": "ENTERED",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 132989, // [Timer] Disallow Replay
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 131724, // [Timer] Timer - Fade In Music
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 131092, // [Relay] Allow Replay
                             "targetId": 131091, // [StreamedAudio] StreamedAudio - Ruins Soto B SW
                             "state": "ZERO",
                             "message": "PLAY"
@@ -3082,6 +3106,20 @@
                         {
                             "id": 131088, // [SpecialFunction] Music Player For Area
                             "type": "PlayerInAreaRelay"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 131092, // [Relay] Allow Replay
+                            "layer": 5,
+                            "active": false
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 132989, // [Timer] Disallow Replay
+                            "time": 1.5,
+                            "layer": 5
                         }
                     ],
                     "streamedAudios": [
@@ -3287,10 +3325,24 @@
                 "Plaza Access": {
                     "addConnections": [
                         {
+                            "senderId": 393538, // [Timer] Music Player For Area
+                            "targetId": 393236, // [SpecialFunction] Music Player For Area
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
+                        {
                             "senderId": 393236, // [SpecialFunction] Music Player For Area
                             "targetId": 393237, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ENTERED",
+                            "state": "ZERO",
                             "message": "PLAY"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 393538, // [Timer] Music Player For Area
+                            "time": 0.02,
+                            "looping": true,
+                            "startImmediately": true
                         }
                     ],
                     "specialFunctions": [
