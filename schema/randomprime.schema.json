@@ -5008,6 +5008,10 @@
                                 "type": "boolean",
                                 "default": false
                             },
+                            "controlInterpolation": {
+                                "type": "boolean",
+                                "default": false
+                            },
                             "sinusoidalInterpolation": {
                                 "type": "boolean",
                                 "default": false
