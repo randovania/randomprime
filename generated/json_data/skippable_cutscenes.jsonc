@@ -22956,6 +22956,54 @@
                             "targetId": 852702, // [CameraFilterKeyframe] Camera Filter Keyframe Widescreen
                             "state": "INACTIVE",
                             "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852418, // [Timer] Timer Alert Elite
+                            "state": "ZERO",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852419, // [CameraShaker] CameraShaker_Breaktank
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852420, // [Sound] Sound
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852433, // [Generator] Generator_Shards
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852460, // [Sound] Sound_Eliteshout
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852820, // [MemoryRelay] Memory Relay - Kill Elite Pirate Tank Sound
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852214, // [Platform] Platform_holding Tank
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 852507, // [Effect] Effect
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "addConnections": [
@@ -22966,20 +23014,74 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 852214, // [Platform] Platform_holding Tank
-                            "targetId": 852471, // [PointOfInterest] POI_03_Mines panel 1.scan
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
+                            "senderId": 852393, // [Timer] Timer_Break Tank
+                            "targetId": 851989, // [Relay] Break Tank Relay
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 852388, // [ElitePirate] ElitePirate
-                            "targetId": 852471, // [PointOfInterest] POI_03_Mines panel 1.scan
-                            "state": "DEAD",
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 851990, // [Relay] Break Tank Relay Deactivate
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852419, // [CameraShaker] CameraShaker_Breaktank
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
+                        {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852420, // [Sound] Sound
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852433, // [Generator] Generator_Shards
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852460, // [Sound] Sound_Eliteshout
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852820, // [MemoryRelay] Memory Relay - Kill Elite Pirate Tank Sound
+                            "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852214, // [Platform] Platform_holding Tank
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852507, // [Effect] Effect
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 851990, // [Relay] Break Tank Relay Deactivate
+                            "targetId": 851989, // [Relay] Break Tank Relay
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 851989, // [Relay] Break Tank Relay
+                            "targetId": 852418, // [Timer] Timer Alert Elite
+                            "state": "ZERO",
+                            "message": "RESET_AND_START"
+                        },
+                        {
                             "senderId": 851971, // [Relay] Breakout Cutscene Start
-                            "targetId": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 851973, // [SpecialFunction] Breakout Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
@@ -23009,7 +23111,7 @@
                         },
                         {
                             "senderId": 851972, // [Relay] Breakout Cutscene End
-                            "targetId": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 851973, // [SpecialFunction] Breakout Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
@@ -23020,106 +23122,22 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 851973, // [SpecialFunction] Breakout Cinematic Skip
                             "targetId": 851972, // [Relay] Breakout Cutscene End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 851973, // [SpecialFunction] Breakout Cinematic Skip
                             "targetId": 853011, // [Camera] Cinematic Camera
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 851974, // [Relay] Cinematic Skip Break Tank
+                            "senderId": 851973, // [SpecialFunction] Breakout Cinematic Skip
+                            "targetId": 851989, // [Relay] Break Tank Relay
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 852393, // [Timer] Timer_Break Tank
-                            "state": "ZERO",
-                            "message": "STOP"
-                        },
-                        {
-                            "senderId": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 852418, // [Timer] Timer Alert Elite
-                            "state": "ZERO",
-                            "message": "STOP"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852419, // [CameraShaker] CameraShaker_Breaktank
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852420, // [Sound] Sound
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852433, // [Generator] Generator_Shards
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852820, // [MemoryRelay] Memory Relay - Kill Elite Pirate Tank Sound
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852214, // [Platform] Platform_holding Tank
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852507, // [Effect] Effect
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852388, // [ElitePirate] ElitePirate
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852391, // [Actor] Actor Dummy Pirate Bustout
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852998, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 853227, // [Timer] Timer_Alert Elite
-                            "state": "ZERO",
-                            "message": "RESET_AND_START"
-                        },
-                        {
-                            "senderId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "targetId": 852460, // [Sound] Sound_Eliteshout
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 852393, // [Timer] Timer_Break Tank
-                            "targetId": 851974, // [Relay] Cinematic Skip Break Tank
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 852388, // [ElitePirate] ElitePirate
@@ -23442,13 +23460,20 @@
                     ],
                     "relays": [
                         {
-                            "id": 851971 // [Relay] Breakout Cutscene Start
+                            "id": 851971, // [Relay] Breakout Cutscene Start
+                            "layer": 1
                         },
                         {
-                            "id": 851972 // [Relay] Breakout Cutscene End
+                            "id": 851972, // [Relay] Breakout Cutscene End
+                            "layer": 1
                         },
                         {
-                            "id": 851974 // [Relay] Cinematic Skip Break Tank
+                            "id": 851990, // [Relay] Break Tank Relay Deactivate
+                            "layer": 1
+                        },
+                        {
+                            "id": 851989, // [Relay] Break Tank Relay
+                            "layer": 1
                         },
                         {
                             "id": 851975 // [Relay] Artifact Reveal Start
@@ -23483,8 +23508,9 @@
                     ],
                     "specialFunctions": [
                         {
-                            "id": 851973, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "type": "CinematicSkip"
+                            "id": 851973, // [SpecialFunction] Breakout Cinematic Skip
+                            "type": "CinematicSkip",
+                            "layer": 1
                         },
                         {
                             "id": 851977, // [SpecialFunction] SpecialFunction Cinematic Skip
