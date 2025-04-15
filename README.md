@@ -31,7 +31,7 @@ Updates to this program are documented as part of the [py-randomprime Release Pr
 ## Compiling
 
 1. Install a Rust compiler. It is recommended to use [rustup](https://www.rust-lang.org/tools/install).
-2. Add `powerpc-unknown-linux-gnu` as a target, like so: `rustup target add --toolchain stable powerpc-unknown-linux-gnu`
+2. Add `powerpc-unknown-linux-gnu` as a target, like so: `rustup target add --toolchain 1.85.1 powerpc-unknown-linux-gnu`
 3. Clone the repo and all its submodules: `git clone https://github.com/randovania/randomprime --recursive`
 4. Run `cargo build`
 
