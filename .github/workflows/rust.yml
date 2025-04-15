@@ -34,7 +34,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: 1.85.1
         target: powerpc-unknown-linux-gnu
         override: true
         
