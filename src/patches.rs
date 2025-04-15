@@ -7825,7 +7825,15 @@ fn patch_backwards_lower_mines_mqa(
     version: Version,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
-    let layer_id = if [Version::Pal, Version::NtscJ, Version::NtscJTrilogy, Version::NtscUTrilogy, Version::PalTrilogy].contains(&version) {
+    let layer_id = if [
+        Version::Pal,
+        Version::NtscJ,
+        Version::NtscJTrilogy,
+        Version::NtscUTrilogy,
+        Version::PalTrilogy,
+    ]
+    .contains(&version)
+    {
         7
     } else {
         0
