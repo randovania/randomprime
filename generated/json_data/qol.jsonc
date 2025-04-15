@@ -2795,75 +2795,45 @@
                     "addConnections": [
                         {
                             "senderId": 4507917, // [SpecialFunction] Music Player For Area
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 4507917, // [SpecialFunction] Music Player For Area
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 3489927, // [Relay] Play Hall of the Elders
+                            "senderId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "targetId": 3408663, // [StreamedAudio] StreamedAudio - Music Ruins Chozobowling SW
-                            "state": "ZERO",
+                            "state": "OPEN",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 3485962, // [Relay] Play Chozo Ghosts
+                            "senderId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "targetId": 3408566, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 3408130, // [Trigger] Trigger-Chozo Ghost
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3408130, // [Trigger] Trigger-Chozo Ghost
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 3407887, // [ChozoGhost] ChozoGhost
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "DEAD",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3407887, // [ChozoGhost] ChozoGhost
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 3408399, // [Trigger] Trigger - Chozo Ghost No Kaishi
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3408399, // [Trigger] Trigger - Chozo Ghost No Kaishi
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 3408401, // [Counter] Counter_Dead Chozo
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "MAX_REACHED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3408401, // [Counter] Counter_Dead Chozo
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "MAX_REACHED",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 3408624, // [Trigger] Trigger - Play Music Recharge - Recharge
@@ -2873,9 +2843,9 @@
                         },
                         {
                             "senderId": 3408624, // [Trigger] Trigger - Play Music Recharge - Recharge
-                            "targetId": 3408663, // [StreamedAudio] StreamedAudio - Music Ruins Chozobowling SW
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "EXITED",
-                            "message": "PLAY"
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "specialFunctions": [
@@ -2884,13 +2854,10 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 3489927 // [Relay] Play Hall of the Elders
-                        },
-                        {
-                            "id": 3485962, // [Relay] Play Chozo Ghosts
-                            "active": false
+                            "id": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
+                            "open": true
                         }
                     ],
                     "triggers": [
@@ -3103,12 +3070,56 @@
                             "targetId": 131091, // [StreamedAudio] StreamedAudio - Ruins Soto B SW
                             "state": "ENTERED",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 131088, // [SpecialFunction] Music Player For Area
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 131088, // [SpecialFunction] Music Player For Area
+                            "targetId": 132989, // [Timer] Disallow Replay
+                            "state": "ENTERED",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 132989, // [Timer] Disallow Replay
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131724, // [Timer] Timer - Fade In Music
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 131092, // [Relay] Allow Replay
+                            "targetId": 131091, // [StreamedAudio] StreamedAudio - Ruins Soto B SW
+                            "state": "ZERO",
+                            "message": "PLAY"
                         }
                     ],
                     "specialFunctions": [
                         {
                             "id": 131088, // [SpecialFunction] Music Player For Area
                             "type": "PlayerInAreaRelay"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 131092, // [Relay] Allow Replay
+                            "layer": 5,
+                            "active": false
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 132989, // [Timer] Disallow Replay
+                            "time": 1.5,
+                            "layer": 5
                         }
                     ],
                     "streamedAudios": [
@@ -3314,10 +3325,24 @@
                 "Plaza Access": {
                     "addConnections": [
                         {
+                            "senderId": 393538, // [Timer] Music Player For Area
+                            "targetId": 393236, // [SpecialFunction] Music Player For Area
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
+                        {
                             "senderId": 393236, // [SpecialFunction] Music Player For Area
                             "targetId": 393237, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ENTERED",
+                            "state": "ZERO",
                             "message": "PLAY"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 393538, // [Timer] Music Player For Area
+                            "time": 0.02,
+                            "looping": true,
+                            "startImmediately": true
                         }
                     ],
                     "specialFunctions": [
@@ -5155,10 +5180,58 @@
                             "message": "ACTION"
                         },
                         {
+                            "senderId": 1599653, // [Timer] Music Player For Area
+                            "targetId": 1179653, // [SpecialFunction] Music Player For Area
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
+                        {
                             "senderId": 1179653, // [SpecialFunction] Music Player For Area
-                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
                             "state": "ZERO",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1179653, // [SpecialFunction] Music Player For Area
+                            "targetId": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1179653, // [SpecialFunction] Music Player For Area
+                            "targetId": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1179653, // [SpecialFunction] Music Player For Area
+                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
+                            "state": "EXITED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1179719, // [Relay] Relay - Fade Out Music
+                            "targetId": 1599653, // [Timer] Music Player For Area
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 1179720, // [Timer] Timer - Fade In Music
+                            "targetId": 1599653, // [Timer] Music Player For Area
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 1179708, // [Trigger] Trigger_normal
+                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1179708, // [Trigger] Trigger_normal
+                            "targetId": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "specialFunctions": [
@@ -5170,17 +5243,25 @@
                     "timers": [
                         {
                             "id": 1599653, // [Timer] Music Player For Area
-                            "time": 0.001,
+                            "time": 0.02,
                             "looping": true,
                             "startImmediately": true
                         }
                     ],
                     "streamedAudios": [
                         {
-                            "id": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "id": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
                             "volume": 70,
                             "isMusic": true,
                             "fadeInTime": 0.01,
+                            "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
+                        },
+                        {
+                            "id": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
+                            "active": false,
+                            "volume": 70,
+                            "isMusic": true,
+                            "fadeInTime": 2.0,
                             "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
                         }
                     ]
