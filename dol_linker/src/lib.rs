@@ -328,7 +328,7 @@ impl<'a> Relocation<'a> {
         Relocation {
             offset: reloc.r_offset as u32,
             addend: reloc.r_addend.unwrap_or(0) as u32,
-            type_: ElfRelocationType::from_u32(reloc.r_type).unwrap(),
+            type_: ElfRelocationType::from_u32(reloc.r_type).expect(format!("Unhandled relocation type: {}", reloc.r_type).as_str()),
             kind: if sym.st_type() == elf::sym::STT_SECTION {
                 RelocationKind::Internal(map_sec_index(sym.st_shndx as u32), 0)
             } else if sym.is_import() {
