@@ -3014,6 +3014,16 @@
                             "fadeInTime": 0.01,
                             "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
                         }
+                    ],
+                    "timers": [
+                        {
+                            "id": 1310979, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 1310978, // [Timer] Timer Jingle
+                            "time": 0.001
+                        }
                     ]
                 },
                 "Main Plaza": {
@@ -3584,16 +3594,25 @@
                     ]
                 },
                 "Ruined Shrine": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        600483,
-                        600282,
-                        600284,
-                        779889,
+                        // Tutorials
+                        600280, // [SpecialFunction] SpecialFunction - check for Boost
+                        600281, // [Timer] Timer - check for boost
+                        600484, // [Timer] Timer - HUD memo
+                        600283, // [Timer] Timer - hud memo delay
+                        600285, // [Timer] Timer - hud memo delay pt 2
+                        600483, // [HUDMemo] HUDMemo - 07_reactor dash.STRG
+                        600282, // [HUDMemo] HUDMemo - need boost to use ramp
+                        600284, // [HUDMemo] HUDMemo - need boost to use ramp 2
+                        600279, // [Trigger] Trigger - boost hint
+                        // Music Stuff
+                        779889, // [Switch] RECEIVER - Change Music
                         600505, // [Trigger] Trigger - Play Music x02 Samus
                         600504, // [Trigger] Trigger - Play Music x02 Battle 2
                         600502, // [Trigger] Trigger - Play Music x01 Samus
                         600503, // [Trigger] Trigger - Play Music x01 Battle 2
+                        599956, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                        // Vanilla Music Layer Changes
                         599916, // [SpecialFunction] SpecialFunction Elev_Over_A
                         599871, // [SpecialFunction] SpecialFunction-0q_connect music
                         599872, // [SpecialFunction] SpecialFunction-generic_x04 music
@@ -3674,6 +3693,18 @@
                             "targetId": 600505, // [Trigger] Trigger - Play Music x02 Samus
                             "state": "MAX_REACHED",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 599885, // [Timer] Timer - Start Ruins Samus Music
+                            "targetId": 599956, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 589944, // [Beetle] GarBeetle
+                            "targetId": 600484, // [Timer] Timer - HUD memo
+                            "state": "ACTIVE",
+                            "message": "RESET_AND_START"
                         }
                     ],
                     "addConnections": [
@@ -3760,6 +3791,12 @@
                             "targetId": 689878, // [Relay] Chozo Music
                             "state": "ZERO",
                             "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 599885, // [Timer] Timer - Start Ruins Samus Music
+                            "targetId": 689878, // [Relay] Chozo Music
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 600165, // [Relay] Relay - [IN] Make Chozoghost Appear
@@ -6500,6 +6537,16 @@
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/ice_worldmainL.dsp|/audio/ice_worldmainR.dsp"
                         }
+                    ],
+                    "timers": [
+                        {
+                            "id": 600310, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 600309, // [Timer] Timer Jingle
+                            "time": 0.001
+                        }
                     ]
                 },
                 "Lake Tunnel": {
@@ -8981,6 +9028,16 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/ice_kincyoL.dsp|/audio/ice_kincyoR.dsp"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 3604515, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 3604514, // [Timer] Timer Jingle
+                            "time": 0.001
                         }
                     ]
                 },
@@ -13594,6 +13651,16 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/lav_lavamainL.dsp|/audio/lav_lavamainR.dsp"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 918089, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 918088, // [Timer] Timer Jingle
+                            "time": 0.001
                         }
                     ]
                 },

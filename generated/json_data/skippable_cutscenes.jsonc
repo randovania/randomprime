@@ -11422,10 +11422,10 @@
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 917875, // [Camera] camera3
-                            "targetId": 917888, // [Relay] Relay-end of cinema
-                            "state": "INACTIVE",
-                            "message": "DEACTIVATE"
+                            "senderId": 917888, // [Relay] Relay-end of cinema
+                            "targetId": 917682, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 928130, // [SpecialFunction] SpecialFunction Cinematic Skip
@@ -11450,12 +11450,6 @@
                             "targetId": 917902, // [Timer] Timer
                             "state": "ZERO",
                             "message": "STOP"
-                        },
-                        {
-                            "senderId": 928130, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 917682, // [SpawnPoint] Spawn point
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 917933, // [Timer] Timer - start pickup stand down cinematic
