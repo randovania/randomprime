@@ -914,6 +914,21 @@ pub struct CameraHintTriggerConfig {
     pub deactivate_on_exit: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BallTriggerConfig {
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub scale: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub force: Option<f32>,
+    pub min_angle: Option<f32>,
+    pub max_distance: Option<f32>,
+    pub force_angle: Option<[f32; 3]>,
+    pub stop_player: Option<bool>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -1131,6 +1146,7 @@ pub struct RoomConfig {
     pub camera_filter_keyframes: Option<Vec<CameraFilterKeyframeConfig>>,
     pub new_camera_hints: Option<Vec<NewCameraHintConfig>>,
     pub camera_hint_triggers: Option<Vec<CameraHintTriggerConfig>>,
+    pub ball_triggers: Option<Vec<BallTriggerConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -2038,6 +2054,7 @@ impl PatchConfigPrivate {
                 extend_option_vec!(camera_filter_keyframes, self_room_config, other_room_config);
                 extend_option_vec!(new_camera_hints, self_room_config, other_room_config);
                 extend_option_vec!(camera_hint_triggers, self_room_config, other_room_config);
+                extend_option_vec!(ball_triggers, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
