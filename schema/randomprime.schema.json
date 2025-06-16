@@ -5339,7 +5339,7 @@
                             "lengthExtend": {
                                 "description": "Distance between the Morph Ball and the camera in game units.",
                                 "type": "number",
-                                "default": 3.5,
+                                "default": 3.0,
                                 "minimum": 0.0
                             },
                             "filterMag": {
