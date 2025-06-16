@@ -2283,11 +2283,11 @@ pub fn patch_add_ball_trigger(
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: config.scale.unwrap_or([1.0, 1.0, 1.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
-                force: config.force.unwrap_or(0.0) as f32,
+                force: config.force.unwrap_or(20.0) as f32,
                 min_angle: config.min_angle.unwrap_or(0.0) as f32,
                 max_distance: config.max_distance.unwrap_or(0.0) as f32,
                 force_angle: config.force_angle.unwrap_or([0.0, 0.0, 0.0]).into(),
-                stop_player: config.stop_player.unwrap_or(false) as u8,
+                stop_player: config.stop_player.unwrap_or(true) as u8,
             }
         };
     }
