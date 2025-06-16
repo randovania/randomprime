@@ -11,7 +11,7 @@ use crate::{
         ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
         CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
         ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
-        HudmemoConfig, LockOnPoint, NewCameraHintConfig, PlatformConfig, PlatformType,
+        HudmemoConfig, LockOnPoint, NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType,
         PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
         StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
         WorldLightFaderConfig,
@@ -2266,6 +2266,101 @@ pub fn patch_add_camera_hint_trigger(
         config.id,
         config.layer,
         CameraHintTrigger,
+        new,
+        update
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn patch_add_path_camera(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: PathCameraConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::PathCamera {
+                name: b"my pathcamera\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+
+                flags: structs::scly_props::structs::PathCameraFlags {
+                    is_closed_loop: config.is_closed_loop.unwrap_or(false) as u8,
+                    fixed_look_pos: config.fixed_look_pos.unwrap_or(true) as u8,
+                    side_view: config.side_view.unwrap_or(false) as u8,
+                    camera_height_from_hint: config.camera_height_from_hint.unwrap_or(true) as u8,
+                    clamp_to_closed_door: config.clamp_to_closed_door.unwrap_or(false) as u8,
+                    unused: config.unused.unwrap_or(false) as u8,
+                }
+                .into(),
+
+                length_extend: config.length_extend.unwrap_or(4.0) as f32,
+                filter_mag: config.filter_mag.unwrap_or(15.0) as f32,
+                filter_proportion: config.filter_proportion.unwrap_or(3.0) as f32,
+                initial_spline_position: config.initial_spline_position as u32,
+                min_ease_dist: config.min_ease_dist.unwrap_or(0.0) as f32,
+                max_ease_dist: config.max_ease_dist.unwrap_or(0.0) as f32,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_path_camera_mut().unwrap();
+
+            property_data.initial_spline_position = config.initial_spline_position as u32;
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(rotation) = config.rotation {
+                property_data.rotation = rotation.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(is_closed_loop) = config.is_closed_loop {
+                property_data.flags.is_closed_loop = is_closed_loop as u8
+            }
+            if let Some(fixed_look_pos) = config.fixed_look_pos {
+                property_data.flags.fixed_look_pos = fixed_look_pos as u8
+            }
+            if let Some(side_view) = config.side_view {
+                property_data.flags.side_view = side_view as u8
+            }
+            if let Some(camera_height_from_hint) = config.camera_height_from_hint {
+                property_data.flags.camera_height_from_hint = camera_height_from_hint as u8
+            }
+            if let Some(clamp_to_closed_door) = config.clamp_to_closed_door {
+                property_data.flags.clamp_to_closed_door = clamp_to_closed_door as u8
+            }
+            if let Some(unused) = config.unused {
+                property_data.flags.unused = unused as u8
+            }
+            if let Some(length_extend) = config.length_extend {
+                property_data.length_extend = length_extend as f32
+            }
+            if let Some(filter_mag) = config.filter_mag {
+                property_data.filter_mag = filter_mag as f32
+            }
+            if let Some(filter_proportion) = config.filter_proportion {
+                property_data.filter_proportion = filter_proportion as f32
+            }
+            if let Some(min_ease_dist) = config.min_ease_dist {
+                property_data.min_ease_dist = min_ease_dist as f32
+            }
+            if let Some(max_ease_dist) = config.max_ease_dist {
+                property_data.max_ease_dist = max_ease_dist as f32
+            }
+        };
+    }
+
+    add_edit_obj_helper!(
+        area,
+        config.id,
+        config.layer,
+        PathCamera,
         new,
         update
     );

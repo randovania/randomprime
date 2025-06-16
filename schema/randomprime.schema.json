@@ -4946,7 +4946,12 @@
                             },
                             "rotation": {
                                 "description": "The rotation of the CameraHint.",
-                                "$ref": "#/$defs/vector3"
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
                             },
                             "active": {
                                 "description": "Default active state of the CameraHint.",
@@ -5262,6 +5267,115 @@
                         },
                         "required": [
                             "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "pathCameras": {
+                    "description": "Add PathCamera objects to this room. Used in conjuction with `NewCameraHint` set to `PathCamera` behavior and `CameraWaypoint` objects to make the Morph Ball camera follow a set path",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "Position of the object.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "Rotation of the object.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "active": {
+                                "description": "Default activate state of the object",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "isClosedLoop": {
+                                "description": "If true, the camera path will be one-directional.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fixedLookPos": {
+                                "description": "If true, the camera will follow the Morph Ball in a fixed position.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "sideView": {
+                                "description": "If true, sets it so that it looks at the player at a 90 degree angle from the spline coordinate (which would make it look at it from the side).",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "cameraHeightFromHint": {
+                                "description": "If true, makes the height of the camera behind the Morph Ball follow along with the Z coordinate of the CameraHint.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "clampToClosedDoor": {
+                                "description": "If true, it will clamp the camera against a closed door if there is one nearby.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "unused": {
+                                "description": "Does not seem to do anything.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "lengthExtend": {
+                                "description": "Distance between the Morph Ball and the camera in game units.",
+                                "type": "number",
+                                "default": 3.5,
+                                "minimum": 0.0
+                            },
+                            "filterMag": {
+                                "type": "number",
+                                "default": 15.0,
+                                "minimum": 0.0
+                            },
+                            "filterProportion": {
+                                "type": "number",
+                                "default": 3.0,
+                                "minimum": 0.0
+                            },
+                            "initialSplinePosition": {
+                                "type": "string",
+                                "enum": [
+                                    "BallCamBasis",
+                                    "Negative",
+                                    "Positive",
+                                    "ClampBasis"
+                                ],
+                                "default": "BallCamBasis"
+                            },
+                            "minEaseDist": {
+                                "type": "number",
+                                "default": 4.0,
+                                "minimum": 0.0
+                            },
+                            "maxEaseDist": {
+                                "type": "number",
+                                "default": 6.0,
+                                "minimum": 0.0
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "initialSplinePosition"
                         ],
                         "additionalProperties": false
                     }

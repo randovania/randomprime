@@ -345,3 +345,16 @@ pub struct BoolVec3 {
     pub override_flags: u8,
     pub value: GenericArray<f32, U3>,
 }
+
+#[auto_struct(Readable, Writable, FixedSize)]
+#[derive(Debug, Clone)]
+pub struct PathCameraFlags {
+    #[auto_struct(expect = 6)]
+    prop_count: u32,
+    pub is_closed_loop: u8,
+    pub fixed_look_pos: u8,
+    pub side_view: u8,
+    pub camera_height_from_hint: u8,
+    pub clamp_to_closed_door: u8,
+    pub unused: u8,
+}
