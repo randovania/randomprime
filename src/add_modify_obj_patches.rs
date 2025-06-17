@@ -8,7 +8,7 @@ use crate::{
     door_meta::DoorType,
     mlvl_wrapper,
     patch_config::{
-        ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
+        ActorKeyFrameConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig, CameraConfig,
         CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
         ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
         HudmemoConfig, LockOnPoint, NewCameraHintConfig, PlatformConfig, PlatformType,
@@ -2266,6 +2266,68 @@ pub fn patch_add_camera_hint_trigger(
         config.id,
         config.layer,
         CameraHintTrigger,
+        new,
+        update
+    );
+}
+
+pub fn patch_add_ball_trigger(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: BallTriggerConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::BallTrigger {
+                name: b"my ball trigger\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                scale: config.scale.unwrap_or([1.0, 1.0, 1.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+                force: config.force.unwrap_or(20.0) as f32,
+                min_angle: config.min_angle.unwrap_or(0.0) as f32,
+                max_distance: config.max_distance.unwrap_or(0.0) as f32,
+                force_angle: config.force_angle.unwrap_or([0.0, 0.0, 0.0]).into(),
+                stop_player: config.stop_player.unwrap_or(true) as u8,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_ball_trigger_mut().unwrap();
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(scale) = config.scale {
+                property_data.scale = scale.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(force) = config.force {
+                property_data.force = force as f32
+            }
+            if let Some(min_angle) = config.min_angle {
+                property_data.min_angle = min_angle as f32
+            }
+            if let Some(max_distance) = config.max_distance {
+                property_data.max_distance = max_distance as f32
+            }
+            if let Some(force_angle) = config.force_angle {
+                property_data.force_angle = force_angle.into()
+            }
+            if let Some(stop_player) = config.stop_player {
+                property_data.stop_player = stop_player as u8
+            }
+        };
+    }
+
+    add_edit_obj_helper!(
+        area,
+        config.id,
+        config.layer,
+        BallTrigger,
         new,
         update
     );
