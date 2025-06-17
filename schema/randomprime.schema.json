@@ -3476,6 +3476,15 @@
                     "additionalProperties": false,
                     "deprecated": true
                 },
+                "setMemoryRelays": {
+                    "description": "In vanilla after you create a new save file all Memory Relay objects are set to INACTIVE and will remain INACTIVE until they are ACTIVATED by another object. Memory Relay instance IDs placed in this array will be ACTIVE by default for new save files.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 4294967295
+                    }
+                },
                 "editObjs": {
                     "description": "Modify properties of existing objects by their instance ID. Only generic properties shared across many object types can be edited such as position/scale. Not all objects support all properties. In these cases, an error is thrown when patching the ISO.",
                     "type": "object",

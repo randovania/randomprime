@@ -2271,6 +2271,101 @@ pub fn patch_add_camera_hint_trigger(
     );
 }
 
+pub fn patch_set_memory_relay(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    id: u32,
+) -> Result<(), String> {
+    let mrea_id = area.mlvl_area.mrea.to_u32();
+    let timer_id = area.new_object_id_from_layer_id(0);
+
+    {
+        area.memory_relay_conns
+            .as_mut_vec()
+            .retain(|conn| conn.sender_id & 0x00FFFFFF != id);
+        area.memory_relay_conns
+            .as_mut_vec()
+            .push(structs::MemoryRelayConn {
+                sender_id: id,
+                target_id: timer_id,
+                active: 0,
+                message: 4, // DEACTIVATE
+            });
+    }
+
+    let id = id & 0x00FFFFFF;
+    let scly = area.mrea().scly_section_mut();
+
+    let mut timer_conns = Vec::new();
+
+    let mut found = false;
+
+    for layer in scly.layers.as_mut_vec() {
+        for obj in layer.objects.as_mut_vec() {
+            if obj.instance_id & 0x00FFFFFF == id {
+                if found {
+                    panic!("duplicate id {}?", id);
+                }
+                found = true;
+
+                for conn in obj.connections.as_mut_vec() {
+                    timer_conns.push(structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: conn.message,
+                        target_object_id: conn.target_object_id,
+                    });
+                }
+                obj.connections.as_mut_vec().clear();
+                obj.connections.as_mut_vec().push(structs::Connection {
+                    state: structs::ConnectionState::ACTIVE,
+                    message: structs::ConnectionMsg::DEACTIVATE,
+                    target_object_id: timer_id,
+                });
+                obj.property_data.as_memory_relay_mut().unwrap().active = 1;
+            } else {
+                for conn in obj.connections.as_mut_vec() {
+                    if conn.target_object_id & 0x00FFFFFF == id {
+                        conn.message = match conn.message {
+                            structs::ConnectionMsg::DEACTIVATE => structs::ConnectionMsg::ACTIVATE,
+                            structs::ConnectionMsg::ACTIVATE => structs::ConnectionMsg::DEACTIVATE,
+                            _ => panic!(
+                                "Patcher doesn't support sending {:?} to toggled memory relay {}",
+                                conn.message, id
+                            ),
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    if !found {
+        panic!(
+            "Could not find memory relay id {} in room 0x{:X}",
+            id, mrea_id
+        );
+    }
+
+    scly.layers.as_mut_vec()[0]
+        .objects
+        .as_mut_vec()
+        .push(structs::SclyObject {
+            instance_id: timer_id,
+            property_data: structs::Timer {
+                name: b"memory-relay-timer\0".as_cstr(),
+                start_time: 0.02,
+                max_random_add: 0.0,
+                looping: 0,
+                start_immediately: 1,
+                active: 1,
+            }
+            .into(),
+            connections: timer_conns.into(),
+        });
+
+    Ok(())
+}
+
 pub fn patch_add_platform<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
