@@ -5446,8 +5446,7 @@
                             }
                         },
                         "required": [
-                            "id",
-                            "initialSplinePosition"
+                            "id"
                         ],
                         "additionalProperties": false
                     }

@@ -11,7 +11,7 @@ use crate::{
         ActorKeyFrameConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig, CameraConfig,
         CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
         ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
-        HudmemoConfig, LockOnPoint, NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType,
+        HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType,
         PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
         StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
         WorldLightFaderConfig,
@@ -2362,7 +2362,7 @@ pub fn patch_add_path_camera(
                 length_extend: config.length_extend.unwrap_or(3.0) as f32,
                 filter_mag: config.filter_mag.unwrap_or(15.0) as f32,
                 filter_proportion: config.filter_proportion.unwrap_or(3.0) as f32,
-                initial_spline_position: config.initial_spline_position as u32,
+                initial_spline_position: config.initial_spline_position.unwrap_or(InitialSplinePosition::BallCamBasis) as u32,
                 min_ease_dist: config.min_ease_dist.unwrap_or(4.0) as f32,
                 max_ease_dist: config.max_ease_dist.unwrap_or(6.0) as f32,
             }
