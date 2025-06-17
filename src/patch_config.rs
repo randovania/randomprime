@@ -914,6 +914,52 @@ pub struct CameraHintTriggerConfig {
     pub deactivate_on_exit: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BallTriggerConfig {
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub scale: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub force: Option<f32>,
+    pub min_angle: Option<f32>,
+    pub max_distance: Option<f32>,
+    pub force_angle: Option<[f32; 3]>,
+    pub stop_player: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum InitialSplinePosition {
+    BallCamBasis,
+    Negative,
+    Positive,
+    ClampBasis,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PathCameraConfig {
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub is_closed_loop: Option<bool>,
+    pub fixed_look_pos: Option<bool>,
+    pub side_view: Option<bool>,
+    pub camera_height_from_hint: Option<bool>,
+    pub clamp_to_closed_door: Option<bool>,
+    pub unused: Option<bool>,
+    pub length_extend: Option<f32>,
+    pub filter_mag: Option<f32>,
+    pub filter_proportion: Option<f32>,
+    pub initial_spline_position: Option<InitialSplinePosition>,
+    pub min_ease_dist: Option<f32>,
+    pub max_ease_dist: Option<f32>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -1132,6 +1178,8 @@ pub struct RoomConfig {
     pub new_camera_hints: Option<Vec<NewCameraHintConfig>>,
     pub camera_hint_triggers: Option<Vec<CameraHintTriggerConfig>>,
     pub set_memory_relays: Option<Vec<u32>>,
+    pub ball_triggers: Option<Vec<BallTriggerConfig>>,
+    pub path_cameras: Option<Vec<PathCameraConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -2040,6 +2088,8 @@ impl PatchConfigPrivate {
                 extend_option_vec!(camera_filter_keyframes, self_room_config, other_room_config);
                 extend_option_vec!(new_camera_hints, self_room_config, other_room_config);
                 extend_option_vec!(camera_hint_triggers, self_room_config, other_room_config);
+                extend_option_vec!(ball_triggers, self_room_config, other_room_config);
+                extend_option_vec!(path_cameras, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {

@@ -17141,6 +17141,26 @@ fn build_and_run_patches<'r>(
                             }
                         }
 
+                        if let Some(ball_triggers) = room.ball_triggers.as_ref() {
+                            for config in ball_triggers {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_ball_trigger(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
+                        if let Some(path_cameras) = room.path_cameras.as_ref() {
+                            for config in path_cameras {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| patch_add_path_camera(ps, area, config.clone()),
+                                );
+                            }
+                        }
+
                         if room.streamed_audios.is_some() {
                             for config in room.streamed_audios.as_ref().unwrap() {
                                 patcher.add_scly_patch(
