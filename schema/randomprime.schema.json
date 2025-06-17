@@ -5271,6 +5271,78 @@
                         "additionalProperties": false
                     }
                 },
+                "ballTriggers": {
+                    "description": "Add BallTrigger objects to this room. They can attract the Morph Ball and fix it in place when entered, then act as a regular trigger with no other special properties",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "Position of the ball trigger.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "scale": {
+                                "description": "Extent of the ball trigger.",
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            },
+                            "active": {
+                                "description": "Default activate state of the ball trigger.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "force": {
+                                "description": "Attraction force value, the higher it is the harder the trigger will draw you to it.",
+                                "type": "number",
+                                "default": 20.0,
+                                "minimum": 0.0
+                            },
+                            "minAngle": {
+                                "description": "Minimal arc angle where the ball trigger will draw you in.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "maxDistance": {
+                                "description": "Maximum distance where the ball trigger will try to draw you in, a low value means it will not pull you in until you get closer to it.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "forceAngle": {
+                                "description": "Starting angle of the BallTrigger, distance and angle calculations will be based off this.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "stopPlayer": {
+                                "description": "Will freeze player rotation and speed in place if true.",
+                                "type": "boolean",
+                                "default": true
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
                 "pathCameras": {
                     "description": "Add PathCamera objects to this room. Used in conjuction with `NewCameraHint` set to `PathCamera` behavior and `CameraWaypoint` objects to make the Morph Ball camera follow a set path",
                     "type": "array",
