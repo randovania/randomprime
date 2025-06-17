@@ -2373,8 +2373,6 @@ pub fn patch_add_path_camera(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_path_camera_mut().unwrap();
 
-            property_data.initial_spline_position = config.initial_spline_position as u32;
-
             if let Some(position) = config.position {
                 property_data.position = position.into()
             }
@@ -2410,6 +2408,9 @@ pub fn patch_add_path_camera(
             }
             if let Some(filter_proportion) = config.filter_proportion {
                 property_data.filter_proportion = filter_proportion as f32
+            }
+            if let Some(initial_spline_position) = config.initial_spline_position {
+                property_data.initial_spline_position = initial_spline_position as u32
             }
             if let Some(min_ease_dist) = config.min_ease_dist {
                 property_data.min_ease_dist = min_ease_dist as f32

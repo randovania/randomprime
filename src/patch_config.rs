@@ -929,6 +929,15 @@ pub struct BallTriggerConfig {
     pub stop_player: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum InitialSplinePosition {
+    BallCamBasis,
+    Negative,
+    Positive,
+    ClampBasis,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PathCameraConfig {
@@ -946,7 +955,7 @@ pub struct PathCameraConfig {
     pub length_extend: Option<f32>,
     pub filter_mag: Option<f32>,
     pub filter_proportion: Option<f32>,
-    pub initial_spline_position: InitialSplinePosition,
+    pub initial_spline_position: Option<InitialSplinePosition>,
     pub min_ease_dist: Option<f32>,
     pub max_ease_dist: Option<f32>,
 }
