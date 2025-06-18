@@ -1,10 +1,7 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::U3, CStr};
 
-use crate::{
-    scly_props::structs::PathCameraFlags,
-    SclyPropertyData,
-};
+use crate::{scly_props::structs::PathCameraFlags, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone)]

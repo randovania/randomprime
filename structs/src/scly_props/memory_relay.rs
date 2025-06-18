@@ -10,7 +10,7 @@ pub struct MemoryRelay<'r> {
     prop_count: u32,
 
     pub name: CStr<'r>,
-    pub unknown: u8,
+    pub skip_send_active: u8,
     pub active: u8,
 }
 

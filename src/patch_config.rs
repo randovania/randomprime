@@ -1177,6 +1177,7 @@ pub struct RoomConfig {
     pub camera_filter_keyframes: Option<Vec<CameraFilterKeyframeConfig>>,
     pub new_camera_hints: Option<Vec<NewCameraHintConfig>>,
     pub camera_hint_triggers: Option<Vec<CameraHintTriggerConfig>>,
+    pub set_memory_relays: Option<Vec<u32>>,
     pub ball_triggers: Option<Vec<BallTriggerConfig>>,
     pub path_cameras: Option<Vec<PathCameraConfig>>,
     // Don't forget to update merge_json when adding here
@@ -2061,6 +2062,7 @@ impl PatchConfigPrivate {
                 extend_option_vec!(repositions, self_room_config, other_room_config);
                 extend_option_vec!(hudmemos, self_room_config, other_room_config);
                 extend_option_vec!(delete_ids, self_room_config, other_room_config);
+                extend_option_vec!(set_memory_relays, self_room_config, other_room_config);
                 extend_option_vec!(add_connections, self_room_config, other_room_config);
                 extend_option_vec!(remove_connections, self_room_config, other_room_config);
                 extend_option_vec!(relays, self_room_config, other_room_config);

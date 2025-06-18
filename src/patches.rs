@@ -23,7 +23,7 @@ use resource_info_table::{resource_info, ResourceInfo};
 use structs::{
     res_id,
     scly_structs::{DamageInfo, TypeVulnerability},
-    Languages, MapaObjectVisibilityMode, ResId, SclyLayer, SclyPropertyData,
+    Languages, MapaObjectVisibilityMode, ResId, SclyPropertyData,
 };
 
 use crate::{
@@ -7508,7 +7508,16 @@ fn patch_move_objects(
     Ok(())
 }
 
-fn patch_add_connection(layers: &mut [SclyLayer], connection: &ConnectionConfig, mrea_id: u32) {
+fn patch_add_connection(
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+    connection: &ConnectionConfig,
+) {
+    let mrea_id = area.mlvl_area.mrea.to_u32();
+    let scly = area.mrea().scly_section_mut();
+    let layers = scly.layers.as_mut_vec();
+    let mut is_memory_relay = false;
+    let mut found = false;
+
     for layer in layers.iter_mut() {
         let sender = layer
             .objects
@@ -7523,14 +7532,33 @@ fn patch_add_connection(layers: &mut [SclyLayer], connection: &ConnectionConfig,
                 message: structs::ConnectionMsg(connection.message as u32),
                 target_object_id: connection.target_id,
             });
-            return;
+            found = true;
+            is_memory_relay = sender.property_data.is_memory_relay();
+            break;
         }
     }
 
-    panic!(
-        "Could not find object 0x{:X} when adding a script connection in room 0x{:X}",
-        connection.sender_id, mrea_id
-    );
+    if !found {
+        panic!(
+            "Could not find object 0x{:X} when adding a script connection in room 0x{:X}",
+            connection.sender_id, mrea_id
+        );
+    }
+
+    if is_memory_relay
+        && structs::ConnectionState(connection.state as u32) == structs::ConnectionState::ACTIVE
+    {
+        let message = connection.message as u32;
+        let message = message as u16;
+        area.memory_relay_conns
+            .as_mut_vec()
+            .push(structs::MemoryRelayConn {
+                active: 0,
+                sender_id: connection.sender_id,
+                target_id: connection.target_id,
+                message,
+            });
+    }
 }
 
 fn patch_add_connections(
@@ -7538,18 +7566,23 @@ fn patch_add_connections(
     area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     connections: &Vec<ConnectionConfig>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32();
-    let scly = area.mrea().scly_section_mut();
-    let layers = scly.layers.as_mut_vec();
-
     for connection in connections {
-        patch_add_connection(layers, connection, mrea_id);
+        patch_add_connection(area, connection);
     }
 
     Ok(())
 }
 
-fn patch_remove_connection(layers: &mut [SclyLayer], connection: &ConnectionConfig) {
+fn patch_remove_connection(
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+    connection: &ConnectionConfig,
+) {
+    let scly = area.mrea().scly_section_mut();
+    let layers = scly.layers.as_mut_vec();
+
+    let mut found = false;
+    let mut is_memory_relay = false;
+
     for layer in layers.iter_mut() {
         let sender = layer
             .objects
@@ -7567,13 +7600,29 @@ fn patch_remove_connection(layers: &mut [SclyLayer], connection: &ConnectionConf
                 || c.state != structs::ConnectionState(connection.state as u32)
                 || c.message != structs::ConnectionMsg(connection.message as u32)
         });
-        return;
+        found = true;
+        is_memory_relay = sender.property_data.is_memory_relay();
+        break;
     }
 
-    panic!(
-        "Could not find object 0x{:X} when adding a script connection",
-        connection.sender_id
-    );
+    if !found {
+        panic!(
+            "Could not find object 0x{:X} when adding a script connection",
+            connection.sender_id
+        );
+    }
+
+    if is_memory_relay
+        && structs::ConnectionState(connection.state as u32) == structs::ConnectionState::ACTIVE
+    {
+        let message = connection.message as u32;
+        let message = message as u16;
+        area.memory_relay_conns.as_mut_vec().retain(|c| {
+            c.sender_id & 0x00FFFFFF == connection.sender_id & 0x00FFFFFF
+                && c.target_id & 0x00FFFFFF == connection.target_id & 0x00FFFFFF
+                && c.message == message
+        });
+    }
 }
 
 fn patch_remove_connections(
@@ -7581,11 +7630,8 @@ fn patch_remove_connections(
     area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
     connections: &Vec<ConnectionConfig>,
 ) -> Result<(), String> {
-    let scly = area.mrea().scly_section_mut();
-    let layers = scly.layers.as_mut_vec();
-
     for connection in connections {
-        patch_remove_connection(layers, connection);
+        patch_remove_connection(area, connection);
     }
 
     Ok(())
@@ -12460,11 +12506,25 @@ fn patch_pq_permadeath(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32();
-
     let special_fn_id = area.new_object_id_from_layer_id(0);
     let timer1_id = area.new_object_id_from_layer_id(0);
     let timer2_id = area.new_object_id_from_layer_id(0);
+
+    let connection = ConnectionConfig {
+        sender_id: 0x00190004, // parasite queen
+        state: ConnectionState::DEATH_RATTLE,
+        target_id: special_fn_id,
+        message: ConnectionMsg::DECREMENT,
+    };
+    patch_add_connection(area, &connection);
+
+    let connection = ConnectionConfig {
+        sender_id: 0x00190004, // parasite queen
+        state: ConnectionState::DEAD,
+        target_id: special_fn_id,
+        message: ConnectionMsg::DECREMENT,
+    };
+    patch_add_connection(area, &connection);
 
     area.add_layer(b"Custom Shield Layer\0".as_cstr());
     let pq_layer = area.layer_flags.layer_count as usize - 1;
@@ -12503,22 +12563,6 @@ fn patch_pq_permadeath(
         .into(),
         connections: vec![].into(),
     });
-
-    let connection = ConnectionConfig {
-        sender_id: 0x00190004, // parasite queen
-        state: ConnectionState::DEATH_RATTLE,
-        target_id: special_fn_id,
-        message: ConnectionMsg::DECREMENT,
-    };
-    patch_add_connection(layers, &connection, mrea_id);
-
-    let connection = ConnectionConfig {
-        sender_id: 0x00190004, // parasite queen
-        state: ConnectionState::DEAD,
-        target_id: special_fn_id,
-        message: ConnectionMsg::DECREMENT,
-    };
-    patch_add_connection(layers, &connection, mrea_id);
 
     // Activate effects on 2nd pass
     let effect_conns = layers[0]
@@ -17112,9 +17156,7 @@ fn build_and_run_patches<'r>(
                             for config in path_cameras {
                                 patcher.add_scly_patch(
                                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                    move |ps, area| {
-                                        patch_add_path_camera(ps, area, config.clone())
-                                    },
+                                    move |ps, area| patch_add_path_camera(ps, area, config.clone()),
                                 );
                             }
                         }
@@ -19173,6 +19215,16 @@ fn build_and_run_patches<'r>(
             resource_info!("STRG_MemoryCard.STRG").into(), // 0x19C3F7F7
             |res| patch_memorycard_strg(res, config.version),
         );
+    }
+
+    /* Run this last as it changes arbitrary connections to memory relays */
+    for (room, room_config) in other_patches {
+        if let Some(ids) = room_config.set_memory_relays.as_ref() {
+            for id in ids {
+                patcher
+                    .add_scly_patch(*room, move |ps, area| patch_set_memory_relay(ps, area, *id));
+            }
+        }
     }
 
     /* Run these last for legacy support reasons */
