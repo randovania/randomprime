@@ -1324,6 +1324,23 @@ pub fn collect_game_resources<'r>(
     ];
     looking_for.extend(glow_ring);
 
+    let ball_hologram_deps: Vec<(u32, FourCC)> = vec![
+        (0x7C27DE7B, FourCC::from_bytes(b"CMDL")),
+        (0xD87334FA, FourCC::from_bytes(b"CMDL")),
+        (0x8ADB20CD, FourCC::from_bytes(b"TXTR")),
+        (0x4CCDB634, FourCC::from_bytes(b"TXTR")),
+        (0xBB5BF8F4, FourCC::from_bytes(b"TXTR")),
+        (0x57fe7e67, FourCC::from_bytes(b"AGSC")), // Misc.AGSC
+        (0x86F3AEA3, FourCC::from_bytes(b"ANCS")),
+        (0x170871AD, FourCC::from_bytes(b"CSKR")),
+        (0x7F88E0B8, FourCC::from_bytes(b"CINF")),
+        (0x8DBF10B9, FourCC::from_bytes(b"ANIM")),
+        (0x374EF245, FourCC::from_bytes(b"EVNT")),
+        (0x8490BCAA, FourCC::from_bytes(b"SCAN")),
+        (0xC62F739D, FourCC::from_bytes(b"STRG")),
+    ];
+    looking_for.extend(ball_hologram_deps);
+
     let orange_light: Vec<(u32, FourCC)> = vec![(0xB4A658C3, FourCC::from_bytes(b"PART"))];
     looking_for.extend(orange_light);
 

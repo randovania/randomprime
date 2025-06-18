@@ -8,13 +8,11 @@ use crate::{
     door_meta::DoorType,
     mlvl_wrapper,
     patch_config::{
-        ActorKeyFrameConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig, CameraConfig,
-        CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
-        ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
-        HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType,
-        PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
-        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
-        WorldLightFaderConfig,
+        ActorKeyFrameConfig, ActorRotateConfig, BallTriggerConfig, BallHologramConfig, BlockConfig, BombSlotConfig, CameraConfig,
+        CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig, ControllerActionConfig, CounterConfig, DamageType,
+        FogConfig, GenericTexture, HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig, PathCameraConfig,
+        PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
+        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig, WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -2429,6 +2427,241 @@ pub fn patch_add_path_camera(
         new,
         update
     );
+}
+
+pub fn patch_add_ball_hologram<'r>(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
+    game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    config: BallHologramConfig,
+) -> Result<(), String> {
+    let layer = match config.layer {
+        Some(layer) => {
+            while area.layer_flags.layer_count <= layer {
+                area.add_layer(b"New Layer\0".as_cstr());
+            }
+            layer
+        }
+        None => 0,
+    } as usize;
+
+    let deps = [
+        // ball holo actor
+        (0x7C27DE7B, b"CMDL"),
+        (0x4CCDB634, b"TXTR"),
+        (0xBB5BF8F4, b"TXTR"),
+        (0x86F3AEA3, b"ANCS"),
+        (0x170871AD, b"CSKR"),
+        (0x7F88E0B8, b"CINF"),
+        (0x8DBF10B9, b"ANIM"),
+        (0x374EF245, b"EVNT"),
+        // glow actor
+        (0xD87334FA, b"CMDL"),
+        (0x8ADB20CD, b"TXTR"),
+    ];
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+        asset_id: file_id,
+        asset_type: FourCC::from_bytes(fourcc),
+    });
+    area.add_dependencies(game_resources, layer, deps_iter);
+
+    let holo_glow_id = config
+        .holo_glow_id
+        .unwrap_or(area.new_object_id_from_layer_id(layer));
+    let holo_sound_id = config
+        .holo_sound_id
+        .unwrap_or(area.new_object_id_from_layer_id(layer));
+    let ball_holo_id = config.ball_holo_id;
+
+    let offset = [0.0, 0.0, -1.329247];
+
+    let scly = area.mrea().scly_section_mut();
+    let objects = scly.layers.as_mut_vec()[layer].objects.as_mut_vec();
+
+    objects.extend_from_slice(&[
+        structs::SclyObject {
+            instance_id: ball_holo_id,
+            property_data: structs::Actor {
+                name: b"myactor\0".as_cstr(),
+                position: config.position.into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                scale: config.scale1.unwrap_or([0.3, 0.3, 0.3]).into(),
+                hitbox: [0.0, 0.0, 0.0].into(),
+                scan_offset: [0.0, 0.0, 0.0].into(),
+                unknown1: 1.0,
+                unknown2: 0.0,
+                health_info: structs::scly_structs::HealthInfo {
+                    health: 5.0,
+                    knockback_resistance: 1.0,
+                },
+                damage_vulnerability: DoorType::Disabled.vulnerability(),
+                cmdl: ResId::<res_id::CMDL>::new(0x7C27DE7B),
+                ancs: structs::scly_structs::AncsProp {
+                    file_id: ResId::<res_id::ANCS>::new(0x86F3AEA3), // 06_holoball.ANCS
+                    node_index: 0,
+                    default_animation: 0
+                },
+                actor_params: structs::scly_structs::ActorParameters {
+                    light_params: structs::scly_structs::LightParameters {
+                        unknown0: 1,
+                        unknown1: 1.0,
+                        shadow_tessellation: 0,
+                        unknown2: 1.0,
+                        unknown3: 20.0,
+                        color: [1.0, 1.0, 1.0, 1.0].into(),
+                        unknown4: 1,
+                        world_lighting: 3,
+                        light_recalculation: 1,
+                        unknown5: [0.0, 0.0, 0.0].into(),
+                        unknown6: 4,
+                        unknown7: 4,
+                        unknown8: 0,
+                        light_layer_id: 0,
+                    },
+                    scan_params: structs::scly_structs::ScannableParameters {
+                        scan: ResId::invalid(), // None
+                    },
+                    xray_cmdl: ResId::invalid(),    // None
+                    xray_cskr: ResId::invalid(),    // None
+                    thermal_cmdl: ResId::invalid(), // None
+                    thermal_cskr: ResId::invalid(), // None
+
+                    unknown0: 1,
+                    unknown1: 0.5,
+                    unknown2: 0.5,
+
+                    visor_params: structs::scly_structs::VisorParameters {
+                        unknown0: 0,
+                        target_passthrough: 0,
+                        visor_mask: 15, // Combat|Scan|Thermal|XRay
+                    },
+                    enable_thermal_heat: 1,
+                    unknown3: 0,
+                    unknown4: 0,
+                    unknown5: 1.0,
+                },
+                looping: 1,
+                snow: 1,
+                solid: 0,
+                camera_passthrough: 0,
+                active: config.active1.unwrap_or(true) as u8,
+                unknown8: 0,
+                unknown9: 1.0,
+                unknown10: 0,
+                unknown11: 0,
+                unknown12: 0,
+                unknown13: 0,
+            }
+            .into(),
+            connections: vec![].into(),
+        },
+        structs::SclyObject {
+            instance_id: holo_glow_id,
+            property_data: structs::Actor {
+                name: b"myactor\0".as_cstr(),
+                position: relative_offset(config.position, config.rotation.unwrap_or([0.0, 0.0, 0.0]), offset).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                scale: config.scale2.unwrap_or([0.579, 0.579, 0.579]).into(),
+                hitbox: [0.0, 0.0, 0.0].into(),
+                scan_offset: [0.0, 0.0, 0.0].into(),
+                unknown1: 1.0,
+                unknown2: 0.0,
+                health_info: structs::scly_structs::HealthInfo {
+                    health: 5.0,
+                    knockback_resistance: 1.0,
+                },
+                damage_vulnerability: DoorType::Disabled.vulnerability(),
+                cmdl: ResId::<res_id::CMDL>::new(0xD87334FA),
+                ancs: structs::scly_structs::AncsProp {
+                    file_id: ResId::invalid(), // None
+                    node_index: 0,
+                    default_animation: 0xFFFFFFFF, // -1
+                },
+                actor_params: structs::scly_structs::ActorParameters {
+                    light_params: structs::scly_structs::LightParameters {
+                        unknown0: 1,
+                        unknown1: 1.0,
+                        shadow_tessellation: 0,
+                        unknown2: 1.0,
+                        unknown3: 20.0,
+                        color: [1.0, 1.0, 1.0, 1.0].into(),
+                        unknown4: 1,
+                        world_lighting: 3,
+                        light_recalculation: 1,
+                        unknown5: [0.0, 0.0, 0.0].into(),
+                        unknown6: 4,
+                        unknown7: 4,
+                        unknown8: 0,
+                        light_layer_id: 0,
+                    },
+                    scan_params: structs::scly_structs::ScannableParameters {
+                        scan: ResId::invalid(), // None
+                    },
+                    xray_cmdl: ResId::invalid(),    // None
+                    xray_cskr: ResId::invalid(),    // None
+                    thermal_cmdl: ResId::invalid(), // None
+                    thermal_cskr: ResId::invalid(), // None
+
+                    unknown0: 1,
+                    unknown1: 0.5,
+                    unknown2: 0.5,
+
+                    visor_params: structs::scly_structs::VisorParameters {
+                        unknown0: 0,
+                        target_passthrough: 0,
+                        visor_mask: 15, // Combat|Scan|Thermal|XRay
+                    },
+                    enable_thermal_heat: 1,
+                    unknown3: 0,
+                    unknown4: 0,
+                    unknown5: 1.0,
+                },
+                looping: 1,
+                snow: 1,
+                solid: 0,
+                camera_passthrough: 0,
+                active: config.active2.unwrap_or(true) as u8,
+                unknown8: 0,
+                unknown9: 1.0,
+                unknown10: 0,
+                unknown11: 0,
+                unknown12: 0,
+                unknown13: 0,
+            }
+            .into(),
+            connections: vec![].into(),
+        },
+            structs::SclyObject {
+                instance_id: holo_sound_id,
+                property_data: structs::Sound {
+                    name: b"mysound\0".as_cstr(),
+                    position: relative_offset(config.position, config.rotation.unwrap_or([0.0, 0.0, 0.0]), offset)
+                    .into(),
+                    rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                    sound_id: 976,
+                    active: 1,
+                    max_dist: 50.0,
+                    dist_comp: 0.2,
+                    start_delay: 0.0,
+                    min_volume: 20,
+                    volume: 127,
+                    priority: 127,
+                    pan: 64,
+                    loops: 1,
+                    non_emitter: 0,
+                    auto_start: config.sound_auto_play.unwrap_or(true) as u8,
+                    occlusion_test: 0,
+                    acoustics: 1,
+                    world_sfx: 0,
+                    allow_duplicates: 0,
+                    pitch: 0,
+                }
+                .into(),
+                connections: vec![].into(),
+        },
+    ]);
+
+    Ok(())
 }
 
 pub fn patch_add_platform<'r>(

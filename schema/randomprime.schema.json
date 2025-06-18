@@ -5450,6 +5450,70 @@
                         ],
                         "additionalProperties": false
                     }
+                },
+                "ballHolograms": {
+                    "description": "Add a Ball Hologram in this room, can be used to tell the player to insert the Morph Ball in this spot.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ballHoloId": {
+                                "description": "The instance ID to used for the Ball Hologram sphere actor.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "holoGlowId": {
+                                "description": "ID to use for the glow under the Ball Hologram",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "holoSoundId": {
+                                "description": "ID to use for the hologram sound",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 16777215
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "active1": {
+                                "description": "The default enabled/disabled state of the Ball Hologram.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "active2": {
+                                "description": "The default enabled/disabled state of the Ball Hologram Glow.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "soundAutoPlay": {
+                                "description": "Specify if the sound the hologram makes will play automatically or not on room load.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "The `[X, Y, Z]` coordinates of the Ball Hologram",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "scale1": {
+                                "description": "Extent of the Ball Hologram actor. It is best recommended to keep at the default scale unless Samus has been resized",
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [0.3, 0.3, 0.3]
+                            },
+                            "scale2": {
+                                "description": "Extent of the Ball Hologram Glow actor.",
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [0.579, 0.579, 0.579]
+                            }
+                        },
+                        "required": [
+                            "ballHoloId",
+                            "position"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false

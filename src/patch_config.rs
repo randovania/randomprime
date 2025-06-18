@@ -960,6 +960,22 @@ pub struct PathCameraConfig {
     pub max_ease_dist: Option<f32>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BallHologramConfig {
+    pub ball_holo_id: u32,
+    pub holo_glow_id: Option<u32>,
+    pub holo_sound_id: Option<u32>,
+    pub layer: Option<u32>,
+    pub active1: Option<bool>,
+    pub active2: Option<bool>,
+    pub sound_auto_play: Option<bool>,
+    pub position: [f32; 3],
+    pub rotation: Option<[f32; 3]>,
+    pub scale1: Option<[f32; 3]>,
+    pub scale2: Option<[f32;3]>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -1179,6 +1195,7 @@ pub struct RoomConfig {
     pub camera_hint_triggers: Option<Vec<CameraHintTriggerConfig>>,
     pub ball_triggers: Option<Vec<BallTriggerConfig>>,
     pub path_cameras: Option<Vec<PathCameraConfig>>,
+    pub ball_holograms: Option<Vec<BallHologramConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -2088,6 +2105,7 @@ impl PatchConfigPrivate {
                 extend_option_vec!(camera_hint_triggers, self_room_config, other_room_config);
                 extend_option_vec!(ball_triggers, self_room_config, other_room_config);
                 extend_option_vec!(path_cameras, self_room_config, other_room_config);
+                extend_option_vec!(ball_holograms, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
