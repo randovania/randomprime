@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::{scly_props::structs::*, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MetroidPrimeStage1<'r> {
     #[auto_struct(expect = 22)]
     prop_count: u32,
@@ -32,7 +32,7 @@ pub struct MetroidPrimeStage1<'r> {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExoStructA {
     #[auto_struct(expect = 14)]
     prop_count: u32,
@@ -40,7 +40,7 @@ pub struct ExoStructA {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExoStructB {
     #[auto_struct(expect = 29)]
     prop_count: u32,
@@ -64,7 +64,7 @@ pub struct ExoStructB {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraShakeData {
     // PrimeStruct2
     pub use_sfx: u8,
@@ -74,7 +74,7 @@ pub struct CameraShakeData {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraShakerComponent {
     pub use_modulation: u8,
     pub am: CameraShakePoint,
@@ -82,13 +82,13 @@ pub struct CameraShakerComponent {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraShakePoint {
     pub dont_care: GenericArray<f32, U4>,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExoStructBA {
     #[auto_struct(expect = 9)]
     prop_count: u32,
@@ -103,7 +103,7 @@ pub struct ExoStructBA {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExoStructBB {
     pub beam_info: BeamInfo,
     pub wpsc: u32,
@@ -114,7 +114,7 @@ pub struct ExoStructBB {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExoStructBBA {
     #[auto_struct(expect = 8)]
     prop_count: u32,
@@ -122,7 +122,7 @@ pub struct ExoStructBBA {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExoStructBC {
     #[auto_struct(expect = 4)]
     prop_count: u32,
@@ -132,7 +132,7 @@ pub struct ExoStructBC {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExoProjectileInfo {
     #[auto_struct(expect = 10)]
     prop_count: u32,

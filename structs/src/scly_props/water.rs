@@ -5,7 +5,7 @@ use crate::{scly_props::structs::DamageInfo, SclyPropertyData};
 
 // https://github.com/AxioDL/metaforce/blob/1655d229cfdfbd5f792a7c3e84adc862653f70a7/DataSpec/DNAMP1/ScriptObjects/Water.hpp
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Water<'r> {
     #[auto_struct(expect = 63)]
     prop_count: u32,
@@ -74,7 +74,7 @@ pub struct Water<'r> {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FluidUVMotion {
     pub fluid_layer_motion1: FluidLayerMotion,
     pub fluid_layer_motion2: FluidLayerMotion,
@@ -84,7 +84,7 @@ pub struct FluidUVMotion {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FluidLayerMotion {
     pub fluid_uv_motion: u32,
     pub unknown1: f32,

@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*};
 use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GrappleParameters {
     #[auto_struct(expect = 12)]
     prop_count: u32,
@@ -14,7 +14,7 @@ pub struct GrappleParameters {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ActorParameters {
     #[auto_struct(expect = 14)]
     prop_count: u32,
@@ -40,7 +40,7 @@ pub struct ActorParameters {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AnimationParameters {
     pub animation_character_set: u32,
     pub character: u32,
@@ -48,7 +48,7 @@ pub struct AnimationParameters {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AncsProp {
     pub file_id: ResId<ANCS>,
     pub node_index: u32,
@@ -56,7 +56,7 @@ pub struct AncsProp {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LightParameters {
     #[auto_struct(expect = 14)]
     prop_count: u32,
@@ -78,7 +78,7 @@ pub struct LightParameters {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ScannableParameters {
     #[auto_struct(expect = 1)]
     prop_count: u32,
@@ -86,7 +86,7 @@ pub struct ScannableParameters {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct VisorParameters {
     #[auto_struct(expect = 3)]
     prop_count: u32,
@@ -96,7 +96,7 @@ pub struct VisorParameters {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct DamageInfo {
     #[auto_struct(expect = 4)]
     prop_count: u32,
@@ -107,7 +107,7 @@ pub struct DamageInfo {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DamageVulnerability {
     #[auto_struct(expect = 18)]
     prop_count: u32,
@@ -144,7 +144,7 @@ pub enum TypeVulnerability {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ChargedBeams {
     #[auto_struct(expect = 5)]
     prop_count: u32,
@@ -157,7 +157,7 @@ pub struct ChargedBeams {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BeamCombos {
     #[auto_struct(expect = 5)]
     prop_count: u32,
@@ -170,7 +170,7 @@ pub struct BeamCombos {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HealthInfo {
     #[auto_struct(expect = 2)]
     prop_count: u32,
@@ -180,7 +180,7 @@ pub struct HealthInfo {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PatternedInfo {
     #[auto_struct(expect = 38)]
     prop_count: u32,
@@ -226,7 +226,7 @@ pub struct PatternedInfo {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BeamInfo {
     #[auto_struct(expect = 16)]
     prop_count: u32,
@@ -250,7 +250,7 @@ pub struct BeamInfo {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RidleyStruct1 {
     pub unknown0: u32,
     pub unknown1: u32,
@@ -270,7 +270,7 @@ pub struct RidleyStruct1 {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RidleyStruct2 {
     pub unknown0: u32,
     pub unknown1: f32,
@@ -284,7 +284,7 @@ pub struct RidleyStruct2 {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraShakerComponent {
     pub unknown1: u32,
     pub unknown2: u8,
@@ -293,7 +293,7 @@ pub struct CameraShakerComponent {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraShakePoint {
     pub unknown1: u32,
     pub unknown2: u8,
@@ -304,7 +304,7 @@ pub struct CameraShakePoint {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraHintParameters {
     #[auto_struct(expect = 22)]
     prop_count: u32,
@@ -333,21 +333,21 @@ pub struct CameraHintParameters {
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BoolFloat {
     pub override_flags: u8,
     pub value: f32,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BoolVec3 {
     pub override_flags: u8,
     pub value: GenericArray<f32, U3>,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PathCameraFlags {
     #[auto_struct(expect = 6)]
     prop_count: u32,

@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::U3, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BallTrigger<'r> {
     #[auto_struct(expect = 9)]
     prop_count: u32,

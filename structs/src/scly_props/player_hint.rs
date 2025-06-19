@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PlayerHintStruct {
     #[auto_struct(expect = 15)]
     prop_count: u32,
@@ -27,7 +27,7 @@ pub struct PlayerHintStruct {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PlayerHint<'r> {
     #[auto_struct(expect = 6)]
     prop_count: u32,

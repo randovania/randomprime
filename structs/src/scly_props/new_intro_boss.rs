@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NewIntroBoss<'r> {
     #[auto_struct(expect = 13)]
     pub prop_count: u32,

@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::{impl_position, impl_rotation, impl_scale, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraPitchVolume<'r> {
     #[auto_struct(expect = 8)]
     pub prop_count: u32,

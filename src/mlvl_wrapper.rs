@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use reader_writer::{CStr, CStrConversionExtension, FourCC, LazyArray};
 use structs::{
@@ -254,5 +254,21 @@ impl<'r> MlvlArea<'r, '_, '_, '_> {
             }
         });
         self.mrea_cursor.insert_after(iter);
+    }
+
+    pub fn remove_dependencies<I>(&mut self, deps: I)
+    where
+        I: IntoIterator<Item = Dependency>,
+    {
+        let to_remove: HashSet<(u32, FourCC)> = deps
+            .into_iter()
+            .map(|d| (d.asset_id, d.asset_type))
+            .collect();
+
+        for layer in self.mlvl_area.dependencies.deps.as_mut_vec().iter_mut() {
+            layer
+                .as_mut_vec()
+                .retain(|d| !to_remove.contains(&(d.asset_id, d.asset_type)));
+        }
     }
 }

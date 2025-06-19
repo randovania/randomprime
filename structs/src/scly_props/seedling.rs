@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Seedling<'r> {
     #[auto_struct(expect = 14)]
     pub prop_count: u32,

@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    collections::{hash_map::DefaultHasher, HashMap},
+    collections::{hash_map::DefaultHasher, HashMap, HashSet},
     convert::TryInto,
     ffi::CString,
     fs::{self, File},
@@ -23,7 +23,8 @@ use resource_info_table::{resource_info, ResourceInfo};
 use structs::{
     res_id,
     scly_structs::{DamageInfo, TypeVulnerability},
-    Languages, MapaObjectVisibilityMode, ResId, SclyPropertyData,
+    Languages, MapaObjectVisibilityMode, ResId, SclyPropertyData, SclyProperty,
+    Dependency
 };
 
 use crate::{
@@ -51,6 +52,7 @@ use crate::{
         self, pickup_model_for_pickup, pickup_type_for_pickup, DoorLocation, ObjectsToRemove,
         PickupModel, PickupType, ScriptObjectLocation,
     },
+    room_lookup::{ROOM_BY_NAME, ROOM_BY_MREA},
     starting_items::StartingItems,
     structs::LightLayer,
     txtr_conversions::{
@@ -306,13 +308,13 @@ fn patch_tournament_winners<'r>(
 ) -> Result<(), String> {
     let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
 
-    let scan_dep: structs::Dependency = custom_asset_ids::TOURNEY_WINNERS_SCAN.into();
+    let scan_dep: Dependency = custom_asset_ids::TOURNEY_WINNERS_SCAN.into();
     area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-    let strg_dep: structs::Dependency = custom_asset_ids::TOURNEY_WINNERS_STRG.into();
+    let strg_dep: Dependency = custom_asset_ids::TOURNEY_WINNERS_STRG.into();
     area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
-    let frme_dep: structs::Dependency = frme_id.into();
+    let frme_dep: Dependency = frme_id.into();
     area.add_dependencies(game_resources, 0, iter::once(frme_dep));
 
     let scly = area.mrea().scly_section_mut();
@@ -631,7 +633,7 @@ fn patch_door<'r>(
         deps.extend_from_slice(&door_type_after_open.dependencies());
     }
 
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: fourcc,
     });
@@ -898,7 +900,7 @@ fn patch_door<'r>(
                 target_object_id: relay_id,
             }]
             .into(),
-            property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
+            property_data: SclyProperty::Actor(Box::new(structs::Actor {
                 name: b"Custom Blast Shield\0".as_cstr(),
                 position,
                 rotation,
@@ -1207,7 +1209,7 @@ fn patch_door<'r>(
         let poi = structs::SclyObject {
             instance_id: poi_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::PointOfInterest(
+            property_data: SclyProperty::PointOfInterest(
                 structs::PointOfInterest {
                     name: b"mypoi\0".as_cstr(),
                     position: [dt_pos[0], dt_pos[1], dt_pos[2] + 0.5].into(),
@@ -1539,7 +1541,7 @@ fn patch_door<'r>(
         let sound = structs::SclyObject {
             instance_id: sound_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::Sound(Box::new(structs::Sound {
+            property_data: SclyProperty::Sound(Box::new(structs::Sound {
                 // copied from main plaza half-pipe
                 name: b"mysound\0".as_cstr(),
                 position: [position[0], position[1], position[2]].into(),
@@ -1568,7 +1570,7 @@ fn patch_door<'r>(
         let streamed_audio = structs::SclyObject {
             instance_id: streamed_audio_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::StreamedAudio(Box::new(structs::StreamedAudio {
+            property_data: SclyProperty::StreamedAudio(Box::new(structs::StreamedAudio {
                 name: b"mystreamedaudio\0".as_cstr(),
                 active: 1,
                 audio_file_name: b"/audio/evt_x_event_00.dsp\0".as_cstr(),
@@ -2456,14 +2458,14 @@ fn patch_add_item<'r>(
         }
     };
 
-    let hudmemo_dep: structs::Dependency = hudmemo_strg.into();
+    let hudmemo_dep: Dependency = hudmemo_strg.into();
     area.add_dependencies(game_resources, new_layer_idx, iter::once(hudmemo_dep));
 
     /* Add Model Dependencies */
     // Dependencies are defined externally
     if extern_model.is_some() {
         let deps = extern_model.as_ref().unwrap().dependencies.clone();
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+        let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
             asset_id: file_id,
             asset_type: fourcc,
         });
@@ -2474,7 +2476,7 @@ fn patch_add_item<'r>(
         let deps_iter = pickup_model_type
             .dependencies()
             .iter()
-            .map(|&(file_id, fourcc)| structs::Dependency {
+            .map(|&(file_id, fourcc)| Dependency {
                 asset_id: file_id,
                 asset_type: fourcc,
             });
@@ -2483,25 +2485,25 @@ fn patch_add_item<'r>(
 
     {
         let frme = ResId::<res_id::FRME>::new(0xDCEC3E77);
-        let frme_dep: structs::Dependency = frme.into();
+        let frme_dep: Dependency = frme.into();
         area.add_dependencies(game_resources, new_layer_idx, iter::once(frme_dep));
     }
     let scan_id = {
         if pickup_config.scan_text.is_some() {
             let (scan, strg) = *pickup_scans.get(&pickup_hash_key).unwrap();
 
-            let scan_dep: structs::Dependency = scan.into();
+            let scan_dep: Dependency = scan.into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = strg.into();
+            let strg_dep: Dependency = strg.into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(strg_dep));
 
             scan
         } else {
-            let scan_dep: structs::Dependency = pickup_type.scan().into();
+            let scan_dep: Dependency = pickup_type.scan().into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = pickup_type.scan_strg().into();
+            let strg_dep: Dependency = pickup_type.scan_strg().into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(strg_dep));
 
             pickup_type.scan()
@@ -2631,13 +2633,13 @@ fn patch_add_item<'r>(
     let mut pickup_obj = structs::SclyObject {
         instance_id: pickup_obj_id,
         connections: vec![].into(),
-        property_data: structs::SclyProperty::Pickup(Box::new(pickup)),
+        property_data: SclyProperty::Pickup(Box::new(pickup)),
     };
 
     let hudmemo = structs::SclyObject {
         instance_id: area.new_object_id_from_layer_id(new_layer_idx),
         connections: vec![].into(),
-        property_data: structs::SclyProperty::HudMemo(Box::new(structs::HudMemo {
+        property_data: SclyProperty::HudMemo(Box::new(structs::HudMemo {
             name: b"myhudmemo\0".as_cstr(),
             first_message_timer: {
                 if skip_hudmemos {
@@ -2673,7 +2675,7 @@ fn patch_add_item<'r>(
     let attainment_audio = structs::SclyObject {
         instance_id: area.new_object_id_from_layer_id(new_layer_idx),
         connections: vec![].into(),
-        property_data: structs::SclyProperty::Sound(Box::new(structs::Sound {
+        property_data: SclyProperty::Sound(Box::new(structs::Sound {
             // copied from main plaza half-pipe
             name: b"mysound\0".as_cstr(),
             position: pickup_position.into(),
@@ -2840,7 +2842,7 @@ fn patch_add_item<'r>(
             .push(structs::SclyObject {
                 instance_id: poi_id,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::PointOfInterest(Box::new(
+                property_data: SclyProperty::PointOfInterest(Box::new(
                     structs::PointOfInterest {
                         name: b"mypoi\0".as_cstr(),
                         position: pickup_position.into(),
@@ -2884,7 +2886,7 @@ fn patch_add_item<'r>(
         let special_function = structs::SclyObject {
             instance_id: special_function_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::SpecialFunction(Box::new(
+            property_data: SclyProperty::SpecialFunction(Box::new(
                 structs::SpecialFunction {
                     name: b"myspecialfun\0".as_cstr(),
                     position: [0., 0., 0.].into(),
@@ -3104,7 +3106,7 @@ fn patch_superheated_room(
     let area_damage_special_function = structs::SclyObject {
         instance_id: area.new_object_id_from_layer_name("Default"),
         connections: vec![].into(),
-        property_data: structs::SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
+        property_data: SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
             name: b"SpecialFunction Area Damage-component\0".as_cstr(),
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
@@ -3263,7 +3265,7 @@ impl WaterType {
             WaterType::Normal => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::Water(Box::new(structs::Water {
+                property_data: SclyProperty::Water(Box::new(structs::Water {
                     name: b"normal water\0".as_cstr(),
                     position: [0.0, 0.0, 0.0].into(),
                     scale: [10.0, 10.0, 10.0].into(),
@@ -3359,7 +3361,7 @@ impl WaterType {
             WaterType::Poision => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::Water(Box::new(structs::Water {
+                property_data: SclyProperty::Water(Box::new(structs::Water {
                     name: b"poision water\0".as_cstr(),
                     position: [405.3748, -43.92318, 10.530313].into(),
                     scale: [13.0, 30.0, 1.0].into(),
@@ -3455,7 +3457,7 @@ impl WaterType {
             WaterType::Lava => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::Water(Box::new(structs::Water {
+                property_data: SclyProperty::Water(Box::new(structs::Water {
                     name: b"lava\0".as_cstr(),
                     position: [26.634968, -14.81889, 0.237813].into(),
                     scale: [41.601, 52.502003, 7.0010004].into(),
@@ -3566,7 +3568,7 @@ fn patch_submerge_room<'r>(
 
     // add dependencies to area //
     let deps = water_type.dependencies();
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: fourcc,
     });
@@ -3641,7 +3643,7 @@ fn patch_add_poi<'r>(
         .push(structs::SclyObject {
             instance_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::PointOfInterest(Box::new(
+            property_data: SclyProperty::PointOfInterest(Box::new(
                 structs::PointOfInterest {
                     name: b"mypoi\0".as_cstr(),
                     position: position.into(),
@@ -3655,13 +3657,13 @@ fn patch_add_poi<'r>(
 
     let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
 
-    let scan_dep: structs::Dependency = scan_id.into();
+    let scan_dep: Dependency = scan_id.into();
     area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-    let strg_dep: structs::Dependency = strg_id.into();
+    let strg_dep: Dependency = strg_id.into();
     area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
-    let frme_dep: structs::Dependency = frme_id.into();
+    let frme_dep: Dependency = frme_id.into();
     area.add_dependencies(game_resources, 0, iter::once(frme_dep));
 
     Ok(())
@@ -3685,7 +3687,7 @@ fn patch_add_scan_actor<'r>(
         .push(structs::SclyObject {
             instance_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
+            property_data: SclyProperty::Actor(Box::new(structs::Actor {
                 name: b"Scan Actor\0".as_cstr(),
                 position: position.into(),
                 rotation: [0.0, 90.0, rotation].into(),
@@ -3756,25 +3758,25 @@ fn patch_add_scan_actor<'r>(
             })),
         });
 
-    let dep: structs::Dependency = ResId::<res_id::ANCS>::new(0x98DAB29C).into();
+    let dep: Dependency = ResId::<res_id::ANCS>::new(0x98DAB29C).into();
     area.add_dependencies(game_resources, 0, iter::once(dep));
 
-    let dep: structs::Dependency = ResId::<res_id::CMDL>::new(0x2A0FA4F9).into();
+    let dep: Dependency = ResId::<res_id::CMDL>::new(0x2A0FA4F9).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_bound.CMDL
 
-    let dep: structs::Dependency = ResId::<res_id::TXTR>::new(0x336B78E8).into();
+    let dep: Dependency = ResId::<res_id::TXTR>::new(0x336B78E8).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // Worlds/IntroLevel/common_textures/sp_holoanim1C.TXTR
 
-    let dep: structs::Dependency = ResId::<res_id::CSKR>::new(0x41200B2F).into();
+    let dep: Dependency = ResId::<res_id::CSKR>::new(0x41200B2F).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_bound.CSKR
 
-    let dep: structs::Dependency = ResId::<res_id::CINF>::new(0xE436418D).into();
+    let dep: Dependency = ResId::<res_id::CINF>::new(0xE436418D).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_bound.CINF
 
-    let dep: structs::Dependency = ResId::<res_id::ANIM>::new(0xA1ED00B6).into();
+    let dep: Dependency = ResId::<res_id::ANIM>::new(0xA1ED00B6).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_ready.ANIM
 
-    let dep: structs::Dependency = ResId::<res_id::EVNT>::new(0xA7DDBDC4).into();
+    let dep: Dependency = ResId::<res_id::EVNT>::new(0xA7DDBDC4).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_ready.EVNT
 
     Ok(())
@@ -4083,14 +4085,14 @@ fn modify_pickups_in_mrea<'r>(
         }
     };
 
-    let hudmemo_dep: structs::Dependency = hudmemo_strg.into();
+    let hudmemo_dep: Dependency = hudmemo_strg.into();
     area.add_dependencies(game_resources, 0, iter::once(hudmemo_dep));
 
     /* Add Model Dependencies */
     // Dependencies are defined externally
     if extern_model.is_some() {
         let deps = extern_model.as_ref().unwrap().dependencies.clone();
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+        let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
             asset_id: file_id,
             asset_type: fourcc,
         });
@@ -4101,7 +4103,7 @@ fn modify_pickups_in_mrea<'r>(
         let deps_iter = pickup_model_type
             .dependencies()
             .iter()
-            .map(|&(file_id, fourcc)| structs::Dependency {
+            .map(|&(file_id, fourcc)| Dependency {
                 asset_id: file_id,
                 asset_type: fourcc,
             });
@@ -4110,7 +4112,7 @@ fn modify_pickups_in_mrea<'r>(
 
     {
         let frme = ResId::<res_id::FRME>::new(0xDCEC3E77);
-        let frme_dep: structs::Dependency = frme.into();
+        let frme_dep: Dependency = frme.into();
         area.add_dependencies(game_resources, 0, iter::once(frme_dep));
     }
 
@@ -4118,18 +4120,18 @@ fn modify_pickups_in_mrea<'r>(
         if pickup_config.scan_text.is_some() {
             let (scan, strg) = *pickup_scans.get(&pickup_hash_key).unwrap();
 
-            let scan_dep: structs::Dependency = scan.into();
+            let scan_dep: Dependency = scan.into();
             area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = strg.into();
+            let strg_dep: Dependency = strg.into();
             area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
             scan
         } else {
-            let scan_dep: structs::Dependency = pickup_type.scan().into();
+            let scan_dep: Dependency = pickup_type.scan().into();
             area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = pickup_type.scan_strg().into();
+            let strg_dep: Dependency = pickup_type.scan_strg().into();
             area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
             pickup_type.scan()
@@ -4546,7 +4548,7 @@ fn modify_pickups_in_mrea<'r>(
             .push(structs::SclyObject {
                 instance_id: jumbo_poi_id,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::PointOfInterest(Box::new(
+                property_data: SclyProperty::PointOfInterest(Box::new(
                     structs::PointOfInterest {
                         name: b"mypoi\0".as_cstr(),
                         position: position.into(),
@@ -5682,7 +5684,7 @@ fn patch_visible_aether_boundaries<'r>(
         (AETHER_BOUNDARY_TEXTURE.cmdl().to_u32(), b"CMDL"),
         (AETHER_BOUNDARY_TEXTURE.txtr().to_u32(), b"TXTR"),
     ];
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: FourCC::from_bytes(fourcc),
     });
@@ -5845,7 +5847,7 @@ fn patch_ambient_lighting(
 //         (0xB4A658C3, b"PART"),
 //     ];
 //     let deps_iter = deps.iter()
-//         .map(|&(file_id, fourcc)| structs::Dependency {
+//         .map(|&(file_id, fourcc)| Dependency {
 //             asset_id: file_id,
 //             asset_type: FourCC::from_bytes(fourcc),
 //         }
@@ -8396,7 +8398,7 @@ fn patch_remove_cutscenes(
                     structs::SclyObject {
                         instance_id: obj.instance_id,
                         connections: obj.connections.clone(),
-                        property_data: structs::SclyProperty::Relay(Box::new(structs::Relay {
+                        property_data: SclyProperty::Relay(Box::new(structs::Relay {
                             name: b"camera-relay\0".as_cstr(),
                             active: 1,
                         })),
@@ -8677,6 +8679,239 @@ fn patch_purge_debris_extended(
             .as_mut_vec()
             .retain(|obj| !obj.property_data.is_debris_extended());
     }
+
+    Ok(())
+}
+
+fn patch_optimize_memory(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+) -> Result<(), String> {
+    let mrea_id = area.mlvl_area.mrea.to_u32();
+    let scly = area.mrea().scly_section();
+
+    let mut objs = HashSet::new();
+    let mut incoming_connections = HashMap::new();
+    for (_layer_num, layer) in scly.layers.iter().enumerate() {
+        for obj in layer.objects.iter() {
+            let obj_id = obj.instance_id & 0x00FFFFFF;
+            objs.insert(obj_id);
+            for conn in obj.connections.iter() {
+                let target_id = conn.target_object_id & 0x00FFFFFF;
+                incoming_connections.entry(target_id).or_insert_with(HashSet::new).insert((obj_id, conn.message, conn.state));
+            }
+        }
+    }
+
+    let mut dead_objs = HashSet::<u32>::new();
+    let mut dead_connections  = HashSet::<(u32, structs::Connection)>::new();
+    let mut add_connections  = HashSet::<(u32, structs::Connection)>::new();
+    // let mut dead_deps = Vec::<Dependency>::new();
+
+    const RANDOM_RELAY: u8 = 0x14;
+    const GENERATOR: u8 = 0xA;
+    const SPINDLE_CAMERA: u8 = 0x71;
+    const RUMBLE_EFFECT: u8 = 0x74;
+    const CAMERA_SHAKER_OLD: u8 = 0x1C;
+
+    const INERT_MESSAGES: &[structs::ConnectionMsg] = &[
+        structs::ConnectionMsg::NONE,
+        // structs::ConnectionMsg::ACTIVATE,
+        structs::ConnectionMsg::DEACTIVATE,
+        // structs::ConnectionMsg::RESET,
+        structs::ConnectionMsg::STOP,
+        structs::ConnectionMsg::STOP_AND_RESET,
+        // structs::ConnectionMsg::TOGGLE_ACTIVE,
+        structs::ConnectionMsg::REGISTERED,
+        structs::ConnectionMsg::DELETED,
+        structs::ConnectionMsg::INITIALIZED_IN_AREA,
+        structs::ConnectionMsg::WORLD_INITIALIZED,
+    ];
+
+    const NO_SIDE_EFFECT_OBJS: &[u8] = &[
+        structs::Trigger::OBJECT_TYPE,
+        structs::Timer::OBJECT_TYPE,
+        structs::Counter::OBJECT_TYPE,
+        GENERATOR,
+        structs::PickupGenerator::OBJECT_TYPE,
+        RANDOM_RELAY,
+        structs::Relay::OBJECT_TYPE,
+        structs::Switch::OBJECT_TYPE,
+    ];
+
+    const INERT_OBJS: &[u8] = &[
+        structs::Waypoint::OBJECT_TYPE,
+        structs::Counter::OBJECT_TYPE,
+        structs::CameraWaypoint::OBJECT_TYPE,
+        structs::Camera::OBJECT_TYPE,
+        structs::CameraHint::OBJECT_TYPE,
+        RANDOM_RELAY,
+        structs::Relay::OBJECT_TYPE,
+        structs::CameraFilterKeyframe::OBJECT_TYPE,
+        structs::CameraBlurKeyframe::OBJECT_TYPE,
+        structs::NewCameraShaker::OBJECT_TYPE,
+        CAMERA_SHAKER_OLD,
+        structs::ActorKeyFrame::OBJECT_TYPE,
+        structs::CoverPoint::OBJECT_TYPE,
+        structs::PathCamera::OBJECT_TYPE,
+        structs::ActorRotate::OBJECT_TYPE,
+        structs::PlayerHint::OBJECT_TYPE,
+        structs::PickupGenerator::OBJECT_TYPE,
+        structs::AIJumpPoint::OBJECT_TYPE,
+        structs::WorldTransporter::OBJECT_TYPE,
+        structs::CameraPitchVolume::OBJECT_TYPE,
+        SPINDLE_CAMERA,
+        RUMBLE_EFFECT,
+    ];
+
+    const SET_TO_ZERO_OBJS: &[u8] = &[
+        structs::Switch::OBJECT_TYPE,
+        structs::Relay::OBJECT_TYPE,
+        structs::HudMemo::OBJECT_TYPE,
+        GENERATOR,
+        RANDOM_RELAY,
+    ];
+
+    const DEDUPE_OBJS: &[u8] = &[
+        structs::HudMemo::OBJECT_TYPE,
+    ];
+
+    let empty_set = HashSet::new();
+
+    loop {
+        let mut any = false;
+
+        /* Collect dead objects */
+
+        for (_layer_num, layer) in scly.layers.iter().enumerate() {
+            for obj in layer.objects.iter() {
+                let obj_id = obj.instance_id & 0x00FFFFFF;
+
+                if dead_objs.contains(&obj_id) {
+                    continue;
+                }
+
+                let object_type = obj.property_data.object_type();
+                let incoming_messages: Vec<_> = incoming_connections.get(&obj_id).unwrap_or(&empty_set).into_iter().map(|(_, m, _)| m.clone()).collect();
+
+                let is_dead = {
+                    if INERT_OBJS.contains(&object_type) && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m)) {
+                        true // This object does not create side effects inherently, and will not ever because it does not receive any messages that would make it do so
+                    } else if NO_SIDE_EFFECT_OBJS.contains(&object_type) && obj.connections.iter().all(|conn| dead_connections.contains(&(obj_id, conn.clone().into_owned()))) {
+                        true // This object does not have any side effects and doesn't send any messages so it cannot cause other objects to have side-effects
+                    } else if SET_TO_ZERO_OBJS.contains(&object_type) && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO) {
+                        true // This object only "does it's thing" when it receives SET_TO_ZERO and there are no objects which send it
+                    } else if let Some(spawn_point) = obj.property_data.as_spawn_point() {
+                        spawn_point.default_spawn == 0 && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m))
+                    } else if DEDUPE_OBJS.contains(&object_type) {
+                        let mut dupe = false;
+                        for other_layer in scly.layers.iter() {
+                            for other_obj in other_layer.objects.iter() {
+                                let other_obj_id = other_obj.instance_id & 0x00FFFFFF;
+                                if obj.instance_id & 0x00FFFFFF == other_obj_id || dead_objs.contains(&other_obj_id) {
+                                    continue;
+                                }
+
+                                if other_obj.property_data == obj.property_data {
+                                    // TODO: skip if incoming DEACTIVATE or TOGGLE_ACTIVE
+                                    for (sender_id, message, state) in incoming_connections.get(&obj_id).unwrap_or(&empty_set) {
+                                        let conn = structs::Connection {
+                                            state: *state,
+                                            message: *message,
+                                            target_object_id: other_obj_id,
+                                        };
+                                        let value = (*sender_id, conn);
+                                        add_connections.insert(value);
+                                    }
+                                    dupe = true;
+                                    break;
+                                }
+                            }
+
+                            if dupe {
+                                break;
+                            }
+                        }
+
+                        dupe
+                    } else {
+                        false
+                    }
+
+                    // TODO: Objects which are active=false and never receive ACTIVE or TOGGLE_ACTIVE are dead
+                    // TODO: Spawn points which are not SET_TO_ZERO, RESET or the default spawn
+                };
+
+                if is_dead {
+                    any = true;
+                    dead_objs.insert(obj_id);
+                }
+            }
+        }
+
+        if any {
+            for messages in incoming_connections.values_mut() {
+                messages.retain(|(sender_id, _, _)| !dead_objs.contains(sender_id));
+            }
+        }
+
+        /* Collect Dead Connections */
+
+        for (_layer_num, layer) in scly.layers.iter().enumerate() {
+            for obj in layer.objects.iter() {
+                let obj_id = obj.instance_id & 0x00FFFFFF;
+                for conn in obj.connections.iter() {
+                    let target_id = conn.target_object_id & 0x00FFFFFF;
+                    let value = (obj_id, conn.clone().into_owned());
+                    if (dead_objs.contains(&target_id) || !objs.contains(&target_id)) && !dead_connections.contains(&value) {
+                        any = true;
+                        dead_connections.insert(value);
+                    }
+                }
+            }
+        }
+
+        if !any {
+            break;
+        }
+    }
+
+    /* Collect dead dependencies */
+    // TODO: unused SCAN/STRG
+    // TODO: unused TXTR from randomprime deletions
+
+    let scly = area.mrea().scly_section_mut();
+
+    for layer in scly.layers.as_mut_vec() {
+        /* Purge dead objects */
+        layer
+            .objects
+            .as_mut_vec()
+            .retain(|obj| !dead_objs.contains(&(obj.instance_id & 0x00FFFFFF)));
+
+        /* Purge dead connections */
+        for obj in layer.objects.as_mut_vec() {
+            let obj_id = obj.instance_id & 0x00FFFFFF;
+            obj.connections.as_mut_vec().retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
+        }
+
+        /* Re-direct dead object connections */
+        for obj in layer.objects.as_mut_vec() {
+            let obj_id = obj.instance_id & 0x00FFFFFF;
+            for (sender_id, conn) in &add_connections {
+                if *sender_id == obj_id {
+                    obj.connections.as_mut_vec().push(conn.clone().to_owned());
+                }
+            }
+        }
+    }
+
+    /* Purge dead dependencies */
+    // area.remove_dependencies(dead_deps.into_iter());
+    // TODO:
+
+    let _room_name = ROOM_BY_MREA.get(&mrea_id).unwrap().room_name;
+    println!("Removed {} objects and {} connections from room '{}'", dead_objs.len(), dead_connections.len(), _room_name);
 
     Ok(())
 }
@@ -12624,7 +12859,7 @@ fn patch_final_boss_permadeath<'r>(
     if mrea_id == 0x1A666C55 {
         // lair
         let deps = [(0x12771AF0, b"CMDL"), (0xA6114429, b"TXTR")];
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+        let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
             asset_id: file_id,
             asset_type: FourCC::from_bytes(fourcc),
         });
@@ -12947,7 +13182,7 @@ fn patch_final_boss_permadeath<'r>(
                 },
             ]
             .into(),
-            property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
+            property_data: SclyProperty::Trigger(Box::new(structs::Trigger {
                 name: b"warp\0".as_cstr(),
                 position: [52.0, -298.0, -373.0].into(),
                 scale: [3.0, 3.0, 6.0].into(),
@@ -12974,7 +13209,7 @@ fn patch_final_boss_permadeath<'r>(
                 target_object_id: 0x000B0173, // dock
             }]
             .into(),
-            property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
+            property_data: SclyProperty::Trigger(Box::new(structs::Trigger {
                 name: b"unload subchamber five\0".as_cstr(),
                 position: [44.219_9, -286.196_7, -350.0].into(),
                 scale: [100.0, 100.0, 130.0].into(),
@@ -13683,7 +13918,7 @@ fn patch_add_dock_teleport<'r>(
     layer.objects.as_mut_vec().push(structs::SclyObject {
         instance_id: spawn_point_id,
         connections: vec![].into(),
-        property_data: structs::SclyProperty::SpawnPoint(Box::new(structs::SpawnPoint {
+        property_data: SclyProperty::SpawnPoint(Box::new(structs::SpawnPoint {
             name: b"dockspawnpoint\0".as_cstr(),
             position: spawn_point_position,
             rotation: spawn_point_rotation.into(),
@@ -13751,7 +13986,7 @@ fn patch_add_dock_teleport<'r>(
     layer.objects.as_mut_vec().push(structs::SclyObject {
         instance_id: dock_teleport_trigger_id,
         connections: connections.into(),
-        property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
+        property_data: SclyProperty::Trigger(Box::new(structs::Trigger {
             name: b"dockteleporttrigger\0".as_cstr(),
             position: source_position.into(),
             scale: source_scale.into(),
@@ -13812,11 +14047,11 @@ fn patch_modify_dock<'r>(
         let (scan_id, strg_id) = scan.unwrap();
 
         let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
-        let scan_dep: structs::Dependency = scan_id.into();
+        let scan_dep: Dependency = scan_id.into();
         area.add_dependencies(game_resources, 0, iter::once(scan_dep));
-        let strg_dep: structs::Dependency = strg_id.into();
+        let strg_dep: Dependency = strg_id.into();
         area.add_dependencies(game_resources, 0, iter::once(strg_dep));
-        let frme_dep: structs::Dependency = frme_id.into();
+        let frme_dep: Dependency = frme_id.into();
         area.add_dependencies(game_resources, 0, iter::once(frme_dep));
     }
 
@@ -19255,6 +19490,30 @@ fn build_and_run_patches<'r>(
         }
     }
 
+    /* Optimize rooms that are likely to crash */
+    {
+        let rooms = vec![
+            (World::ChozoRuins, "Main Plaza"),
+            (World::ChozoRuins, "Ruined Fountain Access"),
+            (World::ChozoRuins, "Ruins Entrance"),
+            (World::ChozoRuins, "Ruined Shrine Access"),
+            (World::ChozoRuins, "Nursery Access"),
+            (World::ChozoRuins, "Plaza Access"),
+        ];
+
+        for (world, room_name) in rooms {
+            let pak_name = world.to_pak_str().as_bytes();
+            let world_name = World::ChozoRuins.to_json_key();
+            let mrea_id = ROOM_BY_NAME
+                .get(&(world_name.to_string(), room_name.to_string()))
+                .expect(format!("'{} - {}' is not a real room", world_name, room_name).as_str())
+                .mrea_id;
+            patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
+                patch_optimize_memory(ps, area)
+            });
+        }
+    }
+
     patcher.run(gc_disc)?;
 
     Ok(())
@@ -19572,7 +19831,7 @@ fn patch_elite_research_door_lock<'r>(
         (0x0D36FB59, b"TXTR"),
         (0xACADD83F, b"TXTR"),
     ];
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: FourCC::from_bytes(fourcc),
     });
@@ -19592,7 +19851,7 @@ fn patch_elite_research_door_lock<'r>(
     let top_door_lock = structs::SclyObject {
         instance_id: top_door_lock_id,
         connections: vec![].into(),
-        property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
+        property_data: SclyProperty::Actor(Box::new(structs::Actor {
             name: b"Custom Blast Shield\0".as_cstr(),
             position: [21.35, 166.275_13, 51.825].into(),
             rotation: [0.0, 0.0, 0.0].into(),

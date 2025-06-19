@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DamageableTrigger<'r> {
     #[auto_struct(expect = 12)]
     pub prop_count: u32,

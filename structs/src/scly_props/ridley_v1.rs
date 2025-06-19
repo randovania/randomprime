@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RidleyV1<'r> {
     #[auto_struct(expect = 48)]
     pub prop_count: u32,

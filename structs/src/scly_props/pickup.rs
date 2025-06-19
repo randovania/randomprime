@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Pickup<'r> {
     #[auto_struct(expect = 18)]
     prop_count: u32,

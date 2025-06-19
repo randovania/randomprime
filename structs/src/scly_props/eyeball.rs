@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Eyeball<'r> {
     #[auto_struct(expect = 21)]
     pub prop_count: u32,

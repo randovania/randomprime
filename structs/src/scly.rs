@@ -217,6 +217,22 @@ macro_rules! build_scly_property {
             $($name(Box<scly_props::$name<'r >> ),)*
         }
 
+        impl<'r> PartialEq for SclyProperty<'r> {
+            fn eq(&self, other: &Self) -> bool {
+                if self.object_type() != other.object_type() {
+                    return false;
+                }
+
+                match (self, other) {
+                    (SclyProperty::Unknown { data: a, .. }, SclyProperty::Unknown { data: b, .. }) => a.as_slice() == b.as_slice(),
+                    $(
+                        (SclyProperty::$name(ref a), SclyProperty::$name(ref b)) => a == b,
+                    )*
+                    _ => false,
+                }
+            }
+        }
+
         impl<'r> SclyProperty<'r>
         {
             pub fn object_type(&self) -> u8
@@ -1122,7 +1138,7 @@ pub trait SclyPropertyData {
 }
 
 #[auto_struct(Readable, FixedSize, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Connection {
     pub state: ConnectionState,
     pub message: ConnectionMsg,
@@ -1175,7 +1191,7 @@ macro_rules! build_scly_conn_field {
     };
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct ConnectionState(pub u32);
 build_scly_conn_field!(ConnectionState {
     ANY = 0xFFFFFFFF,
@@ -1213,7 +1229,7 @@ build_scly_conn_field!(ConnectionState {
     INHERIT_BOUNDS = 0x20,
 });
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct ConnectionMsg(pub u32);
 build_scly_conn_field!(ConnectionMsg {
     NONE = 0xFFFFFFFF,

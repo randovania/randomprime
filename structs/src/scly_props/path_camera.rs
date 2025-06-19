@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::U3, CStr};
 use crate::{scly_props::structs::PathCameraFlags, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PathCamera<'r> {
     #[auto_struct(expect = 11)]
     prop_count: u32,

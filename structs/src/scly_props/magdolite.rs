@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Magdolite<'r>
 // a.k.a magmoor
 {
