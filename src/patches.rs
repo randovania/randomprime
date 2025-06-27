@@ -845,7 +845,7 @@ fn patch_door<'r>(
                     door_shield.position[2] - 1.763191,
                 ]
                 .into();
-            } else if door_rotation[0] >= 0.0 && door_rotation[0] < 1.0 {
+            } else if door_rotation[0] >= 0.01 && door_rotation[0] < 0.05 {
                 // Leads North (Hive Totem)
                 position = [
                     door_shield.position[0] + 0.005944,
