@@ -18,9 +18,10 @@ pub struct PointOfInterest<'r> {
     pub point_size: f32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for PointOfInterest<'_> {
     const OBJECT_TYPE: u8 = 0x42;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

@@ -39,10 +39,11 @@ pub struct Effect<'r> {
     pub light_params: LightParameters,
 }
 
-use crate::{impl_position, impl_rotation, impl_scale};
+use crate::{impl_active, impl_position, impl_rotation, impl_scale};
 impl SclyPropertyData for Effect<'_> {
     const OBJECT_TYPE: u8 = 0x7;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
     impl_scale!();

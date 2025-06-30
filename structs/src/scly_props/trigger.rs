@@ -21,9 +21,10 @@ pub struct Trigger<'r> {
     pub deactivate_on_exit: u8,
 }
 
-use crate::{impl_position, impl_scale};
+use crate::{impl_active, impl_position, impl_scale};
 impl SclyPropertyData for Trigger<'_> {
     const OBJECT_TYPE: u8 = 0x04;
+    impl_active!();
     impl_position!();
     impl_scale!();
 

@@ -61,7 +61,7 @@ pub struct RidleyV2<'r> {
     pub damage_info8: DamageInfo,
 }
 
-use crate::{impl_position, impl_rotation, impl_scale};
+use crate::{impl_active, impl_position, impl_rotation, impl_scale};
 impl SclyPropertyData for RidleyV2<'_> {
     const OBJECT_TYPE: u8 = 0x7B;
     impl_position!();

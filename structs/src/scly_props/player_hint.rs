@@ -42,9 +42,10 @@ pub struct PlayerHint<'r> {
     pub priority: u32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for PlayerHint<'_> {
     const OBJECT_TYPE: u8 = 0x3E;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

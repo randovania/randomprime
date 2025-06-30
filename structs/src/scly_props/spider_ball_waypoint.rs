@@ -17,9 +17,10 @@ pub struct SpiderBallWaypoint<'r> {
     pub unknown2: u32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for SpiderBallWaypoint<'_> {
     const OBJECT_TYPE: u8 = 0x2C;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

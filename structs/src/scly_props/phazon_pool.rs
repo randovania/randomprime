@@ -1,7 +1,7 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use crate::{impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData};
+use crate::{impl_active, impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone, PartialEq)]
@@ -15,7 +15,7 @@ pub struct PhazonPool<'r> {
     pub rotation: GenericArray<f32, U3>,
     pub scale: GenericArray<f32, U3>,
 
-    pub dont_care1: u8,
+    pub active: u8,
     pub dont_cares1: GenericArray<u32, U5>,
     pub damage_info: DamageInfo,
     pub dont_cares2: GenericArray<u32, U7>,
@@ -26,6 +26,7 @@ pub struct PhazonPool<'r> {
 impl SclyPropertyData for PhazonPool<'_> {
     const OBJECT_TYPE: u8 = 0x87;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
     impl_scale!();

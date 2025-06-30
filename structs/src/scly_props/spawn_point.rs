@@ -50,9 +50,10 @@ pub struct SpawnPoint<'r> {
     pub morphed: u8,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for SpawnPoint<'_> {
     const OBJECT_TYPE: u8 = 0x0F;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

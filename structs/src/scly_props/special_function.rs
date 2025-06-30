@@ -25,7 +25,7 @@ pub struct SpecialFunction<'r> {
     pub layer_change_layer_id: u32,
     pub item_id: u32,
 
-    pub unknown4: u8,
+    pub active: u8,
     pub unknown5: f32,
 
     // "Used by SpinnerController"
@@ -34,9 +34,10 @@ pub struct SpecialFunction<'r> {
     pub unknown8: u32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for SpecialFunction<'_> {
     const OBJECT_TYPE: u8 = 0x3A;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }
@@ -55,7 +56,7 @@ impl<'r> SpecialFunction<'r> {
             layer_change_room_id: room_id,
             layer_change_layer_id: layer_num,
             item_id: 0,
-            unknown4: 1,
+            active: 1,
             unknown5: 0.,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,
@@ -76,7 +77,7 @@ impl<'r> SpecialFunction<'r> {
             layer_change_room_id: 0,
             layer_change_layer_id: u32::MAX,
             item_id: 0,
-            unknown4: 1,
+            active: 1,
             unknown5: 0.,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,

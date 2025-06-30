@@ -12,6 +12,21 @@ use crate::{
 };
 
 #[macro_export]
+macro_rules! impl_active {
+    () => {
+        const SUPPORTS_ACTIVE: bool = true;
+
+        fn impl_get_active(&self) -> u8 {
+            self.active
+        }
+
+        fn impl_set_active(&mut self, x: u8) {
+            self.active = x;
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! impl_position {
     () => {
         const SUPPORTS_POSITION: bool = true;
@@ -68,6 +83,17 @@ macro_rules! impl_patterned_info {
         fn impl_set_patterned_infos(&mut self, x: Vec<PatternedInfo>) {
             self.patterned_info = x[0].clone();
         }
+
+        const SUPPORTS_ACTIVE: bool = true;
+
+        fn impl_get_active(&self) -> u8 {
+            self.patterned_info.active
+        }
+
+        fn impl_set_active(&mut self, x: u8) {
+            self.patterned_info.active = x;
+        }
+
     };
 }
 
@@ -82,6 +108,16 @@ macro_rules! impl_patterned_info_with_auxillary {
 
         fn impl_set_patterned_infos(&mut self, x: Vec<PatternedInfo>) {
             self.patterned_info = x[0].clone();
+        }
+
+        const SUPPORTS_ACTIVE: bool = true;
+
+        fn impl_get_active(&self) -> u8 {
+            self.patterned_info.active
+        }
+
+        fn impl_set_active(&mut self, x: u8) {
+            self.patterned_info.active = x;
         }
 
         const SUPPORTS_DAMAGE_INFOS: bool = true;
@@ -241,6 +277,45 @@ macro_rules! build_scly_property {
                     SclyProperty::Unknown { object_type, .. } => object_type,
                     $(SclyProperty::$name(_) =>
                       <scly_props::$name as SclyPropertyData>::OBJECT_TYPE,)*
+                }
+            }
+
+            /* Active */
+
+            pub fn supports_active(&self) -> bool {
+                let object_type = self.object_type();
+                #[allow(unreachable_patterns)] // ridley throws a warning because we have both PAL and NTSC ridley definitions
+                match object_type {
+                    $(<scly_props::$name as SclyPropertyData>::OBJECT_TYPE => <scly_props::$name as SclyPropertyData>::SUPPORTS_POSITION,)*
+                    _ => false,
+                }
+            }
+
+            pub fn get_active(&self) -> bool
+            {
+                let mut temp = self.clone();
+                temp.guess_kind();
+                match temp {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support active (get)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            let prop = self.$accessor();
+                            prop.unwrap().impl_get_active() != 0
+                        },
+                    )*
+                }
+            }
+
+            pub fn set_active(&mut self, active: bool)
+            {
+                self.guess_kind();
+                match *self {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support active (set)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            self.$accessor_mut().unwrap().impl_set_active(active as u8);
+                        },
+                    )*
                 }
             }
 
@@ -1016,6 +1091,23 @@ build_scly_property!(
 
 pub trait SclyPropertyData {
     const OBJECT_TYPE: u8;
+
+    /* Active */
+    const SUPPORTS_ACTIVE: bool = false;
+
+    fn impl_get_active(&self) -> u8 {
+        panic!(
+            "Script object type 0x{:X} does not implement the 'active' property",
+            Self::OBJECT_TYPE
+        )
+    }
+
+    fn impl_set_active(&mut self, _: u8) {
+        panic!(
+            "Script object type 0x{:X} does not implement the 'active' property",
+            Self::OBJECT_TYPE
+        )
+    }
 
     /* Position */
     const SUPPORTS_POSITION: bool = false;

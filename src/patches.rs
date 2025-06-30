@@ -2899,7 +2899,7 @@ fn patch_add_item<'r>(
                     layer_change_room_id: room_id,
                     layer_change_layer_id: new_layer_idx as u32,
                     item_id: 0,
-                    unknown4: 1, // active
+                    active: 1,
                     unknown5: 0.,
                     unknown6: 0xFFFFFFFF,
                     unknown7: 0xFFFFFFFF,
@@ -3118,7 +3118,7 @@ fn patch_superheated_room(
             layer_change_room_id: 4294967295,
             layer_change_layer_id: 4294967295,
             item_id: 0,
-            unknown4: 1,
+            active: 1,
             unknown5: 0.0,
             unknown6: 4294967295,
             unknown7: 4294967295,
@@ -5362,7 +5362,7 @@ fn patch_sunchamber_cutscene_hack(
                     layer_change_room_id: 0xFFFFFFFF,
                     layer_change_layer_id: 0xFFFFFFFF,
                     item_id: 0,
-                    unknown4: 0, // active
+                    active: 0,
                     unknown5: 0.0,
                     unknown6: 0xFFFFFFFF,
                     unknown7: 0xFFFFFFFF,
@@ -5399,7 +5399,7 @@ fn patch_sunchamber_cutscene_hack(
                     layer_change_room_id: 0xFFFFFFFF,
                     layer_change_layer_id: 0xFFFFFFFF,
                     item_id: 0,
-                    unknown4: 0, // active
+                    active: 0,
                     unknown5: 0.0,
                     unknown6: 0xFFFFFFFF,
                     unknown7: 0xFFFFFFFF,
@@ -5464,7 +5464,7 @@ fn patch_add_boss_health_bar(
             layer_change_room_id: 0xFFFFFFFF,
             layer_change_layer_id: 0xFFFFFFFF,
             item_id: 0,
-            unknown4: 1, // active
+            active: 1,
             unknown5: 0.0,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,
@@ -5517,7 +5517,7 @@ fn patch_add_cutscene_skip_fn(
             layer_change_room_id: 0,
             layer_change_layer_id: 0,
             item_id: 0,
-            unknown4: 1, // active
+            active: 1,
             unknown5: 0.0,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,
@@ -8201,7 +8201,7 @@ fn patch_add_pb_refill(
             layer_change_room_id: 0xFFFFFFFF,
             layer_change_layer_id: 0xFFFFFFFF,
             item_id: 0,
-            unknown4: 1, // active
+            active: 1,
             unknown5: 0.0,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,
@@ -8683,35 +8683,19 @@ fn patch_purge_debris_extended(
     Ok(())
 }
 
-fn patch_optimize_memory(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
-) -> Result<(), String> {
-    let mrea_id = area.mlvl_area.mrea.to_u32();
-    let scly = area.mrea().scly_section();
-
-    let mut objs = HashSet::new();
-    let mut incoming_connections = HashMap::new();
-    for (_layer_num, layer) in scly.layers.iter().enumerate() {
-        for obj in layer.objects.iter() {
-            let obj_id = obj.instance_id & 0x00FFFFFF;
-            objs.insert(obj_id);
-            for conn in obj.connections.iter() {
-                let target_id = conn.target_object_id & 0x00FFFFFF;
-                incoming_connections.entry(target_id).or_insert_with(HashSet::new).insert((obj_id, conn.message, conn.state));
-            }
-        }
-    }
-
-    let mut dead_objs = HashSet::<u32>::new();
-    let mut dead_connections  = HashSet::<(u32, structs::Connection)>::new();
-    let mut add_connections  = HashSet::<(u32, structs::Connection)>::new();
-    // let mut dead_deps = Vec::<Dependency>::new();
-
+fn object_is_dead(
+    scly: &reader_writer::LCow<'_, structs::Scly<'_>>,
+    obj: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
+    all_incoming_connections: &HashMap<u32, HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>>,
+    dead_objs: &HashSet<u32>,
+    dead_connections: &HashSet<(u32, structs::Connection)>,
+    add_connections: &mut HashSet<(u32, structs::Connection)>,
+) -> bool {
     const RANDOM_RELAY: u8 = 0x14;
     const GENERATOR: u8 = 0xA;
     const SPINDLE_CAMERA: u8 = 0x71;
     const RUMBLE_EFFECT: u8 = 0x74;
+    const SCRIPT_BEAM: u8 = 0x81;
     const CAMERA_SHAKER_OLD: u8 = 0x1C;
 
     const INERT_MESSAGES: &[structs::ConnectionMsg] = &[
@@ -8726,6 +8710,12 @@ fn patch_optimize_memory(
         structs::ConnectionMsg::DELETED,
         structs::ConnectionMsg::INITIALIZED_IN_AREA,
         structs::ConnectionMsg::WORLD_INITIALIZED,
+    ];
+
+    const DEDUPE_BLACKLIST_MESSAGES: &[structs::ConnectionMsg] = &[
+        structs::ConnectionMsg::DEACTIVATE,
+        structs::ConnectionMsg::ACTIVATE,
+        structs::ConnectionMsg::TOGGLE_ACTIVE,
     ];
 
     const NO_SIDE_EFFECT_OBJS: &[u8] = &[
@@ -8762,6 +8752,7 @@ fn patch_optimize_memory(
         structs::CameraPitchVolume::OBJECT_TYPE,
         SPINDLE_CAMERA,
         RUMBLE_EFFECT,
+        structs::StreamedAudio::OBJECT_TYPE,
     ];
 
     const SET_TO_ZERO_OBJS: &[u8] = &[
@@ -8774,84 +8765,154 @@ fn patch_optimize_memory(
 
     const DEDUPE_OBJS: &[u8] = &[
         structs::HudMemo::OBJECT_TYPE,
+        structs::Sound::OBJECT_TYPE,
+        structs::SpawnPoint::OBJECT_TYPE,
+        structs::CameraHint::OBJECT_TYPE,
+        structs::CameraFilterKeyframe::OBJECT_TYPE,
+        structs::CameraBlurKeyframe::OBJECT_TYPE,
+        CAMERA_SHAKER_OLD,
+        structs::ActorKeyFrame::OBJECT_TYPE,
+        structs::PlayerHint::OBJECT_TYPE,
+        structs::StreamedAudio::OBJECT_TYPE,
+        structs::WorldTransporter::OBJECT_TYPE,
+        RUMBLE_EFFECT,
+        structs::WorldLightFader::OBJECT_TYPE,
+        SCRIPT_BEAM,
+        structs::NewCameraShaker::OBJECT_TYPE,
     ];
 
     let empty_set = HashSet::new();
+    let obj_id = obj.instance_id & 0x00FFFFFF;
+    let object_type = obj.property_data.object_type();
+
+    let incoming_connections = all_incoming_connections.get(&obj_id).unwrap_or(&empty_set);
+    let incoming_messages: Vec<_> = incoming_connections.into_iter().map(|(_, m, _)| m.clone()).collect();
+
+    // let any_incoming_messages = incoming_connections.len() > 0;
+    let any_outgoing_messages = obj.connections.iter().any(|conn| !dead_connections.contains(&(obj_id, conn.clone().into_owned())));
+
+    // Check for unused objects with no side effects
+    if NO_SIDE_EFFECT_OBJS.contains(&object_type) && !any_outgoing_messages {
+        return true; // This object does not have any side effects and doesn't send any messages so it cannot cause other objects to have side-effects
+    }
+
+    // Check for unused inert objects
+    if INERT_OBJS.contains(&object_type) && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m)) {
+        return true; // This object does not create side effects inherently, and will not ever because it does not receive any messages that would make it do so
+    }
+
+    // Check for unused inert objects that only respond to SET_TO_ZERO
+    if SET_TO_ZERO_OBJS.contains(&object_type) && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO) {
+        return true; // This object only "does it's thing" when it receives SET_TO_ZERO and there are no objects which send it
+    }
+
+    // Check for unused spawn points
+    if let Some(spawn_point) = obj.property_data.as_spawn_point() {
+        if spawn_point.default_spawn == 0 && !incoming_messages.iter().any(|m| vec![structs::ConnectionMsg::SET_TO_ZERO, structs::ConnectionMsg::RESET].contains(m)) {
+            return true; // This object is a spawn point which is not the default spawn and is neither reset nor SET_TO_ZERO
+        }
+    }
+
+    // Check for unused timers
+    if let Some(timer) = obj.property_data.as_timer() {
+        if timer.start_immediately == 0 && !incoming_messages.iter().any(|m| vec![structs::ConnectionMsg::START, structs::ConnectionMsg::RESET_AND_START].contains(m)) {
+            return true; // This object is a timer which does not auto-start and nothing starts it
+        }
+    }
+
+    // Check for inactive objects that never activate
+    if obj.property_data.supports_active() && !obj.property_data.get_active() && !incoming_messages.iter().any(|m| vec![structs::ConnectionMsg::ACTIVATE, structs::ConnectionMsg::TOGGLE_ACTIVE].contains(m)) {
+        return true;
+    }
+
+    // TODO: Remove Unused "Swap Door" mechanisms
+    // TODO: streamed audio, camera shaker etc. move to layer 0 for better de-duping (camera shaker ignore position)
+    // TODO: De-dupe auto-start timers with no incoming connections
+
+    // Check for objects which can be de-duplicated
+    // if DEDUPE_OBJS.contains(&object_type) {
+    //     if !DEDUPE_BLACKLIST_MESSAGES.iter().any(|m| incoming_messages.contains(m)) {
+    //         for other_layer in scly.layers.iter() {
+    //             // TODO: only objects on the same layer
+    //             for other_obj in other_layer.objects.iter() {
+    //                 let other_obj_id = other_obj.instance_id & 0x00FFFFFF;
+    //                 if obj_id == other_obj_id || dead_objs.contains(&other_obj_id) {
+    //                     continue; // same obj or dead obj
+    //                 }
+
+    //                 if other_obj.property_data != obj.property_data {
+    //                     continue; // not duplicate
+    //                 }
+
+    //                 let other_incoming_messages: Vec<_> = all_incoming_connections.get(&other_obj_id).unwrap_or(&empty_set).into_iter().map(|(_, m, _)| m.clone()).collect();
+    //                 if DEDUPE_BLACKLIST_MESSAGES.iter().any(|m| other_incoming_messages.contains(&m)) {
+    //                     continue; // other obj not candidate for dedupe due to incoming state toggle messages
+    //                 }
+
+    //                 // This object is a duplicate, remove it and re-direct messages to it's duplicate
+    //                 for (sender_id, message, state) in incoming_connections {
+    //                     let conn = structs::Connection {
+    //                         state: *state,
+    //                         message: *message,
+    //                         target_object_id: other_obj_id,
+    //                     };
+    //                     let value = (*sender_id, conn);
+    //                     add_connections.insert(value);
+    //                 }
+
+    //                 return true;
+    //             }
+    //         }
+    //     }
+    // }
+
+    return false;
+}
+
+fn patch_optimize_memory(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+) -> Result<(), String> {
+    let mrea_id = area.mlvl_area.mrea.to_u32();
+    let scly = area.mrea().scly_section();
+
+    let mut objs = HashSet::new();
+    let mut incoming_connections = HashMap::new();
+    for (_layer_num, layer) in scly.layers.iter().enumerate() {
+        for obj in layer.objects.iter() {
+            let obj_id = obj.instance_id & 0x00FFFFFF;
+            objs.insert(obj_id);
+        }
+    }
+
+    for (_layer_num, layer) in scly.layers.iter().enumerate() {
+        for obj in layer.objects.iter() {
+            let obj_id = obj.instance_id & 0x00FFFFFF;
+            for conn in obj.connections.iter() {
+                let target_id = conn.target_object_id & 0x00FFFFFF;
+                if objs.contains(&target_id) {
+                    incoming_connections.entry(target_id).or_insert_with(HashSet::new).insert((obj_id, conn.message, conn.state));
+                }
+            }
+        }
+    }
+
+    let mut dead_objs = HashSet::<u32>::new();
+    let mut dead_connections  = HashSet::<(u32, structs::Connection)>::new();
+    let mut add_connections  = HashSet::<(u32, structs::Connection)>::new();
+    // let mut dead_deps = Vec::<Dependency>::new();
+
+    let mut counts = (0, 0, 0, 0);
 
     loop {
-        let mut any = false;
-
         /* Collect dead objects */
 
         for (_layer_num, layer) in scly.layers.iter().enumerate() {
             for obj in layer.objects.iter() {
                 let obj_id = obj.instance_id & 0x00FFFFFF;
-
-                if dead_objs.contains(&obj_id) {
-                    continue;
-                }
-
-                let object_type = obj.property_data.object_type();
-                let incoming_messages: Vec<_> = incoming_connections.get(&obj_id).unwrap_or(&empty_set).into_iter().map(|(_, m, _)| m.clone()).collect();
-
-                let is_dead = {
-                    if INERT_OBJS.contains(&object_type) && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m)) {
-                        true // This object does not create side effects inherently, and will not ever because it does not receive any messages that would make it do so
-                    } else if NO_SIDE_EFFECT_OBJS.contains(&object_type) && obj.connections.iter().all(|conn| dead_connections.contains(&(obj_id, conn.clone().into_owned()))) {
-                        true // This object does not have any side effects and doesn't send any messages so it cannot cause other objects to have side-effects
-                    } else if SET_TO_ZERO_OBJS.contains(&object_type) && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO) {
-                        true // This object only "does it's thing" when it receives SET_TO_ZERO and there are no objects which send it
-                    } else if let Some(spawn_point) = obj.property_data.as_spawn_point() {
-                        spawn_point.default_spawn == 0 && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m))
-                    } else if DEDUPE_OBJS.contains(&object_type) {
-                        let mut dupe = false;
-                        for other_layer in scly.layers.iter() {
-                            for other_obj in other_layer.objects.iter() {
-                                let other_obj_id = other_obj.instance_id & 0x00FFFFFF;
-                                if obj.instance_id & 0x00FFFFFF == other_obj_id || dead_objs.contains(&other_obj_id) {
-                                    continue;
-                                }
-
-                                if other_obj.property_data == obj.property_data {
-                                    // TODO: skip if incoming DEACTIVATE or TOGGLE_ACTIVE
-                                    for (sender_id, message, state) in incoming_connections.get(&obj_id).unwrap_or(&empty_set) {
-                                        let conn = structs::Connection {
-                                            state: *state,
-                                            message: *message,
-                                            target_object_id: other_obj_id,
-                                        };
-                                        let value = (*sender_id, conn);
-                                        add_connections.insert(value);
-                                    }
-                                    dupe = true;
-                                    break;
-                                }
-                            }
-
-                            if dupe {
-                                break;
-                            }
-                        }
-
-                        dupe
-                    } else {
-                        false
-                    }
-
-                    // TODO: Objects which are active=false and never receive ACTIVE or TOGGLE_ACTIVE are dead
-                    // TODO: Spawn points which are not SET_TO_ZERO, RESET or the default spawn
-                };
-
-                if is_dead {
-                    any = true;
+                if !dead_objs.contains(&obj_id) && object_is_dead(&scly, &obj, &incoming_connections, &dead_objs, &dead_connections, &mut add_connections) {
                     dead_objs.insert(obj_id);
                 }
-            }
-        }
-
-        if any {
-            for messages in incoming_connections.values_mut() {
-                messages.retain(|(sender_id, _, _)| !dead_objs.contains(sender_id));
             }
         }
 
@@ -8863,17 +8924,40 @@ fn patch_optimize_memory(
                 for conn in obj.connections.iter() {
                     let target_id = conn.target_object_id & 0x00FFFFFF;
                     let value = (obj_id, conn.clone().into_owned());
-                    if (dead_objs.contains(&target_id) || !objs.contains(&target_id)) && !dead_connections.contains(&value) {
-                        any = true;
+                    if dead_objs.contains(&target_id) || !objs.contains(&target_id) {
                         dead_connections.insert(value);
                     }
                 }
             }
         }
 
-        if !any {
+        /* Cleanup lists */
+
+        for (sender_id, conn) in &add_connections {
+            let target_id = conn.target_object_id & 0x00FFFFFF;
+            incoming_connections.entry(target_id).or_insert_with(HashSet::new).insert((*sender_id, conn.message, conn.state));
+        }
+
+        for (target_id, messages) in incoming_connections.iter_mut() {
+            messages.retain(|(sender_id, message, state)|
+                !dead_objs.contains(sender_id) &&
+                !dead_objs.contains(&target_id) &&
+                !dead_connections.iter().any(|(dead_sender_id, dead_conn)|
+                    sender_id == dead_sender_id &&
+                    dead_conn.target_object_id & 0x00FFFFFF == *target_id &&
+                    dead_conn.state == *state &&
+                    dead_conn.message == *message
+                )
+            );
+        }
+
+        /* Check for break condition */
+
+        let new_counts = (incoming_connections.values().map(HashSet::len).sum(), dead_objs.len(), dead_connections.len(), add_connections.len());
+        if new_counts == counts {
             break;
         }
+        counts = new_counts;
     }
 
     /* Collect dead dependencies */
@@ -8883,6 +8967,14 @@ fn patch_optimize_memory(
     let scly = area.mrea().scly_section_mut();
 
     for layer in scly.layers.as_mut_vec() {
+        for obj in layer.objects.as_mut_vec() {
+            let obj_id = obj.instance_id & 0x00FFFFFF;
+            if dead_objs.contains(&obj_id) {
+                let obj_type = obj.property_data.object_type();
+                println!("[0x{:X}] 0x{:X}", obj_type, obj_id);
+            }
+        }
+
         /* Purge dead objects */
         layer
             .objects
@@ -8908,10 +9000,13 @@ fn patch_optimize_memory(
 
     /* Purge dead dependencies */
     // area.remove_dependencies(dead_deps.into_iter());
-    // TODO:
 
     let _room_name = ROOM_BY_MREA.get(&mrea_id).unwrap().room_name;
     println!("Removed {} objects and {} connections from room '{}'", dead_objs.len(), dead_connections.len(), _room_name);
+
+    area.dedup_dependencies();
+
+    /* TODO: Purge dead memory relay connections */
 
     Ok(())
 }

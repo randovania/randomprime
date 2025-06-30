@@ -33,9 +33,10 @@ pub struct Sound<'r> {
     pub pitch: u32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for Sound<'_> {
     const OBJECT_TYPE: u8 = 0x9;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

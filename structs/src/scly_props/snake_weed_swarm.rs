@@ -45,9 +45,10 @@ pub struct SnakeWeedSwarm<'r> {
     pub unknown17: u32,
 }
 
-use crate::{impl_position, impl_scale};
+use crate::{impl_active, impl_position, impl_scale};
 impl SclyPropertyData for SnakeWeedSwarm<'_> {
     const OBJECT_TYPE: u8 = 0x6D;
+    impl_active!();
     impl_position!();
     impl_scale!();
 

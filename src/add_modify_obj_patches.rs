@@ -636,7 +636,7 @@ pub fn patch_add_special_fn(
                 layer_change_room_id: config.layer_change_room_id.unwrap_or(0xFFFFFFFF),
                 layer_change_layer_id: config.layer_change_layer_id.unwrap_or(0xFFFFFFFF),
                 item_id,
-                unknown4: config.active.unwrap_or(true) as u8, // active
+                active: config.active.unwrap_or(true) as u8,
                 unknown5: config.unknown6.unwrap_or_default(),
                 unknown6: config.spinner1.unwrap_or(0xFFFFFFFF),
                 unknown7: config.spinner2.unwrap_or(0xFFFFFFFF),
@@ -676,7 +676,7 @@ pub fn patch_add_special_fn(
                 property_data.item_id = PickupType::from_str(&item_id) as u32;
             };
             if let Some(active) = config.active {
-                property_data.unknown4 = active as u8
+                property_data.active = active as u8
             }
             if let Some(unknown6) = config.unknown6 {
                 property_data.unknown5 = unknown6
@@ -3550,7 +3550,7 @@ pub fn patch_lock_on_point<'r>(
                             layer_change_room_id: 0xFFFFFFFF,
                             layer_change_layer_id: 0xFFFFFFFF,
                             item_id: 12, // grapple beam
-                            unknown4: 1, // active
+                            active: 1,
                             unknown5: 0.0,
                             unknown6: 0xFFFFFFFF,
                             unknown7: 0xFFFFFFFF,
@@ -3879,7 +3879,7 @@ pub fn patch_add_escape_sequence(
             layer_change_room_id: 0,
             layer_change_layer_id: 0,
             item_id: 0,
-            unknown4: 1, // active
+            active: 1,
             unknown5: 0.0,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,
@@ -3929,7 +3929,7 @@ pub fn patch_add_escape_sequence(
             layer_change_room_id: 0,
             layer_change_layer_id: 0,
             item_id: 0,
-            unknown4: 1, // active
+            active: 1,
             unknown5: 0.0,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,

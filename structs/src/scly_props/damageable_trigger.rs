@@ -32,10 +32,11 @@ pub struct DamageableTrigger<'r> {
     pub visor_params: VisorParameters,
 }
 
-use crate::{impl_position, impl_scale};
+use crate::{impl_active, impl_position, impl_scale};
 impl SclyPropertyData for DamageableTrigger<'_> {
     const OBJECT_TYPE: u8 = 0x1A;
 
+    impl_active!();
     impl_position!();
     impl_scale!();
 

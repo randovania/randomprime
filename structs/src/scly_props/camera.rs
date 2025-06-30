@@ -27,10 +27,11 @@ pub struct Camera<'r> {
     pub disable_out_of_into: u8,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for Camera<'_> {
     const OBJECT_TYPE: u8 = 0x0C;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

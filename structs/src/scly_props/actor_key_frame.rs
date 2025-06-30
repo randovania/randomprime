@@ -18,6 +18,8 @@ pub struct ActorKeyFrame<'r> {
     pub total_playback: f32,
 }
 
+use crate::impl_active;
 impl SclyPropertyData for ActorKeyFrame<'_> {
     const OBJECT_TYPE: u8 = 0x1D;
+    impl_active!();
 }

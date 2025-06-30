@@ -1,7 +1,7 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use crate::{impl_position, impl_rotation, SclyPropertyData};
+use crate::{impl_active, impl_position, impl_rotation, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone, PartialEq)]
@@ -22,6 +22,7 @@ pub struct CameraWaypoint<'r> {
 impl SclyPropertyData for CameraWaypoint<'_> {
     const OBJECT_TYPE: u8 = 0xD;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

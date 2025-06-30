@@ -37,9 +37,10 @@ pub struct CameraHint<'r> {
     pub control_interp_dur: f32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for CameraHint<'_> {
     const OBJECT_TYPE: u8 = 0x10;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

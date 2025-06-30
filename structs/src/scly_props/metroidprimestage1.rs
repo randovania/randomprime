@@ -142,13 +142,23 @@ pub struct ExoProjectileInfo {
     pub dont_cares2: GenericArray<u8, U4>,
 }
 
-use crate::{impl_position, impl_rotation, impl_scale};
+use crate::{impl_active, impl_position, impl_rotation, impl_scale};
 impl SclyPropertyData for MetroidPrimeStage1<'_> {
     const OBJECT_TYPE: u8 = 0x84;
 
     impl_position!();
     impl_rotation!();
     impl_scale!();
+
+    const SUPPORTS_ACTIVE: bool = true;
+
+    fn impl_get_active(&self) -> u8 {
+        self.exo_struct_b.patterned_info.active
+    }
+
+    fn impl_set_active(&mut self, x: u8) {
+        self.exo_struct_b.patterned_info.active = x;
+    }
 
     const SUPPORTS_PATTERNED_INFOS: bool = true;
 

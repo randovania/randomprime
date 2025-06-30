@@ -18,10 +18,11 @@ pub struct CameraHintTrigger<'r> {
     pub deactivate_on_exit: u8,
 }
 
-use crate::{impl_position, impl_rotation, impl_scale};
+use crate::{impl_active, impl_position, impl_rotation, impl_scale};
 impl SclyPropertyData for CameraHintTrigger<'_> {
     const OBJECT_TYPE: u8 = 0x73;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
     impl_scale!();

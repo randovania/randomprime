@@ -271,4 +271,19 @@ impl<'r> MlvlArea<'r, '_, '_, '_> {
                 .retain(|d| !to_remove.contains(&(d.asset_id, d.asset_type)));
         }
     }
+
+    pub fn dedup_dependencies(&mut self)
+    {
+        let layers = self.mlvl_area.dependencies.deps.as_mut_vec();
+        for layer in layers.iter_mut() {
+            let deps = layer.as_mut_vec();
+            let before_len = deps.len();
+            deps.sort_by_key(|dep| (dep.asset_id, dep.asset_type));
+            deps.dedup_by_key(|dep| (dep.asset_id, dep.asset_type));
+
+            if deps.len() != before_len {
+                println!("before: {}, after: {}", before_len, deps.len());
+            }
+        }
+    }
 }

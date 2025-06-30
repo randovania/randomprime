@@ -93,9 +93,10 @@ pub struct FluidLayerMotion {
     pub unknown4: f32,
 }
 
-use crate::{impl_position, impl_scale};
+use crate::{impl_active, impl_position, impl_scale};
 impl SclyPropertyData for Water<'_> {
     const OBJECT_TYPE: u8 = 0x20;
+    impl_active!();
     impl_position!();
     impl_scale!();
 
