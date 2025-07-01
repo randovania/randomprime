@@ -15581,15 +15581,15 @@
                     "addConnections": [
                         {
                             "senderId": 983071, // [SpecialFunction] Water Follows Platform
-                            "targetId": 983068, // [Platform] Water Control
+                            "targetId": 993473, // [Water] stupid water (it makes you stupid on entry)
                             "state": "PLAY",
-                            "message": "ACTIVATE"
+                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 983071, // [SpecialFunction] Water Follows Platform
-                            "targetId": 993473, // [Water] New Water
+                            "targetId": 983068, // [Platform] Water Control
                             "state": "PLAY",
-                            "message": "DEACTIVATE"
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 983068, // [Platform] Water Control
@@ -15600,7 +15600,7 @@
                         {
                             "senderId": 983068, // [Platform] Water Control
                             "targetId": 983064, // [Waypoint] Position 1
-                            "state": "ACTIVE",
+                            "state": "PLAY",
                             "message": "FOLLOW"
                         },
                         {
@@ -15689,7 +15689,7 @@
                         },
                         {
                             "senderId": 983111, // [Relay] Relay - Start Water Morph
-                            "targetId": 993473, // [Water] New Water
+                            "targetId": 993473, // [Water] stupid water (it makes you stupid on entry)
                             "state": "ZERO",
                             "message": "NEXT"
                         },
@@ -15953,7 +15953,7 @@
                         },
                         {
                             "senderId": 983599, // [Timer] Update Water Culling
-                            "targetId": 993473, // [Water] New Water
+                            "targetId": 993473, // [Water] stupid water (it makes you stupid on entry)
                             "state": "ZERO",
                             "message": "NEXT"
                         },
@@ -16094,7 +16094,7 @@
                         },
                         {
                             "id": 983599, // [Timer] Update Water Culling
-                            "time": 2.5,
+                            "time": 1.0,
                             "looping": true,
                             "startImmediately": true
                         }
@@ -16105,23 +16105,6 @@
                         },
                         {
                             "id": 983067 // [Relay] Decrement Black Bars
-                        }
-                    ],
-                    "liquids": [
-                        {
-                            "id": 993473, // [Water] New Water
-                            "type": "Water",
-                            "active": true,
-                            "position": [
-                                2.217131,
-                                -470.724823,
-                                17.693943
-                            ],
-                            "scale": [
-                                90.000008,
-                                65.0,
-                                17.0
-                            ]
                         }
                     ],
                     "platforms": [
