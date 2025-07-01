@@ -13,8 +13,8 @@ use crate::{
         ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
         HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig, PathCameraConfig,
         PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig,
-        SpawnPointConfig, SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig, TimerConfig,
-        TriggerConfig, WaterConfig, WaypointConfig, WorldLightFaderConfig,
+        SoundConfig, SpawnPointConfig, SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig,
+        TimerConfig, TriggerConfig, WaterConfig, WaypointConfig, WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -2512,6 +2512,105 @@ pub fn patch_add_path_camera(
     }
 
     add_edit_obj_helper!(area, config.id, config.layer, PathCamera, new, update);
+}
+
+pub fn patch_add_sound(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: SoundConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::Sound {
+                name: b"my sound\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                sound_id: config.sound_id.unwrap_or(1867) as u32,
+                active: config.active.unwrap_or(true) as u8,
+                max_dist: config.max_dist.unwrap_or(50.0) as f32,
+                dist_comp: config.dist_comp.unwrap_or(0.2) as f32,
+                start_delay: config.start_delay.unwrap_or(0.0) as f32,
+                min_volume: config.min_volume.unwrap_or(20) as u32,
+                volume: config.volume.unwrap_or(127) as u32,
+                priority: config.priority.unwrap_or(127) as u32,
+                pan: config.pan.unwrap_or(64) as u32,
+                loops: config.loops.unwrap_or(false) as u8,
+                non_emitter: config.non_emitter.unwrap_or(false) as u8,
+                auto_start: config.auto_start.unwrap_or(false) as u8,
+                occlusion_test: config.occlusion_test.unwrap_or(false) as u8,
+                acoustics: config.acoustics.unwrap_or(true) as u8,
+                world_sfx: config.world_sfx.unwrap_or(false) as u8,
+                allow_duplicates: config.allow_duplicates.unwrap_or(true) as u8,
+                pitch: config.pitch.unwrap_or(0) as u32,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_sound_mut().unwrap();
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(rotation) = config.rotation {
+                property_data.rotation = rotation.into()
+            }
+            if let Some(sound_id) = config.sound_id {
+                property_data.sound_id = sound_id as u32
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(max_dist) = config.max_dist {
+                property_data.max_dist = max_dist as f32
+            }
+            if let Some(dist_comp) = config.dist_comp {
+                property_data.dist_comp = dist_comp as f32
+            }
+            if let Some(start_delay) = config.start_delay {
+                property_data.start_delay = start_delay as f32
+            }
+            if let Some(min_volume) = config.min_volume {
+                property_data.min_volume = min_volume as u32
+            }
+            if let Some(volume) = config.volume {
+                property_data.volume = volume as u32
+            }
+            if let Some(priority) = config.priority {
+                property_data.priority = priority as u32
+            }
+            if let Some(pan) = config.pan {
+                property_data.pan = pan as u32
+            }
+            if let Some(loops) = config.loops {
+                property_data.loops = loops as u8
+            }
+            if let Some(non_emitter) = config.non_emitter {
+                property_data.non_emitter = non_emitter as u8
+            }
+            if let Some(auto_start) = config.auto_start {
+                property_data.auto_start = auto_start as u8
+            }
+            if let Some(occlusion_test) = config.occlusion_test {
+                property_data.occlusion_test = occlusion_test as u8
+            }
+            if let Some(acoustics) = config.acoustics {
+                property_data.acoustics = acoustics as u8
+            }
+            if let Some(world_sfx) = config.world_sfx {
+                property_data.world_sfx = world_sfx as u8
+            }
+            if let Some(allow_duplicates) = config.allow_duplicates {
+                property_data.allow_duplicates = allow_duplicates as u8
+            }
+            if let Some(pitch) = config.pitch {
+                property_data.pitch = pitch as u32
+            }
+        };
+    }
+
+    add_edit_obj_helper!(area, config.id, config.layer, Sound, new, update);
 }
 
 pub fn patch_add_platform<'r>(
