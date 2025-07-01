@@ -171,11 +171,29 @@ pub struct DefaultGameOptions {
 pub struct WaterConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub position: [f32; 3],
+    pub scale: [f32; 3],
+    pub force: Option<[f32; 3]>,
+    pub flags: Option<u32>,
+    pub thermal_cold: Option<bool>,
+    pub display_surface: Option<bool>,
+    pub morph_in_time: Option<f32>,
+    pub morph_out_time: Option<f32>,
     pub active: Option<bool>,
     #[serde(alias = "type")]
     pub liquid_type: String,
-    pub position: [f32; 3],
-    pub scale: [f32; 3],
+    pub alpha: Option<f32>,
+    pub splash_color: Option<[f32; 4]>,
+    pub inside_fog_color: Option<[f32; 4]>,
+    pub tile_size: Option<f32>,
+    pub tile_subdivisions: Option<u32>,
+    pub ripple_intensity: Option<f32>,
+    pub fog_bias: Option<f32>,
+    pub fog_magnitude: Option<f32>,
+    pub fog_speed: Option<f32>,
+    pub fog_color: Option<[f32; 4]>,
+    pub alpha_in_time: Option<f32>,
+    pub alpha_out_time: Option<f32>,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]

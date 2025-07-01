@@ -2898,21 +2898,6 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
-                            "type": {
-                                "description": "Define what kind of liquid. Note that Phazon water is unused in the base game and acts similarly to Phazon pools.",
-                                "type": "string",
-                                "enum": [
-                                    "Water",
-                                    "Poison",
-                                    "Lava",
-                                    "Phazon"
-                                ]
-                            },
-                            "active": {
-                                "description": "Default active state of the liquid.",
-                                "type": "boolean",
-                                "default": true
-                            },
                             "position": {
                                 "description": "Point at which the liquid is centerd.",
                                 "$ref": "#/$defs/vector3"
@@ -2920,6 +2905,163 @@
                             "scale": {
                                 "description": "The extent of the liquid volume.",
                                 "$ref": "#/$defs/vector3Positive"
+                            },
+                            "force": {
+                                "description": "If the apply force flag is enabled, this is the force applied.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "flags": {
+                                "description": "Just like a trigger, defines various attributes of the water. Use PWE on any existing trigger to calculate this as a number.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 262143,
+                                "default": 1
+                            },
+                            "thermalCold": {
+                                "description": "Specify if the liquid will be visible in Thermal Visor as a cold signature.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "displaySurface": {
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "morphInTime": {
+                                "description": "Time it will take for the water to reach it's destination, similar to Energy Core and Ruined Courtyard.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            },
+                            "morphOutTime": {
+                                "description": "Time it will take for the water to reach it's original position, similar to Energy Core and Ruined Courtyard.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            },
+                            "active": {
+                                "description": "Default active state of the liquid.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "type": {
+                                "description": "Define what kind of liquid. Note that Phazon water is unused in the base game and acts similarly to Phazon pools.",
+                                "type": "string",
+                                "enum": [
+                                    "Water",
+                                    "Poison",
+                                    "Lava",
+                                    "ThickLava",
+                                    "Phazon"
+                                ]
+                            },
+                            "alpha": {
+                                "description": "Visibility level of the water.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "maximum": 1.0,
+                                "default": 0.7
+                            },
+                            "splashColor": {
+                                "description": "The color of the water splash particle.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            },
+                            "insideFogColor": {
+                                "description": "Fog color when underwater.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            },
+                            "tileSize": {
+                                "description": "Size of the water tile, the smaller the number the bigger the amount of repeating textures that are on the water.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 2.4,
+                                "exclusiveMaximum": 50.0
+                            },
+                            "tileSubdivisions": {
+                                "description": "Visibility level of the water.",
+                                "type": "integer",
+                                "minimum": 1,
+                                "default": 6,
+                                "exclusiveMaximum": 20
+                            },
+                            "rippleIntensity": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 0.8
+                            },
+                            "fogBias": {
+                                "description": "Height that the liquid's fog will favour being around.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "fogMagnitude": {
+                                "description": "Height that the liquid's fog will reach when going up.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "fogSpeed": {
+                                "description": "Speed of the fog when going up.",
+                                "type": "number",
+                                "default": 1.0
+                            },
+                            "fogColor": {
+                                "description": "Color of the fog.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    1.0
+                                ]
+                            },
+                            "alphaInTime": {
+                                "description": "Time it will take for the water to to fade in when `Action` message is sent.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            },
+                            "alphaOutTime": {
+                                "description": "Time it will take for the water to to fade out when `Action` message is sent.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
                             }
                         },
                         "required": [
