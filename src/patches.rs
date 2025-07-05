@@ -580,7 +580,7 @@ fn patch_door<'r>(
     door_open_mode: DoorOpenMode,
     lock_on: bool,
 ) -> Result<(), String> {
-    const DO_GIBBS: bool = false;
+    const DO_GIBBS: bool = true;
 
     let mrea_id = area.mlvl_area.mrea.to_u32();
     let area_internal_id = area.mlvl_area.internal_id;
@@ -1089,6 +1089,9 @@ fn patch_door<'r>(
             }
             .into(),
             };
+
+            // Deactivate invulnerable door dtrigger after destruction of shield
+
                 for door_force in door_loc.door_force_locations.iter() {
                     relay.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
@@ -1434,7 +1437,7 @@ fn patch_door<'r>(
                     .into(),
                 };
 
-                // Doors can't be shot open with splash damage until the blast shield is gone
+                // Doors can't be shot open with splash damage until the blast shield is gone. INCREMENT = Invulnerable
                 for door_force in door_loc.door_force_locations.iter() {
                     timer2.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
@@ -2253,6 +2256,18 @@ fn patch_door<'r>(
                         .unwrap();
                     timer.start_immediately = 1;
 
+                    // It's an unpowered door but only after the blackout, so it starts enabled
+
+                    let relay = layers[blast_shield_layer_idx]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == auto_open_relay_id)
+                        .unwrap()
+                        .property_data
+                        .as_relay_mut()
+                        .unwrap();
+                    relay.active = 1;
+
                     // When the outage happens, deactivate both doors
                     let obj = layers[0]
                         .objects
@@ -2265,23 +2280,13 @@ fn patch_door<'r>(
                     obj.connections.as_mut_vec().extend_from_slice(&[
                         structs::Connection {
                             state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
+                            message: structs::ConnectionMsg::DECREMENT,
                             target_object_id: door_shield_id,
                         },
-                        structs::Connection {
+                        structs::Connection {   
                             state: structs::ConnectionState::ZERO,
                             message: structs::ConnectionMsg::DEACTIVATE,
                             target_object_id: door_force_id,
-                        },
-                        structs::Connection {
-                            state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
-                            target_object_id: existing_door_shield_id,
-                        },
-                        structs::Connection {
-                            state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
-                            target_object_id: existing_door_force_id,
                         },
                         structs::Connection {
                             state: structs::ConnectionState::ZERO,
@@ -2324,7 +2329,7 @@ fn patch_door<'r>(
                             target_object_id: update_door_timer_id,
                         },
                         structs::Connection {
-                            state: structs::ConnectionState::ZERO,
+                            state: structs::ConnectionState::DEAD,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: auto_open_relay_id,
                         },
@@ -2343,11 +2348,18 @@ fn patch_door<'r>(
                         });
                     obj.connections
                         .as_mut_vec()
-                        .extend_from_slice(&[structs::Connection {
+                        .extend_from_slice(&[
+                            structs::Connection {
                             state: structs::ConnectionState::ACTIVE,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: existing_door_shield_id,
-                        }]);
+                        },
+                            structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: existing_door_shield_id,
+                        }
+                    ]);
                 } else {
                     obj.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
