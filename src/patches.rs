@@ -580,7 +580,7 @@ fn patch_door<'r>(
     door_open_mode: DoorOpenMode,
     lock_on: bool,
 ) -> Result<(), String> {
-    const DO_GIBBS: bool = true;
+    const DO_GIBBS: bool = false;
 
     let mrea_id = area.mlvl_area.mrea.to_u32();
     let area_internal_id = area.mlvl_area.internal_id;
