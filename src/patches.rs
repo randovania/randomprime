@@ -2083,7 +2083,7 @@ fn patch_door<'r>(
                     },
                     structs::Connection {
                         state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::ACTIVATE,
+                        message: structs::ConnectionMsg::INCREMENT,
                         target_object_id: existing_door_shield_id,
                     },
                 ]
@@ -2447,6 +2447,41 @@ fn patch_door<'r>(
             new_door_force_data.damage_vulnerability = door_type_after_open.vulnerability();
             new_door_force_data.active = 1;
             layers[0].objects.as_mut_vec().push(new_door_force);
+
+            // Cargo Freight Lift to Deck Gamma
+            if mrea_id == 0x37B3AFE6 {
+
+                // Room does not have a "Deactivate Door" relay, so doors start inactive by default
+                let door_force = layers[0]
+                    .objects
+                    .iter_mut()
+                    .find(|obj| obj.instance_id == door_force_id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Could not find 0x{:X} in room 0x{:X}",
+                            door_force_id, mrea_id
+                        )
+                    })
+                    .property_data
+                    .as_damageable_trigger_mut()
+                    .unwrap();
+                door_force.active = 0;
+                    
+                let door_shield = layers[0]
+                    .objects
+                    .iter_mut()
+                    .find(|obj| obj.instance_id == door_shield_id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Could not find 0x{:X} in room 0x{:X}",
+                            door_shield_id, mrea_id
+                        )
+                    })
+                    .property_data
+                    .as_actor_mut()
+                    .unwrap();
+                door_shield.active = 0;
+            }
         }
     }
 
