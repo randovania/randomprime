@@ -5496,7 +5496,7 @@ fn patch_artifact_temple_pillar(
     id: u32,
 ) -> Result<(), String> {
     let scly = area.mrea().scly_section_mut();
-    let layer = &mut scly.layers.as_mut_vec()[0];
+    let layer = &mut scly.layers.as_mut_vec()[1];
     layer.objects.as_mut_vec().push(structs::SclyObject {
         instance_id: id,
         property_data: structs::Platform {
@@ -5588,7 +5588,7 @@ fn patch_artifact_temple_pillar(
                     phazon: 0,
                 },
             },
-            detect_collision: 1,
+            detect_collision: 0,
             unknown4: 1.0,
             unknown5: 0,
             unknown6: 200,
