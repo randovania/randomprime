@@ -5490,6 +5490,117 @@ pub fn id_in_use(area: &mut mlvl_wrapper::MlvlArea, id: u32) -> bool {
     false
 }
 
+fn patch_artifact_temple_pillar(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    id: u32,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+    layer.objects.as_mut_vec().push(structs::SclyObject {
+        instance_id: id,
+        property_data: structs::Platform {
+            name: b"Platform Stage 1 (Intangible)\0".as_cstr(),
+            position: [-373.276154, 32.820946, -34.278522].into(),
+            rotation: [0.0, 0.0, -179.732712].into(),
+            scale: [1.0, 1.0, 1.0].into(),
+            extent: [1.0, 1.0, 1.0].into(), // CollisionBox
+            scan_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
+            cmdl: ResId::<res_id::CMDL>::new(0xFB87262C),
+            ancs: structs::scly_structs::AncsProp {
+                file_id: ResId::invalid(), // None
+                node_index: 0,
+                default_animation: 0xFFFFFFFF, // -1
+            },
+            actor_params: structs::scly_structs::ActorParameters {
+                light_params: structs::scly_structs::LightParameters {
+                    unknown0: 1,
+                    unknown1: 1.0,
+                    shadow_tessellation: 0,
+                    unknown2: 1.0,
+                    unknown3: 20.0,
+                    color: [1.0, 1.0, 1.0, 1.0].into(),
+                    unknown4: 1,
+                    world_lighting: 2,
+                    light_recalculation: 1,
+                    unknown5: [0.0, 0.0, 0.0].into(),
+                    unknown6: 4,
+                    unknown7: 4,
+                    unknown8: 1,
+                    light_layer_id: 0,
+                },
+                scan_params: structs::scly_structs::ScannableParameters {
+                    scan: ResId::invalid(), // None
+                },
+                xray_cmdl: ResId::invalid(),    // None
+                xray_cskr: ResId::invalid(),    // None
+                thermal_cmdl: ResId::invalid(), // None
+                thermal_cskr: ResId::invalid(), // None
+                unknown0: 1,
+                unknown1: 2.0,
+                unknown2: 2.0,
+                visor_params: structs::scly_structs::VisorParameters {
+                    unknown0: 0,
+                    target_passthrough: 0,
+                    visor_mask: 15, // Combat|Scan|Thermal|XRay
+                },
+                enable_thermal_heat: 0,
+                unknown3: 0,
+                unknown4: 0,
+                unknown5: 1.0,
+            },
+            speed: 1.0,
+            active: 0,
+            dcln: ResId::invalid(), // None
+            health_info: structs::scly_structs::HealthInfo {
+                health: 50.0,
+                knockback_resistance: 1.0,
+            },
+            damage_vulnerability: structs::scly_structs::DamageVulnerability {
+                power: 3,
+                ice: 3,
+                wave: 3,
+                plasma: 3,
+                bomb: 3,
+                power_bomb: 3,
+                missile: 1,
+                boost_ball: 3,
+                phazon: 3,
+                enemy_weapon0: 1,
+                enemy_weapon1: 2,
+                enemy_weapon2: 2,
+                enemy_weapon3: 2,
+                unknown_weapon0: 2,
+                unknown_weapon1: 2,
+                unknown_weapon2: 0,
+                charged_beams: structs::scly_structs::ChargedBeams{
+                    power: 3,
+                    ice: 3,
+                    wave: 3,
+                    plasma: 3,
+                    phazon: 0,
+                },
+                beam_combos: structs::scly_structs::BeamCombos{
+                    power: 3,
+                    ice: 3,
+                    wave: 3,
+                    plasma: 3,
+                    phazon: 0,
+                },
+            },
+            detect_collision: 1,
+            unknown4: 1.0,
+            unknown5: 0,
+            unknown6: 200,
+            unknown7: 20,
+        }
+        .into(),
+        connections: vec![].into(),
+    });
+
+    Ok(())
+}
+
 fn patch_add_cutscene_skip_fn(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -17217,14 +17328,14 @@ fn build_and_run_patches<'r>(
                             /* Some rooms need to be update to play nicely with skippable cutscenes */
                             match room_info.room_id.to_u32() {
                                 0x9A0A03EB => {
-                                    // sunchamber
+                                    // Sunchamber
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                         move |ps, area| patch_sunchamber_cutscene_hack(ps, area),
                                     );
                                 }
                                 0x70181194 => {
-                                    // quarantine cave
+                                    // Quarantine Cave
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                         move |ps, area| {
@@ -17233,10 +17344,17 @@ fn build_and_run_patches<'r>(
                                     );
                                 }
                                 0xA7AC009B => {
-                                    // subchamber four
+                                    // Subchamber Four
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                         move |ps, area| patch_add_boss_health_bar(ps, area, 696969),
+                                    );
+                                }
+                                0x2398E906 => {
+                                    // Artifact Temple
+                                    patcher.add_scly_patch(
+                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                        move |ps, area| patch_artifact_temple_pillar(ps, area, 1048911),
                                     );
                                 }
                                 _ => {}
