@@ -28578,9 +28578,7 @@
                 },
                 "Subchamber Five": {
                     "deleteIds": [
-                        721309,
-                        721026,
-                        720901
+                        721309
                     ],
                     "removeConnections": [
                         {
@@ -28610,22 +28608,10 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 655435, // [SpecialFunction] PlayerInArea
-                            "targetId": 655500, // [SpawnPoint] Morphed Spawn Point for HUD update
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
                             "senderId": 655375, // [Relay] Relay-start of cinema
                             "targetId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 655375, // [Relay] Relay-start of cinema
-                            "targetId": 655500, // [SpawnPoint] Morphed Spawn Point for HUD update
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 655375, // [Relay] Relay-start of cinema
@@ -28713,7 +28699,7 @@
                         },
                         {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 720925, // External: 000B019D
+                            "targetId": 721370, // External: 000B01DA
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
@@ -28725,33 +28711,15 @@
                         },
                         {
                             "senderId": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
-                            "targetId": 720925, // External: 000B019D
+                            "targetId": 721370, // External: 000B01DA
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
-                            "targetId": 721026, // External: 000B0082
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
-                            "targetId": 720901, // External: 000B0005
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
                         }
                     ],
                     // Dummy IDs for external connections
                     "waypoints": [
                         {
-                            "id": 720925
-                        },
-                        {
-                            "id": 721026
-                        },
-                        {
-                            "id": 720901
+                            "id": 721370
                         }
                     ],
                     "relays": [
@@ -28765,14 +28733,6 @@
                             "id": 655400, // [Camera] Cinematic Camera Hold
                             "position": [46.804985, -262.36322, -194.979507],
                             "rotation": [-50.0, 0.0, 0.0]
-                        }
-                    ],
-                    "spawnPoints": [
-                        {
-                            "id": 655500, // [SpawnPoint] Morphed Spawn Point for HUD update
-                            "position": [22.388611, -276.080536, -137.771393],
-                            "active": false,
-                            "morphed": true
                         }
                     ],
                     "cameraFilterKeyframes": [
@@ -28798,9 +28758,7 @@
                 },
                 "Metroid Prime Lair": {
                     "deleteIds": [
-                        655380,
-                        655400,
-                        655496
+                        655400
                     ],
                     "removeConnections": [
                         {
@@ -28914,46 +28872,74 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
-                            "targetId": 655380, // External: 000A0014
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
-                            "targetId": 655496, // External: 000A0088
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
                             "targetId": 655400, // External: 000A0028
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 720919, // [Camera] Cinematic Camera Hold
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 721276, // [Timer] Timer Unload 03e_f
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 720948, // [Timer] Delay before return to game
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
                             "targetId": 720901, // [Actor] Actor-head hat
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 720916, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 720919, // [Camera] Cinematic Camera Hold
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 721026, // [MetroidPrimeStage2] Metroid Prime - Stage 2
+                            "state": "ZERO",
+                            "message": "ACTIVATE" 
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO" 
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
                             "targetId": 721310, // [StreamedAudio] StreamedAudio Crater Metroid Prime Stage 2 SW
                             "state": "ZERO",
                             "message": "PLAY"
-                        },
-                        {
-                            "senderId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
-                            "targetId": 721276, // [Timer] Timer Unload 03e_f
-                            "state": "ZERO",
-                            "message": "START"
                         }
                     ],
                     "timers": [
                         {
                             "id": 720946, // [Timer] Warp 2 Frame Delay
                             "time": 0.02
+                        },
+                        {
+                            "id": 720948, // [Timer] Delay before return to game
+                            "time": 0.5
                         }
                     ],
                     "streamedAudios": [
@@ -28970,12 +28956,18 @@
                             "id": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
                             "position": [44.4119, -266.63446, -375.414642],
                             "rotation": [0.0, 0.0, -179.50708]
+                        },
+                        {
+                            "id": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "position": [47.792114, -248.011307, -375.531006],
+                            "morphed": true
                         }
                     ],
                     "cameras": [
                         {
                             "id": 720919, // [Camera] Cinematic Camera Hold
-                            "position": [132.0, -223.0, -346.0]
+                            "position": [132.0, -223.0, -346.0],
+                            "shotDuration": 512.0
                         }
                     ],
                     "cameraFilterKeyframes": [
@@ -28983,20 +28975,14 @@
                             "id": 720916, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
-                            "filterIndex": 2,
+                            "filterIndex": 3,
                             "fadeOutTime": 0.5
                         }
                     ],
                     // Dummy IDs for External Connections
                     "waypoints": [
                         {
-                            "id": 655380
-                        },
-                        {
                             "id": 655400
-                        },
-                        {
-                            "id": 655496
                         }
                     ],
                     "relays": [
