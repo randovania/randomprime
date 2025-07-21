@@ -2899,7 +2899,7 @@
                                 "$ref": "#/$defs/addModifyLayer"
                             },
                             "position": {
-                                "description": "Point at which the liquid is centerd.",
+                                "description": "Point at which the liquid is centered.",
                                 "$ref": "#/$defs/vector3"
                             },
                             "scale": {
@@ -2920,7 +2920,7 @@
                                 "type": "integer",
                                 "minimum": 0,
                                 "maximum": 262143,
-                                "default": 1
+                                "default": 2047
                             },
                             "thermalCold": {
                                 "description": "Specify if the liquid will be visible in Thermal Visor as a cold signature.",
@@ -2932,13 +2932,13 @@
                                 "default": true
                             },
                             "morphInTime": {
-                                "description": "Time it will take for the water to reach it's destination, similar to Energy Core and Ruined Courtyard.",
+                                "description": "Time it will take for the water to reach it's destination. Used in Energy Core and Ruined Courtyard.",
                                 "type": "number",
                                 "minimum": 0.0,
                                 "default": 1.0
                             },
                             "morphOutTime": {
-                                "description": "Time it will take for the water to reach it's original position, similar to Energy Core and Ruined Courtyard.",
+                                "description": "Time it will take for the water to reach it's original position. Used in Energy Core and Ruined Courtyard.",
                                 "type": "number",
                                 "minimum": 0.0,
                                 "default": 1.0
@@ -3008,7 +3008,6 @@
                                 "exclusiveMaximum": 50.0
                             },
                             "tileSubdivisions": {
-                                "description": "Visibility level of the water.",
                                 "type": "integer",
                                 "minimum": 1,
                                 "default": 6,
@@ -3048,7 +3047,7 @@
                                     0.0,
                                     0.0,
                                     0.0,
-                                    1.0
+                                    0.0
                                 ]
                             },
                             "alphaInTime": {
