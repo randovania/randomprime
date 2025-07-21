@@ -749,7 +749,7 @@ fn patch_door<'r>(
             instance_id: special_function_id,
             connections: vec![].into(),
             property_data: structs::SpecialFunction::layer_change_fn(
-                b"Artifact Layer Switch\0".as_cstr(),
+                b"Door Lock Layer Switch\0".as_cstr(),
                 area_internal_id,
                 blast_shield_layer_idx as u32,
             )
@@ -777,11 +777,11 @@ fn patch_door<'r>(
 
         // Calculate placement //
         let rotation: GenericArray<f32, U3>;
-        // this is actually scan offset
         let scale: GenericArray<f32, U3>;
-        // this is actually hitbox
 
+        // CollisionBox
         let scan_offset: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
+        // CollisionOffset
         let hitbox: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
 
         let door_rotation = door_loc.door_rotation.unwrap();
@@ -795,43 +795,28 @@ fn patch_door<'r>(
                     mrea_id
                 );
             }
-
-            if mrea_id == 0xFB54A0CB {
-                // hall of the elders
-                scale = [1.6, 1.6, 1.6].into();
-
-                // Floor door
-                is_floor = true;
-                position = [
-                    door_shield.position[0] - 2.0,
-                    door_shield.position[1],
-                    door_shield.position[2] - 0.3,
-                ]
-                .into();
-                rotation = [0.0, 90.0, 0.0].into();
-            } else {
-                scale = [1.6, 1.6, 1.6].into();
+            
+            {
+                scale = [1.1776, 1.8, 1.8].into();
 
                 if door_rotation[0] > -90.0 && door_rotation[0] < 90.0 {
-                    // Ceiling door
                     is_ceiling = true;
                     position = [
-                        door_shield.position[0] + 2.0,
-                        door_shield.position[1],
-                        door_shield.position[2] + 0.2,
+                        door_shield.position[0] + 0.016708,
+                        door_shield.position[1] - 2.141243,
+                        door_shield.position[2] + 0.40522,
                     ]
                     .into();
-                    rotation = [0.0, -90.0, 0.0].into();
+                    rotation = [0.0, -90.0, -90.0].into();
                 } else if door_rotation[0] < -90.0 && door_rotation[0] > -270.0 {
-                    // Floor door
                     is_floor = true;
                     position = [
-                        door_shield.position[0] - 2.0,
-                        door_shield.position[1],
-                        door_shield.position[2] - 0.2,
+                        door_shield.position[0] - 0.0112,
+                        door_shield.position[1] - 2.140015,
+                        door_shield.position[2] - 0.371151,
                     ]
                     .into();
-                    rotation = [0.0, 90.0, 0.0].into();
+                    rotation = [-90.0, 90.0, 0.0].into();
                 } else {
                     panic!(
                         "Unhandled door rotation on vertical door {:?} in room 0x{:X}",
@@ -844,41 +829,78 @@ fn patch_door<'r>(
             scale = [1.0 * scale_scale, 1.5 * scale_scale, 1.5 * scale_scale].into();
             rotation = door_rotation.into();
 
-            let door_offset: f32 = -0.05;
-            let door_offset_z: f32 = 1.8017;
-
-            if door_rotation[2] >= 45.0 && door_rotation[2] < 135.0 {
+            if door_rotation[0] >= 11.0 && door_rotation[0] < 13.0 {
+                // Leads South (Biotech Research Area 1)
+                position = [
+                    door_shield.position[0] + 0.374077,
+                    door_shield.position[1] - 0.406525,
+                    door_shield.position[2] - 1.762893,
+                ]
+                .into();
+            } else if door_rotation[0] >= -13.0 && door_rotation[0] < -11.0 {
+                // Leads North (Biotech Research Area 1)
+                position = [
+                    door_shield.position[0] + 0.374184,
+                    door_shield.position[1] + 0.392502,
+                    door_shield.position[2] - 1.763191,
+                ]
+                .into();
+            } else if door_rotation[0] >= 0.01 && door_rotation[0] < 0.05 {
+                // Leads North (Hive Totem)
+                position = [
+                    door_shield.position[0] + 0.005944,
+                    door_shield.position[1] + 0.100342,
+                    door_shield.position[2] - 1.839322,
+                ]
+                .into();
+            } else if door_rotation[0] >= 8.0 && door_rotation[0] < 9.0 {
+                // Leads West (Hive Totem)
+                position = [
+                    door_shield.position[0] - 0.406285,
+                    door_shield.position[1] - 0.27829,
+                    door_shield.position[2] - 1.780129,
+                ]
+                .into();
+            } else if door_rotation[0] >= -9.0 && door_rotation[0] < -7.0 {
+                // Leads East (Hive Totem)
+                position = [
+                    door_shield.position[0] + 0.392498,
+                    door_shield.position[1] - 0.27829,
+                    door_shield.position[2] - 1.780126,
+                ]
+                .into();
+            } else if door_rotation[2] >= 45.0 && door_rotation[2] < 135.0 {
                 // Leads North
                 position = [
-                    door_shield.position[0],
-                    door_shield.position[1] - door_offset,
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[0] - 0.00595,
+                    door_shield.position[1] + 0.383209,
+                    door_shield.position[2] - 1.801748,
                 ]
                 .into();
             } else if (door_rotation[2] >= 135.0 && door_rotation[2] < 225.0)
                 || (door_rotation[2] < -135.0 && door_rotation[2] > -225.0)
             {
-                // Leads East
+                // Leads West
                 position = [
-                    door_shield.position[0] + door_offset,
+                    door_shield.position[0] - 0.383225,
                     door_shield.position[1],
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[2] - 1.80175,
                 ]
                 .into();
             } else if door_rotation[2] >= -135.0 && door_rotation[2] < -45.0 {
                 // Leads South
                 position = [
-                    door_shield.position[0],
-                    door_shield.position[1] + door_offset,
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[0] - 0.00769,
+                    door_shield.position[1] - 0.383224,
+                    door_shield.position[2] - 1.801752,
                 ]
                 .into();
             } else if door_rotation[2] >= -45.0 && door_rotation[2] < 45.0 {
-                // Leads West
+                // Leads East
                 position = [
-                    door_shield.position[0] - door_offset,
+                    door_shield.position[0] + 0.392517,
                     door_shield.position[1],
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[2] - 1.801746,
                 ]
                 .into();
             } else {
@@ -1066,7 +1088,17 @@ fn patch_door<'r>(
                 active: 1,
             }
             .into(),
-        };
+            };
+
+            // Deactivate invulnerable door dtrigger after destruction of shield
+
+                for door_force in door_loc.door_force_locations.iter() {
+                    relay.connections.as_mut_vec().push(structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: door_force.instance_id,
+                    });
+                }
 
         if DO_GIBBS {
             relay.connections.as_mut_vec().push(structs::Connection {
@@ -1079,26 +1111,67 @@ fn patch_door<'r>(
 
         /* Create damageable trigger to actually handle vulnerability, because actor collision extent/offset/rotation is very unreliable */
         let (dt_pos, dt_scale) = {
-            let dt_offset_z = 1.9;
-            let dt_offset = 1.25;
+            let dt_offset_y = 0.35;
+            let dt_offset_z = 2.0;
+            let dt_offset = 1.0;
 
             if is_ceiling {
                 (
                     [
-                        position[0] - dt_offset_z,
-                        position[1],
+                        position[0],
+                        position[1] + dt_offset_z,
                         position[2] - dt_offset,
                     ],
-                    [4.0, 4.0, 0.8],
+                    [5.0, 5.0, 0.875],
                 )
             } else if is_floor {
                 (
                     [
-                        position[0] + dt_offset_z,
-                        position[1],
+                        position[0],
+                        position[1] + dt_offset_z,
                         position[2] + dt_offset,
                     ],
-                    [4.0, 4.0, 0.8],
+                    [5.0, 5.0, 0.875],
+                )
+            } else if door_rotation[0] >= -15.0 && door_rotation[0] < -10.0 {
+                // Leads North (Biotech Research Area 1)
+                (
+                    [
+                        position[0] - dt_offset_y,
+                        position[1] - dt_offset,
+                        position[2] + dt_offset_z,
+                    ],
+                    [5.0, 0.875, 4.0],
+                )
+            } else if door_rotation[0] >= 10.0 && door_rotation[0] < 15.0 {
+                // Leads South (Biotech Research Area 1)
+                (
+                    [
+                        position[0] - dt_offset_y,
+                        position[1] + dt_offset,
+                        position[2] + dt_offset_z,
+                    ],
+                    [5.0, 0.875, 4.0],
+                )
+            } else if door_rotation[0] >= 8.0 && door_rotation[0] < 9.0 {
+                // Leads West (Hive Totem)
+                (
+                    [
+                        position[0] + dt_offset,
+                        position[1] + dt_offset_y,
+                        position[2] + dt_offset_z,
+                    ],
+                    [0.875, 5.0, 4.0],
+                )
+            } else if door_rotation[0] >= -9.0 && door_rotation[0] < -7.0 {
+                // Leads East (Hive Totem)
+                (
+                    [
+                        position[0] - dt_offset,
+                        position[1] + dt_offset_y,
+                        position[2] + dt_offset_z,
+                    ],
+                    [0.875, 5.0, 4.0],
                 )
             } else if door_rotation[2] >= 45.0 && door_rotation[2] < 135.0 {
                 // Leads North
@@ -1108,7 +1181,7 @@ fn patch_door<'r>(
                         position[1] - dt_offset,
                         position[2] + dt_offset_z,
                     ],
-                    [4.0, 0.8, 4.0],
+                    [5.0, 0.875, 4.0],
                 )
             } else if (door_rotation[2] >= 135.0 && door_rotation[2] < 225.0)
                 || (door_rotation[2] < -135.0 && door_rotation[2] > -225.0)
@@ -1120,7 +1193,7 @@ fn patch_door<'r>(
                         position[1],
                         position[2] + dt_offset_z,
                     ],
-                    [0.8, 4.0, 4.0],
+                    [0.875, 5.0, 4.0],
                 )
             } else if door_rotation[2] >= -135.0 && door_rotation[2] < -45.0 {
                 // Leads South
@@ -1130,7 +1203,7 @@ fn patch_door<'r>(
                         position[1] + dt_offset,
                         position[2] + dt_offset_z,
                     ],
-                    [4.0, 0.8, 4.0],
+                    [5.0, 0.875, 4.0],
                 )
             } else if door_rotation[2] >= -45.0 && door_rotation[2] < 45.0 {
                 // Leads West
@@ -1140,7 +1213,7 @@ fn patch_door<'r>(
                         position[1],
                         position[2] + dt_offset_z,
                     ],
-                    [0.8, 4.0, 4.0],
+                    [0.875, 5.0, 4.0],
                 )
             } else {
                 panic!(
@@ -1335,7 +1408,7 @@ fn patch_door<'r>(
             instance_id: timer_id,
             property_data: structs::Timer {
                 name: b"disable-blast-shield\0".as_cstr(),
-                start_time: 0.2,
+                start_time: 0.01,
                 max_random_add: 0.0,
                 looping: 0,
                 start_immediately: 1,
@@ -1355,7 +1428,7 @@ fn patch_door<'r>(
                     connections: vec![].into(),
                     property_data: structs::Timer {
                         name: b"disable-door-dt\0".as_cstr(),
-                        start_time: 0.5,
+                        start_time: 0.1,
                         max_random_add: 0.0,
                         looping: 0,
                         start_immediately: 1,
@@ -1364,11 +1437,11 @@ fn patch_door<'r>(
                     .into(),
                 };
 
-                // Doors can't be shot open with splash damage until the blast shield is gone
+                // Doors can't be shot open with splash damage until the blast shield is gone. INCREMENT = Invulnerable
                 for door_force in door_loc.door_force_locations.iter() {
                     timer2.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::DEACTIVATE,
+                        message: structs::ConnectionMsg::INCREMENT,
                         target_object_id: door_force.instance_id,
                     });
                 }
@@ -2005,7 +2078,12 @@ fn patch_door<'r>(
                     },
                     structs::Connection {
                         state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::ACTIVATE,
+                        message: structs::ConnectionMsg::INCREMENT,
+                        target_object_id: existing_door_force_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::INCREMENT,
                         target_object_id: existing_door_shield_id,
                     },
                 ]
@@ -2021,7 +2099,7 @@ fn patch_door<'r>(
                 instance_id: update_door_timer_id,
                 property_data: structs::Timer {
                     name: b"update_door_timer\0".as_cstr(),
-                    start_time: 0.5,
+                    start_time: 0.02,
                     max_random_add: 0.0,
                     looping: 0,
                     start_immediately: 0,
@@ -2178,6 +2256,18 @@ fn patch_door<'r>(
                         .unwrap();
                     timer.start_immediately = 1;
 
+                    // It's an unpowered door but only after the blackout, so it starts enabled
+
+                    let relay = layers[blast_shield_layer_idx]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == auto_open_relay_id)
+                        .unwrap()
+                        .property_data
+                        .as_relay_mut()
+                        .unwrap();
+                    relay.active = 1;
+
                     // When the outage happens, deactivate both doors
                     let obj = layers[0]
                         .objects
@@ -2190,23 +2280,13 @@ fn patch_door<'r>(
                     obj.connections.as_mut_vec().extend_from_slice(&[
                         structs::Connection {
                             state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
+                            message: structs::ConnectionMsg::DECREMENT,
                             target_object_id: door_shield_id,
                         },
-                        structs::Connection {
+                        structs::Connection {   
                             state: structs::ConnectionState::ZERO,
                             message: structs::ConnectionMsg::DEACTIVATE,
                             target_object_id: door_force_id,
-                        },
-                        structs::Connection {
-                            state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
-                            target_object_id: existing_door_shield_id,
-                        },
-                        structs::Connection {
-                            state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
-                            target_object_id: existing_door_force_id,
                         },
                         structs::Connection {
                             state: structs::ConnectionState::ZERO,
@@ -2249,7 +2329,7 @@ fn patch_door<'r>(
                             target_object_id: update_door_timer_id,
                         },
                         structs::Connection {
-                            state: structs::ConnectionState::ZERO,
+                            state: structs::ConnectionState::DEAD,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: auto_open_relay_id,
                         },
@@ -2268,11 +2348,18 @@ fn patch_door<'r>(
                         });
                     obj.connections
                         .as_mut_vec()
-                        .extend_from_slice(&[structs::Connection {
+                        .extend_from_slice(&[
+                            structs::Connection {
                             state: structs::ConnectionState::ACTIVE,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: existing_door_shield_id,
-                        }]);
+                        },
+                            structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: existing_door_shield_id,
+                        }
+                    ]);
                 } else {
                     obj.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
@@ -2360,6 +2447,41 @@ fn patch_door<'r>(
             new_door_force_data.damage_vulnerability = door_type_after_open.vulnerability();
             new_door_force_data.active = 1;
             layers[0].objects.as_mut_vec().push(new_door_force);
+
+            // Cargo Freight Lift to Deck Gamma
+            if mrea_id == 0x37B3AFE6 {
+
+                // Room does not have a "Deactivate Door" relay, so doors start inactive by default
+                let door_force = layers[0]
+                    .objects
+                    .iter_mut()
+                    .find(|obj| obj.instance_id == door_force_id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Could not find 0x{:X} in room 0x{:X}",
+                            door_force_id, mrea_id
+                        )
+                    })
+                    .property_data
+                    .as_damageable_trigger_mut()
+                    .unwrap();
+                door_force.active = 0;
+                    
+                let door_shield = layers[0]
+                    .objects
+                    .iter_mut()
+                    .find(|obj| obj.instance_id == door_shield_id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Could not find 0x{:X} in room 0x{:X}",
+                            door_shield_id, mrea_id
+                        )
+                    })
+                    .property_data
+                    .as_actor_mut()
+                    .unwrap();
+                door_shield.active = 0;
+            }
         }
     }
 
