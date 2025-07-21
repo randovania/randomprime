@@ -16836,9 +16836,57 @@
                             "targetId": 1049238, // [CameraFilterKeyframe] Camera Filter Keyframe- Cinema Bars
                             "state": "INACTIVE",
                             "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1049845, // [Relay] Relay- reform Monoliths
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1049870, // [Relay] Relay- Turn off Monos
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1049847, // [ColorModulate] ColorModulate- ghost effect
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "addConnections": [
+                        {
+                            "senderId": 1049845, // [Relay] Relay- reform Monoliths
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1049845, // [Relay] Relay- reform Monoliths
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1049870, // [Relay] Relay- Turn off Monos
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1049847, // [ColorModulate] ColorModulate- ghost effect
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1049860, // [Timer] Timer- start Mono parts
+                            "targetId": 1049870, // [Relay] Relay- Turn off Monos
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
                         {
                             "senderId": 1049230, // [Relay] Relay- start of cinema Ridley Death
                             "targetId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
@@ -17315,12 +17363,6 @@
                         },
                         {
                             "senderId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
-                            "targetId": 1049898, // [SpawnPoint] Spawn point
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
                             "targetId": 1049930, // [Timer] Timer - BlueShaftRound2
                             "state": "ZERO",
                             "message": "STOP"
@@ -17354,6 +17396,12 @@
                             "targetId": 1048601, // [Timer] Decrement Monoliths
                             "state": "ZERO",
                             "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
+                            "targetId": 1049870, // [Relay] Relay- Turn off Monos
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 1048601, // [Timer] Decrement Monoliths
@@ -17400,6 +17448,12 @@
                         {
                             "senderId": 1048602, // [Timer] Deactivate Monoliths
                             "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048602, // [Timer] Deactivate Monoliths
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
@@ -17767,30 +17821,18 @@
                     "timers": [
                         {
                             "id": 1048601, // [Timer] Decrement Monoliths
-                            "time": 0.5
+                            "time": 0.5,
+                            "layer": 1
                         },
                         {
                             "id": 1048602, // [Timer] Deactivate Monoliths
-                            "time": 2.0
+                            "time": 2.0,
+                            "layer": 1
                         },
                         {
                             "id": 1572949, // [Timer] Cutscene Skip 2 Frame Delay
-                            "time": 0.02
-                        }
-                    ],
-                    "spawnPoints": [
-                        {
-                            "id": 1049898, // [SpawnPoint] Cutscene Skip Repo
-                            "position": [
-                                -382.204559,
-                                21.47061,
-                                -38.956345
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -19.499992
-                            ]
+                            "time": 0.02,
+                            "layer": 1
                         }
                     ],
                     "relays": [
@@ -17804,6 +17846,11 @@
                         {
                             "id": 1048615, // [Relay] Nuke Monoliths
                             "layer": 1,
+                            "active": false
+                        },
+                        // Vanilla Relay
+                        {
+                            "id": 1049870, // [Relay] Relay- Turn off Monos
                             "active": false
                         }
                     ],
