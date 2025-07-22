@@ -5663,40 +5663,6 @@ fn patch_sunchamber_cutscene_hack(
     Ok(())
 }
 
-fn patch_add_boss_health_bar(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-    id: u32,
-) -> Result<(), String> {
-    let scly = area.mrea().scly_section_mut();
-    let layer = &mut scly.layers.as_mut_vec()[0];
-    layer.objects.as_mut_vec().push(structs::SclyObject {
-        instance_id: id,
-        property_data: structs::SpecialFunction {
-            name: b"boss energy bar\0".as_cstr(),
-            position: [0.0, 0.0, 0.0].into(),
-            rotation: [0.0, 0.0, 0.0].into(),
-            type_: 12, // boss energy bar
-            unknown0: b"\0".as_cstr(),
-            unknown1: 0.0,
-            unknown2: 1.0,
-            unknown3: 0.0,
-            layer_change_room_id: 0xFFFFFFFF,
-            layer_change_layer_id: 0xFFFFFFFF,
-            item_id: 0,
-            unknown4: 1, // active
-            unknown5: 0.0,
-            unknown6: 0xFFFFFFFF,
-            unknown7: 0xFFFFFFFF,
-            unknown8: 0xFFFFFFFF,
-        }
-        .into(),
-        connections: vec![].into(),
-    });
-
-    Ok(())
-}
-
 // https://www.youtube.com/watch?v=rW0AtydVI9s
 fn patch_add_ruined_courtyard_water(
     _ps: &mut PatcherState,
@@ -5805,6 +5771,7 @@ fn patch_add_ruined_courtyard_water(
 
     Ok(())
 }
+
 pub fn id_in_use(area: &mut mlvl_wrapper::MlvlArea, id: u32) -> bool {
     let scly = area.mrea().scly_section();
     for layer in scly.layers.iter() {
@@ -17664,15 +17631,6 @@ fn build_and_run_patches<'r>(
                                         move |ps, area| patch_sunchamber_cutscene_hack(ps, area),
                                     );
                                 }
-                                0x70181194 => {
-                                    // Quarantine Cave
-                                    patcher.add_scly_patch(
-                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| {
-                                            patch_add_boss_health_bar(ps, area, 0x00100000)
-                                        },
-                                    );
-                                }
                                 0x1921876D => {
                                     // ruined courtyard
                                     patcher.add_scly_patch(
@@ -17680,13 +17638,6 @@ fn build_and_run_patches<'r>(
                                         move |ps, area| {
                                             patch_add_ruined_courtyard_water(ps, area, 0x000F28C1)
                                         },
-                                    );
-                                }
-                                0xA7AC009B => {
-                                    // Subchamber Four
-                                    patcher.add_scly_patch(
-                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| patch_add_boss_health_bar(ps, area, 696969),
                                     );
                                 }
                                 0x2398E906 => {
