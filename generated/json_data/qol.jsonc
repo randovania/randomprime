@@ -5569,54 +5569,68 @@
                     ]
                 },
                 "Training Chamber": {
+                    "removeConnections": [
+                        {
+                            "senderId": 786844, // [Timer] Timer Alert
+                            "targetId": 787008, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        }
+                    ],
                     "addConnections": [
                         {
                             "senderId": 786503, // [SpecialFunction] Music Player For Area
-                            "targetId": 786505, // [Relay] Chozo Music
+                            "targetId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 786503, // [SpecialFunction] Music Player For Area
-                            "targetId": 786506, // [Relay] Ghosts Music
+                            "targetId": 786510, // [Relay] Allow Ghosts Music
                             "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 786503, // [SpecialFunction] Music Player For Area
+                            "targetId": 786510, // [Relay] Allow Ghosts Music
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 786844, // [Timer] Timer Alert
+                            "targetId": 786510, // [Relay] Allow Ghosts Music
+                            "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 786505, // [Relay] Chozo Music
-                            "targetId": 787009, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 786506, // [Relay] Ghosts Music
+                            "senderId": 786510, // [Relay] Allow Ghosts Music
                             "targetId": 787008, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
                             "state": "ZERO",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 786822, // [Trigger] Trigger - Activate Chozo Ghost
-                            "targetId": 786505, // [Relay] Chozo Music
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
+                            "senderId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
+                            "targetId": 787009, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
+                            "targetId": 787008, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "state": "CLOSED",
+                            "message": "PLAY"
                         },
                         {
                             "senderId": 786822, // [Trigger] Trigger - Activate Chozo Ghost
-                            "targetId": 786506, // [Relay] Ghosts Music
+                            "targetId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
                             "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 786842, // [Counter] Counter_Deadghost
-                            "targetId": 786505, // [Relay] Chozo Music
+                            "targetId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
                             "state": "MAX_REACHED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 786842, // [Counter] Counter_Deadghost
-                            "targetId": 786506, // [Relay] Ghosts Music
-                            "state": "MAX_REACHED",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         }
                     ],
                     "specialFunctions": [
@@ -5625,93 +5639,32 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
+                    "switches": [
+                        {
+                            "id": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
+                            "open": true
+                        }
+                    ],
                     "relays": [
                         {
-                            "id": 786505 // [Relay] Chozo Music
-                        },
-                        {
-                            "id": 786506, // [Relay] Ghosts Music
+                            "id": 786510, // [Relay] Allow Ghosts Music
                             "active": false
                         }
                     ],
                     "triggers": [
                         {
                             "id": 786526, // [Trigger] Trigger_DoorOpen
-                            "position": [
-                                121.753998,
-                                -176.080002,
-                                19.986629
-                            ],
-                            "scale": [
-                                10.0,
-                                20.0,
-                                8
-                            ],
-                            "active": false
+                            "scale": [10.0, 20.0, 8.0]
                         }
                     ]
                 },
                 "Training Chamber Access": {
                     "addConnections": [
                         {
-                            "senderId": 1599653, // [Timer] Music Player For Area
-                            "targetId": 1179653, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
-                            "senderId": 1599653, // [Timer] Music Player For Area
-                            "targetId": 1179653, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 1179653, // [SpecialFunction] Music Player For Area
-                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 1179653, // [SpecialFunction] Music Player For Area
-                            "targetId": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 1179653, // [SpecialFunction] Music Player For Area
-                            "targetId": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
-                            "state": "EXITED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1179653, // [SpecialFunction] Music Player For Area
-                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
-                            "state": "EXITED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1179719, // [Relay] Relay - Fade Out Music
-                            "targetId": 1599653, // [Timer] Music Player For Area
-                            "state": "ZERO",
-                            "message": "STOP"
-                        },
-                        {
-                            "senderId": 1179720, // [Timer] Timer - Fade In Music
-                            "targetId": 1599653, // [Timer] Music Player For Area
-                            "state": "ZERO",
-                            "message": "START"
-                        },
-                        {
-                            "senderId": 1179708, // [Trigger] Trigger_normal
-                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
+                            "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1179708, // [Trigger] Trigger_normal
-                            "targetId": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "PLAY"
                         }
                     ],
                     "specialFunctions": [
@@ -5720,28 +5673,12 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
-                    "timers": [
-                        {
-                            "id": 1599653, // [Timer] Music Player For Area
-                            "time": 0.02,
-                            "looping": true,
-                            "startImmediately": true
-                        }
-                    ],
                     "streamedAudios": [
                         {
-                            "id": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW (No Fade)
+                            "id": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW
                             "volume": 70,
                             "isMusic": true,
                             "fadeInTime": 0.01,
-                            "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
-                        },
-                        {
-                            "id": 1179798, // [StreamedAudio] StreamedAudio - Ruins Samus SW (Long Fade for Pickup)
-                            "active": false,
-                            "volume": 70,
-                            "isMusic": true,
-                            "fadeInTime": 2.0,
                             "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
                         }
                     ]
@@ -8283,101 +8220,99 @@
                         2622610, // [Trigger] Trigger - Play Music 2
                         2622605 // [Trigger] Trigger - Play Music 2
                     ],
-                    // chonker
-                    "triggers": [
+                    "removeConnections": [
                         {
-                            "id": 2622140, // [Trigger] Trigger_DoorOpen
-                            "active": false,
-                            "position": [
-                                81.294876,
-                                -997.477783,
-                                52.713493
-                            ],
-                            "scale": [
-                                20.0,
-                                40.0,
-                                4.0
-                            ]
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 2621456, // [Relay] Pirate Ambiance Music
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2621457, // [SpecialFunction] Music Player For Area
                             "targetId": 2622608, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 2621459, // [Timer] 1st Pass Check
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 2621459, // [Timer] 1st Pass Check
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "senderId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "targetId": 2622608, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "state": "OPEN",
+                            "message": "PLAY"
                         },
                         {
-                            "senderId": 2621457, // [Relay] Pirate Battle Music
+                            "senderId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "targetId": 2622607, // [StreamedAudio] StreamedAudio Pirate Isogi SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 2622609, // [Counter] Counter - Before Thermal Pirates
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2622609, // [Counter] Counter - Before Thermal Pirates
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 2622612, // [Relay] Relay - Start Pirate Music
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2622612, // [Relay] Relay - Start Pirate Music
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 2622613, // [Counter] Counter - After Thermal Pirates
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2622613, // [Counter] Counter - After Thermal Pirates
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 2622568, // [Relay] Relay Master Layer Switch
                             "targetId": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
                             "state": "ZERO",
                             "message": "DECREMENT"
+                        }
+                    ],
+                    "cameraWaypoints": [
+                        {
+                            "id": 2621463, // [CameraWaypoint] Item Target
+                            "layer": 1,
+                            "position": [52.230732, -997.426697, 54.213894]
                         }
                     ],
                     "streamedAudios": [
@@ -8398,10 +8333,24 @@
                             "audioFileName": "/audio/pir_yoinL.dsp|/audio/pir_yoinR.dsp"
                         }
                     ],
+                    "triggers": [
+                        {
+                            "id": 2622140, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [81.294876, -997.477783, 52.713493],
+                            "scale": [20.0, 40.0, 4.0]
+                        }
+                    ],
                     "specialFunctions": [
                         {
                             "id": 2621453, // [SpecialFunction] Music Player For Area
-                            "type": "PlayerInAreaRelay"
+                            "type": "PlayerInAreaRelay",
+                            "layer": 1
+                        },
+                        {
+                            "id": 2621457, // [SpecialFunction] Music Player For Area
+                            "type": "PlayerInAreaRelay",
+                            "layer": 2
                         },
                         {
                             "id": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
@@ -8410,21 +8359,10 @@
                             "layerChangeLayerId": 7
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 2621456 // [Relay] Pirate Ambiance Music
-                        },
-                        {
-                            "id": 2621457, // [Relay] Pirate Battle Music
-                            "active": false
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 2621459, // [Timer] 1st Pass Check
-                            "time": 0.001,
-                            "layer": 1,
-                            "startImmediately": true
+                            "id": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "layer": 1
                         }
                     ]
                 },
