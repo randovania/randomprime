@@ -272,8 +272,7 @@ impl<'r> MlvlArea<'r, '_, '_, '_> {
         }
     }
 
-    pub fn dedup_dependencies(&mut self)
-    {
+    pub fn dedup_dependencies(&mut self) {
         let layers = self.mlvl_area.dependencies.deps.as_mut_vec();
         for layer in layers.iter_mut() {
             let deps = layer.as_mut_vec();

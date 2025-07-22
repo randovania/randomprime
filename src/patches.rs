@@ -23,8 +23,7 @@ use resource_info_table::{resource_info, ResourceInfo};
 use structs::{
     res_id,
     scly_structs::{DamageInfo, TypeVulnerability},
-    Languages, MapaObjectVisibilityMode, ResId, SclyPropertyData, SclyProperty,
-    Dependency
+    Dependency, Languages, MapaObjectVisibilityMode, ResId, SclyProperty, SclyPropertyData,
 };
 
 use crate::{
@@ -52,7 +51,7 @@ use crate::{
         self, pickup_model_for_pickup, pickup_type_for_pickup, DoorLocation, ObjectsToRemove,
         PickupModel, PickupType, ScriptObjectLocation,
     },
-    room_lookup::{ROOM_BY_NAME, ROOM_BY_MREA},
+    room_lookup::{ROOM_BY_MREA, ROOM_BY_NAME},
     starting_items::StartingItems,
     structs::LightLayer,
     txtr_conversions::{
@@ -2842,16 +2841,14 @@ fn patch_add_item<'r>(
             .push(structs::SclyObject {
                 instance_id: poi_id,
                 connections: vec![].into(),
-                property_data: SclyProperty::PointOfInterest(Box::new(
-                    structs::PointOfInterest {
-                        name: b"mypoi\0".as_cstr(),
-                        position: pickup_position.into(),
-                        rotation: [0.0, 0.0, 0.0].into(),
-                        active: 1,
-                        scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
-                        point_size: 500.0,
-                    },
-                )),
+                property_data: SclyProperty::PointOfInterest(Box::new(structs::PointOfInterest {
+                    name: b"mypoi\0".as_cstr(),
+                    position: pickup_position.into(),
+                    rotation: [0.0, 0.0, 0.0].into(),
+                    active: 1,
+                    scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
+                    point_size: 500.0,
+                })),
             });
 
         pickup_obj
@@ -2886,26 +2883,24 @@ fn patch_add_item<'r>(
         let special_function = structs::SclyObject {
             instance_id: special_function_id,
             connections: vec![].into(),
-            property_data: SclyProperty::SpecialFunction(Box::new(
-                structs::SpecialFunction {
-                    name: b"myspecialfun\0".as_cstr(),
-                    position: [0., 0., 0.].into(),
-                    rotation: [0., 0., 0.].into(),
-                    type_: 16, // layer change
-                    unknown0: b"\0".as_cstr(),
-                    unknown1: 0.,
-                    unknown2: 0.,
-                    unknown3: 0.,
-                    layer_change_room_id: room_id,
-                    layer_change_layer_id: new_layer_idx as u32,
-                    item_id: 0,
-                    active: 1,
-                    unknown5: 0.,
-                    unknown6: 0xFFFFFFFF,
-                    unknown7: 0xFFFFFFFF,
-                    unknown8: 0xFFFFFFFF,
-                },
-            )),
+            property_data: SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
+                name: b"myspecialfun\0".as_cstr(),
+                position: [0., 0., 0.].into(),
+                rotation: [0., 0., 0.].into(),
+                type_: 16, // layer change
+                unknown0: b"\0".as_cstr(),
+                unknown1: 0.,
+                unknown2: 0.,
+                unknown3: 0.,
+                layer_change_room_id: room_id,
+                layer_change_layer_id: new_layer_idx as u32,
+                item_id: 0,
+                active: 1,
+                unknown5: 0.,
+                unknown6: 0xFFFFFFFF,
+                unknown7: 0xFFFFFFFF,
+                unknown8: 0xFFFFFFFF,
+            })),
         };
 
         // Activate the layer change when item is picked up
@@ -3643,16 +3638,14 @@ fn patch_add_poi<'r>(
         .push(structs::SclyObject {
             instance_id,
             connections: vec![].into(),
-            property_data: SclyProperty::PointOfInterest(Box::new(
-                structs::PointOfInterest {
-                    name: b"mypoi\0".as_cstr(),
-                    position: position.into(),
-                    rotation: [0.0, 0.0, 0.0].into(),
-                    active: 1,
-                    scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
-                    point_size: 12.0,
-                },
-            )),
+            property_data: SclyProperty::PointOfInterest(Box::new(structs::PointOfInterest {
+                name: b"mypoi\0".as_cstr(),
+                position: position.into(),
+                rotation: [0.0, 0.0, 0.0].into(),
+                active: 1,
+                scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
+                point_size: 12.0,
+            })),
         });
 
     let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
@@ -4548,16 +4541,14 @@ fn modify_pickups_in_mrea<'r>(
             .push(structs::SclyObject {
                 instance_id: jumbo_poi_id,
                 connections: vec![].into(),
-                property_data: SclyProperty::PointOfInterest(Box::new(
-                    structs::PointOfInterest {
-                        name: b"mypoi\0".as_cstr(),
-                        position: position.into(),
-                        rotation: [0.0, 0.0, 0.0].into(),
-                        active: 1,
-                        scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
-                        point_size: 500.0, // makes it jumbo!
-                    },
-                )),
+                property_data: SclyProperty::PointOfInterest(Box::new(structs::PointOfInterest {
+                    name: b"mypoi\0".as_cstr(),
+                    position: position.into(),
+                    rotation: [0.0, 0.0, 0.0].into(),
+                    active: 1,
+                    scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
+                    point_size: 500.0, // makes it jumbo!
+                })),
             });
     }
 
@@ -8686,7 +8677,10 @@ fn patch_purge_debris_extended(
 fn object_is_dead(
     scly: &reader_writer::LCow<'_, structs::Scly<'_>>,
     obj: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
-    all_incoming_connections: &HashMap<u32, HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>>,
+    all_incoming_connections: &HashMap<
+        u32,
+        HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>,
+    >,
     dead_objs: &HashSet<u32>,
     dead_connections: &HashSet<(u32, structs::Connection)>,
     add_connections: &mut HashSet<(u32, structs::Connection)>,
@@ -8786,10 +8780,16 @@ fn object_is_dead(
     let object_type = obj.property_data.object_type();
 
     let incoming_connections = all_incoming_connections.get(&obj_id).unwrap_or(&empty_set);
-    let incoming_messages: Vec<_> = incoming_connections.into_iter().map(|(_, m, _)| m.clone()).collect();
+    let incoming_messages: Vec<_> = incoming_connections
+        .iter()
+        .map(|(_, m, _)| *m)
+        .collect();
 
     // let any_incoming_messages = incoming_connections.len() > 0;
-    let any_outgoing_messages = obj.connections.iter().any(|conn| !dead_connections.contains(&(obj_id, conn.clone().into_owned())));
+    let any_outgoing_messages = obj
+        .connections
+        .iter()
+        .any(|conn| !dead_connections.contains(&(obj_id, conn.clone().into_owned())));
 
     // Check for unused objects with no side effects
     if NO_SIDE_EFFECT_OBJS.contains(&object_type) && !any_outgoing_messages {
@@ -8797,31 +8797,54 @@ fn object_is_dead(
     }
 
     // Check for unused inert objects
-    if INERT_OBJS.contains(&object_type) && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m)) {
+    if INERT_OBJS.contains(&object_type)
+        && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m))
+    {
         return true; // This object does not create side effects inherently, and will not ever because it does not receive any messages that would make it do so
     }
 
     // Check for unused inert objects that only respond to SET_TO_ZERO
-    if SET_TO_ZERO_OBJS.contains(&object_type) && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO) {
+    if SET_TO_ZERO_OBJS.contains(&object_type)
+        && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO)
+    {
         return true; // This object only "does it's thing" when it receives SET_TO_ZERO and there are no objects which send it
     }
 
     // Check for unused spawn points
     if let Some(spawn_point) = obj.property_data.as_spawn_point() {
-        if spawn_point.default_spawn == 0 && !incoming_messages.iter().any(|m| vec![structs::ConnectionMsg::SET_TO_ZERO, structs::ConnectionMsg::RESET].contains(m)) {
+        if spawn_point.default_spawn == 0
+            && !incoming_messages.iter().any(|m| {
+                [structs::ConnectionMsg::SET_TO_ZERO,
+                    structs::ConnectionMsg::RESET]
+                .contains(m)
+            })
+        {
             return true; // This object is a spawn point which is not the default spawn and is neither reset nor SET_TO_ZERO
         }
     }
 
     // Check for unused timers
     if let Some(timer) = obj.property_data.as_timer() {
-        if timer.start_immediately == 0 && !incoming_messages.iter().any(|m| vec![structs::ConnectionMsg::START, structs::ConnectionMsg::RESET_AND_START].contains(m)) {
+        if timer.start_immediately == 0
+            && !incoming_messages.iter().any(|m| {
+                [structs::ConnectionMsg::START,
+                    structs::ConnectionMsg::RESET_AND_START]
+                .contains(m)
+            })
+        {
             return true; // This object is a timer which does not auto-start and nothing starts it
         }
     }
 
     // Check for inactive objects that never activate
-    if obj.property_data.supports_active() && !obj.property_data.get_active() && !incoming_messages.iter().any(|m| vec![structs::ConnectionMsg::ACTIVATE, structs::ConnectionMsg::TOGGLE_ACTIVE].contains(m)) {
+    if obj.property_data.supports_active()
+        && !obj.property_data.get_active()
+        && !incoming_messages.iter().any(|m| {
+            [structs::ConnectionMsg::ACTIVATE,
+                structs::ConnectionMsg::TOGGLE_ACTIVE]
+            .contains(m)
+        })
+    {
         return true;
     }
 
@@ -8866,7 +8889,7 @@ fn object_is_dead(
     //     }
     // }
 
-    return false;
+    false
 }
 
 fn patch_optimize_memory(
@@ -8878,28 +8901,31 @@ fn patch_optimize_memory(
 
     let mut objs = HashSet::new();
     let mut incoming_connections = HashMap::new();
-    for (_layer_num, layer) in scly.layers.iter().enumerate() {
+    for layer in scly.layers.iter() {
         for obj in layer.objects.iter() {
             let obj_id = obj.instance_id & 0x00FFFFFF;
             objs.insert(obj_id);
         }
     }
 
-    for (_layer_num, layer) in scly.layers.iter().enumerate() {
+    for layer in scly.layers.iter() {
         for obj in layer.objects.iter() {
             let obj_id = obj.instance_id & 0x00FFFFFF;
             for conn in obj.connections.iter() {
                 let target_id = conn.target_object_id & 0x00FFFFFF;
                 if objs.contains(&target_id) {
-                    incoming_connections.entry(target_id).or_insert_with(HashSet::new).insert((obj_id, conn.message, conn.state));
+                    incoming_connections
+                        .entry(target_id)
+                        .or_insert_with(HashSet::new)
+                        .insert((obj_id, conn.message, conn.state));
                 }
             }
         }
     }
 
     let mut dead_objs = HashSet::<u32>::new();
-    let mut dead_connections  = HashSet::<(u32, structs::Connection)>::new();
-    let mut add_connections  = HashSet::<(u32, structs::Connection)>::new();
+    let mut dead_connections = HashSet::<(u32, structs::Connection)>::new();
+    let mut add_connections = HashSet::<(u32, structs::Connection)>::new();
     // let mut dead_deps = Vec::<Dependency>::new();
 
     let mut counts = (0, 0, 0, 0);
@@ -8907,10 +8933,19 @@ fn patch_optimize_memory(
     loop {
         /* Collect dead objects */
 
-        for (_layer_num, layer) in scly.layers.iter().enumerate() {
+        for layer in scly.layers.iter() {
             for obj in layer.objects.iter() {
                 let obj_id = obj.instance_id & 0x00FFFFFF;
-                if !dead_objs.contains(&obj_id) && object_is_dead(&scly, &obj, &incoming_connections, &dead_objs, &dead_connections, &mut add_connections) {
+                if !dead_objs.contains(&obj_id)
+                    && object_is_dead(
+                        &scly,
+                        &obj,
+                        &incoming_connections,
+                        &dead_objs,
+                        &dead_connections,
+                        &mut add_connections,
+                    )
+                {
                     dead_objs.insert(obj_id);
                 }
             }
@@ -8918,7 +8953,7 @@ fn patch_optimize_memory(
 
         /* Collect Dead Connections */
 
-        for (_layer_num, layer) in scly.layers.iter().enumerate() {
+        for layer in scly.layers.iter() {
             for obj in layer.objects.iter() {
                 let obj_id = obj.instance_id & 0x00FFFFFF;
                 for conn in obj.connections.iter() {
@@ -8935,25 +8970,33 @@ fn patch_optimize_memory(
 
         for (sender_id, conn) in &add_connections {
             let target_id = conn.target_object_id & 0x00FFFFFF;
-            incoming_connections.entry(target_id).or_insert_with(HashSet::new).insert((*sender_id, conn.message, conn.state));
+            incoming_connections
+                .entry(target_id)
+                .or_insert_with(HashSet::new)
+                .insert((*sender_id, conn.message, conn.state));
         }
 
         for (target_id, messages) in incoming_connections.iter_mut() {
-            messages.retain(|(sender_id, message, state)|
-                !dead_objs.contains(sender_id) &&
-                !dead_objs.contains(&target_id) &&
-                !dead_connections.iter().any(|(dead_sender_id, dead_conn)|
-                    sender_id == dead_sender_id &&
-                    dead_conn.target_object_id & 0x00FFFFFF == *target_id &&
-                    dead_conn.state == *state &&
-                    dead_conn.message == *message
-                )
-            );
+            messages.retain(|(sender_id, message, state)| {
+                !dead_objs.contains(sender_id)
+                    && !dead_objs.contains(target_id)
+                    && !dead_connections.iter().any(|(dead_sender_id, dead_conn)| {
+                        sender_id == dead_sender_id
+                            && dead_conn.target_object_id & 0x00FFFFFF == *target_id
+                            && dead_conn.state == *state
+                            && dead_conn.message == *message
+                    })
+            });
         }
 
         /* Check for break condition */
 
-        let new_counts = (incoming_connections.values().map(HashSet::len).sum(), dead_objs.len(), dead_connections.len(), add_connections.len());
+        let new_counts = (
+            incoming_connections.values().map(HashSet::len).sum(),
+            dead_objs.len(),
+            dead_connections.len(),
+            add_connections.len(),
+        );
         if new_counts == counts {
             break;
         }
@@ -8984,7 +9027,9 @@ fn patch_optimize_memory(
         /* Purge dead connections */
         for obj in layer.objects.as_mut_vec() {
             let obj_id = obj.instance_id & 0x00FFFFFF;
-            obj.connections.as_mut_vec().retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
+            obj.connections
+                .as_mut_vec()
+                .retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
         }
 
         /* Re-direct dead object connections */
@@ -9002,7 +9047,12 @@ fn patch_optimize_memory(
     // area.remove_dependencies(dead_deps.into_iter());
 
     let _room_name = ROOM_BY_MREA.get(&mrea_id).unwrap().room_name;
-    println!("Removed {} objects and {} connections from room '{}'", dead_objs.len(), dead_connections.len(), _room_name);
+    println!(
+        "Removed {} objects and {} connections from room '{}'",
+        dead_objs.len(),
+        dead_connections.len(),
+        _room_name
+    );
 
     area.dedup_dependencies();
 
@@ -19601,7 +19651,7 @@ fn build_and_run_patches<'r>(
             let world_name = World::ChozoRuins.to_json_key();
             let mrea_id = ROOM_BY_NAME
                 .get(&(world_name.to_string(), room_name.to_string()))
-                .expect(format!("'{} - {}' is not a real room", world_name, room_name).as_str())
+                .unwrap_or_else(|| panic!("'{} - {}' is not a real room", world_name, room_name))
                 .mrea_id;
             patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
                 patch_optimize_memory(ps, area)

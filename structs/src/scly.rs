@@ -93,7 +93,6 @@ macro_rules! impl_patterned_info {
         fn impl_set_active(&mut self, x: u8) {
             self.patterned_info.active = x;
         }
-
     };
 }
 
