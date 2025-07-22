@@ -222,23 +222,26 @@ pub fn patch_add_liquid<'r>(
         water.scale[1] = config.scale[1];
         water.scale[2] = config.scale[2];
         water.force = config.force.unwrap_or([0.0, 0.0, 0.0]).into();
-        water.flags = config.flags.unwrap_or(2047) as u32;
+        water.flags = config.flags.unwrap_or(2047);
         water.thermal_cold = config.thermal_cold.unwrap_or(false) as u8;
         water.display_surface = config.display_surface.unwrap_or(true) as u8;
-        water.morph_in_time = config.morph_in_time.unwrap_or(1.0) as f32;
-        water.morph_out_time = config.morph_out_time.unwrap_or(1.0) as f32;
-        water.alpha = config.alpha.unwrap_or(0.7) as f32;
+        water.morph_in_time = config.morph_in_time.unwrap_or(1.0);
+        water.morph_out_time = config.morph_out_time.unwrap_or(1.0);
+        water.alpha = config.alpha.unwrap_or(0.7);
         water.splash_color = config.splash_color.unwrap_or([1.0, 1.0, 1.0, 1.0]).into();
-        water.inside_fog_color = config.inside_fog_color.unwrap_or([1.0, 1.0, 1.0, 1.0]).into();
-        water.tile_size = config.tile_size.unwrap_or(2.4) as f32;
-        water.tile_subdivisions = config.tile_subdivisions.unwrap_or(6) as u32;
-        water.ripple_intensity = config.ripple_intensity.unwrap_or(0.8) as f32;
-        water.fog_bias = config.fog_bias.unwrap_or(0.0) as f32;
-        water.fog_magnitude = config.fog_magnitude.unwrap_or(0.0) as f32;
-        water.fog_speed = config.fog_speed.unwrap_or(1.0) as f32;
+        water.inside_fog_color = config
+            .inside_fog_color
+            .unwrap_or([1.0, 1.0, 1.0, 1.0])
+            .into();
+        water.tile_size = config.tile_size.unwrap_or(2.4);
+        water.tile_subdivisions = config.tile_subdivisions.unwrap_or(6);
+        water.ripple_intensity = config.ripple_intensity.unwrap_or(0.8);
+        water.fog_bias = config.fog_bias.unwrap_or(0.0);
+        water.fog_magnitude = config.fog_magnitude.unwrap_or(0.0);
+        water.fog_speed = config.fog_speed.unwrap_or(1.0);
         water.fog_color = config.fog_color.unwrap_or([0.0, 0.0, 0.0, 0.0]).into();
-        water.alpha_in_time = config.alpha_in_time.unwrap_or(1.0) as f32;
-        water.alpha_out_time = config.alpha_out_time.unwrap_or(1.0) as f32;
+        water.alpha_in_time = config.alpha_in_time.unwrap_or(1.0);
+        water.alpha_out_time = config.alpha_out_time.unwrap_or(1.0);
     }
 
     {

@@ -795,7 +795,7 @@ fn patch_door<'r>(
                     mrea_id
                 );
             }
-            
+
             {
                 scale = [1.1776, 1.8, 1.8].into();
 
@@ -1088,17 +1088,17 @@ fn patch_door<'r>(
                 active: 1,
             }
             .into(),
-            };
+        };
 
-            // Deactivate invulnerable door dtrigger after destruction of shield
+        // Deactivate invulnerable door dtrigger after destruction of shield
 
-                for door_force in door_loc.door_force_locations.iter() {
-                    relay.connections.as_mut_vec().push(structs::Connection {
-                        state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::DEACTIVATE,
-                        target_object_id: door_force.instance_id,
-                    });
-                }
+        for door_force in door_loc.door_force_locations.iter() {
+            relay.connections.as_mut_vec().push(structs::Connection {
+                state: structs::ConnectionState::ZERO,
+                message: structs::ConnectionMsg::DEACTIVATE,
+                target_object_id: door_force.instance_id,
+            });
+        }
 
         if DO_GIBBS {
             relay.connections.as_mut_vec().push(structs::Connection {
@@ -2283,7 +2283,7 @@ fn patch_door<'r>(
                             message: structs::ConnectionMsg::DECREMENT,
                             target_object_id: door_shield_id,
                         },
-                        structs::Connection {   
+                        structs::Connection {
                             state: structs::ConnectionState::ZERO,
                             message: structs::ConnectionMsg::DEACTIVATE,
                             target_object_id: door_force_id,
@@ -2346,19 +2346,17 @@ fn patch_door<'r>(
                                 mrea_id
                             )
                         });
-                    obj.connections
-                        .as_mut_vec()
-                        .extend_from_slice(&[
-                            structs::Connection {
+                    obj.connections.as_mut_vec().extend_from_slice(&[
+                        structs::Connection {
                             state: structs::ConnectionState::ACTIVE,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: existing_door_shield_id,
                         },
-                            structs::Connection {
+                        structs::Connection {
                             state: structs::ConnectionState::MAX_REACHED,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: existing_door_shield_id,
-                        }
+                        },
                     ]);
                 } else {
                     obj.connections.as_mut_vec().push(structs::Connection {
@@ -2450,7 +2448,6 @@ fn patch_door<'r>(
 
             // Cargo Freight Lift to Deck Gamma
             if mrea_id == 0x37B3AFE6 {
-
                 // Room does not have a "Deactivate Door" relay, so doors start inactive by default
                 let door_force = layers[0]
                     .objects
@@ -2466,7 +2463,7 @@ fn patch_door<'r>(
                     .as_damageable_trigger_mut()
                     .unwrap();
                 door_force.active = 0;
-                    
+
                 let door_shield = layers[0]
                     .objects
                     .iter_mut()
@@ -3378,7 +3375,10 @@ impl WaterType {
             (water.med_enter_part, FourCC::from_bytes(b"PART")),
             (water.large_enter_part, FourCC::from_bytes(b"PART")),
             (water.visor_runoff_particle, FourCC::from_bytes(b"PART")),
-            (water.unmorph_visor_runoff_particle, FourCC::from_bytes(b"PART")),
+            (
+                water.unmorph_visor_runoff_particle,
+                FourCC::from_bytes(b"PART"),
+            ),
         ];
         deps.retain(|i| i.0 != 0xffffffff && i.0 != 0);
         deps
@@ -5675,95 +5675,95 @@ fn patch_add_ruined_courtyard_water(
         instance_id: id,
         property_data: structs::Water {
             name: b"stupid water (it makes you stupid on entry)\0".as_cstr(),
-                position: [2.217131, -470.724823, 17.693943].into(),
-                scale: [90.000008, 65.0, 17.0].into(),
-                damage_info: structs::scly_structs::DamageInfo {
-                    weapon_type: 0,
-                    damage: 0.0,
-                    radius: 0.0,
-                    knockback_power: 0.0,
-                },
-                force: [0.0, 0.0, 0.0].into(),
-                flags: 2047,
-                thermal_cold: 0,
-                display_surface: 1,
-                pattern_map1: 2837040919,
-                pattern_map2: 2565985674,
-                color_map: 3001645351,
-                bump_map: 4294967295,
-                env_map: 4294967295,
-                env_bump_map: 1899158552,
-                bump_light_dir: [3.0, 3.0, -1.0].into(),
-                bump_scale: 35.0,
-                morph_in_time: 15.0,
-                morph_out_time: 15.0,
-                active: 1,
-                fluid_type: 0,
-                unknown: 0,
-                alpha: 0.65,
-                fluid_uv_motion: structs::FluidUVMotion {
-                    fluid_layer_motion1: structs::FluidLayerMotion {
-                        fluid_uv_motion: 0,
-                        time_to_wrap: 20.0,
-                        orientation: 0.0,
-                        magnitude: 0.15,
-                        multiplication: 20.0,
-                    },
-                    fluid_layer_motion2: structs::FluidLayerMotion {
-                        fluid_uv_motion: 0,
-                        time_to_wrap: 15.0,
-                        orientation: 0.0,
-                        magnitude: 0.15,
-                        multiplication: 10.0,
-                    },
-                    fluid_layer_motion3: structs::FluidLayerMotion {
-                        fluid_uv_motion: 0,
-                        time_to_wrap: 30.0,
-                        orientation: 0.0,
-                        magnitude: 0.15,
-                        multiplication: 20.0,
-                    },
-                    time_to_wrap: 70.0,
+            position: [2.217131, -470.724_82, 17.693943].into(),
+            scale: [90.000_01, 65.0, 17.0].into(),
+            damage_info: structs::scly_structs::DamageInfo {
+                weapon_type: 0,
+                damage: 0.0,
+                radius: 0.0,
+                knockback_power: 0.0,
+            },
+            force: [0.0, 0.0, 0.0].into(),
+            flags: 2047,
+            thermal_cold: 0,
+            display_surface: 1,
+            pattern_map1: 2837040919,
+            pattern_map2: 2565985674,
+            color_map: 3001645351,
+            bump_map: 4294967295,
+            env_map: 4294967295,
+            env_bump_map: 1899158552,
+            bump_light_dir: [3.0, 3.0, -1.0].into(),
+            bump_scale: 35.0,
+            morph_in_time: 15.0,
+            morph_out_time: 15.0,
+            active: 1,
+            fluid_type: 0,
+            unknown: 0,
+            alpha: 0.65,
+            fluid_uv_motion: structs::FluidUVMotion {
+                fluid_layer_motion1: structs::FluidLayerMotion {
+                    fluid_uv_motion: 0,
+                    time_to_wrap: 20.0,
                     orientation: 0.0,
+                    magnitude: 0.15,
+                    multiplication: 20.0,
                 },
-                turb_speed: 20.0,
-                turb_distance: 100.0,
-                turb_frequence_max: 1.0,
-                turb_frequence_min: 3.0,
-                turb_phase_max: 0.0,
-                turb_phase_min: 90.0,
-                turb_amplitude_max: 0.0,
-                turb_amplitude_min: 0.0,
-                splash_color: [1.0, 1.0, 1.0, 1.0].into(),
-                inside_fog_color: [0.443137, 0.568627, 0.623529, 1.0].into(),
-                small_enter_part: 4015287335,
-                med_enter_part: 2549240104,
-                large_enter_part: 2963887813,
-                visor_runoff_particle: 1859537006,
-                unmorph_visor_runoff_particle: 1390596347,
-                visor_runoff_sound: 2499,
-                unmorph_visor_runoff_sound: 2499,
-                splash_sfx1: 463,
-                splash_sfx2: 464,
-                splash_sfx3: 465,
-                tile_size: 2.4,
-                tile_subdivisions: 6,
-                specular_min: 0.0,
-                specular_max: 1.0,
-                reflection_size: 0.5,
-                ripple_intensity: 0.8,
-                reflection_blend: 0.5,
-                fog_bias: 0.0,
-                fog_magnitude: 0.0,
-                fog_speed: 1.0,
-                fog_color: [1.0, 1.0, 1.0, 1.0].into(),
-                lightmap_txtr: 231856622,
-                units_per_lightmap_texel: 0.3,
-                alpha_in_time: 0.0,
-                alpha_out_time: 0.0,
-                alpha_in_recip: 0,
-                alpha_out_recip: 0,
-                crash_the_game: 0,
+                fluid_layer_motion2: structs::FluidLayerMotion {
+                    fluid_uv_motion: 0,
+                    time_to_wrap: 15.0,
+                    orientation: 0.0,
+                    magnitude: 0.15,
+                    multiplication: 10.0,
+                },
+                fluid_layer_motion3: structs::FluidLayerMotion {
+                    fluid_uv_motion: 0,
+                    time_to_wrap: 30.0,
+                    orientation: 0.0,
+                    magnitude: 0.15,
+                    multiplication: 20.0,
+                },
+                time_to_wrap: 70.0,
+                orientation: 0.0,
+            },
+            turb_speed: 20.0,
+            turb_distance: 100.0,
+            turb_frequence_max: 1.0,
+            turb_frequence_min: 3.0,
+            turb_phase_max: 0.0,
+            turb_phase_min: 90.0,
+            turb_amplitude_max: 0.0,
+            turb_amplitude_min: 0.0,
+            splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+            inside_fog_color: [0.443137, 0.568627, 0.623529, 1.0].into(),
+            small_enter_part: 4015287335,
+            med_enter_part: 2549240104,
+            large_enter_part: 2963887813,
+            visor_runoff_particle: 1859537006,
+            unmorph_visor_runoff_particle: 1390596347,
+            visor_runoff_sound: 2499,
+            unmorph_visor_runoff_sound: 2499,
+            splash_sfx1: 463,
+            splash_sfx2: 464,
+            splash_sfx3: 465,
+            tile_size: 2.4,
+            tile_subdivisions: 6,
+            specular_min: 0.0,
+            specular_max: 1.0,
+            reflection_size: 0.5,
+            ripple_intensity: 0.8,
+            reflection_blend: 0.5,
+            fog_bias: 0.0,
+            fog_magnitude: 0.0,
+            fog_speed: 1.0,
+            fog_color: [1.0, 1.0, 1.0, 1.0].into(),
+            lightmap_txtr: 231856622,
+            units_per_lightmap_texel: 0.3,
+            alpha_in_time: 0.0,
+            alpha_out_time: 0.0,
+            alpha_in_recip: 0,
+            alpha_out_recip: 0,
+            crash_the_game: 0,
         }
         .into(),
         connections: vec![].into(),
@@ -5798,10 +5798,10 @@ fn patch_artifact_temple_pillar(
         instance_id: id,
         property_data: structs::Platform {
             name: b"Platform Stage 1 (Intangible)\0".as_cstr(),
-            position: [-373.276154, 32.820946, -34.278522].into(),
-            rotation: [0.0, 0.0, -179.732712].into(),
+            position: [-373.276_15, 32.820946, -34.278522].into(),
+            rotation: [0.0, 0.0, -179.732_71].into(),
             scale: [1.0, 1.0, 1.0].into(),
-            extent: [1.0, 1.0, 1.0].into(), // CollisionBox
+            extent: [1.0, 1.0, 1.0].into(),          // CollisionBox
             scan_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
             cmdl: ResId::<res_id::CMDL>::new(0xFB87262C),
             ancs: structs::scly_structs::AncsProp {
@@ -5870,14 +5870,14 @@ fn patch_artifact_temple_pillar(
                 unknown_weapon0: 2,
                 unknown_weapon1: 2,
                 unknown_weapon2: 0,
-                charged_beams: structs::scly_structs::ChargedBeams{
+                charged_beams: structs::scly_structs::ChargedBeams {
                     power: 3,
                     ice: 3,
                     wave: 3,
                     plasma: 3,
                     phazon: 0,
                 },
-                beam_combos: structs::scly_structs::BeamCombos{
+                beam_combos: structs::scly_structs::BeamCombos {
                     power: 3,
                     ice: 3,
                     wave: 3,
@@ -17644,7 +17644,9 @@ fn build_and_run_patches<'r>(
                                     // Artifact Temple
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| patch_artifact_temple_pillar(ps, area, 1048911),
+                                        move |ps, area| {
+                                            patch_artifact_temple_pillar(ps, area, 1048911)
+                                        },
                                     );
                                 }
                                 _ => {}
