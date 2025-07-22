@@ -7777,101 +7777,99 @@
                         2622610, // [Trigger] Trigger - Play Music 2
                         2622605 // [Trigger] Trigger - Play Music 2
                     ],
-                    // chonker
-                    "triggers": [
+                    "removeConnections": [
                         {
-                            "id": 2622140, // [Trigger] Trigger_DoorOpen
-                            "active": false,
-                            "position": [
-                                81.294876,
-                                -997.477783,
-                                52.713493
-                            ],
-                            "scale": [
-                                20.0,
-                                40.0,
-                                4.0
-                            ]
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 2621456, // [Relay] Pirate Ambiance Music
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2621457, // [SpecialFunction] Music Player For Area
                             "targetId": 2622608, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 2621459, // [Timer] 1st Pass Check
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 2621459, // [Timer] 1st Pass Check
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "senderId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "targetId": 2622608, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "state": "OPEN",
+                            "message": "PLAY"
                         },
                         {
-                            "senderId": 2621457, // [Relay] Pirate Battle Music
+                            "senderId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "targetId": 2622607, // [StreamedAudio] StreamedAudio Pirate Isogi SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 2622609, // [Counter] Counter - Before Thermal Pirates
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2622609, // [Counter] Counter - Before Thermal Pirates
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 2622612, // [Relay] Relay - Start Pirate Music
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2622612, // [Relay] Relay - Start Pirate Music
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 2622613, // [Counter] Counter - After Thermal Pirates
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2622613, // [Counter] Counter - After Thermal Pirates
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 2622568, // [Relay] Relay Master Layer Switch
                             "targetId": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
                             "state": "ZERO",
                             "message": "DECREMENT"
+                        }
+                    ],
+                    "cameraWaypoints": [
+                        {
+                            "id": 2621463, // [CameraWaypoint] Item Target
+                            "layer": 1,
+                            "position": [52.230732, -997.426697, 54.213894]
                         }
                     ],
                     "streamedAudios": [
@@ -7892,10 +7890,24 @@
                             "audioFileName": "/audio/pir_yoinL.dsp|/audio/pir_yoinR.dsp"
                         }
                     ],
+                    "triggers": [
+                        {
+                            "id": 2622140, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [81.294876, -997.477783, 52.713493],
+                            "scale": [20.0, 40.0, 4.0]
+                        }
+                    ],
                     "specialFunctions": [
                         {
                             "id": 2621453, // [SpecialFunction] Music Player For Area
-                            "type": "PlayerInAreaRelay"
+                            "type": "PlayerInAreaRelay",
+                            "layer": 1
+                        },
+                        {
+                            "id": 2621457, // [SpecialFunction] Music Player For Area
+                            "type": "PlayerInAreaRelay",
+                            "layer": 2
                         },
                         {
                             "id": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
@@ -7904,21 +7916,10 @@
                             "layerChangeLayerId": 7
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 2621456 // [Relay] Pirate Ambiance Music
-                        },
-                        {
-                            "id": 2621457, // [Relay] Pirate Battle Music
-                            "active": false
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 2621459, // [Timer] 1st Pass Check
-                            "time": 0.001,
-                            "layer": 1,
-                            "startImmediately": true
+                            "id": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "layer": 1
                         }
                     ]
                 },
