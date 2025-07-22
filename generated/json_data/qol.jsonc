@@ -5191,6 +5191,18 @@
                             "targetId": 3444946, // [SpecialFunction] Sun Tower Access 2nd Pass Music
                             "state": "MAX_REACHED",
                             "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2425005, // [SpecialFunction] Sun Tower Access Ghosts Layer
+                            "state": "MAX_REACHED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2425004, // [SpecialFunction] Sun Tower Access Bombu Layer
+                            "state": "MAX_REACHED",
+                            "message": "INCREMENT"
                         }
                     ],
                     "specialFunctions": [
@@ -5246,6 +5258,20 @@
                             "layer": 2, // 2nd Pass Enemies
                             "layerChangeRoomId": 665041921,
                             "layerChangeLayerId": 4
+                        },
+                        {
+                            "id": 2425004, // [SpecialFunction] Sun Tower Access Bombu Layer
+                            "type": "ScriptLayerController",
+                            "layer": 2, // 2nd Pass Enemies
+                            "layerChangeRoomId": 665041921,
+                            "layerChangeLayerId": 2
+                        },
+                        {
+                            "id": 2425005, // [SpecialFunction] Sun Tower Access Ghosts Layer
+                            "type": "ScriptLayerController",
+                            "layer": 2, // 2nd Pass Enemies
+                            "layerChangeRoomId": 665041921,
+                            "layerChangeLayerId": 1
                         }
                     ],
                     "streamedAudios": [
