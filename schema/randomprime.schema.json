@@ -5600,6 +5600,136 @@
                         ],
                         "additionalProperties": false
                     }
+                },
+                "sounds": {
+                    "description": "Add Sounds in this room, note that certain sound IDs are exclusive to some worlds, so some sounds may not play outside of them",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "Position of the sound.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "Rotation of the sound.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "soundId": {
+                                "description": "Specify the ID of the sound.",
+                                "type": "integer",
+                                "default": 1867,
+                                "minimum": -1,
+                                "maximum": 65535
+                            },
+                            "active": {
+                                "description": "Default activate state of the sound.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "maxDist": {
+                                "type": "number",
+                                "default": 50.0,
+                                "minimum": 0.0,
+                                "maximum": 1000000.0
+                            },
+                            "distComp": {
+                                "type": "number",
+                                "default": 0.2,
+                                "minimum": 0.0,
+                                "maximum": 1000000.0
+                            },
+                            "startDelay": {
+                                "type": "number",
+                                "default": 0.0,
+                                "minimum": 0.0,
+                                "maximum": 1000000.0
+                            },
+                            "minVolume": {
+                                "type": "integer",
+                                "default": 20,
+                                "minimum": 0,
+                                "maximum": 127
+                            },
+                            "volume": {
+                                "type": "integer",
+                                "default": 127,
+                                "minimum": 0,
+                                "maximum": 127
+                            },
+                            "priority": {
+                                "type": "integer",
+                                "default": 127,
+                                "minimum": 0,
+                                "maximum": 127
+                            },
+                            "pan": {
+                                "type": "integer",
+                                "default": 64,
+                                "minimum": 0
+                            },
+                            "loop": {
+                                "description": "If true, the sound will play again after it's done.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "nonEmitter": {
+                                "description": "If true, the sound will always be audible, ignoring it's origin position.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "autoStart": {
+                                "description": "If true, the sound will play immediately on room load.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "occlusionTest": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "acoustics": {
+                                "description": "If true, the sound will use the room's `RoomAcoustics` object properties.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "worldSFX": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "allowDuplicates": {
+                                "description": "If true, the sound will be able to play multiple instances of itself.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "pitch": {
+                                "description": "Pitch level of the sound.",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": -1000000000,
+                                "maximum": 1000000000
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
                 }
             },
             "additionalProperties": false
