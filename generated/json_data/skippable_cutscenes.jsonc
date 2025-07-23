@@ -14170,7 +14170,7 @@
                         },
                         {
                             "senderId": 1572876, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 1048576, // [SpecialFunction] toster
+                            "targetId": 1572878, // [SpecialFunction] Boss Health Bar
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
@@ -14670,6 +14670,10 @@
                         {
                             "id": 1572876, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "type": "CinematicSkip"
+                        },
+                        {
+                            "id": 1572878, // [SpecialFunction] Boss Health Bar
+                            "type": "BossEnergyBar"
                         }
                     ]
                 },
@@ -15581,15 +15585,15 @@
                     "addConnections": [
                         {
                             "senderId": 983071, // [SpecialFunction] Water Follows Platform
-                            "targetId": 983068, // [Platform] Water Control
+                            "targetId": 993473, // [Water] stupid water (it makes you stupid on entry)
                             "state": "PLAY",
-                            "message": "ACTIVATE"
+                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 983071, // [SpecialFunction] Water Follows Platform
-                            "targetId": 993473, // [Water] New Water
+                            "targetId": 983068, // [Platform] Water Control
                             "state": "PLAY",
-                            "message": "DEACTIVATE"
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 983068, // [Platform] Water Control
@@ -15600,7 +15604,7 @@
                         {
                             "senderId": 983068, // [Platform] Water Control
                             "targetId": 983064, // [Waypoint] Position 1
-                            "state": "ACTIVE",
+                            "state": "PLAY",
                             "message": "FOLLOW"
                         },
                         {
@@ -15689,7 +15693,7 @@
                         },
                         {
                             "senderId": 983111, // [Relay] Relay - Start Water Morph
-                            "targetId": 993473, // [Water] New Water
+                            "targetId": 993473, // [Water] stupid water (it makes you stupid on entry)
                             "state": "ZERO",
                             "message": "NEXT"
                         },
@@ -15953,7 +15957,7 @@
                         },
                         {
                             "senderId": 983599, // [Timer] Update Water Culling
-                            "targetId": 993473, // [Water] New Water
+                            "targetId": 993473, // [Water] stupid water (it makes you stupid on entry)
                             "state": "ZERO",
                             "message": "NEXT"
                         },
@@ -16094,7 +16098,7 @@
                         },
                         {
                             "id": 983599, // [Timer] Update Water Culling
-                            "time": 2.5,
+                            "time": 1.0,
                             "looping": true,
                             "startImmediately": true
                         }
@@ -16105,23 +16109,6 @@
                         },
                         {
                             "id": 983067 // [Relay] Decrement Black Bars
-                        }
-                    ],
-                    "liquids": [
-                        {
-                            "id": 993473, // [Water] New Water
-                            "type": "Water",
-                            "active": true,
-                            "position": [
-                                2.217131,
-                                -470.724823,
-                                17.693943
-                            ],
-                            "scale": [
-                                90.000008,
-                                65.0,
-                                17.0
-                            ]
                         }
                     ],
                     "platforms": [
@@ -16853,9 +16840,57 @@
                             "targetId": 1049238, // [CameraFilterKeyframe] Camera Filter Keyframe- Cinema Bars
                             "state": "INACTIVE",
                             "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1049845, // [Relay] Relay- reform Monoliths
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1049870, // [Relay] Relay- Turn off Monos
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1049847, // [ColorModulate] ColorModulate- ghost effect
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "addConnections": [
+                        {
+                            "senderId": 1049845, // [Relay] Relay- reform Monoliths
+                            "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1049845, // [Relay] Relay- reform Monoliths
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1049870, // [Relay] Relay- Turn off Monos
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1049847, // [ColorModulate] ColorModulate- ghost effect
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1049860, // [Timer] Timer- start Mono parts
+                            "targetId": 1049870, // [Relay] Relay- Turn off Monos
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
                         {
                             "senderId": 1049230, // [Relay] Relay- start of cinema Ridley Death
                             "targetId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
@@ -17332,12 +17367,6 @@
                         },
                         {
                             "senderId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
-                            "targetId": 1049898, // [SpawnPoint] Spawn point
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
                             "targetId": 1049930, // [Timer] Timer - BlueShaftRound2
                             "state": "ZERO",
                             "message": "STOP"
@@ -17371,6 +17400,12 @@
                             "targetId": 1048601, // [Timer] Decrement Monoliths
                             "state": "ZERO",
                             "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 1048588, // [SpecialFunction] Ridley Death Cutscene Skip
+                            "targetId": 1049870, // [Relay] Relay- Turn off Monos
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 1048601, // [Timer] Decrement Monoliths
@@ -17417,6 +17452,12 @@
                         {
                             "senderId": 1048602, // [Timer] Deactivate Monoliths
                             "targetId": 1048688, // [Platform] Platform Stage 1
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048602, // [Timer] Deactivate Monoliths
+                            "targetId": 1048911, // [Platform] Platform Stage 1 (Intangible)
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
@@ -17784,30 +17825,18 @@
                     "timers": [
                         {
                             "id": 1048601, // [Timer] Decrement Monoliths
-                            "time": 0.5
+                            "time": 0.5,
+                            "layer": 1
                         },
                         {
                             "id": 1048602, // [Timer] Deactivate Monoliths
-                            "time": 2.0
+                            "time": 2.0,
+                            "layer": 1
                         },
                         {
                             "id": 1572949, // [Timer] Cutscene Skip 2 Frame Delay
-                            "time": 0.02
-                        }
-                    ],
-                    "spawnPoints": [
-                        {
-                            "id": 1049898, // [SpawnPoint] Cutscene Skip Repo
-                            "position": [
-                                -382.204559,
-                                21.47061,
-                                -38.956345
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -19.499992
-                            ]
+                            "time": 0.02,
+                            "layer": 1
                         }
                     ],
                     "relays": [
@@ -17821,6 +17850,11 @@
                         {
                             "id": 1048615, // [Relay] Nuke Monoliths
                             "layer": 1,
+                            "active": false
+                        },
+                        // Vanilla Relay
+                        {
+                            "id": 1049870, // [Relay] Relay- Turn off Monos
                             "active": false
                         }
                     ],
@@ -27569,7 +27603,63 @@
                 },
                 "Subchamber One": {
                     "deleteIds": [
-                        393397 // [MemoryRelay] Memory Relay - start jump down
+                        393397, // [MemoryRelay] Memory Relay - start jump down
+                        458874,
+                        458875,
+                        458891,
+                        458769,
+                        458765,
+                        458781
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 393371, // [Trigger] Trigger
+                            "targetId": 393374, // [Camera] Entry Camera1
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 393371, // [Trigger] Trigger
+                            "targetId": 393373, // [PlayerActor] PlayerActor - 01_Intro_Hangaer_runandjump_Samus
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 393375, // [Camera] Entry Camera2
+                            "targetId": 393381, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 393375, // [Camera] Entry Camera2
+                            "targetId": 393399, // [Relay] Relay Scanlines HUD
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 393375, // [Camera] Entry Camera2
+                            "targetId": 393372, // [PlayerActor] PlayerActor- Thardus_Intro
+                            "state": "INACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 393358, // [Camera] Exit Camera
+                            "targetId": 393357, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 393358, // [Camera] Exit Camera
+                            "targetId": 393357, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 393358, // [Camera] Exit Camera
+                            "targetId": 393370, // [SpawnPoint] Spawn point
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        }
                     ],
                     "addConnections": [
                         {
@@ -27580,7 +27670,7 @@
                         },
                         {
                             "senderId": 393217, // [Relay] Relay-start of cinema
-                            "targetId": 393374, // [Camera] Cinematic Camera
+                            "targetId": 393374, // [Camera] Entry Camera1
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
@@ -27592,294 +27682,284 @@
                         },
                         {
                             "senderId": 393217, // [Relay] Relay-start of cinema
-                            "targetId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 393219, // [SpecialFunction] Entry Cinematic Skip
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
+                            "senderId": 393375, // [Camera] Entry Camera2
+                            "targetId": 393218, // [Relay] Relay-end of cinema
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
                             "senderId": 393218, // [Relay] Relay-end of cinema
-                            "targetId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 393219, // [SpecialFunction] Entry Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 393375, // [Camera] Cinematic Camera
-                            "targetId": 393218, // [Relay] Relay-end of cinema
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393218, // [Relay] Relay-end of cinema
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393399, // [Relay] Relay Scanlines HUD
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393373, // [PlayerActor] PlayerActor - 01_Intro_Hangaer_runandjump_Samus
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393372, // [PlayerActor] PlayerActor- Thardus_Intro
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393374, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393375, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 393218, // [Relay] Relay-end of cinema
                             "targetId": 393381, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 393218, // [Relay] Relay-end of cinema
+                            "targetId": 393399, // [Relay] Relay Scanlines HUD
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 393218, // [Relay] Relay-end of cinema
+                            "targetId": 393372, // [PlayerActor] PlayerActor- Thardus_Intro
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 393219, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 393218, // [Relay] Relay-end of cinema
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 393219, // [SpecialFunction] Entry Cinematic Skip
                             "targetId": 393389, // [SpawnPoint] Spawn point
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
+                            "senderId": 393219, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 393373, // [PlayerActor] PlayerActor - 01_Intro_Hangaer_runandjump_Samus
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 393242, // [Relay] Relay_turnoff doors
-                            "targetId": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 393357, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 393242, // [Relay] Relay_turnoff doors
-                            "targetId": 393224, // [Timer] Next Cutscene
+                            "targetId": 393221, // [SpecialFunction] Exit Cinematic Skip
                             "state": "ZERO",
-                            "message": "RESET_AND_START"
+                            "message": "INCREMENT"
                         },
                         {
-                            "senderId": 393220, // [Relay] Camera End
-                            "targetId": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393220, // [Relay] Camera End
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393371, // [Camera] Cinematic Camera
+                            "senderId": 393221, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 458874, // External: 0007007B
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393357, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "senderId": 393221, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 458875, // External: 0007007B
                             "state": "ZERO",
-                            "message": "DECREMENT"
+                            "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393223, // [SpawnPoint] Advance to Next Subchamber
+                            "senderId": 393221, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 458891, // External: 0007008B
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 393224, // [Timer] Next Cutscene
+                            "senderId": 393221, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 458769, // External: 00070011
                             "state": "ZERO",
-                            "message": "STOP_AND_RESET"
+                            "message": "START"
                         },
                         {
-                            "senderId": 393224, // [Timer] Next Cutscene
-                            "targetId": 393220, // [Relay] Camera End
+                            "senderId": 393221, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 458765, // External: 0007000D
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 393224, // [Timer] Next Cutscene
-                            "targetId": 393222, // [SpawnPoint] New Cutscene
+                            "senderId": 393221, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 458781, // External: 0007001D
                             "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        }
-                    ],
-                    "removeConnections": [
-                        {
-                            "senderId": 393371, // [Trigger] Trigger
-                            "targetId": 393373, // [PlayerActor] PlayerActor - 01_Intro_Hangaer_runandjump_Samus
-                            "state": "ENTERED",
                             "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 393371, // [Trigger] Trigger
-                            "targetId": 393374, // [Camera] Cinematic Camera
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 393371, // [Camera] Cinematic Camera
-                            "targetId": 393370, // [SpawnPoint] Spawn point
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 393358, // [Camera] Cinematic Camera
-                            "targetId": 393357, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "INACTIVE",
-                            "message": "DECREMENT"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 393224, // [Timer] Next Cutscene
-                            "time": 4.9
                         }
                     ],
                     "relays": [
                         {
-                            "id": 393217 // [Relay] Relay-start of cinema
+                            "id": 393217 // [Relay] Subchamber One
                         },
                         {
                             "id": 393218 // [Relay] Relay-end of cinema
-                        },
-                        {
-                            "id": 393220 // [Relay] Camera End
                         }
                     ],
-                    "spawnPoints": [
+                    // Dummy Objects for External Connections
+                    "waypoints": [
                         {
-                            "id": 393223, // [SpawnPoint] Advance to Next Subchamber
-                            "position": [
-                                -66.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
+                            "id": 458874
                         },
                         {
-                            "id": 393222, // [SpawnPoint] New Cutscene
-                            "active": true,
-                            "position": [
-                                -59.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
+                            "id": 458875
+                        },
+                        {
+                            "id": 458891
+                        },
+                        {
+                            "id": 458769
+                        },
+                        {
+                            "id": 458765
+                        },
+                        {
+                            "id": 458781
                         }
                     ],
                     "specialFunctions": [
                         {
-                            "id": 393219, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 393219, // [SpecialFunction] Entry Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 393221, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 393221, // [SpecialFunction] Exit Cinematic Skip
                             "type": "CinematicSkip"
                         }
                     ]
                 },
                 "Subchamber Two": {
                     "deleteIds": [
-                        458921 // [MemoryRelay] Memory Relay - start jump down
+                        458921, // [MemoryRelay] Memory Relay - start jump down
+                        393221,
+                        524298,
+                        524340,
+                        524339,
+                        524356,
+                        524300,
+                        524315
                     ],
-                    "addConnections": [
+                    "removeConnections": [
                         {
-                            "senderId": 458758, // [Trigger] Cutscene Activator
-                            "targetId": 458760, // [Relay] Relay-start of cinema
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
+                            "senderId": 458877, // [Camera] Entry Camera2
+                            "targetId": 458883, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
                         },
                         {
-                            "senderId": 458758, // [Trigger] Cutscene Activator
-                            "targetId": 458768, // [Trigger] Cutscene Skip Reposition
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
+                            "senderId": 458877, // [Camera] Entry Camera2
+                            "targetId": 458763, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
+                            "state": "INACTIVE",
+                            "message": "START"
                         },
                         {
-                            "senderId": 458768, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 458891, // [SpawnPoint] Spawn point
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 458768, // [Trigger] Cutscene Skip Reposition
+                            "senderId": 458877, // [Camera] Entry Camera2
                             "targetId": 458923, // [Relay] Relay Scanlines HUD
-                            "state": "ENTERED",
+                            "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 458768, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 458769, // [Timer] Reset Exo
-                            "state": "ENTERED",
-                            "message": "RESET_AND_START"
-                        },
-                        {
-                            "senderId": 458768, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 458758, // [Trigger] Cutscene Activator
-                            "state": "ENTERED",
+                            "senderId": 458877, // [Camera] Entry Camera2
+                            "targetId": 458874, // [PlayerActor] PlayerActor
+                            "state": "INACTIVE",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 458760, // [Relay] Relay-start of cinema
-                            "targetId": 458876, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 458760, // [Relay] Relay-start of cinema
-                            "targetId": 458875, // [PlayerActor] PlayerActor - run and jump
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 458760, // [Relay] Relay-start of cinema
-                            "targetId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
+                            "senderId": 458901, // [Camera] Exit Camera
+                            "targetId": 458900, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
                             "message": "INCREMENT"
                         },
                         {
-                            "senderId": 458765, // [Relay] Relay-end of cinema
+                            "senderId": 458901, // [Camera] Exit Camera
+                            "targetId": 458900, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 393397, // [Relay] Entry Cutscene Start
+                            "targetId": 458876, // [Camera] Entry Camera1
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 393397, // [Relay] Entry Cutscene Start
+                            "targetId": 458875, // [PlayerActor] PlayerActor - run and jump
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 393397, // [Relay] Entry Cutscene Start
+                            "targetId": 393221, // External: 00060005
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 393397, // [Relay] Entry Cutscene Start
+                            "targetId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 458877, // [Camera] Entry Camera2
+                            "targetId": 458765, // [Relay] Entry Cutscene End
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 458765, // [Relay] Entry Cutscene End
+                            "targetId": 458883, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 458765, // [Relay] Entry Cutscene End
                             "targetId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 458877, // [Camera] Cinematic Camera
-                            "targetId": 458765, // [Relay] Relay-end of cinema
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
+                            "senderId": 458765, // [Relay] Entry Cutscene End
+                            "targetId": 393221, // External: 00060005
+                            "state": "ZERO",
+                            "message": "DECREMENT"
                         },
                         {
-                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458765, // [Relay] Relay-end of cinema
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
+                            "senderId": 458765, // [Relay] Entry Cutscene End
+                            "targetId": 458763, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
+                            "state": "ZERO",
+                            "message": "START"
                         },
                         {
-                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 458765, // [Relay] Entry Cutscene End
                             "targetId": 458923, // [Relay] Relay Scanlines HUD
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 458765, // [Relay] Entry Cutscene End
+                            "targetId": 458874, // [PlayerActor] PlayerActor
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 458765, // [Relay] Entry Cutscene End
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 458769, // [Timer] Reset Exo
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 458769, // [Timer] Reset Exo
+                            "targetId": 458763, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 458891, // [SpawnPoint] Spawn point
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
@@ -27897,114 +27977,84 @@
                         },
                         {
                             "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458876, // [Camera] Cinematic Camera
+                            "targetId": 458781, // [Platform] Platform
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458877, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458883, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458891, // [SpawnPoint] Spawn point
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458769, // [Timer] Reset Exo
-                            "state": "ZERO",
-                            "message": "RESET_AND_START"
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 458812, // [Relay] Relay
-                            "targetId": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 458900, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "INCREMENT"
                         },
                         {
                             "senderId": 458812, // [Relay] Relay
-                            "targetId": 458772, // [Timer] Next Cutscene
+                            "targetId": 458771, // [SpecialFunction] Exit Cinematic Skip
                             "state": "ZERO",
-                            "message": "RESET_AND_START"
+                            "message": "INCREMENT"
                         },
                         {
-                            "senderId": 458770, // [Relay] Cutscene End
-                            "targetId": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458770, // [Relay] Cutscene End
+                            "senderId": 458771, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 524298, // External: 0008000A
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458901, // [Camera] Cinematic Camera
+                            "senderId": 458771, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 524340, // External: 00080034
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458900, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "senderId": 458771, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 524339, // External: 00080033
                             "state": "ZERO",
-                            "message": "DECREMENT"
+                            "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458774, // [SpawnPoint] Advance to Next Subchamber
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 458772, // [Timer] Next Cutscene
-                            "state": "ZERO",
-                            "message": "STOP_AND_RESET"
-                        },
-                        {
-                            "senderId": 458772, // [Timer] Next Cutscene
-                            "targetId": 458770, // [Relay] Cutscene End
+                            "senderId": 458771, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 524356, // External: 00080044
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 458772, // [Timer] Next Cutscene
-                            "targetId": 458773, // [SpawnPoint] New Cutscene
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 458769, // [Timer] Reset Exo
-                            "targetId": 458763, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
+                            "senderId": 458771, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 524300, // External: 0008000C
                             "state": "ZERO",
                             "message": "START"
+                        },
+                        {
+                            "senderId": 458771, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 524315, // External: 0008001B
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         }
                     ],
-                    "removeConnections": [
+                    // Dummy objects for external connections
+                    "waypoints": [
                         {
-                            "senderId": 458901, // [Camera] Cinematic Camera
-                            "targetId": 458900, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "INACTIVE",
-                            "message": "DECREMENT"
+                            "id": 393221
+                        },
+                        {
+                            "id": 524298
+                        },
+                        {
+                            "id": 524340
+                        },
+                        {
+                            "id": 524339
+                        },
+                        {
+                            "id": 524356
+                        },
+                        {
+                            "id": 524300
+                        },
+                        {
+                            "id": 524315
                         }
                     ],
                     "timers": [
-                        {
-                            "id": 458772, // [Timer] Next Cutscene
-                            "time": 4.9
-                        },
                         {
                             "id": 458769, // [Timer] Reset Exo
                             "time": 0.5
@@ -28012,555 +28062,515 @@
                     ],
                     "relays": [
                         {
-                            "id": 458760 // [Relay] Relay-start of cinema
+                            "id": 393397, // [Relay] Entry Cutscene Start
+                            "active": false
                         },
                         {
-                            "id": 458765 // [Relay] Relay-end of cinema
-                        },
-                        {
-                            "id": 458770 // [Relay] Cutscene End
-                        }
-                    ],
-                    "spawnPoints": [
-                        {
-                            "id": 458774, // [SpawnPoint] Advance to Next Subchamber
-                            "position": [
-                                -80.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
-                        },
-                        {
-                            "id": 458773, // [SpawnPoint] New Cutscene
-                            "active": true,
-                            "position": [
-                                -73.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
-                        }
-                    ],
-                    "triggers": [
-                        {
-                            "id": 458758, // [Trigger] Cutscene Activator
-                            "position": [
-                                -59.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
-                        },
-                        {
-                            "id": 458768, // [Trigger] Cutscene Skip Reposition
-                            "position": [
-                                -66.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
+                            "id": 458765 // [Relay] Entry Cutscene End
                         }
                     ],
                     "specialFunctions": [
                         {
-                            "id": 458767, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 458767, // [SpecialFunction] Entry Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 458771, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 458771, // [SpecialFunction] Exit Cinematic Skip
                             "type": "CinematicSkip"
                         }
                     ]
                 },
                 "Subchamber Three": {
                     "deleteIds": [
-                        524432 // [MemoryRelay] Memory Relay - start jump down
+                        524432, // [MemoryRelay] Memory Relay - start jump down
+                        458767,
+                        589833,
+                        589835,
+                        589875,
+                        589874,
+                        589891,
+                        589952
+
                     ],
-                    "addConnections": [
+                    "removeConnections": [
                         {
-                            "senderId": 524291, // [Trigger] Cutscene Activator
-                            "targetId": 524297, // [Relay] Relay-start of cinema
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 524291, // [Trigger] Cutscene Activator
-                            "targetId": 524296, // [Trigger] Cutscene Skip Reposition
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 524296, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 524356, // [SpawnPoint] Spawn point
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 524296, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 524434, // [Relay] Relay Scanlines HUD
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 524296, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 524300, // [Timer] Reset Exo
-                            "state": "ENTERED",
-                            "message": "RESET_AND_START"
-                        },
-                        {
-                            "senderId": 524296, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 524291, // [Trigger] Cutscene Activator
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 524297, // [Relay] Relay-start of cinema
-                            "targetId": 524341, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 524297, // [Relay] Relay-start of cinema
-                            "targetId": 524340, // [PlayerActor] PlayerActor - run and jump_samus
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 524297, // [Relay] Relay-start of cinema
-                            "targetId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
+                            "senderId": 524341, // [Camera] Entry Camera1
+                            "targetId": 524348, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
                             "message": "INCREMENT"
                         },
                         {
-                            "senderId": 524298, // [Relay] Relay-end of cinema
-                            "targetId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
+                            "senderId": 524342, // [Camera] Entry Camera2
+                            "targetId": 524339, // [PlayerActor] PlayerActor-thardus_intro
+                            "state": "INACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 524342, // [Camera] Entry Camera2
+                            "targetId": 524348, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 524342, // [Camera] Cinematic Camera
-                            "targetId": 524298, // [Relay] Relay-end of cinema
+                            "senderId": 524342, // [Camera] Entry Camera2
+                            "targetId": 524310, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
                             "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
+                            "message": "START"
                         },
                         {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524298, // [Relay] Relay-end of cinema
-                            "state": "INACTIVE",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524342, // [Camera] Entry Camera2
                             "targetId": 524434, // [Relay] Relay Scanlines HUD
-                            "state": "ZERO",
+                            "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524359, // [Camera] Exit Camera
+                            "targetId": 524358, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 524359, // [Camera] Exit Camera
+                            "targetId": 524358, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 524359, // [Camera] Exit Camera
+                            "targetId": 524365, // [SpawnPointoint] Spawn point
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 458921, // [Relay] Entry cutscene start
+                            "targetId": 524341, // [Camera] Entry Camera1
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 458921, // [Relay] Entry cutscene start
                             "targetId": 524340, // [PlayerActor] PlayerActor - run and jump_samus
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 458921, // [Relay] Entry cutscene start
+                            "targetId": 524348, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 458921, // [Relay] Entry cutscene start
+                            "targetId": 458767, // External: 0007000F
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 458921, // [Relay] Entry cutscene start
+                            "targetId": 524299, // [SpecialFunction] Entry Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 524342, // [Camera] Entry Camera2
+                            "targetId": 524298, // [Relay] Entry cutscene end
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 524298, // [Relay] Entry cutscene end
+                            "targetId": 524339, // [PlayerActor] PlayerActor-thardus_intro
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524339, // [PlayerActor] PlayerActor
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524341, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524342, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524298, // [Relay] Entry cutscene end
                             "targetId": 524348, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524298, // [Relay] Entry cutscene end
+                            "targetId": 524310, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 524298, // [Relay] Entry cutscene end
+                            "targetId": 524434, // [Relay] Relay Scanlines HUD
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 524298, // [Relay] Entry cutscene end
+                            "targetId": 458767, // External: 0007000F
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 524298, // [Relay] Entry cutscene end
+                            "targetId": 524299, // [SpecialFunction] Entry Cinematic Skip
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 524299, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 524298, // [Relay] Entry cutscene end
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 524299, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 524340, // [PlayerActor] PlayerActor - run and jump_samus
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 524299, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 524339, // [PlayerActor] PlayerActor-thardus_intro
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 524299, // [SpecialFunction] Entry Cinematic Skip
                             "targetId": 524356, // [SpawnPoint] Spawn point
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524299, // [SpecialFunction] Entry Cinematic Skip
                             "targetId": 524300, // [Timer] Reset Exo
                             "state": "ZERO",
-                            "message": "RESET_AND_START"
+                            "message": "START"
                         },
                         {
-                            "senderId": 524325, // [Relay] Relay
-                            "targetId": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524299, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 524315, // [Platform] Platform_ Entrance Ceiling Piece
                             "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 524325, // [Relay] Relay
-                            "targetId": 524304, // [Timer] Next Cutscene
-                            "state": "ZERO",
-                            "message": "RESET_AND_START"
-                        },
-                        {
-                            "senderId": 524301, // [Relay] Cutscene End
-                            "targetId": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524301, // [Relay] Cutscene End
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524359, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524358, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524306, // [SpawnPoint] Advance to Next Subchamber
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 524304, // [Timer] Next Cutscene
-                            "state": "ZERO",
-                            "message": "STOP_AND_RESET"
-                        },
-                        {
-                            "senderId": 524304, // [Timer] Next Cutscene
-                            "targetId": 524301, // [Relay] Cutscene End
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 524304, // [Timer] Next Cutscene
-                            "targetId": 524305, // [SpawnPoint] New Cutscene
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 524300, // [Timer] Reset Exo
                             "targetId": 524310, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
                             "state": "ZERO",
                             "message": "START"
-                        }
-                    ],
-                    "removeConnections": [
+                        },
                         {
-                            "senderId": 524359, // [Camera] Cinematic Camera
+                            "senderId": 524325, // [Relay] Relay
                             "targetId": 524358, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "INACTIVE",
-                            "message": "DECREMENT"
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 524325, // [Relay] Relay
+                            "targetId": 524358, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 524325, // [Relay] Relay
+                            "targetId": 524303, // [SpecialFunction] Exit Cinematic Skip
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 524303, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 589833, // External: 00090009
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 524303, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 589835, // External: 0009000B
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 524303, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 589875, // External: 00090033
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 524303, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 589874, // External: 00090032
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 524303, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 589891, // External: 00090043
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 524303, // [SpecialFunction] Exit Cinematic Skip
+                            "targetId": 589952, // External: 00090080
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "timers": [
-                        {
-                            "id": 524304, // [Timer] Next Cutscene
-                            "time": 4.9
-                        },
                         {
                             "id": 524300, // [Timer] Reset Exo
                             "time": 0.5
                         }
                     ],
+                    // Dummy IDs for external connections
+                    "waypoints": [
+                        {
+                            "id": 458767
+                        },
+                        {
+                            "id": 589833
+                        },
+                        {
+                            "id": 589835
+                        },
+                        {
+                            "id": 589875
+                        },
+                        {
+                            "id": 589874
+                        },
+                        {
+                            "id": 589891
+                        },
+                        {
+                            "id": 589952
+                        }
+                    ],
                     "relays": [
                         {
-                            "id": 524297 // [Relay] Relay-start of cinema
+                            "id": 458921, // [Relay] Entry cutscene start
+                            "active": false
                         },
                         {
-                            "id": 524298 // [Relay] Relay-end of cinema
-                        },
-                        {
-                            "id": 524301 // [Relay] Cutscene End
-                        }
-                    ],
-                    "spawnPoints": [
-                        {
-                            "id": 524306, // [SpawnPoint] Advance to Next Subchamber
-                            "position": [
-                                -94.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
-                        },
-                        {
-                            "id": 524305, // [SpawnPoint] New Cutscene
-                            "position": [
-                                -87.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
-                        }
-                    ],
-                    "triggers": [
-                        {
-                            "id": 524291, // [Trigger] Cutscene Activator
-                            "position": [
-                                -73.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
-                        },
-                        {
-                            "id": 524296, // [Trigger] Cutscene Skip Reposition
-                            "active": true,
-                            "position": [
-                                -80.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
+                            "id": 524298 // [Relay] Entry cutscene end
                         }
                     ],
                     "specialFunctions": [
                         {
-                            "id": 524299, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 524299, // [SpecialFunction] Entry Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 524303, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 524303, // [SpecialFunction] Exit Cinematic Skip
                             "type": "CinematicSkip"
                         }
                     ]
                 },
                 "Subchamber Four": {
-                    "addConnections": [
+                    "deleteIds": [
+                        524303
+                    ],
+                    "removeConnections": [
                         {
-                            "senderId": 589828, // [Trigger] Cutscene Activator
-                            "targetId": 589827, // [Relay] Relay-start of cinema
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 589828, // [Trigger] Cutscene Activator
-                            "targetId": 589826, // [Trigger] Cutscene Skip Reposition
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 589826, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 589891, // [SpawnPoint] Spawn point
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 589826, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 589952, // [Relay] Relay Scanlines HUD
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 589826, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 589835, // [Timer] Reset Exo
-                            "state": "ENTERED",
-                            "message": "RESET_AND_START"
-                        },
-                        {
-                            "senderId": 589826, // [Trigger] Cutscene Skip Reposition
-                            "targetId": 589828, // [Trigger] Cutscene Activator
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 589827, // [Relay] Relay-start of cinema
-                            "targetId": 589876, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 589827, // [Relay] Relay-start of cinema
-                            "targetId": 589875, // [PlayerActor] PlayerActor - run and jump_samus
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 589827, // [Relay] Relay-start of cinema
-                            "targetId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
+                            "senderId": 589876, // [Camera] Entry Camera1
+                            "targetId": 589883, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
                             "message": "INCREMENT"
                         },
                         {
-                            "senderId": 589833, // [Relay] Relay-end of cinema
-                            "targetId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
+                            "senderId": 589877, // [Camera] Entry Camera2
+                            "targetId": 589874, // [PlayerActor] PlayerActor-Thardus_Intro
+                            "state": "INACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 589877, // [Camera] Entry Camera2
+                            "targetId": 589883, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 589877, // [Camera] Cinematic Camera
-                            "targetId": 589833, // [Relay] Relay-end of cinema
+                            "senderId": 589877, // [Camera] Entry Camera2
+                            "targetId": 589843, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
+                            "state": "INACTIVE",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 589877, // [Camera] Entry Camera2
+                            "targetId": 589952, // [Relay] Relay Scanlines HUD
                             "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589833, // [Relay] Relay-end of cinema
+                            "senderId": 589864, // [Camera] Exo Death Camera
+                            "targetId": 589865, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 589864, // [Camera] Exo Death Camera
+                            "targetId": 589865, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "INACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589864, // [Camera] Exo Death Camera
+                            "targetId": 589867, // [SpawnPoint] Spawn point
                             "state": "INACTIVE",
                             "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 524432, // [Relay] Entry Cinematic Start
+                            "targetId": 589876, // [Camera] Entry Camera1
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589835, // [Timer] Reset Exo
-                            "state": "ZERO",
-                            "message": "RESET_AND_START"
-                        },
-                        {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 524432, // [Relay] Entry Cinematic Start
                             "targetId": 589875, // [PlayerActor] PlayerActor - run and jump_samus
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 524432, // [Relay] Entry Cinematic Start
+                            "targetId": 589883, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 524432, // [Relay] Entry Cinematic Start
+                            "targetId": 524303, // External: 0008000F
+                            "state": "ACTIVE",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 524432, // [Relay] Entry Cinematic Start
+                            "targetId": 589834, // [SpecialFunction] Entry Cinematic Skip
+                            "state": "ACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 589877, // [Camera] Entry Camera2
+                            "targetId": 589833, // [Relay] Entry Cutscene End
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 589833, // [Relay] Entry Cutscene End
+                            "targetId": 589874, // [PlayerActor] PlayerActor-Thardus_Intro
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589874, // [PlayerActor] PlayerActor
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589876, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589877, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 589833, // [Relay] Entry Cutscene End
                             "targetId": 589883, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DECREMENT"
                         },
                         {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589891, // [SpawnPoint] Spawn point
+                            "senderId": 589833, // [Relay] Entry Cutscene End
+                            "targetId": 589843, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
                             "state": "ZERO",
-                            "message": "SET_TO_ZERO"
+                            "message": "START"
                         },
                         {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 589833, // [Relay] Entry Cutscene End
                             "targetId": 589952, // [Relay] Relay Scanlines HUD
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 589833, // [Relay] Entry Cutscene End
+                            "targetId": 589834, // [SpecialFunction] Entry Cinematic Skip
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589834, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 589833, // [Relay] Entry Cutscene End
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 589834, // [SpecialFunction] Entry Cinematic Skip
                             "targetId": 589835, // [Timer] Reset Exo
                             "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 589858, // [Relay] Relay
-                            "targetId": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 589836, // [Relay] Cutscene End
-                            "targetId": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589836, // [Relay] Cutscene End
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589864, // [Camera] Cinematic Camera
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589865, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 589843, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 696969, // [SpecialFunction] Boss Health Bar
-                            "state": "ZERO",
-                            "message": "DECREMENT"
+                            "message": "START"
                         },
                         {
                             "senderId": 589835, // [Timer] Reset Exo
                             "targetId": 589843, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
                             "state": "ZERO",
                             "message": "START"
+                        },
+                        {
+                            "senderId": 589834, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 589875, // [PlayerActor] PlayerActor - run and jump_samus
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 589834, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 589874, // [PlayerActor] PlayerActor
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 589834, // [SpecialFunction] Entry Cinematic Skip
+                            "targetId": 589891, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 589858, // [Relay] Relay
+                            "targetId": 589865, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 589858, // [Relay] Relay
+                            "targetId": 589838, // [SpecialFunction] Exo Death Cinematic Skip
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 589864, // [Camera] Exo Death Camera
+                            "targetId": 589840, // [Relay] Exo Death Cutscene End
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 589840, // [Relay] Exo Death Cutscene End
+                            "targetId": 589865, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589840, // [Relay] Exo Death Cutscene End
+                            "targetId": 589839, // [SpecialFunction] Boss Health Bar
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589840, // [Relay] Exo Death Cutscene End
+                            "targetId": 589838, // [SpecialFunction] Exo Death Cinematic Skip
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 589838, // [SpecialFunction] Exo Death Cinematic Skip
+                            "targetId": 589840, // [Relay] Exo Death Cutscene End
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 589838, // [SpecialFunction] Exo Death Cinematic Skip
+                            "targetId": 589843, // [MetroidPrimeStage1] 08/23/02 MetroidPrimeRelay JRG
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "waypoints": [
+                        {
+                            "id": 524303
                         }
                     ],
                     "timers": [
@@ -28571,61 +28581,60 @@
                     ],
                     "relays": [
                         {
-                            "id": 589827 // [Relay] Relay-start of cinema
+                            "id": 524432, // [Relay] Entry Cinematic Start
+                            "active": false
                         },
                         {
-                            "id": 589833 // [Relay] Relay-end of cinema
+                            "id": 589833 // [Relay] Entry Cutscene End
                         },
                         {
-                            "id": 589836 // [Relay] Cutscene End
-                        }
-                    ],
-                    "triggers": [
-                        {
-                            "id": 589828, // [Trigger] Cutscene Activator
-                            "position": [
-                                -87.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
-                        },
-                        {
-                            "id": 589826, // [Trigger] Cutscene Skip Reposition
-                            "position": [
-                                -94.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
+                            "id": 589840 // [Relay] Exo Death Cutscene End
                         }
                     ],
                     "specialFunctions": [
                         {
-                            "id": 589834, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 589834, // [SpecialFunction] Entry Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 589838, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 589838, // [SpecialFunction] Exo Death Cinematic Skip
                             "type": "CinematicSkip"
+                        },
+                        {
+                            "id": 589839, // [SpecialFunction] Boss Health Bar
+                            "type": "BossEnergyBar"
                         }
                     ]
                 },
                 "Subchamber Five": {
                     "deleteIds": [
-                        655399 // [MemoryRelay] Memory Relay Prepare Next Section
+                        721309
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 655378, // [Camera] Cinematic Camera1
+                            "targetId": 655382, // [PlayerActor] PlayerActor
+                            "state": "ACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 655376, // [Relay] Relay-end of cinema
+                            "targetId": 655400, // [Camera] Cinematic Camera Hold
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 655376, // [Relay] Relay-end of cinema
+                            "targetId": 655399, // [MemoryRelay] Memory Relay Prepare Next Section
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 655376, // [Relay] Relay-end of cinema
+                            "targetId": 655377, // [CameraFilterKeyframe] Camera Filter Keyframe Widescreen Bars
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        }
                     ],
                     "addConnections": [
                         {
@@ -28635,10 +28644,22 @@
                             "message": "INCREMENT"
                         },
                         {
+                            "senderId": 655375, // [Relay] Relay-start of cinema
+                            "targetId": 655382, // [PlayerActor] PlayerActor
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
                             "senderId": 655376, // [Relay] Relay-end of cinema
                             "targetId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "state": "ZERO",
                             "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 655376, // [Relay] Relay-end of cinema
+                            "targetId": 655377, // [CameraFilterKeyframe] Camera Filter Keyframe Widescreen Bars
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
@@ -28647,10 +28668,22 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
+                            "senderId": 655379, // [Camera] Cinematic Camera
+                            "targetId": 655399, // [MemoryRelay] Memory Relay Prepare Next Section
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 655379, // [Camera] Cinematic Camera
+                            "targetId": 655400, // [Camera] Cinematic Camera Hold
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 655379, // [Camera] Cinematic Camera
+                            "targetId": 655404, // [Timer] Timer - Play Swoosh
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "STOP"
                         },
                         {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
@@ -28660,39 +28693,27 @@
                         },
                         {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 655404, // [Timer] Timer - Play Swoosh
-                            "state": "ZERO",
-                            "message": "STOP_AND_RESET"
-                        },
-                        {
-                            "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 655378, // [Camera] Cinematic Camera1
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 655400, // [Camera] Cinematic Camera Hold
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 655380, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "targetId": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
                             "state": "ZERO",
-                            "message": "INCREMENT"
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 755396, // [Timer] Transition Delay
-                            "state": "ZERO",
-                            "message": "RESET_AND_START"
-                        },
-                        {
-                            "senderId": 755396, // [Timer] Transition Delay
-                            "targetId": 755399, // [SpawnPoint] Advance to Metroid Prime Lair
+                            "targetId": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 655496, // [CameraFilterKeyframe] Skip Black Screen
+                            "state": "ZERO",
+                            "message": "INCREMENT"
                         },
                         {
                             "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
@@ -28707,60 +28728,68 @@
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 655379, // [Camera] Cinematic Camera
-                            "targetId": 655397, // [SpawnPoint] New Cutscene
-                            "state": "INACTIVE",
+                            "senderId": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 721370, // External: 000B01DA
+                            "state": "ZERO",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 655362, // [Dock] Dock
+                            "targetId": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
+                            "targetId": 721370, // External: 000B01DA
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    // Dummy IDs for external connections
+                    "waypoints": [
+                        {
+                            "id": 721370
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 655408, // [Relay] Cutscene Skipped, Proceed to Lair
+                            "active": false
                         }
                     ],
                     "cameras": [
                         {
                             "id": 655400, // [Camera] Cinematic Camera Hold
-                            "position": [46.805, -245.663193, -194.979507]
+                            "position": [46.804985, -262.36322, -194.979507],
+                            "rotation": [-50.0, 0.0, 0.0]
                         }
                     ],
-                    "timers": [
+                    "cameraFilterKeyframes": [
                         {
-                            "id": 755396, // [Timer] Transition Delay
-                            "time": 0.001
-                        }
-                    ],
-                    "spawnPoints": [
-                        {
-                            "id": 755399, // [SpawnPoint] Advance to Metroid Prime Lair
-                            "position": [
-                                -108.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
-                        },
-                        {
-                            "id": 655397, // [SpawnPoint] New Cutscene
-                            "position": [
-                                -101.359703,
-                                -434.766907,
-                                0.0
-                            ],
-                            "rotation": [
-                                0.0,
-                                0.0,
-                                -180.0
-                            ]
+                            "id": 655496, // [CameraFilterKeyframe] Skip Black Screen
+                            "filterType": "Multiply",
+                            "filterIndex": 3,
+                            "filterShape": "Fullscreen",
+                            "fadeInTime": 0.0,
+                            "fadeOutTime": 0.5
                         }
                     ],
                     "specialFunctions": [
                         {
                             "id": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "type": "CinematicSkip"
+                        },
+                        {
+                            "id": 655435, // [SpecialFunction] PlayerInArea
+                            "type": "PlayerInAreaRelay"
                         }
                     ]
                 },
                 "Metroid Prime Lair": {
+                    "deleteIds": [
+                        655400
+                    ],
                     "removeConnections": [
                         {
                             "senderId": 721082, // [Camera] Cinematic Camera
@@ -28779,122 +28808,20 @@
                             "targetId": 721026, // [MetroidPrimeStage2] Metroid Prime - Stage 2
                             "state": "INACTIVE",
                             "message": "ACTION"
+                        },
+                        {
+                            "senderId": 721082, // [Camera] Cinematic Camera
+                            "targetId": 721091, // [Relay] Relay_START_INVISOCAM
+                            "state": "INACTIVE",
+                            "message": "DEACTIVATE"
                         }
                     ],
                     "addConnections": [
                         {
-                            "senderId": 720897, // [Trigger] Cutscene Activator
-                            "targetId": 721334, // [Timer] Timer Pump Cinema Start
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 720897, // [Trigger] Cutscene Activator
-                            "targetId": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "targetId": 720897, // [Trigger] Cutscene Activator
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "targetId": 721335, // [MemoryRelay] Memory Relay Deactivate Old Filter
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "targetId": 721026, // [MetroidPrimeStage2] Metroid Prime - Stage 2
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 720902, // [Trigger] Cutscene Skip Repositioner
+                            "senderId": 721372, // [SpecialFunction] SpecialFunction Cineamtic Skip
                             "targetId": 720901, // [Actor] Actor-head hat
-                            "state": "ENTERED",
+                            "state": "ZERO",
                             "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "targetId": 721036, // [CameraFilterKeyframe] cinema bars
-                            "state": "ENTERED",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "targetId": 721309, // [SpawnPoint] Spawn point
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "targetId": 721310, // [StreamedAudio] StreamedAudio Crater Metroid Prime Stage 2 SW
-                            "state": "ENTERED",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 721132, // [Relay] Relay-start of cinema
-                            "targetId": 720903, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 720903, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 721282, // [WorldTeleporter] WorldTeleporterToo
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 720903, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 666666, // [Camera] Cinematic Camera Hold
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 720903, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 720903, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 721310, // [StreamedAudio] StreamedAudio Crater Metroid Prime Stage 2 SW
-                            "state": "ZERO",
-                            "message": "STOP"
-                        },
-                        {
-                            "senderId": 721091, // [Relay] Relay_START_INVISOCAM
-                            "targetId": 721326, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 721091, // [Relay] Relay_START_INVISOCAM
-                            "targetId": 720905, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 720904, // [Relay] END_INVISOCAM
-                            "targetId": 721326, // [CameraFilterKeyframe] Camera Filter Keyframe
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 720904, // [Relay] END_INVISOCAM
-                            "targetId": 721026, // [MetroidPrimeStage2] Metroid Prime - Stage 2
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
-                            "senderId": 720904, // [Relay] END_INVISOCAM
-                            "targetId": 720905, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "state": "ZERO",
-                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 721082, // [Camera] Cinematic Camera
@@ -28903,32 +28830,189 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 720905, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "senderId": 721091, // [Relay] Relay_START_INVISOCAM
+                            "targetId": 721326, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 721091, // [Relay] Relay_START_INVISOCAM
+                            "targetId": 720903, // [SpecialFunction] Invisible Essence Cinematic Skip
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 720904, // [Relay] END_INVISOCAM
+                            "targetId": 720903, // [SpecialFunction] Invisible Essence Cinematic Skip
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 720904, // [Relay] END_INVISOCAM
+                            "targetId": 721326, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 720904, // [Relay] END_INVISOCAM
+                            "targetId": 721026, // [MetroidPrimeStage2] Metroid Prime - Stage 2
+                            "state": "ZERO",
+                            "message": "ACTION" 
+                        },
+                        {
+                            "senderId": 720903, // [SpecialFunction] Invisible Essence Cinematic Skip
                             "targetId": 720904, // [Relay] END_INVISOCAM
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 720905, // [SpecialFunction] SpecialFunction Cinematic Skip
-                            "targetId": 721082, // [Camera] Cinematic Camera
+                            "senderId": 721132, // [Relay] Relay-start of cinema
+                            "targetId": 720905, // [SpecialFunction] Essence Death Cinematic Skip
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 720905, // [SpecialFunction] Essence Death Cinematic Skip
+                            "targetId": 720919, // [Camera] Cinematic Camera Hold
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 720905, // [SpecialFunction] Essence Death Cinematic Skip
+                            "targetId": 720946, // [Timer] Warp 2 Frame Delay
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 720905, // [SpecialFunction] Essence Death Cinematic Skip
+                            "targetId": 720947, // [StreamedAudio] Essence Music but No Fade
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 720946, // [Timer] Warp 2 Frame Delay
+                            "targetId": 720947, // [StreamedAudio] Essence Music but No Fade
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 720946, // [Timer] Warp 2 Frame Delay
+                            "targetId": 721282, // [WorldTeleporter] WorldTeleporterToo
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 655400, // External: 000A0028
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 720919, // [Camera] Cinematic Camera Hold
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 721276, // [Timer] Timer Unload 03e_f
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 720948, // [Timer] Delay before return to game
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "targetId": 720901, // [Actor] Actor-head hat
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 720916, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 720919, // [Camera] Cinematic Camera Hold
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 721026, // [MetroidPrimeStage2] Metroid Prime - Stage 2
+                            "state": "ZERO",
+                            "message": "ACTIVATE" 
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO" 
+                        },
+                        {
+                            "senderId": 720948, // [Timer] Delay before return to game
+                            "targetId": 721310, // [StreamedAudio] StreamedAudio Crater Metroid Prime Stage 2 SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 720946, // [Timer] Warp 2 Frame Delay
+                            "time": 0.02
+                        },
+                        {
+                            "id": 720948, // [Timer] Delay before return to game
+                            "time": 0.5
+                        }
+                    ],
+                    "streamedAudios": [
+                        {
+                            "id": 720947, // [StreamedAudio] Essence Music but No Fade
+                            "volume": 90,
+                            "isMusic": true,
+                            "fadeOutTime": 0.0,
+                            "audioFileName": "/audio/cra_mprime2L.dsp|/audio/cra_mprime2R.dsp"
+                        }
+                    ],
+                    "spawnPoints": [
+                        {
+                            "id": 720925, // [SpawnPoint] Cutscene Skip SpawnPoint
+                            "position": [44.4119, -266.63446, -375.414642],
+                            "rotation": [0.0, 0.0, -179.50708]
+                        },
+                        {
+                            "id": 721370, // [SpawnPoint] Morphed Spawn for HUD Reset
+                            "position": [47.792114, -248.011307, -375.531006],
+                            "morphed": true
                         }
                     ],
                     "cameras": [
                         {
-                            "id": 666666, // [Camera] Cinematic Camera Hold
-                            "fieldOfView": 70,
-                            "shotDuration": 7.0
+                            "id": 720919, // [Camera] Cinematic Camera Hold
+                            "position": [132.0, -223.0, -346.0],
+                            "shotDuration": 512.0
                         }
                     ],
                     "cameraFilterKeyframes": [
                         {
-                            "id": 42069, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
+                            "id": 720916, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
-                            "filterIndex": 2,
+                            "filterIndex": 3,
                             "fadeOutTime": 0.5
+                        }
+                    ],
+                    // Dummy IDs for External Connections
+                    "waypoints": [
+                        {
+                            "id": 655400
                         }
                     ],
                     "relays": [
@@ -28936,45 +29020,13 @@
                             "id": 720904 // [Relay] END_INVISOCAM
                         }
                     ],
-                    "triggers": [
-                        {
-                            "id": 720897, // [Trigger] Cutscene Activator
-                            "position": [
-                                -101.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
-                        },
-                        {
-                            "id": 720902, // [Trigger] Cutscene Skip Repositioner
-                            "position": [
-                                -108.359703,
-                                -434.766907,
-                                1.35
-                            ],
-                            "scale": [
-                                5.0,
-                                5.0,
-                                7.0
-                            ],
-                            "flags": 1,
-                            "deactivateOnEnter": true
-                        }
-                    ],
                     "specialFunctions": [
                         {
-                            "id": 720903, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 720903, // [SpecialFunction] Invisible Essence Cinematic Skip
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 720905, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "id": 720905, // [SpecialFunction] Essence Death Cinematic Skip
                             "type": "CinematicSkip"
                         }
                     ]
