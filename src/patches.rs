@@ -9792,8 +9792,8 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
         kind: structs::FrmeWidgetKind::TextPane(structs::TextPaneWidget {
             x_dim: 10.455326,
             z_dim: 1.813613,
-            scale_center: [-5.227663, 0.0, -0.51].into(),
-            font: resource_info!("Deface14B_O.FONT").try_into().unwrap(),
+            scale_center: [-25.227663, 0.0, -4.43].into(),
+            font: resource_info!("Deface13B.FONT").try_into().unwrap(),
             word_wrap: 0,
             horizontal: 1,
             justification: 0,
@@ -9805,7 +9805,7 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
             jpn_point_scale,
         }),
         worker_id: None,
-        origin: [9.25, 1.500001, 0.0].into(),
+        origin: [24.6, 1.500001, 0.3].into(),
         basis: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0].into(),
         rotation_center: [0.0, 0.0, 0.0].into(),
         unknown0: 0,
@@ -9820,9 +9820,9 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
     };
     tp.fill_color = [0.0, 0.0, 0.0, 0.4].into();
     tp.outline_color = [0.0, 0.0, 0.0, 0.2].into();
-    shadow_widget.origin[0] -= -0.235091;
-    shadow_widget.origin[1] -= -0.104353;
-    shadow_widget.origin[2] -= 0.176318;
+    shadow_widget.origin[0] -= -0.1;
+    shadow_widget.origin[1] -= -0.1;
+    shadow_widget.origin[2] -= 0.1;
 
     frme.widgets.as_mut_vec().push(shadow_widget);
 
