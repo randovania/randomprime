@@ -3241,6 +3241,7 @@ pub fn patch_add_block<'r>(
         config.layer,
         config.active.unwrap_or(true),
         old_scale,
+        config.thermal_hot.unwrap_or(false)
     );
 
     Ok(())
@@ -3257,6 +3258,7 @@ pub fn add_block(
     layer: Option<u32>,
     active: bool,
     old_scale: bool,
+    thermal_hot: bool,
 ) {
     let layer_id = layer.unwrap_or(0);
 
@@ -3335,7 +3337,7 @@ pub fn add_block(
                     target_passthrough: 0,
                     visor_mask: 15, // Combat|Scan|Thermal|XRay
                 },
-                enable_thermal_heat: 1,
+                enable_thermal_heat: thermal_hot as u8,
                 unknown3: 0,
                 unknown4: 0,
                 unknown5: 1.0,
