@@ -4,10 +4,7 @@ use dol_linker::{link_obj_files_to_bin, link_obj_files_to_rel, read_symbol_table
 use walkdir::WalkDir;
 
 fn invoke_cargo(ppc_manifest: &Path, package: &str) {
-    let output = Command::new("rustup")
-        .arg("run")
-        .arg("stable")
-        .arg("cargo")
+    let output = Command::new("cargo")
         .arg("rustc")
         .arg("--manifest-path")
         .arg(ppc_manifest)
@@ -21,7 +18,6 @@ fn invoke_cargo(ppc_manifest: &Path, package: &str) {
         .arg("relocation-model=static")
         .arg("-C")
         .arg("target-cpu=750")
-        .env("RUSTC_BOOTSTRAP", "1")
         .env("CARGO_TARGET_DIR", "../../compile_to_ppc/target")
         .output()
         .expect("Failed to compile ppc crate");
