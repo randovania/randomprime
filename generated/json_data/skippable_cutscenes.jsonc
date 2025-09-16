@@ -2787,19 +2787,19 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2993769, // [SpecialFunction] Violence
+                            "senderId": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "targetId": 2883635, // [Water] Poison MainWater Morph Source
                             "state": "PLAY",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 2993769, // [SpecialFunction] Violence
+                            "senderId": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "targetId": 2884015, // [Water] Clean MainWater Morph Source
                             "state": "PLAY",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 2993769, // [SpecialFunction] Violence
+                            "senderId": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "targetId": 2333588, // [Platform] Follow Water
                             "state": "PLAY",
                             "message": "ACTIVATE"
@@ -3286,12 +3286,6 @@
                         },
                         {
                             "senderId": 2883656, // [SpecialFunction] Slot 3 Cutscene Skip
-                            "targetId": 2883683, // [Timer] Slot 3 Skipped Cutscene - Release Ball Delay
-                            "state": "ZERO",
-                            "message": "START"
-                        },
-                        {
-                            "senderId": 2883683, // [Timer] Slot 3 Skipped Cutscene - Release Ball Delay
                             "targetId": 2883811, // [Relay] Faulty Relay - [IN] Release Ball
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
@@ -3461,7 +3455,7 @@
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 2993769, // [SpecialFunction] Violence
+                            "id": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "type": "ObjectFollowObject",
                             "position": [547.509277, -178.081604, 31.968304]
                         }
@@ -3495,9 +3489,10 @@
                         }
                     ],
                     "timers": [
+                        // Edit of existing
                         {
-                            "id": 2883683, // [Timer] Slot 3 Skipped Cutscene - Release Ball Delay
-                            "time": 1.0
+                            "id": 2883815, // [Timer] Jingle Finish Delay
+                            "time": 0.98
                         }
                     ],
                     "platforms": [
