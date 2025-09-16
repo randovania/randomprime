@@ -470,6 +470,82 @@ fn patch_add_scans_to_savw(
     Ok(())
 }
 
+fn patch_rotate_hive_totem_door(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+
+    let door_id = 0x00240233;
+    let door_shield_id = 0x00240236;
+    let door_shield_key_id = 0x0024022F;
+    let door_unlock_id = 0x00240234;
+    let door_key_id = 0x0024022E;
+
+    let door = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_id)
+        .and_then(|obj| obj.property_data.as_door_mut())
+        .unwrap();
+    door.rotation[0] = 0.0;
+    door.rotation[1] = 0.0;
+
+    let door_shield = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_shield_id)
+        .and_then(|obj| obj.property_data.as_actor_mut())
+        .unwrap();
+    door_shield.rotation[0] = 0.0;
+    door_shield.rotation[1] = 0.0;
+    door_shield.position[0] = 94.625732;
+    door_shield.position[1] = 335.590027;
+    door_shield.position[2] = -4.336928;
+
+    let door_shield_key = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_shield_key_id)
+        .and_then(|obj| obj.property_data.as_actor_mut())
+        .unwrap();
+    door_shield_key.rotation[0] = 0.0;
+    door_shield_key.rotation[1] = 0.0;
+    door_shield_key.position[0] = 94.625732;
+    door_shield_key.position[1] = 335.590027;
+    door_shield_key.position[2] = -4.336928;
+
+    let door_unlock = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_unlock_id)
+        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
+        .unwrap();
+    door_unlock.scale[0] = 4.0;
+    door_unlock.scale[1] = 0.25;
+    door_unlock.scale[2] = 4.0;
+    door_unlock.position[1] = 335.746796;
+
+    let door_key = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_key_id)
+        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
+        .unwrap();
+    door_key.scale[0] = 4.0;
+    door_key.scale[1] = 0.25;
+    door_key.scale[2] = 4.0;
+    door_key.position[1] = 335.746796;
+
+    Ok(())
+}
+
 fn patch_map_door_icon(
     res: &mut structs::Resource,
     door: ModifiableDoorLocation,
@@ -776,7 +852,7 @@ fn patch_door<'r>(
         let blast_shield_type = blast_shield_type.as_ref().unwrap();
 
         // Calculate placement //
-        let rotation: GenericArray<f32, U3>;
+        let mut rotation: GenericArray<f32, U3>;
         let scale: GenericArray<f32, U3>;
 
         // CollisionBox
@@ -845,12 +921,18 @@ fn patch_door<'r>(
                     door_shield.position[2] - 1.763191,
                 ]
                 .into();
-            } else if door_rotation[0] >= 0.01 && door_rotation[0] < 0.05 {
+            } else if door_rotation[1] >= 8.0 && door_rotation[1] < 9.0 {
                 // Leads North (Hive Totem)
                 position = [
-                    door_shield.position[0] + 0.005944,
-                    door_shield.position[1] + 0.100342,
-                    door_shield.position[2] - 1.839322,
+                    door_shield.position[0] - 0.00595,
+                    door_shield.position[1] + 0.383209,
+                    door_shield.position[2] - 1.801748,
+                ]
+                .into();
+                rotation = [
+                    door_shield.rotation[0],
+                    door_shield.rotation[1],
+                    door_shield.rotation[2],
                 ]
                 .into();
             } else if door_rotation[0] >= 8.0 && door_rotation[0] < 9.0 {
@@ -17263,6 +17345,13 @@ fn build_and_run_patches<'r>(
         patcher.add_scly_patch(
             resource_info!("01_mainplaza.MREA").into(),
             make_main_plaza_locked_door_two_ways,
+        );
+    }
+
+    if config.qol_cosmetic {
+        patcher.add_scly_patch(
+            resource_info!("19_hive_totem.MREA").into(),
+            patch_rotate_hive_totem_door,
         );
     }
 
