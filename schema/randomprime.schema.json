@@ -3335,6 +3335,11 @@
                                     "Sandstone"
                                 ],
                                 "default": "Grass"
+                            },
+                            "thermalHot": {
+                                "description": "If true, the block will have a heat signature which will be visible through geometry.",
+                                "type": "boolean",
+                                "default": false
                             }
                         },
                         "required": [

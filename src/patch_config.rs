@@ -290,6 +290,7 @@ pub struct BlockConfig {
     pub position: [f32; 3],
     pub scale: Option<[f32; 3]>,
     pub texture: Option<GenericTexture>,
+    pub thermal_hot: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

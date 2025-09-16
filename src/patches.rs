@@ -6271,6 +6271,7 @@ fn patch_visible_aether_boundaries<'r>(
             None,
             true,
             true,
+            false,
         );
     }
 
@@ -17300,6 +17301,7 @@ fn build_and_run_patches<'r>(
                             position: [42.9551, -287.1726, -240.7044],
                             scale: Some([50.0, 50.0, 1.0]),
                             texture: None,
+                            thermal_hot: Some(false)
                         },
                         false,
                     )
