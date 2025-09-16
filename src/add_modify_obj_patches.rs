@@ -3241,7 +3241,7 @@ pub fn patch_add_block<'r>(
         config.layer,
         config.active.unwrap_or(true),
         old_scale,
-        config.thermal_hot.unwrap_or(false)
+        config.thermal_hot.unwrap_or(false),
     );
 
     Ok(())

@@ -502,8 +502,8 @@ fn patch_rotate_hive_totem_door(
         .unwrap();
     door_shield.rotation[0] = 0.0;
     door_shield.rotation[1] = 0.0;
-    door_shield.position[0] = 94.625732;
-    door_shield.position[1] = 335.590027;
+    door_shield.position[0] = 94.625_73;
+    door_shield.position[1] = 335.590_03;
     door_shield.position[2] = -4.336928;
 
     let door_shield_key = layer
@@ -515,8 +515,8 @@ fn patch_rotate_hive_totem_door(
         .unwrap();
     door_shield_key.rotation[0] = 0.0;
     door_shield_key.rotation[1] = 0.0;
-    door_shield_key.position[0] = 94.625732;
-    door_shield_key.position[1] = 335.590027;
+    door_shield_key.position[0] = 94.625_73;
+    door_shield_key.position[1] = 335.590_03;
     door_shield_key.position[2] = -4.336928;
 
     let door_unlock = layer
@@ -529,7 +529,7 @@ fn patch_rotate_hive_totem_door(
     door_unlock.scale[0] = 4.0;
     door_unlock.scale[1] = 0.25;
     door_unlock.scale[2] = 4.0;
-    door_unlock.position[1] = 335.746796;
+    door_unlock.position[1] = 335.746_8;
 
     let door_key = layer
         .objects
@@ -541,7 +541,7 @@ fn patch_rotate_hive_totem_door(
     door_key.scale[0] = 4.0;
     door_key.scale[1] = 0.25;
     door_key.scale[2] = 4.0;
-    door_key.position[1] = 335.746796;
+    door_key.position[1] = 335.746_8;
 
     Ok(())
 }
@@ -17301,7 +17301,7 @@ fn build_and_run_patches<'r>(
                             position: [42.9551, -287.1726, -240.7044],
                             scale: Some([50.0, 50.0, 1.0]),
                             texture: None,
-                            thermal_hot: Some(false)
+                            thermal_hot: Some(false),
                         },
                         false,
                     )
