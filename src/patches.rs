@@ -1443,7 +1443,7 @@ fn patch_door<'r>(
                             panic!("Custom Blast Shields cannot be placed on morph ball doors");
                         }
 
-                        // Disable the blast shield via memory relay when the door is opened from the other side
+                        // Disable blast shield layer when the door is opened from the other side
                         obj.connections.as_mut_vec().push(structs::Connection {
                             state: structs::ConnectionState::MAX_REACHED,
                             message: structs::ConnectionMsg::DECREMENT,
@@ -1476,6 +1476,31 @@ fn patch_door<'r>(
                             state: structs::ConnectionState::MAX_REACHED,
                             message: structs::ConnectionMsg::DEACTIVATE,
                             target_object_id: timer_id,
+                        });
+
+                        // If it's a powered door, update the doors when door is opened from the other side
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: activate_old_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::OPEN,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: activate_old_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: activate_new_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::OPEN,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: activate_new_door_id,
                         });
 
                         _break = true;
