@@ -8211,10 +8211,15 @@
                     ]
                 },
                 "Research Core": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        2622699,
-                        2622700,
+                        // Tutorials Stuff
+                        2622697, // [Trigger] ControllerAction Activation Trigger
+                        2622698, // [Timer] HUDMemo 1 Activation Timer
+                        2622701, // [Timer] HUDMemo 2 Activation Timer
+                        2622696, // [ControllerAction] ControllerAction - Switch to thermal
+                        2622699, // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 1.STRG
+                        2622700, // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 2.STRG
+                        // Delete music triggers
                         2622611, // [Trigger] Trigger - Play Music 1
                         2622606, // [Trigger] Trigger - Play Music 1
                         2622610, // [Trigger] Trigger - Play Music 2
@@ -8258,6 +8263,12 @@
                             "targetId": 2621463, // [CameraWaypoint] Item Target
                             "state": "CAMERA_TARGET",
                             "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622569, // [Camera] Unpowered Door Cinematic Camera
+                            "targetId": 2622450, // [SpawnPoint] Post-Pickup Spawn
+                            "state": "ACTIVE",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 2621457, // [SpecialFunction] Music Player For Area
