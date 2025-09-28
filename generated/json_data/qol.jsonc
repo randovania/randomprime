@@ -8265,7 +8265,7 @@
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 2622569, // [Camera] Unpowered Door Cinematic Camera
+                            "senderId": 2622540, // [Camera] Unpowered Door Cinematic Camera
                             "targetId": 2622450, // [SpawnPoint] Post-Pickup Spawn
                             "state": "ACTIVE",
                             "message": "SET_TO_ZERO"
