@@ -12448,7 +12448,7 @@ fn patch_dol(
         li           r4, { PickupType::UnknownItem2.kind() };
         rlwinm       r0, r4, 0x3, 0x0, 0x1c;
         add          r4, r3, r0;
-        addi         r4, r4, 0x2c;
+        addi         r4, r4, 0x28;
         lwz          r0, 0x0(r4);
 
         // restore r4 back to its previous value because we need it now
