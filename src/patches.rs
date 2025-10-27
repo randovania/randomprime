@@ -8780,10 +8780,7 @@ fn object_is_dead(
     let object_type = obj.property_data.object_type();
 
     let incoming_connections = all_incoming_connections.get(&obj_id).unwrap_or(&empty_set);
-    let incoming_messages: Vec<_> = incoming_connections
-        .iter()
-        .map(|(_, m, _)| *m)
-        .collect();
+    let incoming_messages: Vec<_> = incoming_connections.iter().map(|(_, m, _)| *m).collect();
 
     // let any_incoming_messages = incoming_connections.len() > 0;
     let any_outgoing_messages = obj
@@ -8814,8 +8811,10 @@ fn object_is_dead(
     if let Some(spawn_point) = obj.property_data.as_spawn_point() {
         if spawn_point.default_spawn == 0
             && !incoming_messages.iter().any(|m| {
-                [structs::ConnectionMsg::SET_TO_ZERO,
-                    structs::ConnectionMsg::RESET]
+                [
+                    structs::ConnectionMsg::SET_TO_ZERO,
+                    structs::ConnectionMsg::RESET,
+                ]
                 .contains(m)
             })
         {
@@ -8827,8 +8826,10 @@ fn object_is_dead(
     if let Some(timer) = obj.property_data.as_timer() {
         if timer.start_immediately == 0
             && !incoming_messages.iter().any(|m| {
-                [structs::ConnectionMsg::START,
-                    structs::ConnectionMsg::RESET_AND_START]
+                [
+                    structs::ConnectionMsg::START,
+                    structs::ConnectionMsg::RESET_AND_START,
+                ]
                 .contains(m)
             })
         {
@@ -8840,8 +8841,10 @@ fn object_is_dead(
     if obj.property_data.supports_active()
         && !obj.property_data.get_active()
         && !incoming_messages.iter().any(|m| {
-            [structs::ConnectionMsg::ACTIVATE,
-                structs::ConnectionMsg::TOGGLE_ACTIVE]
+            [
+                structs::ConnectionMsg::ACTIVATE,
+                structs::ConnectionMsg::TOGGLE_ACTIVE,
+            ]
             .contains(m)
         })
     {
