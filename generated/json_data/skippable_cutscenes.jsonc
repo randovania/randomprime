@@ -17740,7 +17740,7 @@
                         },
                         {
                             "senderId": 1048595, // [SpecialFunction] Leaving Cutscene Skip
-                            "targetId": 1049272, // [Camera] camera1
+                            "targetId": 1049994, // [Camera] Hold
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
@@ -17830,8 +17830,7 @@
                         },
                         {
                             "id": 1572949, // [Timer] Cutscene Skip 2 Frame Delay
-                            "time": 0.02,
-                            "layer": 1
+                            "time": 0.02
                         }
                     ],
                     "relays": [
@@ -17880,6 +17879,12 @@
                             "filterType": "Multiply",
                             "filterIndex": 2,
                             "fadeOutTime": 0.5
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 1049994, // [Camera] Hold
+                            "position": [-373.065369, 33.06012, -38.956352]
                         }
                     ]
                 },
