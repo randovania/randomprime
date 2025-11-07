@@ -10227,6 +10227,31 @@ fn create_rel_config_file(spawn_room: SpawnRoomData, quickplay: bool) -> Vec<u8>
     buf
 }
 
+fn patch_extend_powerbomb_drop_collision(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layers = &mut scly.layers.as_mut_vec();
+    for layer in layers.iter_mut() {
+        for obj in layer.objects.iter_mut() {
+            if obj
+                .property_data
+                .as_pickup()
+                .map(|dt| dt.name == b"Pickup - Powerbomb\0".as_cstr())
+                .unwrap_or(false)
+            {
+                obj.property_data
+                    .as_pickup_mut()
+                    .unwrap()
+                    .hitbox = [2.5, 2.5, 2.5].into();
+            }
+        }
+    };
+    
+        Ok(())
+}
+
 #[rustfmt::skip]
 #[allow(clippy::too_many_arguments)]
 fn patch_dol(
@@ -19603,6 +19628,18 @@ fn build_and_run_patches<'r>(
                 patcher.add_scly_patch(
                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
                     move |ps, area| patch_remove_doors(ps, area),
+                );
+            }
+        }
+    }
+
+    // powerbomb hitbox patch
+    if config.qol_general {
+        for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+            for room_info in rooms.iter() {
+                patcher.add_scly_patch(
+                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                    move |ps, area| patch_extend_powerbomb_drop_collision(ps, area),
                 );
             }
         }
