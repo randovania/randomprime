@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt, io};
 
 use auto_struct_macros::auto_struct;
 use reader_writer::{
-    generic_array::GenericArray, typenum::*, FourCC, LCow, LazyArray, Readable, Reader, RoArray,
+    generic_array::GenericArray, typenum::*, CStr, FourCC, LCow, LazyArray, Readable, Reader, RoArray,
     Writable,
 };
 
@@ -225,15 +225,15 @@ pub struct SclyObject<'r> {
 }
 
 impl SclyObject<'_> {
-    pub fn get_layer_idx(self) -> usize {
+    pub fn get_layer_idx(&self) -> usize {
         ((self.instance_id >> 26) & 0x3F) as usize
     }
 
-    pub fn get_area_idx(self) -> usize {
+    pub fn get_area_idx(&self) -> usize {
         ((self.instance_id >> 16) & 0xFF) as usize
     }
 
-    pub fn get_object_idx(self) -> usize {
+    pub fn get_object_idx(&self) -> usize {
         (self.instance_id & 0xFFFF) as usize
     }
 }
@@ -276,6 +276,36 @@ macro_rules! build_scly_property {
                     SclyProperty::Unknown { object_type, .. } => object_type,
                     $(SclyProperty::$name(_) =>
                       <scly_props::$name as SclyPropertyData>::OBJECT_TYPE,)*
+                }
+            }
+
+            /* Name */
+
+            pub fn get_name(&self) -> CStr
+            {
+                let mut temp = self.clone();
+                temp.guess_kind();
+                match temp {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support name (get)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            let prop = self.$accessor();
+                            prop.unwrap().name.clone()
+                        },
+                    )*
+                }
+            }
+
+            pub fn set_name(&mut self, name: CStr<'r>)
+            {
+                self.guess_kind();
+                match *self {
+                    SclyProperty::Unknown { object_type, .. } => { println!("0x{:X} doesn't support name (set)", object_type) },
+                    $(
+                        SclyProperty::$name(_) => {
+                            self.$accessor_mut().unwrap().name = name;
+                        },
+                    )*
                 }
             }
 

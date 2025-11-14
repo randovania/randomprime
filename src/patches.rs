@@ -93,6 +93,14 @@ impl From<DoorLocation> for ModifiableDoorLocation {
     }
 }
 
+fn add_obj<'r>(
+    layers: &mut [structs::SclyLayer<'r>],
+    obj: structs::SclyObject<'r>,
+) {
+    let layer_idx = obj.get_layer_idx();
+    layers[layer_idx].objects.as_mut_vec().push(obj);
+}
+
 const ARTIFACT_OF_TRUTH_REQ_LAYER: u32 = 23;
 
 fn artifact_layer_change_template<'r>(
@@ -699,13 +707,14 @@ fn patch_door<'r>(
         area.add_layer(b"Custom Shield Layer\0".as_cstr());
         blast_shield_layer_idx = area.layer_flags.layer_count as usize - 1;
 
-        sound_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        streamed_audio_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        shaker_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        blast_shield_instance_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
+        sound_id = area.new_object_id_from_layer_id(0);
+        streamed_audio_id = area.new_object_id_from_layer_id(0);
+        shaker_id = area.new_object_id_from_layer_id(0);
+        blast_shield_instance_id = area.new_object_id_from_layer_id(0);
+        effect_id = area.new_object_id_from_layer_id(0);
+
         timer_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         timer2_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        effect_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         auto_open_relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         dt_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
@@ -1583,47 +1592,20 @@ fn patch_door<'r>(
         };
 
         // add new script objects to layer //
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(streamed_audio);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(sound);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(shaker);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(blast_shield);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(timer);
-        layers[blast_shield_layer_idx].objects.as_mut_vec().push(dt);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(poi);
+        add_obj(layers, streamed_audio);
+        add_obj(layers, sound);
+        add_obj(layers, shaker);
+        add_obj(layers, blast_shield);
+        add_obj(layers, timer);
+        add_obj(layers, dt);
+        add_obj(layers, poi);
         if let Some(effect) = effect {
-            layers[blast_shield_layer_idx]
-                .objects
-                .as_mut_vec()
-                .push(effect);
+            add_obj(layers, effect);
         }
         if let Some(timer2) = timer2 {
-            layers[blast_shield_layer_idx]
-                .objects
-                .as_mut_vec()
-                .push(timer2);
+            add_obj(layers, timer2);
         }
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(relay);
+        add_obj(layers, relay);
     } else {
         position = [0.0, 0.0, 0.0].into();
     }
@@ -8671,27 +8653,200 @@ fn patch_purge_debris_extended(
             .retain(|obj| !obj.property_data.is_debris_extended());
     }
 
+    // TODO: purge dependencies too
+
     Ok(())
 }
 
-fn object_is_dead(
+const RANDOM_RELAY: u8 = 0x14;
+const GENERATOR: u8 = 0xA;
+const SPINDLE_CAMERA: u8 = 0x71;
+const RUMBLE_EFFECT: u8 = 0x74;
+// const SCRIPT_BEAM: u8 = 0x81;
+const CAMERA_SHAKER_OLD: u8 = 0x1C;
+
+fn is_duplicate(
+    a: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
+    b: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
+) -> bool {
+    fn empty_name() -> CStr<'static> {
+        b"\0".as_cstr()
+    }
+
+    if a.property_data.object_type() != b.property_data.object_type() {
+        return false;
+    }
+
+    macro_rules! compare_obj {
+        ($getter:ident, $ty:ty) => {{
+            let mut left = a.property_data.$getter().unwrap().clone().into_owned();
+            let mut right = b.property_data.$getter().unwrap().clone().into_owned();
+            left.name = empty_name();
+            right.name = empty_name();
+            left == right
+        }};
+    }
+
+    match a.property_data.object_type() {
+        structs::HudMemo::OBJECT_TYPE => compare_obj!(as_hud_memo, structs::HudMemo),
+        structs::Sound::OBJECT_TYPE => compare_obj!(as_sound, structs::Sound),
+        structs::SpawnPoint::OBJECT_TYPE => compare_obj!(as_spawn_point, structs::SpawnPoint),
+        structs::CameraHint::OBJECT_TYPE => compare_obj!(as_camera_hint, structs::CameraHint),
+        structs::CameraFilterKeyframe::OBJECT_TYPE => {
+            compare_obj!(as_camera_filter_keyframe, structs::CameraFilterKeyframe)
+        }
+        structs::CameraBlurKeyframe::OBJECT_TYPE => {
+            compare_obj!(as_camera_blur_keyframe, structs::CameraBlurKeyframe)
+        }
+        // CAMERA_SHAKER_OLD => compare_obj!(as_camera_shaker, structs::CameraShaker),
+        structs::ActorKeyFrame::OBJECT_TYPE => {
+            compare_obj!(as_actor_key_frame, structs::ActorKeyFrame)
+        }
+        structs::PlayerHint::OBJECT_TYPE => compare_obj!(as_player_hint, structs::PlayerHint),
+        structs::StreamedAudio::OBJECT_TYPE => {
+            compare_obj!(as_streamed_audio, structs::StreamedAudio)
+        }
+        structs::WorldTransporter::OBJECT_TYPE => {
+            compare_obj!(as_world_transporter, structs::WorldTransporter)
+        }
+        // RUMBLE_EFFECT => compare_obj!(as_rumble_effect, structs::RumbleEffect),
+        structs::WorldLightFader::OBJECT_TYPE => {
+            compare_obj!(as_world_light_fader, structs::WorldLightFader)
+        }
+        // SCRIPT_BEAM => compare_obj!(as_script_beam, structs::ScriptBeam),
+        structs::NewCameraShaker::OBJECT_TYPE => {
+            compare_obj!(as_new_camera_shaker, structs::NewCameraShaker)
+        }
+        _ => panic!(
+            "Unhandled object type for duplicate detection {}",
+            a.property_data.object_type()
+        ),
+    }
+}
+
+fn dedupe_objs(
     scly: &reader_writer::LCow<'_, structs::Scly<'_>>,
+    incoming_connections: &HashMap<
+        u32,
+        HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>,
+    >,
+    dead_objs: &mut HashSet<u32>,
+    dead_connections: &mut HashSet<(u32, structs::Connection)>,
+    add_connections: &mut HashSet<(u32, structs::Connection)>,
+) {
+    // TODO: missing obj implementations
+
+    const DEDUPE_OBJS: &[u8] = &[
+        structs::HudMemo::OBJECT_TYPE,
+        structs::Sound::OBJECT_TYPE,
+        structs::SpawnPoint::OBJECT_TYPE,
+        structs::CameraHint::OBJECT_TYPE,
+        structs::CameraFilterKeyframe::OBJECT_TYPE,
+        structs::CameraBlurKeyframe::OBJECT_TYPE,
+        // CAMERA_SHAKER_OLD,
+        structs::ActorKeyFrame::OBJECT_TYPE,
+        structs::PlayerHint::OBJECT_TYPE,
+        structs::StreamedAudio::OBJECT_TYPE,
+        structs::WorldTransporter::OBJECT_TYPE,
+        // RUMBLE_EFFECT,
+        structs::WorldLightFader::OBJECT_TYPE,
+        // SCRIPT_BEAM,
+        structs::NewCameraShaker::OBJECT_TYPE,
+    ];
+
+    const DEDUPE_BLACKLIST_MESSAGES: &[structs::ConnectionMsg] = &[
+        structs::ConnectionMsg::DEACTIVATE,
+        structs::ConnectionMsg::ACTIVATE,
+        structs::ConnectionMsg::TOGGLE_ACTIVE,
+    ];
+
+    // TODO: streamed audio, camera shaker etc. move to layer 0 for better de-duping (camera shaker ignore position)
+    // TODO: De-dupe auto-start timers with no incoming connections
+    // TODO: De-dupe PickupGenerator with equal drop chances
+
+    for layer in scly.layers.iter() {
+        // Collect all items in this layer which:
+        // - Are a de-dupable object type
+        // - Do not have any incoming messages which modify persistent object state
+        let dedupe_candidates: Vec<_> = layer
+            .objects
+            .iter()
+            .filter(|obj| DEDUPE_OBJS.contains(&obj.property_data.object_type()))
+            .filter(|obj| {
+                incoming_connections
+                    .get(&(obj.instance_id & 0x00FFFFFF))
+                    .map(|conns| {
+                        !conns
+                            .iter()
+                            .map(|(_, msg, _)| msg)
+                            .any(|msg| DEDUPE_BLACKLIST_MESSAGES.contains(msg))
+                    })
+                    .unwrap_or(true)
+            })
+            .collect();
+        let dedupe_candidates = &dedupe_candidates;
+
+        // Iterate through all candidates
+        for keep_obj in dedupe_candidates {
+            if dead_objs.contains(&(keep_obj.instance_id & 0x00FFFFFF)) {
+                continue; // This object was already discarded
+            }
+
+            // Filter out non-duplicates from the candidate list
+            let duplicates: Vec<_> = dedupe_candidates
+                .iter()
+                .filter(|obj| is_duplicate(keep_obj, obj))
+                .collect();
+
+            // For each duplicate of the current candidate
+            for duplicate in duplicates {
+                if keep_obj.instance_id == duplicate.instance_id {
+                    continue; // don't compare against itself
+                }
+                let duplicate_id = duplicate.instance_id & 0x00FFFFFF;
+
+                // Delete incoming connections
+                let conns = incoming_connections.get(&duplicate_id);
+                if let Some(conns) = conns {
+                    let conns: HashSet<_> = conns
+                        .iter()
+                        .map(|(sender_id, message, state)| {
+                            (
+                                *sender_id,
+                                structs::Connection {
+                                    message: *message,
+                                    state: *state,
+                                    target_object_id: duplicate_id,
+                                },
+                            )
+                        })
+                        .collect();
+                    dead_connections.extend(conns);
+                }
+
+                // Re-add connections to the keep object
+                let conns: HashSet<_> = duplicate
+                    .connections
+                    .iter()
+                    .map(|conn| (keep_obj.instance_id, conn.into_owned()))
+                    .collect();
+                add_connections.extend(conns);
+
+                // Delete the object
+                dead_objs.insert(duplicate_id);
+            }
+        }
+    }
+}
+
+fn object_is_dead(
     obj: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
     all_incoming_connections: &HashMap<
         u32,
         HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>,
     >,
-    dead_objs: &HashSet<u32>,
     dead_connections: &HashSet<(u32, structs::Connection)>,
-    add_connections: &mut HashSet<(u32, structs::Connection)>,
 ) -> bool {
-    const RANDOM_RELAY: u8 = 0x14;
-    const GENERATOR: u8 = 0xA;
-    const SPINDLE_CAMERA: u8 = 0x71;
-    const RUMBLE_EFFECT: u8 = 0x74;
-    const SCRIPT_BEAM: u8 = 0x81;
-    const CAMERA_SHAKER_OLD: u8 = 0x1C;
-
     const INERT_MESSAGES: &[structs::ConnectionMsg] = &[
         structs::ConnectionMsg::NONE,
         // structs::ConnectionMsg::ACTIVATE,
@@ -8704,12 +8859,6 @@ fn object_is_dead(
         structs::ConnectionMsg::DELETED,
         structs::ConnectionMsg::INITIALIZED_IN_AREA,
         structs::ConnectionMsg::WORLD_INITIALIZED,
-    ];
-
-    const DEDUPE_BLACKLIST_MESSAGES: &[structs::ConnectionMsg] = &[
-        structs::ConnectionMsg::DEACTIVATE,
-        structs::ConnectionMsg::ACTIVATE,
-        structs::ConnectionMsg::TOGGLE_ACTIVE,
     ];
 
     const NO_SIDE_EFFECT_OBJS: &[u8] = &[
@@ -8755,24 +8904,6 @@ fn object_is_dead(
         structs::HudMemo::OBJECT_TYPE,
         GENERATOR,
         RANDOM_RELAY,
-    ];
-
-    const DEDUPE_OBJS: &[u8] = &[
-        structs::HudMemo::OBJECT_TYPE,
-        structs::Sound::OBJECT_TYPE,
-        structs::SpawnPoint::OBJECT_TYPE,
-        structs::CameraHint::OBJECT_TYPE,
-        structs::CameraFilterKeyframe::OBJECT_TYPE,
-        structs::CameraBlurKeyframe::OBJECT_TYPE,
-        CAMERA_SHAKER_OLD,
-        structs::ActorKeyFrame::OBJECT_TYPE,
-        structs::PlayerHint::OBJECT_TYPE,
-        structs::StreamedAudio::OBJECT_TYPE,
-        structs::WorldTransporter::OBJECT_TYPE,
-        RUMBLE_EFFECT,
-        structs::WorldLightFader::OBJECT_TYPE,
-        SCRIPT_BEAM,
-        structs::NewCameraShaker::OBJECT_TYPE,
     ];
 
     let empty_set = HashSet::new();
@@ -8852,45 +8983,6 @@ fn object_is_dead(
     }
 
     // TODO: Remove Unused "Swap Door" mechanisms
-    // TODO: streamed audio, camera shaker etc. move to layer 0 for better de-duping (camera shaker ignore position)
-    // TODO: De-dupe auto-start timers with no incoming connections
-
-    // Check for objects which can be de-duplicated
-    // if DEDUPE_OBJS.contains(&object_type) {
-    //     if !DEDUPE_BLACKLIST_MESSAGES.iter().any(|m| incoming_messages.contains(m)) {
-    //         for other_layer in scly.layers.iter() {
-    //             // TODO: only objects on the same layer
-    //             for other_obj in other_layer.objects.iter() {
-    //                 let other_obj_id = other_obj.instance_id & 0x00FFFFFF;
-    //                 if obj_id == other_obj_id || dead_objs.contains(&other_obj_id) {
-    //                     continue; // same obj or dead obj
-    //                 }
-
-    //                 if other_obj.property_data != obj.property_data {
-    //                     continue; // not duplicate
-    //                 }
-
-    //                 let other_incoming_messages: Vec<_> = all_incoming_connections.get(&other_obj_id).unwrap_or(&empty_set).into_iter().map(|(_, m, _)| m.clone()).collect();
-    //                 if DEDUPE_BLACKLIST_MESSAGES.iter().any(|m| other_incoming_messages.contains(&m)) {
-    //                     continue; // other obj not candidate for dedupe due to incoming state toggle messages
-    //                 }
-
-    //                 // This object is a duplicate, remove it and re-direct messages to it's duplicate
-    //                 for (sender_id, message, state) in incoming_connections {
-    //                     let conn = structs::Connection {
-    //                         state: *state,
-    //                         message: *message,
-    //                         target_object_id: other_obj_id,
-    //                     };
-    //                     let value = (*sender_id, conn);
-    //                     add_connections.insert(value);
-    //                 }
-
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    // }
 
     false
 }
@@ -8899,6 +8991,20 @@ fn patch_optimize_memory(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
+    /* Shrink Names */
+    {
+        fn empty_name() -> CStr<'static> {
+            b"\0".as_cstr()
+        }
+
+        let scly = area.mrea().scly_section_mut();
+        for layer in scly.layers.as_mut_vec() {
+            for obj in layer.objects.as_mut_vec() {
+                obj.property_data.set_name(empty_name());
+            }
+        }
+    }
+
     let mrea_id = area.mlvl_area.mrea.to_u32();
     let scly = area.mrea().scly_section();
 
@@ -8933,6 +9039,16 @@ fn patch_optimize_memory(
 
     let mut counts = (0, 0, 0, 0);
 
+    /* Dedupe Objects */
+    dedupe_objs(
+        &scly,
+        &incoming_connections,
+        &mut dead_objs,
+        &mut dead_connections,
+        &mut add_connections,
+    );
+    let dedupe_obj_lens = dead_objs.len();
+
     loop {
         /* Collect dead objects */
 
@@ -8940,14 +9056,7 @@ fn patch_optimize_memory(
             for obj in layer.objects.iter() {
                 let obj_id = obj.instance_id & 0x00FFFFFF;
                 if !dead_objs.contains(&obj_id)
-                    && object_is_dead(
-                        &scly,
-                        &obj,
-                        &incoming_connections,
-                        &dead_objs,
-                        &dead_connections,
-                        &mut add_connections,
-                    )
+                    && object_is_dead(&obj, &incoming_connections, &dead_connections)
                 {
                     dead_objs.insert(obj_id);
                 }
@@ -9009,18 +9118,11 @@ fn patch_optimize_memory(
     /* Collect dead dependencies */
     // TODO: unused SCAN/STRG
     // TODO: unused TXTR from randomprime deletions
+    // e.g. pickups no longer in room
 
     let scly = area.mrea().scly_section_mut();
 
     for layer in scly.layers.as_mut_vec() {
-        for obj in layer.objects.as_mut_vec() {
-            let obj_id = obj.instance_id & 0x00FFFFFF;
-            if dead_objs.contains(&obj_id) {
-                let obj_type = obj.property_data.object_type();
-                println!("[0x{:X}] 0x{:X}", obj_type, obj_id);
-            }
-        }
-
         /* Purge dead objects */
         layer
             .objects
@@ -9049,17 +9151,50 @@ fn patch_optimize_memory(
     /* Purge dead dependencies */
     // area.remove_dependencies(dead_deps.into_iter());
 
-    let _room_name = ROOM_BY_MREA.get(&mrea_id).unwrap().room_name;
-    println!(
-        "Removed {} objects and {} connections from room '{}'",
-        dead_objs.len(),
-        dead_connections.len(),
-        _room_name
-    );
-
     area.dedup_dependencies();
 
     /* TODO: Purge dead memory relay connections */
+
+    let dead_memory_relay_conn_len = {
+        let mut all_ids: HashSet<u32> = HashSet::new();
+        {
+            let scly = area.mrea().scly_section();
+            for layer in scly.layers.iter() {
+                let layer_ids: HashSet<_> = layer
+                    .objects
+                    .iter()
+                    .map(|obj| obj.instance_id & 0x00FFFFFF)
+                    .collect();
+                all_ids.extend(layer_ids);
+            }
+        }
+        let area_index = area.mrea_index as u32;
+        let relay_conns = area.memory_relay_conns.as_mut_vec();
+        let before = relay_conns.len();
+        relay_conns.retain(|conn| {
+            let sender_area = (conn.sender_id >> 16) & 0x3FF;
+            let target_area = (conn.target_id >> 16) & 0x3FF;
+
+            if sender_area == area_index && !all_ids.contains(&(conn.sender_id & 0x00FFFFFF)) {
+                return false;
+            }
+            if target_area == area_index && !all_ids.contains(&(conn.target_id & 0x00FFFFFF)) {
+                return false;
+            }
+            true
+        });
+        before - relay_conns.len()
+    };
+    
+    let _room_name = ROOM_BY_MREA.get(&mrea_id).unwrap().room_name;
+    println!(
+        "OPTIMIZE | {:<27} {:<14} {:<14} {:<14} {}",
+        _room_name,
+        format!("{:>3} dupe objs", dedupe_obj_lens),
+        format!("{:>3} dead objs", dead_objs.len() - dedupe_obj_lens),
+        format!("{:>3} conns", dead_connections.len()),
+        format!("{:>3} mem relay conns", dead_memory_relay_conn_len)
+    );
 
     Ok(())
 }
@@ -19656,6 +19791,9 @@ fn build_and_run_patches<'r>(
                 .get(&(world_name.to_string(), room_name.to_string()))
                 .unwrap_or_else(|| panic!("'{} - {}' is not a real room", world_name, room_name))
                 .mrea_id;
+            patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
+                patch_purge_debris_extended(ps, area)
+            });
             patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
                 patch_optimize_memory(ps, area)
             });
