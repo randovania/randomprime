@@ -93,10 +93,7 @@ impl From<DoorLocation> for ModifiableDoorLocation {
     }
 }
 
-fn add_obj<'r>(
-    layers: &mut [structs::SclyLayer<'r>],
-    obj: structs::SclyObject<'r>,
-) {
+fn add_obj<'r>(layers: &mut [structs::SclyLayer<'r>], obj: structs::SclyObject<'r>) {
     let layer_idx = obj.get_layer_idx();
     layers[layer_idx].objects.as_mut_vec().push(obj);
 }
@@ -8658,13 +8655,6 @@ fn patch_purge_debris_extended(
     Ok(())
 }
 
-const RANDOM_RELAY: u8 = 0x14;
-const GENERATOR: u8 = 0xA;
-const SPINDLE_CAMERA: u8 = 0x71;
-const RUMBLE_EFFECT: u8 = 0x74;
-// const SCRIPT_BEAM: u8 = 0x81;
-const CAMERA_SHAKER_OLD: u8 = 0x1C;
-
 fn is_duplicate(
     a: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
     b: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
@@ -8698,7 +8688,7 @@ fn is_duplicate(
         structs::CameraBlurKeyframe::OBJECT_TYPE => {
             compare_obj!(as_camera_blur_keyframe, structs::CameraBlurKeyframe)
         }
-        // CAMERA_SHAKER_OLD => compare_obj!(as_camera_shaker, structs::CameraShaker),
+        structs::CameraShaker::OBJECT_TYPE => compare_obj!(as_camera_shaker, structs::CameraShaker),
         structs::ActorKeyFrame::OBJECT_TYPE => {
             compare_obj!(as_actor_key_frame, structs::ActorKeyFrame)
         }
@@ -8709,11 +8699,11 @@ fn is_duplicate(
         structs::WorldTransporter::OBJECT_TYPE => {
             compare_obj!(as_world_transporter, structs::WorldTransporter)
         }
-        // RUMBLE_EFFECT => compare_obj!(as_rumble_effect, structs::RumbleEffect),
+        structs::RumbleEffect::OBJECT_TYPE => compare_obj!(as_rumble_effect, structs::RumbleEffect),
         structs::WorldLightFader::OBJECT_TYPE => {
             compare_obj!(as_world_light_fader, structs::WorldLightFader)
         }
-        // SCRIPT_BEAM => compare_obj!(as_script_beam, structs::ScriptBeam),
+        structs::ScriptBeam::OBJECT_TYPE => compare_obj!(as_script_beam, structs::ScriptBeam),
         structs::NewCameraShaker::OBJECT_TYPE => {
             compare_obj!(as_new_camera_shaker, structs::NewCameraShaker)
         }
@@ -8743,14 +8733,14 @@ fn dedupe_objs(
         structs::CameraHint::OBJECT_TYPE,
         structs::CameraFilterKeyframe::OBJECT_TYPE,
         structs::CameraBlurKeyframe::OBJECT_TYPE,
-        // CAMERA_SHAKER_OLD,
+        structs::CameraShaker::OBJECT_TYPE,
         structs::ActorKeyFrame::OBJECT_TYPE,
         structs::PlayerHint::OBJECT_TYPE,
         structs::StreamedAudio::OBJECT_TYPE,
         structs::WorldTransporter::OBJECT_TYPE,
-        // RUMBLE_EFFECT,
+        structs::RumbleEffect::OBJECT_TYPE,
         structs::WorldLightFader::OBJECT_TYPE,
-        // SCRIPT_BEAM,
+        structs::ScriptBeam::OBJECT_TYPE,
         structs::NewCameraShaker::OBJECT_TYPE,
     ];
 
@@ -8865,9 +8855,9 @@ fn object_is_dead(
         structs::Trigger::OBJECT_TYPE,
         structs::Timer::OBJECT_TYPE,
         structs::Counter::OBJECT_TYPE,
-        GENERATOR,
+        structs::Generator::OBJECT_TYPE,
         structs::PickupGenerator::OBJECT_TYPE,
-        RANDOM_RELAY,
+        structs::RandomRelay::OBJECT_TYPE,
         structs::Relay::OBJECT_TYPE,
         structs::Switch::OBJECT_TYPE,
     ];
@@ -8878,12 +8868,12 @@ fn object_is_dead(
         structs::CameraWaypoint::OBJECT_TYPE,
         structs::Camera::OBJECT_TYPE,
         structs::CameraHint::OBJECT_TYPE,
-        RANDOM_RELAY,
+        structs::RandomRelay::OBJECT_TYPE,
         structs::Relay::OBJECT_TYPE,
         structs::CameraFilterKeyframe::OBJECT_TYPE,
         structs::CameraBlurKeyframe::OBJECT_TYPE,
         structs::NewCameraShaker::OBJECT_TYPE,
-        CAMERA_SHAKER_OLD,
+        structs::CameraShaker::OBJECT_TYPE,
         structs::ActorKeyFrame::OBJECT_TYPE,
         structs::CoverPoint::OBJECT_TYPE,
         structs::PathCamera::OBJECT_TYPE,
@@ -8893,8 +8883,8 @@ fn object_is_dead(
         structs::AIJumpPoint::OBJECT_TYPE,
         structs::WorldTransporter::OBJECT_TYPE,
         structs::CameraPitchVolume::OBJECT_TYPE,
-        SPINDLE_CAMERA,
-        RUMBLE_EFFECT,
+        structs::SpindleCamera::OBJECT_TYPE,
+        structs::RumbleEffect::OBJECT_TYPE,
         structs::StreamedAudio::OBJECT_TYPE,
     ];
 
@@ -8902,8 +8892,8 @@ fn object_is_dead(
         structs::Switch::OBJECT_TYPE,
         structs::Relay::OBJECT_TYPE,
         structs::HudMemo::OBJECT_TYPE,
-        GENERATOR,
-        RANDOM_RELAY,
+        structs::Generator::OBJECT_TYPE,
+        structs::RandomRelay::OBJECT_TYPE,
     ];
 
     let empty_set = HashSet::new();
@@ -9185,15 +9175,15 @@ fn patch_optimize_memory(
         });
         before - relay_conns.len()
     };
-    
+
     let _room_name = ROOM_BY_MREA.get(&mrea_id).unwrap().room_name;
     println!(
-        "OPTIMIZE | {:<27} {:<14} {:<14} {:<14} {}",
+        "OPTIMIZE | {:<27} {:>3} dupe objs {:>3} dead objs {:>3} conns {:>3} mem relay conns",
         _room_name,
-        format!("{:>3} dupe objs", dedupe_obj_lens),
-        format!("{:>3} dead objs", dead_objs.len() - dedupe_obj_lens),
-        format!("{:>3} conns", dead_connections.len()),
-        format!("{:>3} mem relay conns", dead_memory_relay_conn_len)
+        dedupe_obj_lens,
+        dead_objs.len() - dedupe_obj_lens,
+        dead_connections.len(),
+        dead_memory_relay_conn_len,
     );
 
     Ok(())
@@ -17286,7 +17276,7 @@ fn build_and_run_patches<'r>(
         let world = World::from_pak(pak_name).unwrap();
 
         for room_info in rooms.iter() {
-            let room_idx = room_info.index();
+            let room_idx: usize = room_info.index();
 
             if remove_control_disabler {
                 patcher.add_scly_patch(
@@ -19799,6 +19789,16 @@ fn build_and_run_patches<'r>(
             });
         }
     }
+
+    /* Optimize ALL rooms */
+    // for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+    //     for room_info in rooms.iter() {
+    //         patcher.add_scly_patch(
+    //             (pak_name.as_bytes(), room_info.room_id.to_u32()),
+    //             move |ps, area| patch_optimize_memory(ps, area),
+    //         );
+    //     }
+    // }
 
     patcher.run(gc_disc)?;
 

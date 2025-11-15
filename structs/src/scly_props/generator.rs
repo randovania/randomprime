@@ -5,15 +5,15 @@ use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone, PartialEq)]
-pub struct CameraBlurKeyframe<'r> {
-    #[auto_struct(expect = 7)]
+pub struct Generator<'r> {
+    #[auto_struct(expect = 8)]
     pub prop_count: u32,
 
     pub name: CStr<'r>,
-    pub active: u8,
-    pub dont_care: GenericArray<u8, U20>,
+
+    pub dont_care: GenericArray<u8, U27>,
 }
 
-impl SclyPropertyData for CameraBlurKeyframe<'_> {
-    const OBJECT_TYPE: u8 = 0x19;
+impl SclyPropertyData for Generator<'_> {
+    const OBJECT_TYPE: u8 = 0x0A;
 }
