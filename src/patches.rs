@@ -9416,20 +9416,44 @@ fn patch_frost_cave_metroid_pal(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
-    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    let metroid = layers[3] // 3 is Don't Load layer
-        .objects
-        .iter_mut()
-        .find(|obj| obj.instance_id & 0x00FFFFFF == 0x00290199)
-        .unwrap()
-        .clone();
 
-    layers[2].objects.as_mut_vec().push(metroid.clone()); // 2 is 1st Pass layer
-    layers[3]
+        let flags = &mut area.layer_flags.flags;
+        *flags |= 1 << 3; // Turn on "Don't Load" Layer with Hunter Metroid
+
+    Ok(())
+}
+
+fn patch_frost_cave_metroid_pal_layer_switch(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+
+    let obj = layer
         .objects
         .as_mut_vec()
-        .retain(|obj| obj.instance_id & 0x00FFFFFF != 0x00290199);
+        .iter_mut()
+        .find(|obj| obj.instance_id == 3473439)
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ARRIVED,
+        message: structs::ConnectionMsg::DECREMENT,
+        target_object_id: id,
+    });
 
+    layer.objects.as_mut_vec().push(structs::SclyObject {
+        instance_id: id,
+        property_data: structs::SpecialFunction::layer_change_fn(
+            b"SpecialFunction - Ice Cave A - Decrement Don't Load\0".as_cstr(),
+            0xC91D48C5,
+            3,
+        )
+        .into(),
+        connections: vec![].into(),
+    });
     Ok(())
 }
 
@@ -15366,6 +15390,10 @@ fn patch_qol_game_breaking(
             patcher.add_scly_patch(
                 resource_info!("15_ice_cave_a.MREA").into(),
                 patch_frost_cave_metroid_pal,
+            );
+            patcher.add_scly_patch(
+                resource_info!("18_ice_gravity_chamber.MREA").into(),
+                patch_frost_cave_metroid_pal_layer_switch,
             );
         }
     }
