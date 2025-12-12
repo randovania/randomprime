@@ -44,7 +44,7 @@ use crate::{
         ConnectionState, CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode,
         FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat,
         LevelConfig, PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType,
-        RoomConfig, RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig, Version, Visor,
+        RoomConfig, RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig, Version, Visor, EditObjConfig,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -8707,6 +8707,9 @@ fn is_duplicate(
         structs::NewCameraShaker::OBJECT_TYPE => {
             compare_obj!(as_new_camera_shaker, structs::NewCameraShaker)
         }
+        structs::Timer::OBJECT_TYPE => {
+            compare_obj!(as_timer, structs::Timer)
+        }
         _ => panic!(
             "Unhandled object type for duplicate detection {}",
             a.property_data.object_type()
@@ -8724,8 +8727,6 @@ fn dedupe_objs(
     dead_connections: &mut HashSet<(u32, structs::Connection)>,
     add_connections: &mut HashSet<(u32, structs::Connection)>,
 ) {
-    // TODO: missing obj implementations
-
     const DEDUPE_OBJS: &[u8] = &[
         structs::HudMemo::OBJECT_TYPE,
         structs::Sound::OBJECT_TYPE,
@@ -8742,6 +8743,7 @@ fn dedupe_objs(
         structs::WorldLightFader::OBJECT_TYPE,
         structs::ScriptBeam::OBJECT_TYPE,
         structs::NewCameraShaker::OBJECT_TYPE,
+        structs::Timer::OBJECT_TYPE, // only if no incoming connections
     ];
 
     const DEDUPE_BLACKLIST_MESSAGES: &[structs::ConnectionMsg] = &[
@@ -8750,8 +8752,6 @@ fn dedupe_objs(
         structs::ConnectionMsg::TOGGLE_ACTIVE,
     ];
 
-    // TODO: streamed audio, camera shaker etc. move to layer 0 for better de-duping (camera shaker ignore position)
-    // TODO: De-dupe auto-start timers with no incoming connections
     // TODO: De-dupe PickupGenerator with equal drop chances
 
     for layer in scly.layers.iter() {
@@ -8766,10 +8766,14 @@ fn dedupe_objs(
                 incoming_connections
                     .get(&(obj.instance_id & 0x00FFFFFF))
                     .map(|conns| {
-                        !conns
-                            .iter()
-                            .map(|(_, msg, _)| msg)
-                            .any(|msg| DEDUPE_BLACKLIST_MESSAGES.contains(msg))
+                        if obj.property_data.object_type() == structs::Timer::OBJECT_TYPE {
+                            conns.is_empty()
+                        } else {
+                            !conns
+                                .iter()
+                                .map(|(_, msg, _)| msg)
+                                .any(|msg| DEDUPE_BLACKLIST_MESSAGES.contains(msg))
+                        }
                     })
                     .unwrap_or(true)
             })
@@ -8972,13 +8976,13 @@ fn object_is_dead(
         return true;
     }
 
-    // TODO: Remove Unused "Swap Door" mechanisms
+
 
     false
 }
 
 fn patch_optimize_memory(
-    _ps: &mut PatcherState,
+    ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     /* Shrink Names */
@@ -8993,6 +8997,40 @@ fn patch_optimize_memory(
                 obj.property_data.set_name(empty_name());
             }
         }
+    }
+
+    /* Move objs to layer 0 for better de-dupe results */
+    {
+        const DEFAULT_LAYER_OBJS: &[u8] = &[
+            structs::HudMemo::OBJECT_TYPE,
+            structs::Sound::OBJECT_TYPE,
+            structs::CameraHint::OBJECT_TYPE,
+            structs::CameraFilterKeyframe::OBJECT_TYPE,
+            structs::CameraBlurKeyframe::OBJECT_TYPE,
+            structs::CameraShaker::OBJECT_TYPE,
+            structs::ActorKeyFrame::OBJECT_TYPE,
+            structs::PlayerHint::OBJECT_TYPE,
+            structs::StreamedAudio::OBJECT_TYPE,
+            structs::WorldTransporter::OBJECT_TYPE,
+            structs::RumbleEffect::OBJECT_TYPE,
+            structs::WorldLightFader::OBJECT_TYPE,
+            structs::ScriptBeam::OBJECT_TYPE,
+            structs::NewCameraShaker::OBJECT_TYPE,
+        ];
+        let mut edit_objs: HashMap<u32, EditObjConfig> = HashMap::new();
+        let scly = area.mrea().scly_section();
+        for layer in scly.layers.iter() {
+            for obj in layer.objects.iter() {
+                if !DEFAULT_LAYER_OBJS.contains(&obj.property_data.object_type()) {
+                    continue;
+                }
+                edit_objs.insert(obj.instance_id & 0x00FFFFFF, EditObjConfig {
+                    layer: Some(0),
+                    ..Default::default()
+                });
+            }
+        }
+        patch_edit_objects(ps, area, edit_objs).ok();
     }
 
     let mrea_id = area.mlvl_area.mrea.to_u32();
