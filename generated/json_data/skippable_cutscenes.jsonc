@@ -2116,7 +2116,7 @@
                         },
                         {
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
-                            "targetId": 3145752, // [Timer] Timer Hive Explosion
+                            "targetId": 3145815, // [Sound] Sound - Smoke After Explosion
                             "state": "ZERO",
                             "message": "STOP"
                         },
@@ -2238,13 +2238,13 @@
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
                             "targetId": 3145928, // [Sound] Sound - Hive Explosion 1
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "STOP"
                         },
                         {
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
                             "targetId": 3145780, // [Sound] Sound - Hive Explosion 2
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "STOP"
                         },
                         {
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
@@ -2276,6 +2276,11 @@
                             "id": 3459754, // [Timer] Timer Skipped Intro Encounter
                             "time": 4.5,
                             "startImmediately": false
+                        },
+                        // Edit of existing
+                        {
+                            "id": 3145752, // [Timer] Timer Hive Explosion
+                            "time": 0.98
                         }
                     ],
                     "relays": [
