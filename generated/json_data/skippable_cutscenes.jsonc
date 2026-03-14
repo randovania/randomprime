@@ -28607,9 +28607,6 @@
                     ]
                 },
                 "Subchamber Five": {
-                    "deleteIds": [
-                        721309
-                    ],
                     "removeConnections": [
                         {
                             "senderId": 655378, // [Camera] Cinematic Camera1
@@ -28769,7 +28766,7 @@
                         {
                             "id": 655496, // [CameraFilterKeyframe] Skip Black Screen
                             "filterType": "Multiply",
-                            "filterIndex": 3,
+                            "filterIndex": 2,
                             "filterShape": "Fullscreen",
                             "fadeInTime": 0.0,
                             "fadeOutTime": 0.5
@@ -28960,6 +28957,24 @@
                             "targetId": 721310, // [StreamedAudio] StreamedAudio Crater Metroid Prime Stage 2 SW
                             "state": "ZERO",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 721309, // [SpawnPoint] Spawn point
+                            "targetId": 721064, // [PlayerHint] Disable Controls for Crash Failsafe
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 721309, // [SpawnPoint] Spawn point
+                            "targetId": 721075, // [Timer] Disable Failsafe
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 721075, // [Timer] Disable Failsafe
+                            "targetId": 721064, // [PlayerHint] Disable Controls for Crash Failsafe
+                            "state": "ZERO",
+                            "message": "DECREMENT"
                         }
                     ],
                     "timers": [
@@ -28970,6 +28985,11 @@
                         {
                             "id": 720948, // [Timer] Delay before return to game
                             "time": 0.5
+                        },
+                        {
+                            "id": 721075, // [Timer] Disable Failsafe
+                            "time": 0.5,
+                            "startImmediately": true
                         }
                     ],
                     "streamedAudios": [
@@ -29005,7 +29025,7 @@
                             "id": 720916, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
-                            "filterIndex": 3,
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -29018,6 +29038,13 @@
                     "relays": [
                         {
                             "id": 720904 // [Relay] END_INVISOCAM
+                        }
+                    ],
+                    "playerHints": [
+                        {
+                            "id": 721064, // [PlayerHint] Disable Controls for Crash Failsafe
+                            "unknown1": true,
+                            "disableControls": true
                         }
                     ],
                     "specialFunctions": [
