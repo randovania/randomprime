@@ -6,7 +6,7 @@ use reader_writer::{
 };
 
 use crate::{
-    ctwk::*, dumb::Dumb, evnt::Evnt, frme::Frme, hint::Hint, mapa::Mapa, mapw::Mapw, mlvl::Mlvl,
+    atbl::*, ctwk::*, dumb::Dumb, evnt::Evnt, frme::Frme, hint::Hint, mapa::Mapa, mapw::Mapw, mlvl::Mlvl,
     mrea::Mrea, savw::Savw, scan::Scan, strg::Strg,
 };
 
@@ -598,6 +598,10 @@ macro_rules! build_resource_data {
 }
 
 build_resource_data!(
+    Atbl,
+    b"ATBL",
+    as_atbl,
+    as_atbl_mut,
     Dumb,
     b"DUMB",
     as_dumb,
