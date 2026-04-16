@@ -5,6 +5,7 @@ members = [
     "rel_loader",
     "rel_patches",
 ]
+resolver = "2"
 
 [profile.dev]
 panic = "abort"
@@ -16,4 +17,3 @@ panic = "abort"
 lto = true
 codegen-units = 1
 opt-level = 's'
-

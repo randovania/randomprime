@@ -33,7 +33,7 @@ pub struct Door<'r> {
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Door<'r> {
+impl SclyPropertyData for Door<'_> {
     const OBJECT_TYPE: u8 = 0x03;
 
     impl_position!();

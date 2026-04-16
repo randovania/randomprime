@@ -70,7 +70,7 @@ where
     }
 }
 
-impl<'r> GcDisc<'r> {
+impl GcDisc<'_> {
     pub fn write<W, N>(&mut self, writer: &mut W, notifier: &mut N) -> io::Result<()>
     where
         W: Write + WriteExt,
@@ -322,7 +322,7 @@ impl<'r> FstEntry<'r> {
         let mut last_file_offset = GC_DISC_LENGTH as u32;
         for e in entries {
             // We need to round up to a mupliple of 32
-            last_file_offset -= (e.raw_entry.length + 31) & (u32::max_value() - 31);
+            last_file_offset -= (e.raw_entry.length + 31) & (u32::MAX - 31);
             e.raw_entry.offset = last_file_offset;
         }
 
@@ -514,7 +514,7 @@ impl<'a, 'r> Iterator for DirFilesIterMut<'a, 'r> {
     }
 }
 
-impl<'r> FstEntryFile<'r> {
+impl FstEntryFile<'_> {
     fn size(&self) -> usize {
         match *self {
             FstEntryFile::Pak(ref pak) => pak.size(),

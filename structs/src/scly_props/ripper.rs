@@ -25,7 +25,7 @@ pub struct Ripper<'r> {
     pub grapple_parameters: GrappleParameters,
 }
 
-impl<'r> SclyPropertyData for Ripper<'r> {
+impl SclyPropertyData for Ripper<'_> {
     const OBJECT_TYPE: u8 = 0x3F;
 
     impl_position!();

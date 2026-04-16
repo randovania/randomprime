@@ -43,6 +43,6 @@ pub struct NewCameraShakePoint {
     pub magnitude: f32,
 }
 
-impl<'r> SclyPropertyData for NewCameraShaker<'r> {
+impl SclyPropertyData for NewCameraShaker<'_> {
     const OBJECT_TYPE: u8 = 0x89;
 }

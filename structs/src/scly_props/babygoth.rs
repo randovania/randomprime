@@ -49,7 +49,7 @@ pub struct Babygoth<'r> {
     pub flame_player_ice_txtr: u32,
 }
 
-impl<'r> SclyPropertyData for Babygoth<'r> {
+impl SclyPropertyData for Babygoth<'_> {
     const OBJECT_TYPE: u8 = 0x66;
 
     impl_position!();

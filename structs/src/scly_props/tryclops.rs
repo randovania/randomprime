@@ -24,7 +24,7 @@ pub struct Tryclops<'r> {
     pub dont_cares1: GenericArray<f32, U4>,
 }
 
-impl<'r> SclyPropertyData for Tryclops<'r> {
+impl SclyPropertyData for Tryclops<'_> {
     const OBJECT_TYPE: u8 = 0x7A;
 
     impl_position!();

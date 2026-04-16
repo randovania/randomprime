@@ -17,7 +17,7 @@ pub struct AIJumpPoint<'r> {
     pub apex: f32,
 }
 
-impl<'r> SclyPropertyData for AIJumpPoint<'r> {
+impl SclyPropertyData for AIJumpPoint<'_> {
     const OBJECT_TYPE: u8 = 0x5B;
 
     impl_position!();

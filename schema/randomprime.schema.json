@@ -1134,6 +1134,11 @@
                     "description": "If true, it becomes nearly impossible to transition most doors while oob.",
                     "type": "boolean",
                     "default": false
+                },
+                "blastShieldLockon": {
+                    "description": "If true, blast shields placed by randomprime will be targetable in combat visor",
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "required": [],
@@ -2893,6 +2898,56 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "position": {
+                                "description": "Point at which the liquid is centered.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "scale": {
+                                "description": "The extent of the liquid volume.",
+                                "$ref": "#/$defs/vector3Positive"
+                            },
+                            "force": {
+                                "description": "If the apply force flag is enabled, this is the force applied.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "flags": {
+                                "description": "Just like a trigger, defines various attributes of the water. Use PWE on any existing trigger to calculate this as a number.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 262143,
+                                "default": 2047
+                            },
+                            "thermalCold": {
+                                "description": "Specify if the liquid will be visible in Thermal Visor as a cold signature.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "displaySurface": {
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "morphInTime": {
+                                "description": "Time it will take for the water to reach it's destination. Used in Energy Core and Ruined Courtyard.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            },
+                            "morphOutTime": {
+                                "description": "Time it will take for the water to reach it's original position. Used in Energy Core and Ruined Courtyard.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            },
+                            "active": {
+                                "description": "Default active state of the liquid.",
+                                "type": "boolean",
+                                "default": true
+                            },
                             "type": {
                                 "description": "Define what kind of liquid. Note that Phazon water is unused in the base game and acts similarly to Phazon pools.",
                                 "type": "string",
@@ -2900,21 +2955,112 @@
                                     "Water",
                                     "Poison",
                                     "Lava",
+                                    "ThickLava",
                                     "Phazon"
                                 ]
                             },
-                            "active": {
-                                "description": "Default active state of the liquid.",
-                                "type": "boolean",
-                                "default": true
+                            "alpha": {
+                                "description": "Visibility level of the water.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "maximum": 1.0,
+                                "default": 0.7
                             },
-                            "position": {
-                                "description": "Point at which the liquid is centerd.",
-                                "$ref": "#/$defs/vector3"
+                            "splashColor": {
+                                "description": "The color of the water splash particle.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
                             },
-                            "scale": {
-                                "description": "The extent of the liquid volume.",
-                                "$ref": "#/$defs/vector3Positive"
+                            "insideFogColor": {
+                                "description": "Fog color when underwater.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            },
+                            "tileSize": {
+                                "description": "Size of the water tile, the smaller the number the bigger the amount of repeating textures that are on the water.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 2.4,
+                                "exclusiveMaximum": 50.0
+                            },
+                            "tileSubdivisions": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "default": 6,
+                                "exclusiveMaximum": 20
+                            },
+                            "rippleIntensity": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 0.8
+                            },
+                            "fogBias": {
+                                "description": "Height that the liquid's fog will favour being around.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "fogMagnitude": {
+                                "description": "Height that the liquid's fog will reach when going up.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "fogSpeed": {
+                                "description": "Speed of the fog when going up.",
+                                "type": "number",
+                                "default": 1.0
+                            },
+                            "fogColor": {
+                                "description": "Color of the fog.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0
+                                },
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "alphaInTime": {
+                                "description": "Time it will take for the water to to fade in when `Action` message is sent.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
+                            },
+                            "alphaOutTime": {
+                                "description": "Time it will take for the water to to fade out when `Action` message is sent.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 1.0
                             }
                         },
                         "required": [
@@ -3189,6 +3335,11 @@
                                     "Sandstone"
                                 ],
                                 "default": "Grass"
+                            },
+                            "thermalHot": {
+                                "description": "If true, the block will have a heat signature which will be visible through geometry.",
+                                "type": "boolean",
+                                "default": false
                             }
                         },
                         "required": [
@@ -3470,6 +3621,15 @@
                     },
                     "additionalProperties": false,
                     "deprecated": true
+                },
+                "setMemoryRelays": {
+                    "description": "In vanilla after you create a new save file all Memory Relay objects are set to INACTIVE and will remain INACTIVE until they are ACTIVATED by another object. Memory Relay instance IDs placed in this array will be ACTIVE by default for new save files.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 4294967295
+                    }
                 },
                 "editObjs": {
                     "description": "Modify properties of existing objects by their instance ID. Only generic properties shared across many object types can be edited such as position/scale. Not all objects support all properties. In these cases, an error is thrown when patching the ISO.",
@@ -4941,7 +5101,12 @@
                             },
                             "rotation": {
                                 "description": "The rotation of the CameraHint.",
-                                "$ref": "#/$defs/vector3"
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
                             },
                             "active": {
                                 "description": "Default active state of the CameraHint.",
@@ -5000,6 +5165,10 @@
                                 "default": false
                             },
                             "hintDistanceSelfPos": {
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "controlInterpolation": {
                                 "type": "boolean",
                                 "default": false
                             },
@@ -5249,6 +5418,186 @@
                                 "description": "Disable this trigger when exited.",
                                 "type": "boolean",
                                 "default": false
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "ballTriggers": {
+                    "description": "Add BallTrigger objects to this room. They can attract the Morph Ball and fix it in place when entered, then act as a regular trigger with no other special properties",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "Position of the ball trigger.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "scale": {
+                                "description": "Extent of the ball trigger.",
+                                "$ref": "#/$defs/vector3Positive",
+                                "default": [
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ]
+                            },
+                            "active": {
+                                "description": "Default activate state of the ball trigger.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "force": {
+                                "description": "Attraction force value, the higher it is the harder the trigger will draw you to it.",
+                                "type": "number",
+                                "default": 20.0,
+                                "minimum": 0.0
+                            },
+                            "minAngle": {
+                                "description": "Minimal arc angle where the ball trigger will draw you in.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "maxDistance": {
+                                "description": "Maximum distance where the ball trigger will try to draw you in, a low value means it will not pull you in until you get closer to it.",
+                                "type": "number",
+                                "default": 0.0
+                            },
+                            "forceAngle": {
+                                "description": "Starting angle of the BallTrigger, distance and angle calculations will be based off this.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "stopPlayer": {
+                                "description": "Will freeze player rotation and speed in place if true.",
+                                "type": "boolean",
+                                "default": true
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "pathCameras": {
+                    "description": "Add PathCamera objects to this room. Used in conjuction with `NewCameraHint` set to `PathCamera` behavior and `CameraWaypoint` objects to make the Morph Ball camera follow a set path",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "position": {
+                                "description": "Position of the object.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "rotation": {
+                                "description": "Rotation of the object.",
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
+                            },
+                            "active": {
+                                "description": "Default activate state of the object",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "isClosedLoop": {
+                                "description": "If true, the camera path will be one-directional.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "fixedLookPos": {
+                                "description": "If true, the camera will follow the Morph Ball in a fixed position.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "sideView": {
+                                "description": "If true, sets it so that it looks at the player at a 90 degree angle from the spline coordinate (which would make it look at it from the side).",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "cameraHeightFromHint": {
+                                "description": "If true, makes the height of the camera behind the Morph Ball follow along with the Z coordinate of the CameraHint.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "clampToClosedDoor": {
+                                "description": "If true, it will clamp the camera against a closed door if there is one nearby.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "unused": {
+                                "description": "Does not seem to do anything.",
+                                "type": "boolean",
+                                "default": false
+                            },
+                            "lengthExtend": {
+                                "description": "Distance between the Morph Ball and the camera in game units.",
+                                "type": "number",
+                                "default": 3.0,
+                                "minimum": 0.0
+                            },
+                            "filterMag": {
+                                "type": "number",
+                                "default": 15.0,
+                                "minimum": 0.0
+                            },
+                            "filterProportion": {
+                                "type": "number",
+                                "default": 3.0,
+                                "minimum": 0.0
+                            },
+                            "initialSplinePosition": {
+                                "type": "string",
+                                "enum": [
+                                    "BallCamBasis",
+                                    "Negative",
+                                    "Positive",
+                                    "ClampBasis"
+                                ],
+                                "default": "BallCamBasis"
+                            },
+                            "minEaseDist": {
+                                "type": "number",
+                                "default": 4.0,
+                                "minimum": 0.0
+                            },
+                            "maxEaseDist": {
+                                "type": "number",
+                                "default": 6.0,
+                                "minimum": 0.0
                             }
                         },
                         "required": [

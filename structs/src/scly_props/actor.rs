@@ -45,7 +45,7 @@ pub struct Actor<'r> {
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Actor<'r> {
+impl SclyPropertyData for Actor<'_> {
     const OBJECT_TYPE: u8 = 0x0;
     impl_position!();
     impl_rotation!();

@@ -5,7 +5,6 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
     env::args,
-    ffi::CStr,
     fs::File,
     mem, str as stdstr,
 };
@@ -207,7 +206,7 @@ impl<'r> ResourceDb<'r> {
         key: ResourceKey,
         ancs_node: Option<u32>,
     ) {
-        if key.file_id != u32::max_value() {
+        if key.file_id != u32::MAX {
             set.insert(key);
             set.extend(self.get_resource_deps(key, ancs_node));
         };
@@ -718,7 +717,7 @@ fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
                 .read::<Pickup>(())
                 .clone();
-        nothing_pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Nothing\0").unwrap());
+        nothing_pickup.name = Cow::Borrowed(c"Nothing");
         nothing_pickup.kind = PickupType::Missile.kind();
         nothing_pickup.max_increase = 0;
         nothing_pickup.curr_increase = 0;
@@ -757,7 +756,7 @@ fn create_zoomer(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
                 .read::<Pickup>(())
                 .clone();
-        pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Zoomer\0").unwrap());
+        pickup.name = Cow::Borrowed(c"Zoomer");
         pickup.kind = PickupType::Missile.kind();
         pickup.max_increase = 0;
         pickup.curr_increase = 0;
@@ -796,7 +795,7 @@ fn create_cog(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
                 .read::<Pickup>(())
                 .clone();
-        pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Cog\0").unwrap());
+        pickup.name = Cow::Borrowed(c"Cog");
         pickup.kind = PickupType::Missile.kind();
         pickup.max_increase = 0;
         pickup.curr_increase = 0;
@@ -835,7 +834,7 @@ fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             Reader::new(&pickup_table[&PickupModel::PhazonSuit].bytes)
                 .read::<Pickup>(())
                 .clone();
-        pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Gamecube\0").unwrap());
+        pickup.name = Cow::Borrowed(c"Gamecube");
         pickup.kind = PickupType::Missile.kind();
         pickup.max_increase = 0;
         pickup.curr_increase = 0;
@@ -876,7 +875,7 @@ fn create_shiny_missile(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         let mut shiny_missile = Reader::new(&pickup_table[&PickupModel::Missile].bytes)
             .read::<Pickup>(())
             .clone();
-        shiny_missile.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Shiny Missile\0").unwrap());
+        shiny_missile.name = Cow::Borrowed(c"Shiny Missile");
         shiny_missile.cmdl = custom_asset_ids::SHINY_MISSILE_CMDL;
         shiny_missile.ancs.file_id = custom_asset_ids::SHINY_MISSILE_ANCS;
         shiny_missile.write_to(&mut shiny_missile_bytes).unwrap();
@@ -929,7 +928,7 @@ fn create_thermal_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         let mut visor = Reader::new(&pickup_table[&PickupModel::Visor].bytes)
             .read::<Pickup>(())
             .clone();
-        visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Thermal Visor\0").unwrap());
+        visor.name = Cow::Borrowed(c"Thermal Visor");
         visor.cmdl = custom_asset_ids::THERMAL_CMDL;
         visor.ancs.file_id = custom_asset_ids::THERMAL_ANCS;
         visor.write_to(&mut bytes).unwrap();
@@ -972,7 +971,7 @@ fn create_xray_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         let mut visor = Reader::new(&pickup_table[&PickupModel::Visor].bytes)
             .read::<Pickup>(())
             .clone();
-        visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"X-Ray Visor\0").unwrap());
+        visor.name = Cow::Borrowed(c"X-Ray Visor");
         visor.cmdl = custom_asset_ids::XRAY_CMDL;
         visor.ancs.file_id = custom_asset_ids::XRAY_ANCS;
         visor.write_to(&mut bytes).unwrap();
@@ -1015,7 +1014,7 @@ fn create_flamethrower(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         let mut pickup = Reader::new(&pickup_table[&PickupModel::Flamethrower].bytes)
             .read::<Pickup>(())
             .clone();
-        pickup.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Flamethrower\0").unwrap());
+        pickup.name = Cow::Borrowed(c"Flamethrower");
         pickup.cmdl = custom_asset_ids::FLAMETHROWER_PICKUP_CMDL;
         pickup.ancs.file_id = custom_asset_ids::FLAMETHROWER_PICKUP_ANCS;
         pickup.write_to(&mut bytes).unwrap();
@@ -1064,7 +1063,7 @@ fn create_combat_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         let mut visor = Reader::new(&pickup_table[&PickupModel::Visor].bytes)
             .read::<Pickup>(())
             .clone();
-        visor.name = Cow::Borrowed(CStr::from_bytes_with_nul(b"Combat Visor\0").unwrap());
+        visor.name = Cow::Borrowed(c"Combat Visor");
         visor.cmdl = custom_asset_ids::COMBAT_CMDL;
         visor.ancs.file_id = custom_asset_ids::COMBAT_ANCS;
         visor.write_to(&mut bytes).unwrap();
@@ -1382,7 +1381,7 @@ fn main() {
 
                     pickup_table.insert(pickup_model, extract_pickup_data(scly, &obj, &mut res_db));
 
-                    if pickup.cmdl != u32::max_value() {
+                    if pickup.cmdl != u32::MAX {
                         // Add an aabb entry for this pickup's cmdl
                         cmdl_aabbs.entry(pickup.cmdl).or_insert_with(|| {
                             let cmdl_key = ResourceKey::from(pickup.cmdl);
@@ -1860,7 +1859,7 @@ fn main() {
 
         println!("            PickupModel::{:?} => &[", pm);
         let pickup_bytes = &pickup_table[&pm].bytes;
-        for y in 0..((pickup_bytes.len() + BYTES_PER_LINE - 1) / BYTES_PER_LINE) {
+        for y in 0..pickup_bytes.len().div_ceil(BYTES_PER_LINE) {
             let len = ::std::cmp::min(BYTES_PER_LINE, pickup_bytes.len() - y * BYTES_PER_LINE);
             print!("               ");
             for x in 0..len {

@@ -19,7 +19,7 @@ pub struct CameraHintTrigger<'r> {
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for CameraHintTrigger<'r> {
+impl SclyPropertyData for CameraHintTrigger<'_> {
     const OBJECT_TYPE: u8 = 0x73;
 
     impl_position!();

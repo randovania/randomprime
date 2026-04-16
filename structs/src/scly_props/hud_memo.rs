@@ -18,6 +18,6 @@ pub struct HudMemo<'r> {
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for HudMemo<'r> {
+impl SclyPropertyData for HudMemo<'_> {
     const OBJECT_TYPE: u8 = 0x17;
 }

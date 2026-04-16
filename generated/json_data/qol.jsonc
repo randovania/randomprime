@@ -2795,75 +2795,45 @@
                     "addConnections": [
                         {
                             "senderId": 4507917, // [SpecialFunction] Music Player For Area
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 4507917, // [SpecialFunction] Music Player For Area
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 3489927, // [Relay] Play Hall of the Elders
+                            "senderId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "targetId": 3408663, // [StreamedAudio] StreamedAudio - Music Ruins Chozobowling SW
-                            "state": "ZERO",
+                            "state": "OPEN",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 3485962, // [Relay] Play Chozo Ghosts
+                            "senderId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "targetId": 3408566, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 3408130, // [Trigger] Trigger-Chozo Ghost
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3408130, // [Trigger] Trigger-Chozo Ghost
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 3407887, // [ChozoGhost] ChozoGhost
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "DEAD",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3407887, // [ChozoGhost] ChozoGhost
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "DEAD",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 3408399, // [Trigger] Trigger - Chozo Ghost No Kaishi
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3408399, // [Trigger] Trigger - Chozo Ghost No Kaishi
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 3408401, // [Counter] Counter_Dead Chozo
-                            "targetId": 3489927, // [Relay] Play Hall of the Elders
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "MAX_REACHED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3408401, // [Counter] Counter_Dead Chozo
-                            "targetId": 3485962, // [Relay] Play Chozo Ghosts
-                            "state": "MAX_REACHED",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 3408624, // [Trigger] Trigger - Play Music Recharge - Recharge
@@ -2873,9 +2843,9 @@
                         },
                         {
                             "senderId": 3408624, // [Trigger] Trigger - Play Music Recharge - Recharge
-                            "targetId": 3408663, // [StreamedAudio] StreamedAudio - Music Ruins Chozobowling SW
+                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
                             "state": "EXITED",
-                            "message": "PLAY"
+                            "message": "SET_TO_ZERO"
                         }
                     ],
                     "specialFunctions": [
@@ -2884,13 +2854,10 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 3489927 // [Relay] Play Hall of the Elders
-                        },
-                        {
-                            "id": 3485962, // [Relay] Play Chozo Ghosts
-                            "active": false
+                            "id": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
+                            "open": true
                         }
                     ],
                     "triggers": [
@@ -3047,6 +3014,16 @@
                             "fadeInTime": 0.01,
                             "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
                         }
+                    ],
+                    "timers": [
+                        {
+                            "id": 1310979, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 1310978, // [Timer] Timer Jingle
+                            "time": 0.001
+                        }
                     ]
                 },
                 "Main Plaza": {
@@ -3103,12 +3080,56 @@
                             "targetId": 131091, // [StreamedAudio] StreamedAudio - Ruins Soto B SW
                             "state": "ENTERED",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 131088, // [SpecialFunction] Music Player For Area
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 131088, // [SpecialFunction] Music Player For Area
+                            "targetId": 132989, // [Timer] Disallow Replay
+                            "state": "ENTERED",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 132989, // [Timer] Disallow Replay
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131724, // [Timer] Timer - Fade In Music
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 131092, // [Relay] Allow Replay
+                            "targetId": 131091, // [StreamedAudio] StreamedAudio - Ruins Soto B SW
+                            "state": "ZERO",
+                            "message": "PLAY"
                         }
                     ],
                     "specialFunctions": [
                         {
                             "id": 131088, // [SpecialFunction] Music Player For Area
                             "type": "PlayerInAreaRelay"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 131092, // [Relay] Allow Replay
+                            "layer": 5,
+                            "active": false
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 132989, // [Timer] Disallow Replay
+                            "time": 1.5,
+                            "layer": 5
                         }
                     ],
                     "streamedAudios": [
@@ -3314,10 +3335,24 @@
                 "Plaza Access": {
                     "addConnections": [
                         {
+                            "senderId": 393538, // [Timer] Music Player For Area
+                            "targetId": 393236, // [SpecialFunction] Music Player For Area
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
+                        {
                             "senderId": 393236, // [SpecialFunction] Music Player For Area
                             "targetId": 393237, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ENTERED",
+                            "state": "ZERO",
                             "message": "PLAY"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 393538, // [Timer] Music Player For Area
+                            "time": 0.02,
+                            "looping": true,
+                            "startImmediately": true
                         }
                     ],
                     "specialFunctions": [
@@ -3559,16 +3594,25 @@
                     ]
                 },
                 "Ruined Shrine": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        600483,
-                        600282,
-                        600284,
-                        779889,
+                        // Tutorials
+                        600280, // [SpecialFunction] SpecialFunction - check for Boost
+                        600281, // [Timer] Timer - check for boost
+                        600484, // [Timer] Timer - HUD memo
+                        600283, // [Timer] Timer - hud memo delay
+                        600285, // [Timer] Timer - hud memo delay pt 2
+                        600483, // [HUDMemo] HUDMemo - 07_reactor dash.STRG
+                        600282, // [HUDMemo] HUDMemo - need boost to use ramp
+                        600284, // [HUDMemo] HUDMemo - need boost to use ramp 2
+                        600279, // [Trigger] Trigger - boost hint
+                        // Music Stuff
+                        779889, // [Switch] RECEIVER - Change Music
                         600505, // [Trigger] Trigger - Play Music x02 Samus
                         600504, // [Trigger] Trigger - Play Music x02 Battle 2
                         600502, // [Trigger] Trigger - Play Music x01 Samus
                         600503, // [Trigger] Trigger - Play Music x01 Battle 2
+                        599956, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                        // Vanilla Music Layer Changes
                         599916, // [SpecialFunction] SpecialFunction Elev_Over_A
                         599871, // [SpecialFunction] SpecialFunction-0q_connect music
                         599872, // [SpecialFunction] SpecialFunction-generic_x04 music
@@ -3649,6 +3693,18 @@
                             "targetId": 600505, // [Trigger] Trigger - Play Music x02 Samus
                             "state": "MAX_REACHED",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 599885, // [Timer] Timer - Start Ruins Samus Music
+                            "targetId": 599956, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 589944, // [Beetle] GarBeetle
+                            "targetId": 600484, // [Timer] Timer - HUD memo
+                            "state": "ACTIVE",
+                            "message": "RESET_AND_START"
                         }
                     ],
                     "addConnections": [
@@ -3735,6 +3791,12 @@
                             "targetId": 689878, // [Relay] Chozo Music
                             "state": "ZERO",
                             "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 599885, // [Timer] Timer - Start Ruins Samus Music
+                            "targetId": 689878, // [Relay] Chozo Music
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 600165, // [Relay] Relay - [IN] Make Chozoghost Appear
@@ -4464,20 +4526,115 @@
                     "deleteIds": [
                         // Disable tutorial hudmemos
                         1900904,
-                        1900905
+                        1900905,
+                        // Dummies
+                        2293906,
+                        2293930,
+                        2293904,
+                        2293933
                     ],
                     "addConnections": [
+                        {
+                            "senderId": 1900574, // [SpecialFunction] Music Player For Area
+                            "targetId": 1900573, // [Relay] Box 1 Destroyed
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900574, // [SpecialFunction] Music Player For Area
+                            "targetId": 1900575, // [Relay] Box 2 Destroyed
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900574, // [SpecialFunction] Music Player For Area
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900574, // [SpecialFunction] Music Player For Area
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900573, // [Relay] Box 1 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900575, // [Relay] Box 2 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900573, // [Relay] Box 1 Destroyed
+                            "targetId": 1900573, // [Relay] Box 1 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900573, // [Relay] Box 1 Destroyed
+                            "targetId": 2293906, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900575, // [Relay] Box 2 Destroyed
+                            "targetId": 1900575, // [Relay] Box 2 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900575, // [Relay] Box 2 Destroyed
+                            "targetId": 2293930, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900582, // [Relay] Box 3 Destroyed
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900582, // [Relay] Box 3 Destroyed
+                            "targetId": 2293904, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900583, // [Relay] Box 4 Destroyed
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900583, // [Relay] Box 4 Destroyed
+                            "targetId": 2293933, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
                         {
                             "senderId": 1900891, // [Trigger] Trigger - Change Scripting
                             "targetId": 2900573, // [Timer] Reload Room
                             "state": "ENTERED",
                             "message": "START"
-                        },
-                        {
-                            "senderId": 1900891, // [Trigger] Trigger - Change Scripting
-                            "targetId": 1900581, // [SpecialFunction] Deactivate "Post Flaahgra but Pre Ghosts" Layer
-                            "state": "ENTERED",
-                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 2900573, // [Timer] Reload Room
@@ -4504,16 +4661,32 @@
                             "message": "PLAY"
                         }
                     ],
+                    "relays": [
+                        {
+                            "id": 1900573, // [Relay] Box 1 Destroyed
+                            "layer": 2,
+                            "active": false
+                        },
+                        {
+                            "id": 1900575, // [Relay] Box 2 Destroyed
+                            "layer": 2,
+                            "active": false
+                        },
+                        {
+                            "id": 1900582, // [Relay] Box 3 Destroyed
+                            "layer": 2,
+                            "active": false
+                        },
+                        {
+                            "id": 1900583, // [Relay] Box 4 Destroyed
+                            "layer": 2,
+                            "active": false
+                        }
+                    ],
                     "specialFunctions": [
                         {
                             "id": 1900574, // [SpecialFunction] Music Player For Area
                             "type": "PlayerInAreaRelay"
-                        },
-                        {
-                            "id": 1900581, // [SpecialFunction] Deactivate "Post Flaahgra but Pre Ghosts" Layer
-                            "type": "ScriptLayerController",
-                            "layerChangeRoomId": 4066558442,
-                            "layerChangeLayerId": 7
                         }
                     ],
                     "streamedAudios": [
@@ -4539,7 +4712,23 @@
                             "id": 2900573, // [Timer] Reload Room
                             "time": 0.1
                         }
+                    ],
+                    // Dummy IDs for externals
+                    "waypoints": [
+                        {
+                            "id": 2293906
+                        },
+                        {
+                            "id": 2293930
+                        },
+                        {
+                            "id": 2293904
+                        },
+                        {
+                            "id": 2293933
+                        }
                     ]
+
                 },
                 "Sun Tower Access": {
                     "layers": {
@@ -4548,15 +4737,201 @@
                     "addConnections": [
                         {
                             "senderId": 2293787, // [SpecialFunction] Music Player For Area
+                            "targetId": 2293856, // [Switch] CLOSED: Ruins Music / OPEN: Chozo Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2293856, // [Switch] CLOSED: Ruins Music / OPEN: Chozo Music
+                            "targetId": 2293792, // [StreamedAudio] StreamedAudio - Ruins Naka SW
+                            "state": "CLOSED",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2293856, // [Switch] CLOSED: Ruins Music / OPEN: Chozo Music
+                            "targetId": 2293855, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2293787, // [SpecialFunction] Music Player For Area
                             "targetId": 2293788, // [StreamedAudio] StreamedAudio - Ruins Samus SW
                             "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 2293787, // [SpecialFunction] Music Player For Area
-                            "targetId": 2293792, // [StreamedAudio] StreamedAudio - Ruins Naka SW
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "targetId": 2293762, // [Dock] Dock - to Connect Tunnel
                             "state": "ENTERED",
-                            "message": "PLAY"
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "targetId": 2293761, // [Dock] Dock - to Flaagrah
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "targetId": 2293761, // [Dock] Dock - to Flaagrah
+                            "state": "ENTERED",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "targetId": 2293762, // [Dock] Dock - to Connect Tunnel
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2293906, // [Platform] Box 1
+                            "targetId": 1900573, // [Relay] Box 1 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293906, // [Platform] Box 1
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293906, // [Platform] Box 1
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293930, // [Platform] Box 2
+                            "targetId": 1900575, // [Relay] Box 2 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293930, // [Platform] Box 2
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293930, // [Platform] Box 2
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293904, // [Platform] Box 3
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293904, // [Platform] Box 3
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293933, // [Platform] Box 4
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "specialFunctions": [
@@ -4581,6 +4956,33 @@
                             "isMusic": true,
                             "fadeInTime": 0.01,
                             "audioFileName": "/audio/ruins-nakaL.dsp|/audio/ruins-nakaR.dsp"
+                        },
+                        {
+                            "id": 2293855, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "layer": 3,
+                            "volume": 70,
+                            "isMusic": true,
+                            "fadeInTime": 0.01,
+                            "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
+                        }
+                    ],
+                    "switches": [
+                        {
+                            "id": 2293856 // [Switch] CLOSED: Ruins Music / OPEN: Chozo Music
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "position": [284.127441, 263.15799, 80.98233],
+                            "scale": [20.0, 1.0, 12.0],
+                            "active": false
+                        },
+                        {
+                            "id": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "position": [284.127441, 252.29686, 80.98233],
+                            "scale": [20.0, 1.0, 12.0],
+                            "active": false
                         }
                     ]
                 },
@@ -4588,72 +4990,171 @@
                     "layers": {
                         "7": false
                     },
+                    "deleteIds": [
+                        2437326, // [Trigger] Trigger - Play Music 00L Battle 2
+                        2437327, // [Trigger] Trigger - Play Music 00L Samus
+                        2437325, // [Trigger] Trigger - Play Music 00v Battle 2
+                        2437324,  // [Trigger] Trigger - Play Music 00v Samus
+                        2293856
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2437326, // [Trigger] Trigger - Play Music 00L Battle 2
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2437327, // [Trigger] Trigger - Play Music 00L Samus
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2437325, // [Trigger] Trigger - Play Music 00v Battle 2
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2437324,  // [Trigger] Trigger - Play Music 00v Samus
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
                     "addConnections": [
                         {
-                            "senderId": 2436927, // [Timer] Timer - Fade In Music
-                            "targetId": 2437284, // [StreamedAudio] StreamedAudio - Ruins Naka SW
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 2424880, // [Timer] Music Player For Area
-                            "targetId": 2424869, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
-                            "senderId": 2424869, // [SpecialFunction] Music Player For Area
-                            "targetId": 2424929, // [Relay] Play Ruins Music
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2424869, // [SpecialFunction] Music Player For Area
-                            "targetId": 2424937, // [Relay] Play Ghosts Music
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2424869, // [SpecialFunction] Music Player For Area
-                            "targetId": 2424938, // [Relay] Play Chozo Music
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2424929, // [Relay] Play Ruins Music
-                            "targetId": 327753, // [StreamedAudio] StreamedAudio - Ruins Naka SW
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 2424937, // [Relay] Play Ghosts Music
-                            "targetId": 2437269, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 2424938, // [Relay] Play Chozo Music
+                            "senderId": 2436996, // [Timer] Timer - Fade In Music
                             "targetId": 2437270, // [StreamedAudio] StreamedAudio - Ruins Samus SW
                             "state": "ZERO",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 2426980, // [Timer] 2nd Pass Music Check
-                            "targetId": 2424938, // [Relay] Play Chozo Music
+                            "senderId": 2424869, // [SpecialFunction] Music Player For Area
+                            "targetId": 2424937, // [Switch] CLOSED: Flaahgra Music / OPEN: Ruins Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2424869, // [SpecialFunction] Music Player For Area
+                            "targetId": 2424938, // [Relay] Play Ruins Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2424869, // [SpecialFunction] Music Player For Area
+                            "targetId": 2425012, // [Relay] Play Ghosts Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2424869, // [SpecialFunction] Music Player For Area
+                            "targetId": 2425014, // [Relay] Play Chozo Music
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2424958, // [Timer] Final Room State
+                            "targetId": 2424938, // [Relay] Play Ruins Music
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
+                            "senderId": 2424958, // [Timer] Final Room State
+                            "targetId": 2425014, // [Relay] Play Chozo Music
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2424937, // [Switch] CLOSED: Flaahgra Music / OPEN: Ruins Music
+                            "targetId": 2437284, // [StreamedAudio] StreamedAudio - Ruins Naka SW
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2424937, // [Switch] CLOSED: Flaahgra Music / OPEN: Ruins Music
+                            "targetId": 2437285, // [StreamedAudio] StreamedAudio Ruins Flaaghra SW
+                            "state": "CLOSED",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2424938, // [Relay] Play Ruins Music
+                            "targetId": 2437284, // [StreamedAudio] StreamedAudio - Ruins Naka SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2425012, // [Relay] Play Ghosts Music
+                            "targetId": 2437269, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2425014, // [Relay] Play Chozo Music
+                            "targetId": 2437270, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2424932, // [Trigger] Begin Cinematic Trigger
+                            "targetId": 2424937, // [Switch] CLOSED: Flaahgra Music / OPEN: Ruins Music
+                            "state": "ENTERED",
+                            "message": "CLOSE"
+                        },
+                        {
+                            "senderId": 2434957, // [Relay] Relay-start of cinema
+                            "targetId": 2424937, // [Switch] CLOSED: Flaahgra Music / OPEN: Ruins Music
+                            "state": "ZERO",
+                            "message": "OPEN"
+                        },
+                        {
                             "senderId": 2435190, // [Trigger] Trigger_Ghosts
-                            "targetId": 2424937, // [Relay] Play Ghosts Music
+                            "targetId": 2424938, // [Relay] Play Ruins Music
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2437329, // [Trigger] Trigger Start Ghosts
+                            "targetId": 2424938, // [Relay] Play Ruins Music
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2435190, // [Trigger] Trigger_Ghosts
+                            "targetId": 2425012, // [Relay] Play Ghosts Music
                             "state": "ENTERED",
                             "message": "ACTIVATE"
                         },
                         {
-                            "senderId": 2425044, // [Relay] Flaahgra Dead Faulty Relay
-                            "targetId": 2424927, // [SpecialFunction] Activate "Post Flaahgra but Pre Ghosts" Layer
-                            "state": "ZERO",
+                            "senderId": 2437329, // [Trigger] Trigger Start Ghosts
+                            "targetId": 2425012, // [Relay] Play Ghosts Music
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2425012, // [Relay] Play Ghosts Music
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2425014, // [Relay] Play Chozo Music
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2424927, // [SpecialFunction] Post Ghosts Layer
+                            "state": "MAX_REACHED",
                             "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2293856, // External: 00230060
+                            "state": "MAX_REACHED",
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 2425044, // [Relay] Flaahgra Dead Faulty Relay
@@ -4666,24 +5167,6 @@
                             "targetId": 2426927, // [SpecialFunction] Sunchamber Access 2nd Pass
                             "state": "ZERO",
                             "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2424937, // [Relay] Play Ghosts Music
-                            "state": "MAX_REACHED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2424938, // [Relay] Play Chozo Music
-                            "state": "MAX_REACHED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2424833, // [Dock] Dock - To 0W Connect
-                            "state": "MAX_REACHED",
-                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 2435191, // [Counter] Counter_Deadghost
@@ -4708,18 +5191,29 @@
                             "targetId": 3444946, // [SpecialFunction] Sun Tower Access 2nd Pass Music
                             "state": "MAX_REACHED",
                             "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2425005, // [SpecialFunction] Sun Tower Access Ghosts Layer
+                            "state": "MAX_REACHED",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 2435191, // [Counter] Counter_Deadghost
+                            "targetId": 2425004, // [SpecialFunction] Sun Tower Access Bombu Layer
+                            "state": "MAX_REACHED",
+                            "message": "INCREMENT"
                         }
                     ],
                     "specialFunctions": [
                         {
                             "id": 2424869, // [SpecialFunction] Music Player For Area
-                            "layer": 3, // Flaahgra Defeated
                             "type": "PlayerInAreaRelay"
                         },
                         {
-                            "id": 2424927, // [SpecialFunction] Activate "Post Flaahgra but Pre Ghosts" Layer
+                            "id": 2424927, // [SpecialFunction] Post Ghosts Layer
                             "type": "ScriptLayerController",
-                            "layer": 1, // 1st Pass Enemies
+                            "layer": 2, // 2nd Pass Enemies
                             "layerChangeRoomId": 4066558442,
                             "layerChangeLayerId": 7
                         },
@@ -4733,16 +5227,9 @@
                         {
                             "id": 2426927, // [SpecialFunction] Sunchamber Access 2nd Pass
                             "type": "ScriptLayerController",
-                            "layer": 1, // 2nd Pass Enemies
+                            "layer": 1, // 1st Pass Enemies
                             "layerChangeRoomId": 3123480000,
                             "layerChangeLayerId": 2
-                        },
-                        {
-                            "id": 2424927, // [SpecialFunction] Activate "Post Flaahgra but Pre Ghosts" Layer
-                            "type": "ScriptLayerController",
-                            "layer": 1, // 1st Pass Enemies
-                            "layerChangeRoomId": 4066558442,
-                            "layerChangeLayerId": 7
                         },
                         {
                             "id": 2424945, // [SpecialFunction] Sun Tower 1st Pass
@@ -4771,12 +5258,26 @@
                             "layer": 2, // 2nd Pass Enemies
                             "layerChangeRoomId": 665041921,
                             "layerChangeLayerId": 4
+                        },
+                        {
+                            "id": 2425004, // [SpecialFunction] Sun Tower Access Bombu Layer
+                            "type": "ScriptLayerController",
+                            "layer": 2, // 2nd Pass Enemies
+                            "layerChangeRoomId": 665041921,
+                            "layerChangeLayerId": 2
+                        },
+                        {
+                            "id": 2425005, // [SpecialFunction] Sun Tower Access Ghosts Layer
+                            "type": "ScriptLayerController",
+                            "layer": 2, // 2nd Pass Enemies
+                            "layerChangeRoomId": 665041921,
+                            "layerChangeLayerId": 1
                         }
                     ],
                     "streamedAudios": [
                         {
-                            "id": 327753, // [StreamedAudio] StreamedAudio - Ruins Naka SW
-                            "layer": 7, // Post Flaahgra but Pre Ghosts
+                            "id": 2437284, // [StreamedAudio] StreamedAudio - Ruins Naka SW
+                            "layer": 0,
                             "volume": 75,
                             "isMusic": true,
                             "fadeInTime": 0.01,
@@ -4793,34 +5294,38 @@
                     ],
                     "timers": [
                         {
-                            "id": 2424880, // [Timer] Music Player For Area
+                            "id": 2424958, // [Timer] Final Room State
                             "time": 0.001,
-                            "layer": 3, // Flaahgra Defeated
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
-                        },
-                        {
-                            "id": 2426980, // [Timer] 2nd Pass Music Check
-                            "time": 0.001,
-                            "layer": 2, // 2nd Pass Enemies
-                            "active": true,
-                            "startImmediately": true
+                            "startImmediately": true,
+                            "layer": 7
                         }
                     ],
                     "relays": [
                         {
-                            "id": 2424929, // [Relay] Play Ruins Music
-                            "layer": 7 // Post Flaahgra but Pre Ghosts
+                            "id": 2424938, // [Relay] Play Ruins Music
+                            "layer": 3
                         },
                         {
-                            "id": 2424937, // [Relay] Play Ghosts Music
-                            "layer": 3, // Flaahgra Defeated
+                            "id": 2425012, // [Relay] Play Ghosts Music
+                            "layer": 2,
                             "active": false
                         },
                         {
-                            "id": 2424938, // [Relay] Play Chozo Music
-                            "layer": 3 // Flaahgra Defeated
+                            "id": 2425014, // [Relay] Play Chozo Music
+                            "active": false
+                        }
+                    ],
+                    "switches": [
+                        {
+                            "id": 2424937, // [Switch] CLOSED: Flaahgra Music / OPEN: Ruins Music
+                            "open": true,
+                            "layer": 1 // 1st Pass Flaahgra
+                        }
+                    ],
+                    // Dummy IDs for External connection
+                    "waypoints": [
+                        {
+                            "id": 2293856
                         }
                     ]
                 },
@@ -5064,54 +5569,68 @@
                     ]
                 },
                 "Training Chamber": {
+                    "removeConnections": [
+                        {
+                            "senderId": 786844, // [Timer] Timer Alert
+                            "targetId": 787008, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        }
+                    ],
                     "addConnections": [
                         {
                             "senderId": 786503, // [SpecialFunction] Music Player For Area
-                            "targetId": 786505, // [Relay] Chozo Music
+                            "targetId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 786503, // [SpecialFunction] Music Player For Area
-                            "targetId": 786506, // [Relay] Ghosts Music
+                            "targetId": 786510, // [Relay] Allow Ghosts Music
                             "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 786503, // [SpecialFunction] Music Player For Area
+                            "targetId": 786510, // [Relay] Allow Ghosts Music
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 786844, // [Timer] Timer Alert
+                            "targetId": 786510, // [Relay] Allow Ghosts Music
+                            "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 786505, // [Relay] Chozo Music
-                            "targetId": 787009, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
-                            "message": "PLAY"
-                        },
-                        {
-                            "senderId": 786506, // [Relay] Ghosts Music
+                            "senderId": 786510, // [Relay] Allow Ghosts Music
                             "targetId": 787008, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
                             "state": "ZERO",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 786822, // [Trigger] Trigger - Activate Chozo Ghost
-                            "targetId": 786505, // [Relay] Chozo Music
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
+                            "senderId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
+                            "targetId": 787009, // [StreamedAudio] StreamedAudio - Ruins Samus SW
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
+                            "targetId": 787008, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "state": "CLOSED",
+                            "message": "PLAY"
                         },
                         {
                             "senderId": 786822, // [Trigger] Trigger - Activate Chozo Ghost
-                            "targetId": 786506, // [Relay] Ghosts Music
+                            "targetId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
                             "state": "ENTERED",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 786842, // [Counter] Counter_Deadghost
-                            "targetId": 786505, // [Relay] Chozo Music
+                            "targetId": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
                             "state": "MAX_REACHED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 786842, // [Counter] Counter_Deadghost
-                            "targetId": 786506, // [Relay] Ghosts Music
-                            "state": "MAX_REACHED",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         }
                     ],
                     "specialFunctions": [
@@ -5120,44 +5639,31 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
+                    "switches": [
+                        {
+                            "id": 786505, // [Switch] OPEN: Chozo Music / CLOSED: Ghosts Music
+                            "open": true
+                        }
+                    ],
                     "relays": [
                         {
-                            "id": 786505 // [Relay] Chozo Music
-                        },
-                        {
-                            "id": 786506, // [Relay] Ghosts Music
+                            "id": 786510, // [Relay] Allow Ghosts Music
                             "active": false
                         }
                     ],
                     "triggers": [
                         {
                             "id": 786526, // [Trigger] Trigger_DoorOpen
-                            "position": [
-                                121.753998,
-                                -176.080002,
-                                19.986629
-                            ],
-                            "scale": [
-                                10.0,
-                                20.0,
-                                8
-                            ],
-                            "active": false
+                            "scale": [10.0, 20.0, 8.0]
                         }
                     ]
                 },
                 "Training Chamber Access": {
                     "addConnections": [
                         {
-                            "senderId": 1599653, // [Timer] Music Player For Area
-                            "targetId": 1179653, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 1179653, // [SpecialFunction] Music Player For Area
                             "targetId": 1179658, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         }
                     ],
@@ -5165,14 +5671,6 @@
                         {
                             "id": 1179653, // [SpecialFunction] Music Player For Area
                             "type": "PlayerInAreaRelay"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 1599653, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "looping": true,
-                            "startImmediately": true
                         }
                     ],
                     "streamedAudios": [
@@ -6418,6 +6916,16 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/ice_worldmainL.dsp|/audio/ice_worldmainR.dsp"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 600310, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 600309, // [Timer] Timer Jingle
+                            "time": 0.001
                         }
                     ]
                 },
@@ -7703,110 +8211,119 @@
                     ]
                 },
                 "Research Core": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        2622699,
-                        2622700,
+                        // Tutorials Stuff
+                        2622697, // [Trigger] ControllerAction Activation Trigger
+                        2622698, // [Timer] HUDMemo 1 Activation Timer
+                        2622701, // [Timer] HUDMemo 2 Activation Timer
+                        2622696, // [ControllerAction] ControllerAction - Switch to thermal
+                        2622699, // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 1.STRG
+                        2622700, // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 2.STRG
+                        // Delete music triggers
                         2622611, // [Trigger] Trigger - Play Music 1
                         2622606, // [Trigger] Trigger - Play Music 1
                         2622610, // [Trigger] Trigger - Play Music 2
                         2622605 // [Trigger] Trigger - Play Music 2
                     ],
-                    // chonker
-                    "triggers": [
+                    "removeConnections": [
                         {
-                            "id": 2622140, // [Trigger] Trigger_DoorOpen
-                            "active": false,
-                            "position": [
-                                81.294876,
-                                -997.477783,
-                                52.713493
-                            ],
-                            "scale": [
-                                20.0,
-                                40.0,
-                                4.0
-                            ]
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
-                            "state": "ENTERED",
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622540, // [Camera] Unpowered Door Cinematic Camera
+                            "targetId": 2622450, // [SpawnPoint] Post-Pickup Spawn
+                            "state": "ACTIVE",
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ENTERED",
-                            "message": "SET_TO_ZERO"
-                        },
-                        {
-                            "senderId": 2621456, // [Relay] Pirate Ambiance Music
+                            "senderId": 2621457, // [SpecialFunction] Music Player For Area
                             "targetId": 2622608, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 2621459, // [Timer] 1st Pass Check
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "senderId": 2621453, // [SpecialFunction] Music Player For Area
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 2621459, // [Timer] 1st Pass Check
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "senderId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "targetId": 2622608, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "state": "OPEN",
+                            "message": "PLAY"
                         },
                         {
-                            "senderId": 2621457, // [Relay] Pirate Battle Music
+                            "senderId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "targetId": 2622607, // [StreamedAudio] StreamedAudio Pirate Isogi SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 2622609, // [Counter] Counter - Before Thermal Pirates
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2622609, // [Counter] Counter - Before Thermal Pirates
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 2622612, // [Relay] Relay - Start Pirate Music
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 2622612, // [Relay] Relay - Start Pirate Music
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "CLOSE"
                         },
                         {
                             "senderId": 2622613, // [Counter] Counter - After Thermal Pirates
-                            "targetId": 2621456, // [Relay] Pirate Ambiance Music
+                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 2622613, // [Counter] Counter - After Thermal Pirates
-                            "targetId": 2621457, // [Relay] Pirate Battle Music
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "OPEN"
                         },
                         {
                             "senderId": 2622568, // [Relay] Relay Master Layer Switch
                             "targetId": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
                             "state": "ZERO",
                             "message": "DECREMENT"
+                        }
+                    ],
+                    "cameraWaypoints": [
+                        {
+                            "id": 2621463, // [CameraWaypoint] Item Target
+                            "layer": 1,
+                            "position": [52.230732, -997.426697, 54.213894]
                         }
                     ],
                     "streamedAudios": [
@@ -7827,10 +8344,24 @@
                             "audioFileName": "/audio/pir_yoinL.dsp|/audio/pir_yoinR.dsp"
                         }
                     ],
+                    "triggers": [
+                        {
+                            "id": 2622140, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [81.294876, -997.477783, 52.713493],
+                            "scale": [20.0, 40.0, 4.0]
+                        }
+                    ],
                     "specialFunctions": [
                         {
                             "id": 2621453, // [SpecialFunction] Music Player For Area
-                            "type": "PlayerInAreaRelay"
+                            "type": "PlayerInAreaRelay",
+                            "layer": 1
+                        },
+                        {
+                            "id": 2621457, // [SpecialFunction] Music Player For Area
+                            "type": "PlayerInAreaRelay",
+                            "layer": 2
                         },
                         {
                             "id": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
@@ -7839,21 +8370,10 @@
                             "layerChangeLayerId": 7
                         }
                     ],
-                    "relays": [
+                    "switches": [
                         {
-                            "id": 2621456 // [Relay] Pirate Ambiance Music
-                        },
-                        {
-                            "id": 2621457, // [Relay] Pirate Battle Music
-                            "active": false
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 2621459, // [Timer] 1st Pass Check
-                            "time": 0.001,
-                            "layer": 1,
-                            "startImmediately": true
+                            "id": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
+                            "layer": 1
                         }
                     ]
                 },
@@ -8900,6 +9420,16 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/ice_kincyoL.dsp|/audio/ice_kincyoR.dsp"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 3604515, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 3604514, // [Timer] Timer Jingle
+                            "time": 0.001
                         }
                     ]
                 },
@@ -13513,6 +14043,16 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/lav_lavamainL.dsp|/audio/lav_lavamainR.dsp"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 918089, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 918088, // [Timer] Timer Jingle
+                            "time": 0.001
                         }
                     ]
                 },

@@ -34,7 +34,7 @@ pub struct Sound<'r> {
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for Sound<'r> {
+impl SclyPropertyData for Sound<'_> {
     const OBJECT_TYPE: u8 = 0x9;
     impl_position!();
     impl_rotation!();

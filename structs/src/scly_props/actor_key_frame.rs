@@ -18,6 +18,6 @@ pub struct ActorKeyFrame<'r> {
     pub total_playback: f32,
 }
 
-impl<'r> SclyPropertyData for ActorKeyFrame<'r> {
+impl SclyPropertyData for ActorKeyFrame<'_> {
     const OBJECT_TYPE: u8 = 0x1D;
 }

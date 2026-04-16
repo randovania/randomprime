@@ -28,7 +28,7 @@ pub struct FlickerBat<'r> {
     pub enable_los: u8,
 }
 
-impl<'r> SclyPropertyData for FlickerBat<'r> {
+impl SclyPropertyData for FlickerBat<'_> {
     const OBJECT_TYPE: u8 = 0x2E;
 
     impl_position!();

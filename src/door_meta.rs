@@ -691,14 +691,14 @@ impl DoorType {
                 ice: TypeVulnerability::Reflect as u32,
                 wave: TypeVulnerability::Reflect as u32,
                 plasma: TypeVulnerability::Reflect as u32,
-                phazon: TypeVulnerability::Reflect as u32,
+                phazon: TypeVulnerability::Normal as u32,
             },
             beam_combos: BeamCombos {
                 power: TypeVulnerability::Reflect as u32,
                 ice: TypeVulnerability::Reflect as u32,
                 wave: TypeVulnerability::Reflect as u32,
                 plasma: TypeVulnerability::Reflect as u32,
-                phazon: TypeVulnerability::Reflect as u32,
+                phazon: TypeVulnerability::Normal as u32,
             },
         };
 

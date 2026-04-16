@@ -21,6 +21,6 @@ pub struct CameraFilterKeyframe<'r> {
     pub overlay_texture: u32,
 }
 
-impl<'r> SclyPropertyData for CameraFilterKeyframe<'r> {
+impl SclyPropertyData for CameraFilterKeyframe<'_> {
     const OBJECT_TYPE: u8 = 0x18;
 }

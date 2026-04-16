@@ -154,7 +154,7 @@ pub struct SclyLayer<'r> {
     _pad: (),
 }
 
-impl<'r> Default for SclyLayer<'r> {
+impl Default for SclyLayer<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -189,7 +189,7 @@ pub struct SclyObject<'r> {
     pub property_data: SclyProperty<'r>,
 }
 
-impl<'r> SclyObject<'r> {
+impl SclyObject<'_> {
     pub fn get_layer_idx(self) -> usize {
         ((self.instance_id >> 26) & 0x3F) as usize
     }
@@ -698,6 +698,10 @@ build_scly_property!(
     is_new_camera_shaker,
     as_new_camera_shaker,
     as_new_camera_shaker_mut,
+    PathCamera,
+    is_path_camera,
+    as_path_camera,
+    as_path_camera_mut,
     Pickup,
     is_pickup,
     as_pickup,

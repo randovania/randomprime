@@ -240,7 +240,7 @@ impl<'r> Readable<'r> for CStr<'r> {
     }
 }
 
-impl<'r> Writable for CStr<'r> {
+impl Writable for CStr<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let slice = self.to_bytes_with_nul();
         writer.write_all(slice)?;

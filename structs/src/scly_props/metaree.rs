@@ -25,7 +25,7 @@ pub struct Metaree<'r> {
     pub dont_cares: GenericArray<f32, U7>,
 }
 
-impl<'r> SclyPropertyData for Metaree<'r> {
+impl SclyPropertyData for Metaree<'_> {
     const OBJECT_TYPE: u8 = 0x37;
 
     impl_position!();

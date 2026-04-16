@@ -177,7 +177,7 @@ pub struct MapaBorder<'r> {
     pub _pad: (),
 }
 
-impl<'r> Mapa<'r> {
+impl Mapa<'_> {
     fn update_offsets(&mut self) {
         // update the table start offsets
         for i in 0..self.surfaces.len() {

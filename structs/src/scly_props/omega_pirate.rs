@@ -35,7 +35,7 @@ pub struct OmegaPirate<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for OmegaPirate<'r> {
+impl SclyPropertyData for OmegaPirate<'_> {
     const OBJECT_TYPE: u8 = 0x86;
     impl_position!();
     impl_rotation!();

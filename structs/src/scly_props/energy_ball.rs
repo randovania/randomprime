@@ -36,7 +36,7 @@ pub struct EnergyBall<'r> {
     pub unknown6: f32,
 }
 
-impl<'r> SclyPropertyData for EnergyBall<'r> {
+impl SclyPropertyData for EnergyBall<'_> {
     const OBJECT_TYPE: u8 = 0x8B;
 
     impl_position!();

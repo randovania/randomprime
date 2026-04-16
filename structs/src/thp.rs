@@ -37,7 +37,7 @@ pub struct Thp<'r> {
     pub frames: LazyArray<'r, ThpFrameData<'r>>,
 }
 
-impl<'r> Thp<'r> {
+impl Thp<'_> {
     pub fn update_sibling_frame_sizes(&mut self) {
         if !self.frames.is_owned() {
             return;

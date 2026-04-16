@@ -44,7 +44,7 @@ pub struct BehaveChance {
     pub dont_cares: GenericArray<f32, U7>,
 }
 
-impl<'r> SclyPropertyData for ChozoGhost<'r> {
+impl SclyPropertyData for ChozoGhost<'_> {
     const OBJECT_TYPE: u8 = 0x28;
 
     impl_position!();

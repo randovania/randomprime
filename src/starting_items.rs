@@ -146,7 +146,7 @@ impl StartingItems {
         spawn_point.wavebuster = self.wavebuster as u32;
         spawn_point.ice_spreader = self.ice_spreader as u32;
         spawn_point.flamethrower = self.flamethrower as u32;
-        spawn_point.unknown_item_1 = self.unknown_item_1 as u32;
+        spawn_point.unknown_item_1 = self.unknown_item_1;
         let mut unknown_item_2 = 0;
         if self.unlimited_missiles {
             unknown_item_2 |= PickupType::UnlimitedMissiles.custom_item_value();
@@ -253,7 +253,7 @@ impl Default for StartingItems {
             unlimited_power_bombs: false,
             missile_launcher: true,
             power_bomb_launcher: true,
-            spring_ball: false
+            spring_ball: false,
         }
     }
 }

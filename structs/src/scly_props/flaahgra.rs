@@ -40,7 +40,7 @@ pub struct Flaahgra<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Flaahgra<'r> {
+impl SclyPropertyData for Flaahgra<'_> {
     const OBJECT_TYPE: u8 = 0x4D;
 
     impl_position!();

@@ -8,13 +8,13 @@ use crate::{
     door_meta::DoorType,
     mlvl_wrapper,
     patch_config::{
-        ActorKeyFrameConfig, ActorRotateConfig, BlockConfig, BombSlotConfig, CameraConfig,
-        CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
+        ActorKeyFrameConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig,
+        CameraConfig, CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
         ControllerActionConfig, CounterConfig, DamageType, FogConfig, GenericTexture,
-        HudmemoConfig, LockOnPoint, NewCameraHintConfig, PlatformConfig, PlatformType,
-        PlayerActorConfig, PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
-        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
-        WorldLightFaderConfig,
+        HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig, PathCameraConfig,
+        PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig,
+        SpawnPointConfig, SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig, TimerConfig,
+        TriggerConfig, WaterConfig, WaypointConfig, WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -221,6 +221,27 @@ pub fn patch_add_liquid<'r>(
         water.scale[0] = config.scale[0];
         water.scale[1] = config.scale[1];
         water.scale[2] = config.scale[2];
+        water.force = config.force.unwrap_or([0.0, 0.0, 0.0]).into();
+        water.flags = config.flags.unwrap_or(2047);
+        water.thermal_cold = config.thermal_cold.unwrap_or(false) as u8;
+        water.display_surface = config.display_surface.unwrap_or(true) as u8;
+        water.morph_in_time = config.morph_in_time.unwrap_or(1.0);
+        water.morph_out_time = config.morph_out_time.unwrap_or(1.0);
+        water.alpha = config.alpha.unwrap_or(0.7);
+        water.splash_color = config.splash_color.unwrap_or([1.0, 1.0, 1.0, 1.0]).into();
+        water.inside_fog_color = config
+            .inside_fog_color
+            .unwrap_or([1.0, 1.0, 1.0, 1.0])
+            .into();
+        water.tile_size = config.tile_size.unwrap_or(2.4);
+        water.tile_subdivisions = config.tile_subdivisions.unwrap_or(6);
+        water.ripple_intensity = config.ripple_intensity.unwrap_or(0.8);
+        water.fog_bias = config.fog_bias.unwrap_or(0.0);
+        water.fog_magnitude = config.fog_magnitude.unwrap_or(0.0);
+        water.fog_speed = config.fog_speed.unwrap_or(1.0);
+        water.fog_color = config.fog_color.unwrap_or([0.0, 0.0, 0.0, 0.0]).into();
+        water.alpha_in_time = config.alpha_in_time.unwrap_or(1.0);
+        water.alpha_out_time = config.alpha_out_time.unwrap_or(1.0);
     }
 
     {
@@ -617,12 +638,8 @@ pub fn patch_add_special_fn(
     let unknown0 = config.unknown1.as_ref().unwrap_or(&default_unknown0);
     let unknown0 = string_to_cstr(unknown0.clone());
     let pickup_type = match config.item_id.as_ref() {
-        Some(item_id) => {
-            PickupType::from_str(item_id)
-        },
-        None => {
-            PickupType::PowerBeam
-        },
+        Some(item_id) => PickupType::from_str(item_id),
+        None => PickupType::PowerBeam,
     };
     let item_id = pickup_type as u32;
 
@@ -2275,6 +2292,249 @@ pub fn patch_add_camera_hint_trigger(
     );
 }
 
+pub fn patch_set_memory_relay(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    id: u32,
+) -> Result<(), String> {
+    let mrea_id = area.mlvl_area.mrea.to_u32();
+    let timer_id = area.new_object_id_from_layer_id(0);
+
+    {
+        area.memory_relay_conns
+            .as_mut_vec()
+            .retain(|conn| conn.sender_id & 0x00FFFFFF != id);
+        area.memory_relay_conns
+            .as_mut_vec()
+            .push(structs::MemoryRelayConn {
+                sender_id: id,
+                target_id: timer_id,
+                active: 0,
+                message: 4, // DEACTIVATE
+            });
+    }
+
+    let id = id & 0x00FFFFFF;
+    let scly = area.mrea().scly_section_mut();
+
+    let mut timer_conns = Vec::new();
+
+    let mut found = false;
+
+    for layer in scly.layers.as_mut_vec() {
+        for obj in layer.objects.as_mut_vec() {
+            if obj.instance_id & 0x00FFFFFF == id {
+                if found {
+                    panic!("duplicate id {}?", id);
+                }
+                found = true;
+
+                for conn in obj.connections.as_mut_vec() {
+                    timer_conns.push(structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: conn.message,
+                        target_object_id: conn.target_object_id,
+                    });
+                }
+                obj.connections.as_mut_vec().clear();
+                obj.connections.as_mut_vec().push(structs::Connection {
+                    state: structs::ConnectionState::ACTIVE,
+                    message: structs::ConnectionMsg::DEACTIVATE,
+                    target_object_id: timer_id,
+                });
+                obj.property_data.as_memory_relay_mut().unwrap().active = 1;
+            } else {
+                for conn in obj.connections.as_mut_vec() {
+                    if conn.target_object_id & 0x00FFFFFF == id {
+                        conn.message = match conn.message {
+                            structs::ConnectionMsg::DEACTIVATE => structs::ConnectionMsg::ACTIVATE,
+                            structs::ConnectionMsg::ACTIVATE => structs::ConnectionMsg::DEACTIVATE,
+                            _ => panic!(
+                                "Patcher doesn't support sending {:?} to toggled memory relay {}",
+                                conn.message, id
+                            ),
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    if !found {
+        panic!(
+            "Could not find memory relay id {} in room 0x{:X}",
+            id, mrea_id
+        );
+    }
+
+    scly.layers.as_mut_vec()[0]
+        .objects
+        .as_mut_vec()
+        .push(structs::SclyObject {
+            instance_id: timer_id,
+            property_data: structs::Timer {
+                name: b"memory-relay-timer\0".as_cstr(),
+                start_time: 0.02,
+                max_random_add: 0.0,
+                looping: 0,
+                start_immediately: 1,
+                active: 1,
+            }
+            .into(),
+            connections: timer_conns.into(),
+        });
+
+    Ok(())
+}
+
+pub fn patch_add_ball_trigger(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: BallTriggerConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::BallTrigger {
+                name: b"my ball trigger\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                scale: config.scale.unwrap_or([1.0, 1.0, 1.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+                force: config.force.unwrap_or(20.0) as f32,
+                min_angle: config.min_angle.unwrap_or(0.0) as f32,
+                max_distance: config.max_distance.unwrap_or(0.0) as f32,
+                force_angle: config.force_angle.unwrap_or([0.0, 0.0, 0.0]).into(),
+                stop_player: config.stop_player.unwrap_or(true) as u8,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_ball_trigger_mut().unwrap();
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+
+            if let Some(scale) = config.scale {
+                property_data.scale = scale.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(force) = config.force {
+                property_data.force = force as f32
+            }
+            if let Some(min_angle) = config.min_angle {
+                property_data.min_angle = min_angle as f32
+            }
+            if let Some(max_distance) = config.max_distance {
+                property_data.max_distance = max_distance as f32
+            }
+            if let Some(force_angle) = config.force_angle {
+                property_data.force_angle = force_angle.into()
+            }
+            if let Some(stop_player) = config.stop_player {
+                property_data.stop_player = stop_player as u8
+            }
+        };
+    }
+
+    add_edit_obj_helper!(area, config.id, config.layer, BallTrigger, new, update);
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn patch_add_path_camera(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: PathCameraConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::PathCamera {
+                name: b"my pathcamera\0".as_cstr(),
+                position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
+                rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+
+                flags: structs::scly_props::structs::PathCameraFlags {
+                    is_closed_loop: config.is_closed_loop.unwrap_or(false) as u8,
+                    fixed_look_pos: config.fixed_look_pos.unwrap_or(true) as u8,
+                    side_view: config.side_view.unwrap_or(false) as u8,
+                    camera_height_from_hint: config.camera_height_from_hint.unwrap_or(true) as u8,
+                    clamp_to_closed_door: config.clamp_to_closed_door.unwrap_or(false) as u8,
+                    unused: config.unused.unwrap_or(false) as u8,
+                }
+                .into(),
+
+                length_extend: config.length_extend.unwrap_or(3.0) as f32,
+                filter_mag: config.filter_mag.unwrap_or(15.0) as f32,
+                filter_proportion: config.filter_proportion.unwrap_or(3.0) as f32,
+                initial_spline_position: config
+                    .initial_spline_position
+                    .unwrap_or(InitialSplinePosition::BallCamBasis)
+                    as u32,
+                min_ease_dist: config.min_ease_dist.unwrap_or(4.0) as f32,
+                max_ease_dist: config.max_ease_dist.unwrap_or(6.0) as f32,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_path_camera_mut().unwrap();
+
+            if let Some(position) = config.position {
+                property_data.position = position.into()
+            }
+            if let Some(rotation) = config.rotation {
+                property_data.rotation = rotation.into()
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(is_closed_loop) = config.is_closed_loop {
+                property_data.flags.is_closed_loop = is_closed_loop as u8
+            }
+            if let Some(fixed_look_pos) = config.fixed_look_pos {
+                property_data.flags.fixed_look_pos = fixed_look_pos as u8
+            }
+            if let Some(side_view) = config.side_view {
+                property_data.flags.side_view = side_view as u8
+            }
+            if let Some(camera_height_from_hint) = config.camera_height_from_hint {
+                property_data.flags.camera_height_from_hint = camera_height_from_hint as u8
+            }
+            if let Some(clamp_to_closed_door) = config.clamp_to_closed_door {
+                property_data.flags.clamp_to_closed_door = clamp_to_closed_door as u8
+            }
+            if let Some(unused) = config.unused {
+                property_data.flags.unused = unused as u8
+            }
+            if let Some(length_extend) = config.length_extend {
+                property_data.length_extend = length_extend as f32
+            }
+            if let Some(filter_mag) = config.filter_mag {
+                property_data.filter_mag = filter_mag as f32
+            }
+            if let Some(filter_proportion) = config.filter_proportion {
+                property_data.filter_proportion = filter_proportion as f32
+            }
+            if let Some(initial_spline_position) = config.initial_spline_position {
+                property_data.initial_spline_position = initial_spline_position as u32
+            }
+            if let Some(min_ease_dist) = config.min_ease_dist {
+                property_data.min_ease_dist = min_ease_dist as f32
+            }
+            if let Some(max_ease_dist) = config.max_ease_dist {
+                property_data.max_ease_dist = max_ease_dist as f32
+            }
+        };
+    }
+
+    add_edit_obj_helper!(area, config.id, config.layer, PathCamera, new, update);
+}
+
 pub fn patch_add_platform<'r>(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
@@ -2981,6 +3241,7 @@ pub fn patch_add_block<'r>(
         config.layer,
         config.active.unwrap_or(true),
         old_scale,
+        config.thermal_hot.unwrap_or(false),
     );
 
     Ok(())
@@ -2997,6 +3258,7 @@ pub fn add_block(
     layer: Option<u32>,
     active: bool,
     old_scale: bool,
+    thermal_hot: bool,
 ) {
     let layer_id = layer.unwrap_or(0);
 
@@ -3075,7 +3337,7 @@ pub fn add_block(
                     target_passthrough: 0,
                     visor_mask: 15, // Combat|Scan|Thermal|XRay
                 },
-                enable_thermal_heat: 1,
+                enable_thermal_heat: thermal_hot as u8,
                 unknown3: 0,
                 unknown4: 0,
                 unknown5: 1.0,

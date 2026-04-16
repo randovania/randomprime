@@ -184,7 +184,7 @@ where
     }
 }
 
-impl<'s, 'r, T> ExactSizeIterator for LazyArrayIter<'s, 'r, T>
+impl<'r, T> ExactSizeIterator for LazyArrayIter<'_, 'r, T>
 where
     T: Readable<'r>,
     T::Args: Clone,

@@ -34,7 +34,7 @@ pub struct SpacePirate<'r> {
     pub dont_cares2: GenericArray<u32, U15>,
 }
 
-impl<'r> SclyPropertyData for SpacePirate<'r> {
+impl SclyPropertyData for SpacePirate<'_> {
     const OBJECT_TYPE: u8 = 0x24;
 
     impl_position!();

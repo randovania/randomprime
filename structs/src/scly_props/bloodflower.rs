@@ -33,7 +33,7 @@ pub struct Bloodflower<'r> {
     pub unknown2: u32,
 }
 
-impl<'r> SclyPropertyData for Bloodflower<'r> {
+impl SclyPropertyData for Bloodflower<'_> {
     const OBJECT_TYPE: u8 = 0x2D;
 
     impl_position!();

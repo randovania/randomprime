@@ -25,7 +25,7 @@ pub struct JellyZap<'r> {
     pub dont_care: GenericArray<u8, U49>,
 }
 
-impl<'r> SclyPropertyData for JellyZap<'r> {
+impl SclyPropertyData for JellyZap<'_> {
     const OBJECT_TYPE: u8 = 0x54;
 
     impl_position!();

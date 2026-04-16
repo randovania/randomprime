@@ -29,7 +29,7 @@ pub struct Thardus<'r> {
 }
 
 use crate::{impl_patterned_info_with_auxillary, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Thardus<'r> {
+impl SclyPropertyData for Thardus<'_> {
     const OBJECT_TYPE: u8 = 0x58;
     impl_position!();
     impl_rotation!();

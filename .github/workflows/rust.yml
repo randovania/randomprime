@@ -26,7 +26,7 @@ jobs:
     name: ${{ matrix.name }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: 'recursive'
@@ -34,7 +34,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: 1.85.1
         target: powerpc-unknown-linux-gnu
         override: true
         

@@ -13,7 +13,7 @@ pub enum Ctwk<'r> {
     GuiColors(CtwkGuiColors<'r>),
 }
 
-impl<'r> Writable for Ctwk<'r> {
+impl Writable for Ctwk<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match self {
             Ctwk::Game(ctwk) => ctwk.write_to(writer),

@@ -48,6 +48,7 @@ pub mod scly_props {
     pub mod hud_memo;
     pub mod memory_relay;
     pub mod new_camera_shaker;
+    pub mod path_camera;
     pub mod pickup;
     pub mod pickup_generator;
     pub mod platorm;
@@ -143,7 +144,7 @@ pub mod scly_props {
         flaahgra_tentacle::*, flicker_bat::*, flying_pirate::*, geemer::*, grapple_point::*,
         gun_turret::*, hud_memo::*, ice_sheegoth::*, jelly_zap::*, magdolite::*, memory_relay::*,
         metaree::*, metroid::*, metroid_beta::*, metroidprimestage1::*, metroidprimestage2::*,
-        new_camera_shaker::*, new_intro_boss::*, omega_pirate::*, parasite::*,
+        new_camera_shaker::*, new_intro_boss::*, omega_pirate::*, parasite::*, path_camera::*,
         phazon_healing_nodule::*, phazon_pool::*, pickup::*, pickup_generator::*, platorm::*,
         player_actor::*, player_hint::*, point_of_interest::*, puddle_spore::*,
         puddle_toad_gamma::*, puffer::*, relay::*, ridley_v1::*, ridley_v2::*, ripper::*,
@@ -191,8 +192,8 @@ pub use scly_props::{
     flicker_bat::*, flying_pirate::*, geemer::*, grapple_point::*, gun_turret::*, hud_memo::*,
     ice_sheegoth::*, jelly_zap::*, magdolite::*, memory_relay::*, metaree::*, metroid::*,
     metroid_beta::*, metroidprimestage1::*, metroidprimestage2::*, new_camera_shaker::*,
-    new_intro_boss::*, omega_pirate::*, parasite::*, phazon_healing_nodule::*, phazon_pool::*,
-    pickup::*, pickup_generator::*, platorm::*, player_actor::*, player_hint::*,
+    new_intro_boss::*, omega_pirate::*, parasite::*, path_camera::*, phazon_healing_nodule::*,
+    phazon_pool::*, pickup::*, pickup_generator::*, platorm::*, player_actor::*, player_hint::*,
     point_of_interest::*, puddle_spore::*, puddle_toad_gamma::*, puffer::*, relay::*, ridley_v1::*,
     ridley_v2::*, ripper::*, seedling::*, snake_weed_swarm::*, sound::*, space_pirate::*,
     spank_weed::*, spawn_point::*, special_function::*, spider_ball_waypoint::*, streamed_audio::*,

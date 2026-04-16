@@ -27,7 +27,7 @@ pub struct Parasite<'r> {
     pub dont_care: u8,
 }
 
-impl<'r> SclyPropertyData for Parasite<'r> {
+impl SclyPropertyData for Parasite<'_> {
     const OBJECT_TYPE: u8 = 0x3D;
 
     impl_position!();

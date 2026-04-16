@@ -16,6 +16,6 @@ pub struct Switch<'r> {
     pub auto_close: u8,
 }
 
-impl<'r> SclyPropertyData for Switch<'r> {
+impl SclyPropertyData for Switch<'_> {
     const OBJECT_TYPE: u8 = 0x56;
 }

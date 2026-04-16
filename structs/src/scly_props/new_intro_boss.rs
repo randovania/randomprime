@@ -32,7 +32,7 @@ pub struct NewIntroBoss<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for NewIntroBoss<'r> {
+impl SclyPropertyData for NewIntroBoss<'_> {
     const OBJECT_TYPE: u8 = 0x0E;
 
     impl_position!();

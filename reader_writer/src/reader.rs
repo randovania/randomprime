@@ -16,13 +16,13 @@ impl<'r> Deref for Reader<'r> {
     }
 }
 
-impl<'r> DerefMut for Reader<'r> {
+impl DerefMut for Reader<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<'r> Debug for Reader<'r> {
+impl Debug for Reader<'_> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         let ptr = self.0.as_ptr() as *const _ as usize;
         formatter.write_fmt(format_args!("Reader(0x{:x})", ptr))
@@ -73,7 +73,7 @@ impl<'r> Readable<'r> for Reader<'r> {
     }
 }
 
-impl<'r> Writable for Reader<'r> {
+impl Writable for Reader<'_> {
     fn write_to<W: io::Write>(&self, _: &mut W) -> io::Result<u64> {
         Ok(0)
     }

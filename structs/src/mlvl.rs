@@ -138,7 +138,7 @@ impl<'r> Readable<'r> for AreaDependencies<'r> {
     }
 }
 
-impl<'r> Writable for AreaDependencies<'r> {
+impl Writable for AreaDependencies<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let mut sum = 0;
         let deps_count: u32 = self.deps.clone().iter().map(|i| i.len() as u32).sum();
@@ -170,7 +170,7 @@ impl<'r> LayerDepCountIter<'r> {
     }
 }
 
-impl<'r> Iterator for LayerDepCountIter<'r> {
+impl Iterator for LayerDepCountIter<'_> {
     type Item = (usize, ());
     fn next(&mut self) -> Option<Self::Item> {
         let start = self.offsets_iter.next();
@@ -183,7 +183,7 @@ impl<'r> Iterator for LayerDepCountIter<'r> {
     }
 }
 
-impl<'r> ExactSizeIterator for LayerDepCountIter<'r> {
+impl ExactSizeIterator for LayerDepCountIter<'_> {
     fn len(&self) -> usize {
         self.offsets_iter.len()
     }
@@ -302,7 +302,7 @@ impl<'r> Readable<'r> for AreaLayerNames<'r> {
     }
 }
 
-impl<'r> Writable for AreaLayerNames<'r> {
+impl Writable for AreaLayerNames<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         let mut sum = 0;
         sum += self

@@ -28,7 +28,7 @@ pub struct PuddleSpore<'r> {
     pub damage_info: DamageInfo,
 }
 
-impl<'r> SclyPropertyData for PuddleSpore<'r> {
+impl SclyPropertyData for PuddleSpore<'_> {
     const OBJECT_TYPE: u8 = 0x31;
 
     impl_position!();

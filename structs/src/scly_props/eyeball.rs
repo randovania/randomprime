@@ -31,7 +31,7 @@ pub struct Eyeball<'r> {
     pub dont_care: GenericArray<u8, U37>,
 }
 
-impl<'r> SclyPropertyData for Eyeball<'r> {
+impl SclyPropertyData for Eyeball<'_> {
     const OBJECT_TYPE: u8 = 0x67;
 
     impl_position!();

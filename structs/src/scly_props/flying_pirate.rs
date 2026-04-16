@@ -38,7 +38,7 @@ pub struct FlyingPirate<'r> {
     pub dont_care: GenericArray<u8, U68>,
 }
 
-impl<'r> SclyPropertyData for FlyingPirate<'r> {
+impl SclyPropertyData for FlyingPirate<'_> {
     const OBJECT_TYPE: u8 = 0x25;
 
     impl_position!();

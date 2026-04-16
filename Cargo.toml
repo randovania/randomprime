@@ -4,6 +4,9 @@ version = "0.2.3"
 authors = ["April Wade <wayedt@gmail.com>"]
 edition = "2021"
 
+[package.metadata]
+required-targets = ["powerpc-unknown-linux-gnu"]
+
 [dependencies]
 adler32 = "1.0"
 clap.workspace = true

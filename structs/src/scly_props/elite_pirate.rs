@@ -54,7 +54,7 @@ pub struct ElitePirate<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for ElitePirate<'r> {
+impl SclyPropertyData for ElitePirate<'_> {
     const OBJECT_TYPE: u8 = 0x26;
 
     impl_position!();

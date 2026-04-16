@@ -171,11 +171,29 @@ pub struct DefaultGameOptions {
 pub struct WaterConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub position: [f32; 3],
+    pub scale: [f32; 3],
+    pub force: Option<[f32; 3]>,
+    pub flags: Option<u32>,
+    pub thermal_cold: Option<bool>,
+    pub display_surface: Option<bool>,
+    pub morph_in_time: Option<f32>,
+    pub morph_out_time: Option<f32>,
     pub active: Option<bool>,
     #[serde(alias = "type")]
     pub liquid_type: String,
-    pub position: [f32; 3],
-    pub scale: [f32; 3],
+    pub alpha: Option<f32>,
+    pub splash_color: Option<[f32; 4]>,
+    pub inside_fog_color: Option<[f32; 4]>,
+    pub tile_size: Option<f32>,
+    pub tile_subdivisions: Option<u32>,
+    pub ripple_intensity: Option<f32>,
+    pub fog_bias: Option<f32>,
+    pub fog_magnitude: Option<f32>,
+    pub fog_speed: Option<f32>,
+    pub fog_color: Option<[f32; 4]>,
+    pub alpha_in_time: Option<f32>,
+    pub alpha_out_time: Option<f32>,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
@@ -272,6 +290,7 @@ pub struct BlockConfig {
     pub position: [f32; 3],
     pub scale: Option<[f32; 3]>,
     pub texture: Option<GenericTexture>,
+    pub thermal_hot: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -914,6 +933,52 @@ pub struct CameraHintTriggerConfig {
     pub deactivate_on_exit: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BallTriggerConfig {
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub scale: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub force: Option<f32>,
+    pub min_angle: Option<f32>,
+    pub max_distance: Option<f32>,
+    pub force_angle: Option<[f32; 3]>,
+    pub stop_player: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum InitialSplinePosition {
+    BallCamBasis,
+    Negative,
+    Positive,
+    ClampBasis,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PathCameraConfig {
+    pub id: Option<u32>,
+    pub layer: Option<u32>,
+    pub position: Option<[f32; 3]>,
+    pub rotation: Option<[f32; 3]>,
+    pub active: Option<bool>,
+    pub is_closed_loop: Option<bool>,
+    pub fixed_look_pos: Option<bool>,
+    pub side_view: Option<bool>,
+    pub camera_height_from_hint: Option<bool>,
+    pub clamp_to_closed_door: Option<bool>,
+    pub unused: Option<bool>,
+    pub length_extend: Option<f32>,
+    pub filter_mag: Option<f32>,
+    pub filter_proportion: Option<f32>,
+    pub initial_spline_position: Option<InitialSplinePosition>,
+    pub min_ease_dist: Option<f32>,
+    pub max_ease_dist: Option<f32>,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -1131,6 +1196,9 @@ pub struct RoomConfig {
     pub camera_filter_keyframes: Option<Vec<CameraFilterKeyframeConfig>>,
     pub new_camera_hints: Option<Vec<NewCameraHintConfig>>,
     pub camera_hint_triggers: Option<Vec<CameraHintTriggerConfig>>,
+    pub set_memory_relays: Option<Vec<u32>>,
+    pub ball_triggers: Option<Vec<BallTriggerConfig>>,
+    pub path_cameras: Option<Vec<PathCameraConfig>>,
     // Don't forget to update merge_json when adding here
 }
 
@@ -1302,7 +1370,7 @@ impl<'de> Deserialize<'de> for SuitDamageReduction {
     {
         struct SuitDamageReductionVisitor;
 
-        impl<'de> Visitor<'de> for SuitDamageReductionVisitor {
+        impl Visitor<'_> for SuitDamageReductionVisitor {
             type Value = SuitDamageReduction;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -1474,6 +1542,7 @@ pub struct PatchConfig {
     pub difficulty_behavior: DifficultyBehavior,
     pub legacy_block_size: bool,
     pub patch_wallcrawling: bool,
+    pub blast_shield_lockon: bool,
     pub ctwk_config: CtwkConfig,
 }
 
@@ -1574,6 +1643,7 @@ struct GameConfig {
     difficulty_behavior: Option<DifficultyBehavior>,
     legacy_block_size: Option<bool>,
     patch_wallcrawling: Option<bool>,
+    blast_shield_lockon: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -2011,6 +2081,7 @@ impl PatchConfigPrivate {
                 extend_option_vec!(repositions, self_room_config, other_room_config);
                 extend_option_vec!(hudmemos, self_room_config, other_room_config);
                 extend_option_vec!(delete_ids, self_room_config, other_room_config);
+                extend_option_vec!(set_memory_relays, self_room_config, other_room_config);
                 extend_option_vec!(add_connections, self_room_config, other_room_config);
                 extend_option_vec!(remove_connections, self_room_config, other_room_config);
                 extend_option_vec!(relays, self_room_config, other_room_config);
@@ -2036,6 +2107,8 @@ impl PatchConfigPrivate {
                 extend_option_vec!(camera_filter_keyframes, self_room_config, other_room_config);
                 extend_option_vec!(new_camera_hints, self_room_config, other_room_config);
                 extend_option_vec!(camera_hint_triggers, self_room_config, other_room_config);
+                extend_option_vec!(ball_triggers, self_room_config, other_room_config);
+                extend_option_vec!(path_cameras, self_room_config, other_room_config);
 
                 if let Some(other_layers) = &other_room_config.layers {
                     if self_room_config.layers.is_none() {
@@ -2335,9 +2408,9 @@ impl PatchConfigPrivate {
         if !item_max_capacity.contains_key(&PickupType::EnergyTank) && !force_vanilla_layout {
             item_max_capacity.insert(PickupType::EnergyTank, 200);
         }
-        if !item_max_capacity.contains_key(&PickupType::UnknownItem2) {
-            item_max_capacity.insert(PickupType::UnknownItem2, 2147483647);
-        }
+        item_max_capacity
+            .entry(PickupType::UnknownItem2)
+            .or_insert(2147483647);
 
         if item_max_capacity.contains_key(&PickupType::UnlimitedMissiles)
             || item_max_capacity.contains_key(&PickupType::UnlimitedPowerBombs)
@@ -2711,6 +2784,7 @@ impl PatchConfigPrivate {
                 .unwrap_or(DifficultyBehavior::Either),
             legacy_block_size: self.game_config.legacy_block_size.unwrap_or(false),
             patch_wallcrawling: self.game_config.patch_wallcrawling.unwrap_or(false),
+            blast_shield_lockon: self.game_config.blast_shield_lockon.unwrap_or(false),
             map_default_state,
 
             starting_items,

@@ -23,7 +23,7 @@ pub struct PhazonPool<'r> {
     pub dont_care3: u32,
 }
 
-impl<'r> SclyPropertyData for PhazonPool<'r> {
+impl SclyPropertyData for PhazonPool<'_> {
     const OBJECT_TYPE: u8 = 0x87;
 
     impl_position!();

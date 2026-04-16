@@ -40,7 +40,7 @@ pub struct Effect<'r> {
 }
 
 use crate::{impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for Effect<'r> {
+impl SclyPropertyData for Effect<'_> {
     const OBJECT_TYPE: u8 = 0x7;
 
     impl_position!();

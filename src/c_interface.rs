@@ -19,7 +19,7 @@ enum CbMessage<'a> {
     Progress { percent: f64, msg: &'a str },
 }
 
-impl<'a> CbMessage<'a> {
+impl CbMessage<'_> {
     fn success_json() -> CString {
         CString::new(serde_json::to_string(&CbMessage::Success).unwrap()).unwrap()
     }

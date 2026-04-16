@@ -39,7 +39,7 @@ pub struct Magdolite<'r>
     pub dont_care: GenericArray<u8, U4>,
 }
 
-impl<'r> SclyPropertyData for Magdolite<'r> {
+impl SclyPropertyData for Magdolite<'_> {
     const OBJECT_TYPE: u8 = 0x6B;
 
     impl_position!();

@@ -328,7 +328,8 @@ impl<'a> Relocation<'a> {
         Relocation {
             offset: reloc.r_offset as u32,
             addend: reloc.r_addend.unwrap_or(0) as u32,
-            type_: ElfRelocationType::from_u32(reloc.r_type).unwrap(),
+            type_: ElfRelocationType::from_u32(reloc.r_type)
+                .unwrap_or_else(|| panic!("Unhandled relocation type: {}", reloc.r_type)),
             kind: if sym.st_type() == elf::sym::STT_SECTION {
                 RelocationKind::Internal(map_sec_index(sym.st_shndx as u32), 0)
             } else if sym.is_import() {
@@ -543,7 +544,7 @@ impl<'a> Relocation<'a> {
             (ElfRelocationType::R_PPC_REL14_BRTAKEN, Some(addr), _)
             | (ElfRelocationType::R_PPC_ADDR14_BRTAKEN, _, Some(addr)) => {
                 let addr = bounds_check_and_mask(14, addr);
-                ((read_instr() & 0xffdf0003) | addr | 1 << 21)
+                ((read_instr() & 0xffdf0003) | addr | (1 << 21))
                     .to_be_bytes()
                     .to_vec()
             }

@@ -30,7 +30,7 @@ pub struct MetroidPrimeStage2<'r> {
 }
 
 use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
-impl<'r> SclyPropertyData for MetroidPrimeStage2<'r> {
+impl SclyPropertyData for MetroidPrimeStage2<'_> {
     const OBJECT_TYPE: u8 = 0x83;
     impl_position!();
     impl_rotation!();

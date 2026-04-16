@@ -84,7 +84,7 @@ struct PatchedBinary<'a> {
     segments: vec::IntoIter<Cow<'a, [u8]>>,
 }
 
-impl<'a> io::Read for PatchedBinary<'a> {
+impl io::Read for PatchedBinary<'_> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut total_bytes_written = 0;
         loop {
@@ -310,7 +310,7 @@ impl<'a> DolPatcher<'a> {
     }
 }
 
-impl<'a> reader_writer::WithRead for DolPatcher<'a> {
+impl reader_writer::WithRead for DolPatcher<'_> {
     fn len(&self) -> usize {
         let contents_len: u32 = self
             .data_segments

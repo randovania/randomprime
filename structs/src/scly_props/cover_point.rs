@@ -22,7 +22,7 @@ pub struct CoverPoint<'r> {
     pub cover_time: f32,
 }
 
-impl<'r> SclyPropertyData for CoverPoint<'r> {
+impl SclyPropertyData for CoverPoint<'_> {
     const OBJECT_TYPE: u8 = 0x2A;
 
     impl_position!();

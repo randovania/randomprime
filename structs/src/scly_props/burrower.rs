@@ -28,7 +28,7 @@ pub struct Burrower<'r> {
     pub part4: u32,
 }
 
-impl<'r> SclyPropertyData for Burrower<'r> {
+impl SclyPropertyData for Burrower<'_> {
     const OBJECT_TYPE: u8 = 0x7F;
 
     impl_position!();

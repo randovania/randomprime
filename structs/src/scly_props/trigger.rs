@@ -22,7 +22,7 @@ pub struct Trigger<'r> {
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for Trigger<'r> {
+impl SclyPropertyData for Trigger<'_> {
     const OBJECT_TYPE: u8 = 0x04;
     impl_position!();
     impl_scale!();

@@ -19,7 +19,7 @@ pub struct PointOfInterest<'r> {
 }
 
 use crate::{impl_position, impl_rotation};
-impl<'r> SclyPropertyData for PointOfInterest<'r> {
+impl SclyPropertyData for PointOfInterest<'_> {
     const OBJECT_TYPE: u8 = 0x42;
     impl_position!();
     impl_rotation!();

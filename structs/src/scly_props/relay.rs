@@ -14,6 +14,6 @@ pub struct Relay<'r> {
     pub active: u8,
 }
 
-impl<'r> SclyPropertyData for Relay<'r> {
+impl SclyPropertyData for Relay<'_> {
     const OBJECT_TYPE: u8 = 0x15;
 }

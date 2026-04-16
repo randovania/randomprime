@@ -21,7 +21,7 @@ pub struct CameraPitchVolume<'r> {
     pub actual_scale: f32, // TODO: scale
 }
 
-impl<'r> SclyPropertyData for CameraPitchVolume<'r> {
+impl SclyPropertyData for CameraPitchVolume<'_> {
     const OBJECT_TYPE: u8 = 0x69;
 
     impl_position!();

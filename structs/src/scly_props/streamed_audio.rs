@@ -22,6 +22,6 @@ pub struct StreamedAudio<'r> {
     pub is_music: u8,
 }
 
-impl<'r> SclyPropertyData for StreamedAudio<'r> {
+impl SclyPropertyData for StreamedAudio<'_> {
     const OBJECT_TYPE: u8 = 0x61;
 }

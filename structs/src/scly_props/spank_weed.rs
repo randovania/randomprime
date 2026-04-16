@@ -26,7 +26,7 @@ pub struct SpankWeed<'r> {
     pub dont_cares: GenericArray<f32, U4>,
 }
 
-impl<'r> SclyPropertyData for SpankWeed<'r> {
+impl SclyPropertyData for SpankWeed<'_> {
     const OBJECT_TYPE: u8 = 0x3B;
 
     impl_position!();

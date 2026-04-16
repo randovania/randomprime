@@ -20,7 +20,7 @@ pub struct Dock<'r> {
 }
 
 use crate::{impl_position, impl_scale};
-impl<'r> SclyPropertyData for Dock<'r> {
+impl SclyPropertyData for Dock<'_> {
     const OBJECT_TYPE: u8 = 0x0B;
 
     impl_position!();

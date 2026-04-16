@@ -141,7 +141,7 @@ impl<'r> Readable<'r> for MreaSection<'r> {
     }
 }
 
-impl<'r> Writable for MreaSection<'r> {
+impl Writable for MreaSection<'_> {
     fn write_to<W: io::Write>(&self, writer: &mut W) -> io::Result<u64> {
         match *self {
             MreaSection::Unknown(ref reader) => {

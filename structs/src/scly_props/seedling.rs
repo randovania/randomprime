@@ -30,7 +30,7 @@ pub struct Seedling<'r> {
     pub dont_cares: GenericArray<f32, U4>,
 }
 
-impl<'r> SclyPropertyData for Seedling<'r> {
+impl SclyPropertyData for Seedling<'_> {
     const OBJECT_TYPE: u8 = 0x7C;
 
     impl_position!();
