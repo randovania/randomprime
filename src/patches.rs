@@ -10825,6 +10825,16 @@ fn patch_dol(
         // 801b3444 d0 1f 07 d4     stfs       f0,0x7d4(r31)
     */
 
+    // Prevents wavebuster from being cancelled when facing a wall
+    // Only tested on 0-00
+    if version == Version::NtscU0_00 {
+        let point_blank_patch = ppcasm!(symbol_addr!("UpdateWeaponFire__10CPlayerGunFfR12CPlayerStateR13CStateManager", version) + 0x4B8,
+        { 
+            li      r0, 0; 
+        });
+        dol_patcher.ppcasm_patch(&point_blank_patch)?;
+    }
+
     /* This is where I keep random dol patch experiments */
 
     // let boost_on_spider = ppcasm!(symbol_addr!("ComputeBoostBallMovement__10CMorphBallFRC11CFinalInputRC13CStateManagerf", version) + (0x800f4454 - 0x800f43ac), {
