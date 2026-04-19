@@ -10827,13 +10827,11 @@ fn patch_dol(
 
     // Prevents wavebuster from being cancelled when facing a wall
     // Only tested on 0-00
-    if version == Version::NtscU0_00 {
-        let point_blank_patch = ppcasm!(symbol_addr!("UpdateWeaponFire__10CPlayerGunFfR12CPlayerStateR13CStateManager", version) + 0x4B8,
-        { 
-            li      r0, 0; 
-        });
-        dol_patcher.ppcasm_patch(&point_blank_patch)?;
-    }
+    let point_blank_patch = ppcasm!(symbol_addr!("UpdateWeaponFire__10CPlayerGunFfR12CPlayerStateR13CStateManager", version) + 0x4B8,
+    { 
+        li      r0, 0; 
+    });
+    dol_patcher.ppcasm_patch(&point_blank_patch)?;
 
     /* This is where I keep random dol patch experiments */
 
