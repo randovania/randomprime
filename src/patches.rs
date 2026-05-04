@@ -10825,12 +10825,40 @@ fn patch_dol(
         // 801b3444 d0 1f 07 d4     stfs       f0,0x7d4(r31)
     */
 
-    // Prevents wavebuster from being cancelled when facing a wall
-    // Only tested on 0-00
-    let point_blank_patch = ppcasm!(symbol_addr!("UpdateWeaponFire__10CPlayerGunFfR12CPlayerStateR13CStateManager", version) + 0x4B8,
-    { 
-        li      r0, 0; 
-    });
+    // Replaces the HasPowerUp condition in the if statement at the top of CPlayerGun::FireSecondary
+    // with a check for "or not wavebuster point-blank range"
+    let point_blank_patch = ppcasm!(
+        symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0x78,
+        {
+            // if (!IsWeaponStateSet(0x4)) { // x2f8_stateFlags
+            //     // goto "play sfx and return"
+            // }
+            lwz         r0, 0x2f8(r30);
+            rlwinm.     r0, r0, 0, 29, 29;
+            beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xA8 };
+
+            // if (x310_currentBeam != CPlayerState::kBI_Wave) {
+            //     // goto "normal flow"
+            // }
+            lwz         r0, 0x310(r30);
+            cmpwi       r0, 2;
+            bne         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+
+            // if (!x832_26_comboFiring) {
+            //     // goto "normal flow"
+            // }
+            lbz         r0, 0x832(r30);
+            rlwinm.     r0, r0, 27, 31, 31;
+            beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+
+            // if (!x833_29_pointBlankWorldSurface) {
+            //     // goto "normal flow"
+            // }
+            lbz         r0, 0x833(r30);
+            rlwinm.     r0, r0, 30, 31, 31;
+            beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+        }
+    );
     dol_patcher.ppcasm_patch(&point_blank_patch)?;
 
     /* This is where I keep random dol patch experiments */
