@@ -7290,116 +7290,32 @@ fn patch_observatory_2nd_pass_solvablility(
     Ok(())
 }
 
-fn patch_observatory_1st_pass_softlock(
+fn patch_observatory_remove_door_lock(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
-    // 0x041E0001 => starting at save station will allow us to kill pirates before the lock is active
-    // 0x041E0002 => doing reverse lab will allow us to kill pirates before the lock is active
-    const LOCK_DOOR_TRIGGER_IDS: &[u32] = &[0x041E0381, 0x041E0001, 0x041E0002];
-
-    let enable_lock_relay_id = 0x041E037A;
-
-    let scly = area.mrea().scly_section_mut();
-    let layer = &mut scly.layers.as_mut_vec()[1];
-    layer
-        .objects
-        .iter_mut()
-        .find(|obj| obj.instance_id == LOCK_DOOR_TRIGGER_IDS[0])
-        .unwrap()
-        .connections
-        .as_mut_vec()
-        .extend_from_slice(&[
-            structs::Connection {
-                state: structs::ConnectionState::ENTERED,
-                message: structs::ConnectionMsg::DEACTIVATE,
-                target_object_id: LOCK_DOOR_TRIGGER_IDS[1],
-            },
-            structs::Connection {
-                state: structs::ConnectionState::ENTERED,
-                message: structs::ConnectionMsg::DEACTIVATE,
-                target_object_id: LOCK_DOOR_TRIGGER_IDS[2],
-            },
-        ]);
-
-    layer.objects.as_mut_vec().extend_from_slice(&[
-        structs::SclyObject {
-            instance_id: LOCK_DOOR_TRIGGER_IDS[1],
-            property_data: structs::Trigger {
-                name: b"Trigger\0".as_cstr(),
-                position: [-71.301_55, -941.337_95, 129.976_82].into(),
-                scale: [10.516006, 6.079956, 7.128998].into(),
-                damage_info: structs::scly_structs::DamageInfo {
-                    weapon_type: 0,
-                    damage: 0.0,
-                    radius: 0.0,
-                    knockback_power: 0.0,
-                },
-                force: [0.0, 0.0, 0.0].into(),
-                flags: 1,
-                active: 1,
-                deactivate_on_enter: 1,
-                deactivate_on_exit: 0,
-            }
-            .into(),
-            connections: vec![
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::DEACTIVATE,
-                    target_object_id: LOCK_DOOR_TRIGGER_IDS[0],
-                },
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::DEACTIVATE,
-                    target_object_id: LOCK_DOOR_TRIGGER_IDS[2],
-                },
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::SET_TO_ZERO,
-                    target_object_id: enable_lock_relay_id,
-                },
+    let layer_count = area.layer_flags.layer_count as usize;
+    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
+    for layer in layers.iter_mut().take(layer_count) {
+        layer.objects.as_mut_vec().retain(|obj| {
+            ![
+                0x001E03F2, 0x001E0379, 0x001E037E, 0x001E037C,
+                0x001E0380, 0x001E03F3, 0x001E037A, 0x001E037B,
+                0x001E037D, 0x001E03F2, 0x001E0381,
             ]
-            .into(),
-        },
-        structs::SclyObject {
-            instance_id: LOCK_DOOR_TRIGGER_IDS[2],
-            property_data: structs::Trigger {
-                name: b"Trigger\0".as_cstr(),
-                position: [-71.301_55, -853.694_34, 129.976_82].into(),
-                scale: [10.516006, 6.079956, 7.128998].into(),
-                damage_info: structs::scly_structs::DamageInfo {
-                    weapon_type: 0,
-                    damage: 0.0,
-                    radius: 0.0,
-                    knockback_power: 0.0,
-                },
-                force: [0.0, 0.0, 0.0].into(),
-                flags: 1,
-                active: 1,
-                deactivate_on_enter: 1,
-                deactivate_on_exit: 0,
-            }
-            .into(),
-            connections: vec![
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::DEACTIVATE,
-                    target_object_id: LOCK_DOOR_TRIGGER_IDS[0],
-                },
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::DEACTIVATE,
-                    target_object_id: LOCK_DOOR_TRIGGER_IDS[1],
-                },
-                structs::Connection {
-                    state: structs::ConnectionState::ENTERED,
-                    message: structs::ConnectionMsg::SET_TO_ZERO,
-                    target_object_id: enable_lock_relay_id,
-                },
-            ]
-            .into(),
-        },
-    ]);
+            .contains(&(obj.instance_id & 0x00FFFFFF))
+        });
+    }
+    
+    // Remove door lock actor deps as well
+    let deps_to_remove: Vec<u32> = vec![
+        0x6E5D6796, 0x0D36FB59, 0xACADD83F
+    ];
+    for dep_array in area.mlvl_area.dependencies.deps.as_mut_vec() {
+        dep_array
+            .as_mut_vec()
+            .retain(|dep| !deps_to_remove.contains(&dep.asset_id));
+    }
 
     Ok(())
 }
@@ -15421,7 +15337,7 @@ fn patch_qol_game_breaking(
     );
     patcher.add_scly_patch(
         resource_info!("11_ice_observatory.MREA").into(),
-        patch_observatory_1st_pass_softlock,
+        patch_observatory_remove_door_lock,
     );
     patcher.add_scly_patch(
         resource_info!("02_mines_shotemup.MREA").into(),
