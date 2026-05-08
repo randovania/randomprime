@@ -2436,7 +2436,6 @@ impl PatchConfigPrivate {
                     "Ice Spreader" => 1,
                     "Wavebuster" => 2,
                     "Flamethrower" => 3,
-                    "Missile" => 4,
                     _ => panic!("Invalid missile type `{}`", name)
                 }, *cost))
                 .collect(),

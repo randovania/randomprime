@@ -790,12 +790,6 @@
                             "minimum": 0,
                             "maximum": 4294967295,
                             "default": 10
-                        },
-                        "Missile": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 4294967295,
-                            "default": 1
                         }
                     }
                 },
