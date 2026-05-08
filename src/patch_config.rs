@@ -1494,6 +1494,7 @@ pub struct PatchConfig {
     pub phazon_damage_modifier: PhazonDamageModifier,
     pub staggered_suit_damage: SuitDamageReduction,
     pub item_max_capacity: HashMap<PickupType, u32>,
+    pub missile_costs: HashMap<u32, u32>,
     pub map_default_state: MapaObjectVisibilityMode,
     pub auto_enabled_elevators: bool,
     pub skip_ridley: bool,
@@ -1612,6 +1613,7 @@ struct GameConfig {
 
     etank_capacity: Option<u32>,
     item_max_capacity: Option<HashMap<String, u32>>,
+    missile_costs: Option<HashMap<String, u32>>,
 
     phazon_elite_without_dynamo: Option<bool>,
     main_plaza_door: Option<bool>,
@@ -2424,6 +2426,23 @@ impl PatchConfigPrivate {
             panic!("Illegal pickup name in 'itemMaxCapacity'");
         }
 
+        let missile_costs: HashMap<u32, u32> = match &self.game_config.missile_costs {
+            Some(costs) => costs
+                .iter()
+                .map(|(name, cost)| (match name.as_str() {
+                    // Missile costs are stored as an array of integers
+                    // Convert name to index
+                    "Super Missile" => 0,
+                    "Ice Spreader" => 1,
+                    "Wavebuster" => 2,
+                    "Flamethrower" => 3,
+                    "Missile" => 4,
+                    _ => panic!("Invalid missile type `{}`", name)
+                }, *cost))
+                .collect(),
+            None => HashMap::new(),
+        };
+
         let qol_game_breaking = self
             .preferences
             .qol_game_breaking
@@ -2806,6 +2825,7 @@ impl PatchConfigPrivate {
 
             etank_capacity: self.game_config.etank_capacity.unwrap_or(100),
             item_max_capacity,
+            missile_costs,
 
             game_banner: self.game_config.game_banner.clone().unwrap_or_default(),
             comment: self.game_config.comment.clone().unwrap_or_default(),
