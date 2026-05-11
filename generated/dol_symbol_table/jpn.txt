@@ -92,6 +92,7 @@
 0x80379c8c printf
 0x803b86cc __build_info
 0x803b9a50 CPlayerState_PowerUpMaxValues
+0x803b9af4 CPlayerState_MissileCostValues
 0x803baeb8 BallGlowColors
 0x803baed4 BallTransFlashColors
 0x803baef0 BallAuxGlowColors

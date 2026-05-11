@@ -11196,6 +11196,13 @@ fn patch_dol(
         dol_patcher.ppcasm_patch(&capacity_patch)?;
     }
 
+    for (missile_type, cost) in &config.missile_costs {
+        let cost_patch = ppcasm!(symbol_addr!("CPlayerState_MissileCostsValues", version) + missile_type * 4, {
+            .long *cost;
+        });
+        dol_patcher.ppcasm_patch(&cost_patch)?;
+    }
+
     // set etank capacity and base health
     let etank_capacity = config.etank_capacity as f32;
     let base_health = etank_capacity - 1.0;

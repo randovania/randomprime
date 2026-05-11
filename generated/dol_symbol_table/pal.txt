@@ -2802,6 +2802,7 @@
 0x803b4ce0 __GBASetDelay
 0x803b6924 __build_info
 0x803b80a8 CPlayerState_PowerUpMaxValues
+0x803b814c CPlayerState_MissileCostValues
 0x803b9510 BallGlowColors
 0x803b952c BallTransFlashColors
 0x803b9548 BallAuxGlowColors

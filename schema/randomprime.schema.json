@@ -763,6 +763,36 @@
                     "required": [],
                     "additionalProperties": false
                 },
+                "missileCost": {
+                    "description": "The number of missiles consumed when firing missiles and using beam combos. This does not impact the cost of sustaining the beam combo in the case of Wavebuster and Flamethrower.",
+                    "type": "object",
+                    "properties": {
+                        "Super Missile": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4294967295,
+                            "default": 5
+                        },
+                        "Wavebuster": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4294967295,
+                            "default": 10
+                        },
+                        "Ice Spreader": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4294967295,
+                            "default": 10
+                        },
+                        "Flamethrower": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4294967295,
+                            "default": 10
+                        }
+                    }
+                },
                 "phazonEliteWithoutDynamo": {
                     "description": "Removes the Central Dynamo item requirement for activating the Phazon Elite boss fight.",
                     "type": "boolean",
