@@ -2429,15 +2429,20 @@ impl PatchConfigPrivate {
         let missile_costs: HashMap<u32, u32> = match &self.game_config.missile_costs {
             Some(costs) => costs
                 .iter()
-                .map(|(name, cost)| (match name.as_str() {
-                    // Missile costs are stored as an array of integers
-                    // Convert name to index
-                    "Super Missile" => 0,
-                    "Ice Spreader" => 1,
-                    "Wavebuster" => 2,
-                    "Flamethrower" => 3,
-                    _ => panic!("Invalid missile type `{}`", name)
-                }, *cost))
+                .map(|(name, cost)| {
+                    (
+                        match name.as_str() {
+                            // Missile costs are stored as an array of integers
+                            // Convert name to index
+                            "Super Missile" => 0,
+                            "Ice Spreader" => 1,
+                            "Wavebuster" => 2,
+                            "Flamethrower" => 3,
+                            _ => panic!("Invalid missile type `{}`", name),
+                        },
+                        *cost,
+                    )
+                })
                 .collect(),
             None => HashMap::new(),
         };

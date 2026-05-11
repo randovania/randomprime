@@ -9416,9 +9416,8 @@ fn patch_frost_cave_metroid_pal(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
-
-        let flags = &mut area.layer_flags.flags;
-        *flags |= 1 << 3; // Turn on "Don't Load" Layer with Hunter Metroid
+    let flags = &mut area.layer_flags.flags;
+    *flags |= 1 << 3; // Turn on "Don't Load" Layer with Hunter Metroid
 
     Ok(())
 }
