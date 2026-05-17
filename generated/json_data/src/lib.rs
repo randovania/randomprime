@@ -11,4 +11,5 @@ pub const SKIPPABLE_CUTSCENES_COMPETITIVE: &str = include_str!(concat!(
     "/skippable_cutscenes_competitive.jsonc.min.json"
 ));
 pub const QOL: &str = include_str!(concat!(env!("OUT_DIR"), "/qol.jsonc.min.json"));
-pub const GAME_BREAKING: &str = include_str!(concat!(env!("OUT_DIR"), "/game_breaking.jsonc.min.json"));
+pub const GAME_BREAKING: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/game_breaking.jsonc.min.json"));
