@@ -1,0 +1,12 @@
+{
+    "$schema": "../../schema/randomprime.schema.json",
+    "levelData": {
+        "Chozo Ruins": {
+            "rooms": {
+                "Training Chamber": {
+                    
+                }
+            }
+        }
+    }
+}

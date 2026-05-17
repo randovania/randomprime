@@ -2308,6 +2308,14 @@ impl PatchConfigPrivate {
 
         if self
             .preferences
+            .qol_game_breaking
+            .unwrap_or(!force_vanilla_layout)
+        {
+            merge_json(&mut result, GAME_BREAKING)?;
+        }
+
+        if self
+            .preferences
             .qol_general
             .unwrap_or(!force_vanilla_layout)
         {
