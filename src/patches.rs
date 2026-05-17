@@ -470,6 +470,82 @@ fn patch_add_scans_to_savw(
     Ok(())
 }
 
+fn patch_rotate_hive_totem_door(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+
+    let door_id = 0x00240233;
+    let door_shield_id = 0x00240236;
+    let door_shield_key_id = 0x0024022F;
+    let door_unlock_id = 0x00240234;
+    let door_key_id = 0x0024022E;
+
+    let door = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_id)
+        .and_then(|obj| obj.property_data.as_door_mut())
+        .unwrap();
+    door.rotation[0] = 0.0;
+    door.rotation[1] = 0.0;
+
+    let door_shield = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_shield_id)
+        .and_then(|obj| obj.property_data.as_actor_mut())
+        .unwrap();
+    door_shield.rotation[0] = 0.0;
+    door_shield.rotation[1] = 0.0;
+    door_shield.position[0] = 94.625_73;
+    door_shield.position[1] = 335.590_03;
+    door_shield.position[2] = -4.336928;
+
+    let door_shield_key = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_shield_key_id)
+        .and_then(|obj| obj.property_data.as_actor_mut())
+        .unwrap();
+    door_shield_key.rotation[0] = 0.0;
+    door_shield_key.rotation[1] = 0.0;
+    door_shield_key.position[0] = 94.625_73;
+    door_shield_key.position[1] = 335.590_03;
+    door_shield_key.position[2] = -4.336928;
+
+    let door_unlock = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_unlock_id)
+        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
+        .unwrap();
+    door_unlock.scale[0] = 4.0;
+    door_unlock.scale[1] = 0.25;
+    door_unlock.scale[2] = 4.0;
+    door_unlock.position[1] = 335.746_8;
+
+    let door_key = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_key_id)
+        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
+        .unwrap();
+    door_key.scale[0] = 4.0;
+    door_key.scale[1] = 0.25;
+    door_key.scale[2] = 4.0;
+    door_key.position[1] = 335.746_8;
+
+    Ok(())
+}
+
 fn patch_map_door_icon(
     res: &mut structs::Resource,
     door: ModifiableDoorLocation,
@@ -776,7 +852,7 @@ fn patch_door<'r>(
         let blast_shield_type = blast_shield_type.as_ref().unwrap();
 
         // Calculate placement //
-        let rotation: GenericArray<f32, U3>;
+        let mut rotation: GenericArray<f32, U3>;
         let scale: GenericArray<f32, U3>;
 
         // CollisionBox
@@ -845,12 +921,18 @@ fn patch_door<'r>(
                     door_shield.position[2] - 1.763191,
                 ]
                 .into();
-            } else if door_rotation[0] >= 0.01 && door_rotation[0] < 0.05 {
+            } else if door_rotation[1] >= 8.0 && door_rotation[1] < 9.0 {
                 // Leads North (Hive Totem)
                 position = [
-                    door_shield.position[0] + 0.005944,
-                    door_shield.position[1] + 0.100342,
-                    door_shield.position[2] - 1.839322,
+                    door_shield.position[0] - 0.00595,
+                    door_shield.position[1] + 0.383209,
+                    door_shield.position[2] - 1.801748,
+                ]
+                .into();
+                rotation = [
+                    door_shield.rotation[0],
+                    door_shield.rotation[1],
+                    door_shield.rotation[2],
                 ]
                 .into();
             } else if door_rotation[0] >= 8.0 && door_rotation[0] < 9.0 {
@@ -1361,7 +1443,7 @@ fn patch_door<'r>(
                             panic!("Custom Blast Shields cannot be placed on morph ball doors");
                         }
 
-                        // Disable the blast shield via memory relay when the door is opened from the other side
+                        // Disable blast shield layer when the door is opened from the other side
                         obj.connections.as_mut_vec().push(structs::Connection {
                             state: structs::ConnectionState::MAX_REACHED,
                             message: structs::ConnectionMsg::DECREMENT,
@@ -1394,6 +1476,31 @@ fn patch_door<'r>(
                             state: structs::ConnectionState::MAX_REACHED,
                             message: structs::ConnectionMsg::DEACTIVATE,
                             target_object_id: timer_id,
+                        });
+
+                        // If it's a powered door, update the doors when door is opened from the other side
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: activate_old_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::OPEN,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: activate_old_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: activate_new_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::OPEN,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: activate_new_door_id,
                         });
 
                         _break = true;
@@ -6189,6 +6296,7 @@ fn patch_visible_aether_boundaries<'r>(
             None,
             true,
             true,
+            false,
         );
     }
 
@@ -7228,7 +7336,7 @@ fn patch_observatory_1st_pass_softlock(
                     knockback_power: 0.0,
                 },
                 force: [0.0, 0.0, 0.0].into(),
-                flags: 1,
+                flags: 1853,
                 active: 1,
                 deactivate_on_enter: 1,
                 deactivate_on_exit: 0,
@@ -7266,7 +7374,7 @@ fn patch_observatory_1st_pass_softlock(
                     knockback_power: 0.0,
                 },
                 force: [0.0, 0.0, 0.0].into(),
-                flags: 1,
+                flags: 1853,
                 active: 1,
                 deactivate_on_enter: 1,
                 deactivate_on_exit: 0,
@@ -9308,20 +9416,43 @@ fn patch_frost_cave_metroid_pal(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
-    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    let metroid = layers[3] // 3 is Don't Load layer
-        .objects
-        .iter_mut()
-        .find(|obj| obj.instance_id & 0x00FFFFFF == 0x00290199)
-        .unwrap()
-        .clone();
+    let flags = &mut area.layer_flags.flags;
+    *flags |= 1 << 3; // Turn on "Don't Load" Layer with Hunter Metroid
 
-    layers[2].objects.as_mut_vec().push(metroid.clone()); // 2 is 1st Pass layer
-    layers[3]
+    Ok(())
+}
+
+fn patch_frost_cave_metroid_pal_layer_switch(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+
+    let obj = layer
         .objects
         .as_mut_vec()
-        .retain(|obj| obj.instance_id & 0x00FFFFFF != 0x00290199);
+        .iter_mut()
+        .find(|obj| obj.instance_id == 3473439)
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ARRIVED,
+        message: structs::ConnectionMsg::DECREMENT,
+        target_object_id: id,
+    });
 
+    layer.objects.as_mut_vec().push(structs::SclyObject {
+        instance_id: id,
+        property_data: structs::SpecialFunction::layer_change_fn(
+            b"SpecialFunction - Ice Cave A - Decrement Don't Load\0".as_cstr(),
+            0xC91D48C5,
+            3,
+        )
+        .into(),
+        connections: vec![].into(),
+    });
     Ok(())
 }
 
@@ -9792,8 +9923,8 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
         kind: structs::FrmeWidgetKind::TextPane(structs::TextPaneWidget {
             x_dim: 10.455326,
             z_dim: 1.813613,
-            scale_center: [-5.227663, 0.0, -0.51].into(),
-            font: resource_info!("Deface14B_O.FONT").try_into().unwrap(),
+            scale_center: [-25.227663, 0.0, -4.43].into(),
+            font: resource_info!("Deface13B.FONT").try_into().unwrap(),
             word_wrap: 0,
             horizontal: 1,
             justification: 0,
@@ -9805,7 +9936,7 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
             jpn_point_scale,
         }),
         worker_id: None,
-        origin: [9.25, 1.500001, 0.0].into(),
+        origin: [24.6, 1.500001, 0.3].into(),
         basis: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0].into(),
         rotation_center: [0.0, 0.0, 0.0].into(),
         unknown0: 0,
@@ -9820,9 +9951,9 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
     };
     tp.fill_color = [0.0, 0.0, 0.0, 0.4].into();
     tp.outline_color = [0.0, 0.0, 0.0, 0.2].into();
-    shadow_widget.origin[0] -= -0.235091;
-    shadow_widget.origin[1] -= -0.104353;
-    shadow_widget.origin[2] -= 0.176318;
+    shadow_widget.origin[0] -= -0.1;
+    shadow_widget.origin[1] -= -0.1;
+    shadow_widget.origin[2] -= 0.1;
 
     frme.widgets.as_mut_vec().push(shadow_widget);
 
@@ -10693,6 +10824,44 @@ fn patch_dol(
         // 801b3444 d0 1f 07 d4     stfs       f0,0x7d4(r31)
     */
 
+    if config.qol_general {
+        // Replaces the HasPowerUp condition in the if statement at the top of CPlayerGun::FireSecondary
+        // with a check for "or not wavebuster point-blank range"
+        let point_blank_patch = ppcasm!(
+            symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0x78,
+            {
+                // if (!IsWeaponStateSet(0x4)) { // x2f8_stateFlags
+                //     // goto "play sfx and return"
+                // }
+                lwz         r0, 0x2f8(r30);
+                rlwinm.     r0, r0, 0, 29, 29;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xA8 };
+
+                // if (x310_currentBeam != CPlayerState::kBI_Wave) {
+                //     // goto "normal flow"
+                // }
+                lwz         r0, 0x310(r30);
+                cmpwi       r0, 2;
+                bne         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+
+                // if (!x832_26_comboFiring) {
+                //     // goto "normal flow"
+                // }
+                lbz         r0, 0x832(r30);
+                rlwinm.     r0, r0, 27, 31, 31;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+
+                // if (!x833_29_pointBlankWorldSurface) {
+                //     // goto "normal flow"
+                // }
+                lbz         r0, 0x833(r30);
+                rlwinm.     r0, r0, 30, 31, 31;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+            }
+        );
+        dol_patcher.ppcasm_patch(&point_blank_patch)?;
+    }
+
     /* This is where I keep random dol patch experiments */
 
     // let boost_on_spider = ppcasm!(symbol_addr!("ComputeBoostBallMovement__10CMorphBallFRC11CFinalInputRC13CStateManagerf", version) + (0x800f4454 - 0x800f43ac), {
@@ -11026,6 +11195,13 @@ fn patch_dol(
             .long *value;
         });
         dol_patcher.ppcasm_patch(&capacity_patch)?;
+    }
+
+    for (missile_type, cost) in &config.missile_costs {
+        let cost_patch = ppcasm!(symbol_addr!("CPlayerState_MissileCostsValues", version) + missile_type * 4, {
+            .long *cost;
+        });
+        dol_patcher.ppcasm_patch(&cost_patch)?;
     }
 
     // set etank capacity and base health
@@ -12009,30 +12185,60 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_has_power_up_hook)?;
     let custom_item_has_power_up_patch = ppcasm!(new_text_section_end, {
+        // backup arguments
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        lwz          r3, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
+        lwz          r4, 0x0(r4);
+
         // check custom item in unknown item 2
         cmpwi        r4, { PickupType::ArtifactOfNewborn.kind() };
         ble          not_custom_item;
-        li           r15, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-        add          r15, r3, r0;
-        addi         r15, r15, 0x2c;
+        li           r4, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+        add          r4, r3, r0;
+        addi         r4, r4, 0x2c;
+        lwz          r0, 0x0(r4);
+
+        // restore r4 back to its previous value because we need it now
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
+        // check if we got the custom item
         li           r3, { first_custom_item_idx };
         add          r3, r3, r4;
-        lwz          r0, 0x0(r15);
         srw          r0, r3, r3;
         andi         r3, r3, 1;
-        andi         r15, r15, 0;
+
+    powerup_not_valid:
         blr;
 
-        // restore previous context
     not_custom_item:
-        andi         r15, r15, 0;
+        // restore previous context
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
         cmpwi        r4, 0;
-        b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
+        blt          powerup_not_valid;
+        b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
     });
 
     new_text_section_end += custom_item_has_power_up_patch.encoded_bytes().len() as u32;
@@ -12047,117 +12253,116 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_get_item_amount_hook)?;
     let custom_item_get_item_amount_patch = ppcasm!(new_text_section_end, {
-            // backup arguments
-            mr           r0, r3;
-            lis          r3, r3_backup@h;
-            addi         r3, r3, r3_backup@l;
-            stw          r0, 0x0(r3);
-            mr           r0, r4;
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            stw          r0, 0x0(r4);
+        // backup arguments
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        lwz          r3, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
+        lwz          r4, 0x0(r4);
 
-            // preload unknown item 2 for future checks in the function
-            lis          r4, r3_backup@h;
-            addi         r4, r4, r3_backup@l;
-            lwz          r4, 0x0(r4);
-            li           r3, { PickupType::UnknownItem2.kind() };
-            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-            add          r3, r4, r3;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            mr           r0, r3;
+        // preload unknown item 2 for future checks in the function
+        mr           r4, r3;
+        li           r3, { PickupType::UnknownItem2.kind() };
+        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+        add          r3, r4, r3;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        mr           r0, r3;
 
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            cmpwi        r4, { PickupType::Missile.kind() };
-            bne          check_power_bomb;
-            // check for missile launcher
-            andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          no_launcher;
-            // check for missile capacity
-            lis          r4, r3_backup@h;
-            addi         r4, r4, r3_backup@l;
-            lwz          r4, 0x0(r4);
-            li           r3, { PickupType::Missile.kind() };
-            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-            add          r3, r4, r3;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            cmpwi        r3, 0;
-            ble          no_launcher;
-            // check for unlimited missiles
-            andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
-            li           r3, 255;
-            b            is_unlimited;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+        cmpwi        r4, { PickupType::Missile.kind() };
+        bne          check_power_bomb;
+        // check for missile launcher
+        andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          no_launcher;
+        // check for missile capacity
+        lis          r4, r3_backup@h;
+        addi         r4, r4, r3_backup@l;
+        lwz          r4, 0x0(r4);
+        li           r3, { PickupType::Missile.kind() };
+        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+        add          r3, r4, r3;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        cmpwi        r3, 0;
+        ble          no_launcher;
+        // check for unlimited missiles
+        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
+        li           r3, 255;
+        b            is_unlimited;
 
-        check_power_bomb:
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            cmpwi        r4, { PickupType::PowerBomb.kind() };
-            bne          not_unlimited_or_not_pb_missiles;
-            // check for power bomb launcher
-            andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          no_launcher;
-            // check for power bomb capacity
-            lis          r4, r3_backup@h;
-            addi         r4, r4, r3_backup@l;
-            lwz          r4, 0x0(r4);
-            li           r3, { PickupType::PowerBomb.kind() };
-            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-            add          r3, r4, r3;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            cmpwi        r3, 0;
-            ble          no_launcher;
-            // check for unlimited power bombs
-            andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
-            li           r3, 8;
-            b            is_unlimited;
+    check_power_bomb:
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+        cmpwi        r4, { PickupType::PowerBomb.kind() };
+        bne          not_unlimited_or_not_pb_missiles;
+        // check for power bomb launcher
+        andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          no_launcher;
+        // check for power bomb capacity
+        lis          r4, r3_backup@h;
+        addi         r4, r4, r3_backup@l;
+        lwz          r4, 0x0(r4);
+        li           r3, { PickupType::PowerBomb.kind() };
+        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+        add          r3, r4, r3;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        cmpwi        r3, 0;
+        ble          no_launcher;
+        // check for unlimited power bombs
+        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
+        li           r3, 8;
+        b            is_unlimited;
 
-        no_launcher:
-            li           r3, 0;
-            lis          r3, r3_backup@h;
-            addi         r3, r3, r3_backup@l;
-            lwz          r3, 0x0(r3);
-        is_unlimited:
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            blr;
+    no_launcher:
+        li           r3, 0;
+    is_unlimited:
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+        blr;
 
-        not_unlimited_or_not_pb_missiles:
-            // restore previous context
-            lis          r3, r3_backup@h;
-            addi         r3, r3, r3_backup@l;
-            lwz          r3, 0x0(r3);
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            cmpwi        r4, 0;
-            blt          item_type_negative;
-            b            { symbol_addr!("GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
-        item_type_negative:
-            li           r3, 0;
-            blr;
+    not_unlimited_or_not_pb_missiles:
+        // restore previous context
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
 
-        r3_backup:
-            .long 0;
-        r4_backup:
-            .long 0;
-        });
+        cmpwi        r4, 0;
+        blt          item_type_negative;
+        b            { symbol_addr!("GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
+    item_type_negative:
+        li           r3, 0;
+        blr;
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
+    });
 
     new_text_section_end += custom_item_get_item_amount_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_get_item_amount_patch.encoded_bytes());
@@ -12171,77 +12376,112 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_get_item_capacity_hook)?;
     let custom_item_get_item_capacity_patch = ppcasm!(new_text_section_end, {
         // backup arguments
-        mr           r14, r3;
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
 
         // preload unknown item 2 for future checks in the function
-        li           r15, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-        add          r15, r14, r0;
-        addi         r15, r15, 0x2c;
-        lwz          r15, 0x0(r15);
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+        add          r4, r3, r0;
+        addi         r4, r4, 0x2c;
+        lwz          r0, 0x0(r4);
+
+        // restore r4 back to its previous value because we need it now
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
 
         cmpwi        r4, { PickupType::Missile.kind() };
         bne          check_power_bomb;
         // check for missile launcher
-        andi         r15, r3, { PickupType::MissileLauncher.custom_item_value() };
+        andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
         cmpwi        r3, 0;
         beq          no_launcher;
         // check for missile capacity
-        li           r3, { PickupType::Missile.kind() };
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r14, r0;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::Missile.kind() };
+        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
+        add          r3, r3, r4;
         addi         r3, r3, 0x2c;
         lwz          r3, 0x0(r3);
         cmpwi        r3, 0;
         ble          no_launcher;
         // check for unlimited missiles
-        andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
         cmpwi        r3, 0;
         beq          not_unlimited_or_not_pb_missiles;
         li           r3, 255;
-        b            is_unlimited;
+        b            custom_capacity_returned;
 
     check_power_bomb:
         cmpwi        r4, { PickupType::PowerBomb.kind() };
         bne          not_unlimited_or_not_pb_missiles;
         // check for power bomb launcher
-        andi         r15, r3, { PickupType::PowerBombLauncher.custom_item_value() };
+        andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
         cmpwi        r3, 0;
         beq          no_launcher;
         // check for power bomb capacity
-        li           r3, { PickupType::PowerBomb.kind() };
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r14, r0;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::PowerBomb.kind() };
+        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
+        add          r3, r3, r4;
         addi         r3, r3, 0x2c;
         lwz          r3, 0x0(r3);
         cmpwi        r3, 0;
         ble          no_launcher;
         // check for unlimited power bombs
-        andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
         cmpwi        r3, 0;
         beq          not_unlimited_or_not_pb_missiles;
         li           r3, 8;
-        b            is_unlimited;
+        b            custom_capacity_returned;
 
     no_launcher:
         li           r3, 0;
-    is_unlimited:
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+
+    custom_capacity_returned:
+        // restore previous context
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
+    powerup_not_valid:
         blr;
 
     not_unlimited_or_not_pb_missiles:
         // restore previous context
-        mr           r3, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
         cmpwi        r4, 0;
-        b            { symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
+        blt          powerup_not_valid;
+        b            { symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
     });
 
     new_text_section_end += custom_item_get_item_capacity_patch.encoded_bytes().len() as u32;
@@ -12256,48 +12496,80 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_decr_pickup_hook)?;
     let custom_item_decr_pickup_patch = ppcasm!(new_text_section_end, {
         // backup arguments
-        mr           r14, r3;
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
 
         // preload unknown item 2 for future checks in the function
-        li           r15, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-        add          r15, r3, r0;
-        addi         r15, r15, 0x2c;
-        lwz          r15, 0x0(r15);
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+        add          r4, r3, r0;
+        addi         r4, r4, 0x28;
+        lwz          r0, 0x0(r4);
+
+        // restore r4 back to its previous value because we need it now
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
 
         cmpwi        r4, { PickupType::Missile.kind() };
         bne          check_power_bomb;
         // check for unlimited missiles
-        andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
         cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        b            is_unlimited;
+        beq          pre_cleanup;
+        li           r0, 1;
+        b            cleanup;
 
     check_power_bomb:
         cmpwi        r4, { PickupType::PowerBomb.kind() };
-        bne          not_unlimited_or_not_pb_missiles;
+        bne          cleanup;
         // check for unlimited power bombs
-        andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
         cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
+        beq          pre_cleanup;
+        li           r0, 1;
+        b            cleanup;
 
-    is_unlimited:
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+    // if not unlimited then set r0 to 0
+    pre_cleanup:
+        li           r0, 0;
+    cleanup:
+        // restore previous context
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
+        // if unlimited then we return
+        cmpwi        r0, 0;
+        beq          not_unlimited;
+    powerup_not_valid:
         blr;
 
-    not_unlimited_or_not_pb_missiles:
-        // restore previous context
-        mr           r3, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+    not_unlimited:
         cmpwi        r4, 0;
-        b            { symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x4 };
+        blt          powerup_not_valid;
+        b            { symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x8 };
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
     });
 
     new_text_section_end += custom_item_decr_pickup_patch.encoded_bytes().len() as u32;
@@ -15163,6 +15435,10 @@ fn patch_qol_game_breaking(
                 resource_info!("15_ice_cave_a.MREA").into(),
                 patch_frost_cave_metroid_pal,
             );
+            patcher.add_scly_patch(
+                resource_info!("18_ice_gravity_chamber.MREA").into(),
+                patch_frost_cave_metroid_pal_layer_switch,
+            );
         }
     }
 
@@ -17122,6 +17398,7 @@ fn build_and_run_patches<'r>(
                             position: [42.9551, -287.1726, -240.7044],
                             scale: Some([50.0, 50.0, 1.0]),
                             texture: None,
+                            thermal_hot: Some(false),
                         },
                         false,
                     )
@@ -17167,6 +17444,13 @@ fn build_and_run_patches<'r>(
         patcher.add_scly_patch(
             resource_info!("01_mainplaza.MREA").into(),
             make_main_plaza_locked_door_two_ways,
+        );
+    }
+
+    if config.qol_cosmetic {
+        patcher.add_scly_patch(
+            resource_info!("19_hive_totem.MREA").into(),
+            patch_rotate_hive_totem_door,
         );
     }
 

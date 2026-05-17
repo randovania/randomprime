@@ -2116,7 +2116,7 @@
                         },
                         {
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
-                            "targetId": 3145752, // [Timer] Timer Hive Explosion
+                            "targetId": 3145815, // [Sound] Sound - Smoke After Explosion
                             "state": "ZERO",
                             "message": "STOP"
                         },
@@ -2238,13 +2238,13 @@
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
                             "targetId": 3145928, // [Sound] Sound - Hive Explosion 1
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "STOP"
                         },
                         {
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
                             "targetId": 3145780, // [Sound] Sound - Hive Explosion 2
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "STOP"
                         },
                         {
                             "senderId": 3999974, // [SpecialFunction] iDrone Outro Cinematic Skip
@@ -2276,6 +2276,11 @@
                             "id": 3459754, // [Timer] Timer Skipped Intro Encounter
                             "time": 4.5,
                             "startImmediately": false
+                        },
+                        // Edit of existing
+                        {
+                            "id": 3145752, // [Timer] Timer Hive Explosion
+                            "time": 0.98
                         }
                     ],
                     "relays": [
@@ -2787,19 +2792,19 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2993769, // [SpecialFunction] Violence
+                            "senderId": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "targetId": 2883635, // [Water] Poison MainWater Morph Source
                             "state": "PLAY",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 2993769, // [SpecialFunction] Violence
+                            "senderId": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "targetId": 2884015, // [Water] Clean MainWater Morph Source
                             "state": "PLAY",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 2993769, // [SpecialFunction] Violence
+                            "senderId": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "targetId": 2333588, // [Platform] Follow Water
                             "state": "PLAY",
                             "message": "ACTIVATE"
@@ -3286,12 +3291,6 @@
                         },
                         {
                             "senderId": 2883656, // [SpecialFunction] Slot 3 Cutscene Skip
-                            "targetId": 2883683, // [Timer] Slot 3 Skipped Cutscene - Release Ball Delay
-                            "state": "ZERO",
-                            "message": "START"
-                        },
-                        {
-                            "senderId": 2883683, // [Timer] Slot 3 Skipped Cutscene - Release Ball Delay
                             "targetId": 2883811, // [Relay] Faulty Relay - [IN] Release Ball
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
@@ -3461,7 +3460,7 @@
                             "type": "CinematicSkip"
                         },
                         {
-                            "id": 2993769, // [SpecialFunction] Violence
+                            "id": 2993769, // [SpecialFunction] OFO SF to force platform movement
                             "type": "ObjectFollowObject",
                             "position": [547.509277, -178.081604, 31.968304]
                         }
@@ -3495,9 +3494,10 @@
                         }
                     ],
                     "timers": [
+                        // Edit of existing
                         {
-                            "id": 2883683, // [Timer] Slot 3 Skipped Cutscene - Release Ball Delay
-                            "time": 1.0
+                            "id": 2883815, // [Timer] Jingle Finish Delay
+                            "time": 0.98
                         }
                     ],
                     "platforms": [
@@ -17745,7 +17745,7 @@
                         },
                         {
                             "senderId": 1048595, // [SpecialFunction] Leaving Cutscene Skip
-                            "targetId": 1049272, // [Camera] camera1
+                            "targetId": 1049994, // [Camera] Hold
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
@@ -17835,8 +17835,7 @@
                         },
                         {
                             "id": 1572949, // [Timer] Cutscene Skip 2 Frame Delay
-                            "time": 0.02,
-                            "layer": 1
+                            "time": 0.02
                         }
                     ],
                     "relays": [
@@ -17885,6 +17884,12 @@
                             "filterType": "Multiply",
                             "filterIndex": 2,
                             "fadeOutTime": 0.5
+                        }
+                    ],
+                    "cameras": [
+                        {
+                            "id": 1049994, // [Camera] Hold
+                            "position": [-373.065369, 33.06012, -38.956352]
                         }
                     ]
                 },
@@ -28607,9 +28612,6 @@
                     ]
                 },
                 "Subchamber Five": {
-                    "deleteIds": [
-                        721309
-                    ],
                     "removeConnections": [
                         {
                             "senderId": 655378, // [Camera] Cinematic Camera1
@@ -28769,7 +28771,7 @@
                         {
                             "id": 655496, // [CameraFilterKeyframe] Skip Black Screen
                             "filterType": "Multiply",
-                            "filterIndex": 3,
+                            "filterIndex": 2,
                             "filterShape": "Fullscreen",
                             "fadeInTime": 0.0,
                             "fadeOutTime": 0.5
@@ -28960,6 +28962,24 @@
                             "targetId": 721310, // [StreamedAudio] StreamedAudio Crater Metroid Prime Stage 2 SW
                             "state": "ZERO",
                             "message": "PLAY"
+                        },
+                        {
+                            "senderId": 721309, // [SpawnPoint] Spawn point
+                            "targetId": 721064, // [PlayerHint] Disable Controls for Crash Failsafe
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 721309, // [SpawnPoint] Spawn point
+                            "targetId": 721075, // [Timer] Disable Failsafe
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 721075, // [Timer] Disable Failsafe
+                            "targetId": 721064, // [PlayerHint] Disable Controls for Crash Failsafe
+                            "state": "ZERO",
+                            "message": "DECREMENT"
                         }
                     ],
                     "timers": [
@@ -28970,6 +28990,11 @@
                         {
                             "id": 720948, // [Timer] Delay before return to game
                             "time": 0.5
+                        },
+                        {
+                            "id": 721075, // [Timer] Disable Failsafe
+                            "time": 0.5,
+                            "startImmediately": true
                         }
                     ],
                     "streamedAudios": [
@@ -29005,7 +29030,7 @@
                             "id": 720916, // [CameraFilterKeyframe] Camera Filter Keyframe Hold Black
                             "filterShape": "Fullscreen",
                             "filterType": "Multiply",
-                            "filterIndex": 3,
+                            "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
                     ],
@@ -29018,6 +29043,13 @@
                     "relays": [
                         {
                             "id": 720904 // [Relay] END_INVISOCAM
+                        }
+                    ],
+                    "playerHints": [
+                        {
+                            "id": 721064, // [PlayerHint] Disable Controls for Crash Failsafe
+                            "unknown1": true,
+                            "disableControls": true
                         }
                     ],
                     "specialFunctions": [
