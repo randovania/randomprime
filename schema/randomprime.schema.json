@@ -43,13 +43,6 @@
             "type": "string",
             "default": null
         },
-        "seed": {
-            "description": "[Deprecated] Used for item position rando.",
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 18446744073709551615,
-            "deprecated": true
-        },
         "uuid": {
             "description": "Specify a UUID to \"etch\" into the ISO. It gets placed somewhere around the build version #",
             "type": "array",
@@ -290,15 +283,16 @@
                     "type": "boolean",
                     "default": false
                 },
-                "quickpatch": {
-                    "description": "Removes all video and audio tracks from the ISO. Useful for testing game changes.",
-                    "type": "boolean",
-                    "default": false
-                },
                 "quiet": {
                     "description": "Suppresses all standard output from randomprime in the console/terminal window.",
                     "type": "boolean",
                     "default": false
+                },
+                "quickpatch": {
+                    "description": "[Deprecated] Removes all video and audio tracks from the ISO. Breaks room load times.",
+                    "type": "boolean",
+                    "default": false,
+                    "deprecated": true
                 }
             },
             "required": [],
@@ -326,12 +320,6 @@
                     "description": "A text box displayed at the start of the game to convey information to they player like starting items or a message to the player.",
                     "type": "string"
                 },
-                "springBall": {
-                    "description": "[Deprecated] Restores the Spring Ball feature from Metroid Prime Trilogy. Use C-Stick Up while being morphed to use Spring Ball. NOTE: You need Morph Ball Bombs to use Spring Ball just like in Metroid Prime Trilogy.",
-                    "type": "boolean",
-                    "default": false,
-                    "deprecated": true
-                },
                 "springBallItem": {
                     "description": "Spring Ball will require this item to be obtained before being able to use it.",
                     "$ref": "#/$defs/pickupType",
@@ -357,11 +345,6 @@
                 },
                 "shufflePickupPosition": {
                     "description": "Item locations are randomized within the aether box of the rooms they reside in. There is no checking to ensure items are placed inbounds, so seeds are not guaranteed to be logical or even completable. Item scan points are adjusted in this mode to be larger and can be seen through walls.",
-                    "type": "boolean",
-                    "default": false
-                },
-                "shufflePickupPosAllRooms": {
-                    "description": "[Deprecated] Adds pickups to rooms which normally have none at random positions.",
                     "type": "boolean",
                     "default": false
                 },
@@ -481,12 +464,6 @@
                     "description": "Modifies escape sequence timers such as the one in Frigate Orpheon to count up instead of down.",
                     "type": "boolean",
                     "default": false
-                },
-                "enableIceTraps": {
-                    "description": "[Deprecated] Does not do anything anymore",
-                    "type": "boolean",
-                    "default": false,
-                    "deprecated": true
                 },
                 "missileStationPbRefill": {
                     "description": "If enabled, Missile Stations also refill Power Bomb ammunition.",
@@ -1154,12 +1131,6 @@
                     "required": [],
                     "additionalProperties": false
                 },
-                "legacyBlockSize": {
-                    "description": "[Deprecated] If true, block sizes will be the same size that the were in v1.19.2 and earlier. This is the equivalent of multiplying all block scale values by 1.7036",
-                    "type": "boolean",
-                    "default": false,
-                    "deprecated": true
-                },
                 "patchWallcrawling": {
                     "description": "If true, it becomes nearly impossible to transition most doors while oob.",
                     "type": "boolean",
@@ -1169,6 +1140,30 @@
                     "description": "If true, blast shields placed by randomprime will be targetable in combat visor",
                     "type": "boolean",
                     "default": false
+                },
+                "enableIceTraps": {
+                    "description": "[Deprecated] Does not do anything anymore",
+                    "type": "boolean",
+                    "default": false,
+                    "deprecated": true
+                },
+                "legacyBlockSize": {
+                    "description": "[Deprecated] If true, block sizes will be the same size that the were in v1.19.2 and earlier. This is the equivalent of multiplying all block scale values by 1.7036",
+                    "type": "boolean",
+                    "default": false,
+                    "deprecated": true
+                },
+                "springBall": {
+                    "description": "[Deprecated] Restores the Spring Ball feature from Metroid Prime Trilogy. Use C-Stick Up while being morphed to use Spring Ball. NOTE: You need Morph Ball Bombs to use Spring Ball just like in Metroid Prime Trilogy.",
+                    "type": "boolean",
+                    "default": false,
+                    "deprecated": true
+                },
+                "shufflePickupPosAllRooms": {
+                    "description": "[Deprecated] Adds pickups to rooms which normally have none at random positions.",
+                    "type": "boolean",
+                    "default": false,
+                    "deprecated": true
                 }
             },
             "required": [],
@@ -2459,6 +2454,13 @@
                     "additionalProperties": false
                 }
             }
+        },
+        "seed": {
+            "description": "[Deprecated] Used for item position rando.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18446744073709551615,
+            "deprecated": true
         }
     },
     "required": [],
@@ -3255,7 +3257,7 @@
                                 "default": "Metal"
                             },
                             "altPlatform": {
-                                "description": "[Deprecated] use `type` instead.",
+                                "description": "[Deprecated] Use `type` instead.",
                                 "type": "boolean",
                                 "default": false,
                                 "deprecated": true
@@ -3263,65 +3265,6 @@
                         },
                         "required": [
                             "position"
-                        ],
-                        "additionalProperties": false
-                    }
-                },
-                "cameraHints": {
-                    "deprecated": true,
-                    "description": "[Deprecated] Add camera hint + camera hint trigger pairs to this room. They are somewhat broken. Use `newCameraHints` instead.",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "layer": {
-                                "description": "Layer of the pair of objects",
-                                "type": "integer",
-                                "default": 0,
-                                "minimum": 0,
-                                "maximum": 63
-                            },
-                            "triggerId": {
-                                "description": "Instance ID of the trigger used. Defaults to next unused ID.",
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 4294967295
-                            },
-                            "triggerPos": {
-                                "description": "Position of the trigger.",
-                                "$ref": "#/$defs/vector3"
-                            },
-                            "triggerScale": {
-                                "description": "Extent of the trigger.",
-                                "$ref": "#/$defs/vector3Positive"
-                            },
-                            "cameraId": {
-                                "description": "Instance ID of the camera object. Defaults to next unused ID.",
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 4294967295
-                            },
-                            "cameraPos": {
-                                "description": "Position of the Camera Hint.",
-                                "$ref": "#/$defs/vector3"
-                            },
-                            "cameraRot": {
-                                "description": "Facing angle of the Camera Hint.",
-                                "$ref": "#/$defs/vector3"
-                            },
-                            "behavior": {
-                                "description": "- `0`: `Default`\n- `1`: `FreezeLookPosition`\n- `2`: `HintBallToCam`\n- `3`: `HintInitializePosition`\n- `4`: `HintFixedPosition`\n- `5`: `HintFixedTransform`\n- `6`: `PathCameraDesiredPos`\n- `7`: `PathCamera`\n- `8`: `SpindleCamer`\n",
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 8
-                            }
-                        },
-                        "required": [
-                            "triggerPos",
-                            "triggerScale",
-                            "cameraPos",
-                            "cameraRot",
-                            "behavior"
                         ],
                         "additionalProperties": false
                     }
@@ -3400,12 +3343,6 @@
                                 "type": "boolean",
                                 "default": false
                             },
-                            "noLock": {
-                                "description": "[Deprecated] If true, removes the ability to lock on, making this just a point.",
-                                "type": "boolean",
-                                "default": false,
-                                "deprecated": true
-                            },
                             "id1": {
                                 "description": "Instance ID of the actor object. Defaults to next unused ID.",
                                 "type": "integer",
@@ -3427,6 +3364,12 @@
                                 "description": "Set to false to disable the lock-on target by default.",
                                 "type": "boolean",
                                 "default": true
+                            },
+                            "noLock": {
+                                "description": "[Deprecated] If true, removes the ability to lock on, making this just a point.",
+                                "type": "boolean",
+                                "default": false,
+                                "deprecated": true
                             }
                         },
                         "required": [
@@ -3439,19 +3382,6 @@
                     "description": "Edit the ambient fog settings for this room. Use \"distanceFogs\" if you need a more specific use case.",
                     "type": "object",
                     "properties": {
-                        "mode": {
-                            "description": "[Deprecated] Fog is always mode=1",
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 15,
-                            "default": 1,
-                            "deprecated": true
-                        },
-                        "explicit": {
-                            "description": "[Deprecated] There is no need to set this",
-                            "type": "boolean",
-                            "deprecated": true
-                        },
                         "color": {
                             "description": "RGBA fog color for this room.",
                             "type": "array",
@@ -3498,6 +3428,19 @@
                                 0.0,
                                 0.0
                             ]
+                        },
+                        "mode": {
+                            "description": "[Deprecated] Fog is always mode=1",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 15,
+                            "default": 1,
+                            "deprecated": true
+                        },
+                        "explicit": {
+                            "description": "[Deprecated] There is no need to set this",
+                            "type": "boolean",
+                            "deprecated": true
                         }
                     },
                     "required": [],
@@ -3639,19 +3582,6 @@
                     },
                     "additionalProperties": false
                 },
-                "layerObjs": {
-                    "description": "Deprecated, use `objects.layer` instead.\nMove objects in this room to a different layer by instance ID. If the specified layer does not exist, it will be created.",
-                    "type": "object",
-                    "patternProperties": {
-                        "^[0-9]+$": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 4294967295
-                        }
-                    },
-                    "additionalProperties": false,
-                    "deprecated": true
-                },
                 "setMemoryRelays": {
                     "description": "In vanilla after you create a new save file all Memory Relay objects are set to INACTIVE and will remain INACTIVE until they are ACTIVATED by another object. Memory Relay instance IDs placed in this array will be ACTIVE by default for new save files.",
                     "type": "array",
@@ -3750,17 +3680,6 @@
                     },
                     "additionalProperties": false
                 },
-                "audioOverride": {
-                    "description": "[Deprecated] Replace audio file(s) specified by existing StreamedAudio objects in this room. Use `streamedAudios` instead.",
-                    "patternProperties": {
-                        "^[0-9]+$": {
-                            "description": "The filename(s) of the new audio file. Example: `/audio/min_phazonL.dsp|/audio/min_phazonR.dsp`.",
-                            "type": "string"
-                        }
-                    },
-                    "additionalProperties": false,
-                    "deprecated": true
-                },
                 "addConnections": {
                     "description": "Add additional connections between objects in this room.",
                     "type": "array",
@@ -3798,16 +3717,6 @@
                         ],
                         "additionalProperties": false
                     }
-                },
-                "cutsceneSkipFns": {
-                    "description": "[Deprecated] Use `specialFunctions` instead",
-                    "type": "array",
-                    "items": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 4294967295
-                    },
-                    "deprecated": true
                 },
                 "timers": {
                     "description": "Add timers to this room.",
@@ -4541,14 +4450,6 @@
                                 "type": "boolean",
                                 "default": true
                             },
-                            "mode": {
-                                "description": "[Deprecated] Fog is always mode=1",
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 15,
-                                "default": 1,
-                                "deprecated": true
-                            },
                             "explicit": {
                                 "description": "If true, this fog is applied as ambient fog without the need to send it an ACTION message.",
                                 "type": "boolean"
@@ -4599,6 +4500,14 @@
                                     0.0,
                                     0.0
                                 ]
+                            },
+                            "mode": {
+                                "description": "[Deprecated] Fog is always mode=1",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 15,
+                                "default": 1,
+                                "deprecated": true
                             }
                         },
                         "required": [],
@@ -5635,6 +5544,99 @@
                         ],
                         "additionalProperties": false
                     }
+                },
+                "cameraHints": {
+                    "description": "[Deprecated] Add camera hint + camera hint trigger pairs to this room. They are somewhat broken. Use `newCameraHints` instead.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "layer": {
+                                "description": "Layer of the pair of objects",
+                                "type": "integer",
+                                "default": 0,
+                                "minimum": 0,
+                                "maximum": 63
+                            },
+                            "triggerId": {
+                                "description": "Instance ID of the trigger used. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
+                            },
+                            "triggerPos": {
+                                "description": "Position of the trigger.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "triggerScale": {
+                                "description": "Extent of the trigger.",
+                                "$ref": "#/$defs/vector3Positive"
+                            },
+                            "cameraId": {
+                                "description": "Instance ID of the camera object. Defaults to next unused ID.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4294967295
+                            },
+                            "cameraPos": {
+                                "description": "Position of the Camera Hint.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "cameraRot": {
+                                "description": "Facing angle of the Camera Hint.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "behavior": {
+                                "description": "- `0`: `Default`\n- `1`: `FreezeLookPosition`\n- `2`: `HintBallToCam`\n- `3`: `HintInitializePosition`\n- `4`: `HintFixedPosition`\n- `5`: `HintFixedTransform`\n- `6`: `PathCameraDesiredPos`\n- `7`: `PathCamera`\n- `8`: `SpindleCamer`\n",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 8
+                            }
+                        },
+                        "required": [
+                            "triggerPos",
+                            "triggerScale",
+                            "cameraPos",
+                            "cameraRot",
+                            "behavior"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "deprecated": true
+                },
+                "layerObjs": {
+                    "description": "[Deprecated] Use `objects.layer` instead.\nMove objects in this room to a different layer by instance ID. If the specified layer does not exist, it will be created.",
+                    "type": "object",
+                    "patternProperties": {
+                        "^[0-9]+$": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4294967295
+                        }
+                    },
+                    "additionalProperties": false,
+                    "deprecated": true
+                },
+                "audioOverride": {
+                    "description": "[Deprecated] Replace audio file(s) specified by existing StreamedAudio objects in this room. Use `streamedAudios` instead.",
+                    "patternProperties": {
+                        "^[0-9]+$": {
+                            "description": "The filename(s) of the new audio file. Example: `/audio/min_phazonL.dsp|/audio/min_phazonR.dsp`.",
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "deprecated": true
+                },
+                "cutsceneSkipFns": {
+                    "description": "[Deprecated] Use `specialFunctions` instead",
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 4294967295
+                    },
+                    "deprecated": true
                 }
             },
             "additionalProperties": false
