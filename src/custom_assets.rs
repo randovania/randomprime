@@ -1367,6 +1367,81 @@ pub fn collect_game_resources<'r>(
     ];
     looking_for.extend(custom_scan_point_deps);
 
+    let sound_deps: Vec<(u32, FourCC)> = vec![
+        (0xAE0230B6, FourCC::from_bytes(b"AGSC")), // Atomic
+        (0x8CCDD026, FourCC::from_bytes(b"AGSC")), // BetaBeetle
+        (0x33358ABA, FourCC::from_bytes(b"AGSC")), // Bird
+        (0xF3C33C5E, FourCC::from_bytes(b"AGSC")), // BloodFlower
+        (0x3118E452, FourCC::from_bytes(b"AGSC")), // Burrower
+        (0xEA6B4117, FourCC::from_bytes(b"AGSC")), // Chozo Ghost
+        (0xB2C49B0B, FourCC::from_bytes(b"AGSC")), // ChubbWeed
+        (0x62414707, FourCC::from_bytes(b"AGSC")), // CineBoots
+        (0x33A833DA, FourCC::from_bytes(b"AGSC")), // CineGeneral
+        (0x9BADC20D, FourCC::from_bytes(b"AGSC")), // CineGun
+        (0x7F8153FE, FourCC::from_bytes(b"AGSC")), // CineMorphball
+        (0x9D2A6E46, FourCC::from_bytes(b"AGSC")), // CineSuit
+        (0xBA8F20EA, FourCC::from_bytes(b"AGSC")), // CineVisor
+        (0x5F6CB3E8, FourCC::from_bytes(b"AGSC")), // Crater
+        (0xEE9200F4, FourCC::from_bytes(b"AGSC")), // Crystallite
+        (0x98B283BF, FourCC::from_bytes(b"AGSC")), // Drones
+        (0x170F408C, FourCC::from_bytes(b"AGSC")), // EliteSpacePirate
+        (0x35F15F3B, FourCC::from_bytes(b"AGSC")), // FireFlea
+        (0xA2E59262, FourCC::from_bytes(b"AGSC")), // Flaaghra
+        (0x17928B51, FourCC::from_bytes(b"AGSC")), // FlickerBat
+        (0xDB76A972, FourCC::from_bytes(b"AGSC")), // FlyingPirate
+        (0x1A4AD067, FourCC::from_bytes(b"AGSC")), // FrontEnd
+        (0x8389DBEC, FourCC::from_bytes(b"AGSC")), // GagantuanBeatle
+        (0xF6ABC1E1, FourCC::from_bytes(b"AGSC")), // Gnats
+        (0xE68ECFA5, FourCC::from_bytes(b"AGSC")), // Gryzbee
+        (0xDA07D390, FourCC::from_bytes(b"AGSC")), // IceCrack
+        (0x5CE7A3D0, FourCC::from_bytes(b"AGSC")), // IceWorld
+        (0x93393A50, FourCC::from_bytes(b"AGSC")), // InjuredPirates
+        (0x6DF11D78, FourCC::from_bytes(b"AGSC")), // IntroBoss
+        (0x16553E57, FourCC::from_bytes(b"AGSC")), // IntroWorld
+        (0x5FBC2F67, FourCC::from_bytes(b"AGSC")), // JellyZap
+        (0xB8C046C0, FourCC::from_bytes(b"AGSC")), // LavaWorld
+        (0x77C54E1A, FourCC::from_bytes(b"AGSC")), // lumigek
+        (0x706D7BCF, FourCC::from_bytes(b"AGSC")), // Magdolite
+        (0x2CA490BB, FourCC::from_bytes(b"AGSC")), // Metaree
+        (0x52AB7324, FourCC::from_bytes(b"AGSC")), // Metroid
+        (0xB6931363, FourCC::from_bytes(b"AGSC")), // MetroidPrime
+        (0xABD06377, FourCC::from_bytes(b"AGSC")), // MinesWorld
+        (0x57FE7E67, FourCC::from_bytes(b"AGSC")), // Misc
+        (0x3724095B, FourCC::from_bytes(b"AGSC")), // MiscSamus
+        (0xCBAE2616, FourCC::from_bytes(b"AGSC")), // OmegaPirate
+        (0x41475E5F, FourCC::from_bytes(b"AGSC")), // OverWorld
+        (0xDA7B2C8E, FourCC::from_bytes(b"AGSC")), // Parasite
+        (0x9D1A8F9F, FourCC::from_bytes(b"AGSC")), // Phazon
+        (0xC2C1B6FE, FourCC::from_bytes(b"AGSC")), // PhazonGun
+        (0x2163D60A, FourCC::from_bytes(b"AGSC")), // PuddleSpore
+        (0x48A8F172, FourCC::from_bytes(b"AGSC")), // PuddleToad
+        (0xD05B51C4, FourCC::from_bytes(b"AGSC")), // Puffer
+        (0xF5FE70FB, FourCC::from_bytes(b"AGSC")), // ReactorDoor
+        (0x60544DEE, FourCC::from_bytes(b"AGSC")), // Ridley
+        (0xD0AB8A34, FourCC::from_bytes(b"AGSC")), // Ripper
+        (0xFB9C30B2, FourCC::from_bytes(b"AGSC")), // RuinsWorld
+        (0x8F586337, FourCC::from_bytes(b"AGSC")), // SamusShip
+        (0x0800B2FA, FourCC::from_bytes(b"AGSC")), // Scarab
+        (0xF84C8E18, FourCC::from_bytes(b"AGSC")), // Seedling
+        (0xFFE302C7, FourCC::from_bytes(b"AGSC")), // SheeGoth
+        (0xE21C8BC5, FourCC::from_bytes(b"AGSC")), // SnakeWeed
+        (0xEA6360AF, FourCC::from_bytes(b"AGSC")), // Sova
+        (0xE8D4F8F1, FourCC::from_bytes(b"AGSC")), // SpacePirate
+        (0xC363BD5E, FourCC::from_bytes(b"AGSC")), // SpankWeed
+        (0x1EE1AD21, FourCC::from_bytes(b"AGSC")), // Test
+        (0x2ACE7B2D, FourCC::from_bytes(b"AGSC")), // Thardus
+        (0xD258A644, FourCC::from_bytes(b"AGSC")), // TheEnd
+        (0x2A3AC2AC, FourCC::from_bytes(b"AGSC")), // ToroByte
+        (0x7CB0AB14, FourCC::from_bytes(b"AGSC")), // Triclops
+        (0xBF06EDF7, FourCC::from_bytes(b"AGSC")), // Turret
+        (0xFC838AE4, FourCC::from_bytes(b"AGSC")), // UI
+        (0x0DB7A10C, FourCC::from_bytes(b"AGSC")), // WarWasp
+        (0x8081183E, FourCC::from_bytes(b"AGSC")), // Weapons
+        (0xF3B1B26C, FourCC::from_bytes(b"AGSC")), // Zoomer
+        (0xC50CC2AE, FourCC::from_bytes(b"AGSC")), // ZZZ
+    ];
+    looking_for.extend(sound_deps);
+
     let player_freeze_deps: Vec<(u32, FourCC)> = vec![
         resource_info!("breakFreezeVisor.PART").into(),
         resource_info!("Frost1TXTR.TXTR").into(),

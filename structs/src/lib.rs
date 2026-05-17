@@ -2,6 +2,7 @@
 pub mod res_id;
 
 mod ancs;
+mod atbl;
 mod anim;
 mod bnr;
 mod cmdl;
@@ -156,6 +157,7 @@ pub mod scly_props {
 }
 
 pub use ancs::*;
+pub use atbl::*;
 pub use anim::*;
 pub use bnr::*;
 pub use cmdl::*;
