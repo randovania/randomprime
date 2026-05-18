@@ -171,11 +171,29 @@ pub struct DefaultGameOptions {
 pub struct WaterConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub position: [f32; 3],
+    pub scale: [f32; 3],
+    pub force: Option<[f32; 3]>,
+    pub flags: Option<u32>,
+    pub thermal_cold: Option<bool>,
+    pub display_surface: Option<bool>,
+    pub morph_in_time: Option<f32>,
+    pub morph_out_time: Option<f32>,
     pub active: Option<bool>,
     #[serde(alias = "type")]
     pub liquid_type: String,
-    pub position: [f32; 3],
-    pub scale: [f32; 3],
+    pub alpha: Option<f32>,
+    pub splash_color: Option<[f32; 4]>,
+    pub inside_fog_color: Option<[f32; 4]>,
+    pub tile_size: Option<f32>,
+    pub tile_subdivisions: Option<u32>,
+    pub ripple_intensity: Option<f32>,
+    pub fog_bias: Option<f32>,
+    pub fog_magnitude: Option<f32>,
+    pub fog_speed: Option<f32>,
+    pub fog_color: Option<[f32; 4]>,
+    pub alpha_in_time: Option<f32>,
+    pub alpha_out_time: Option<f32>,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
@@ -272,6 +290,7 @@ pub struct BlockConfig {
     pub position: [f32; 3],
     pub scale: Option<[f32; 3]>,
     pub texture: Option<GenericTexture>,
+    pub thermal_hot: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1475,6 +1494,7 @@ pub struct PatchConfig {
     pub phazon_damage_modifier: PhazonDamageModifier,
     pub staggered_suit_damage: SuitDamageReduction,
     pub item_max_capacity: HashMap<PickupType, u32>,
+    pub missile_costs: HashMap<u32, u32>,
     pub map_default_state: MapaObjectVisibilityMode,
     pub auto_enabled_elevators: bool,
     pub skip_ridley: bool,
@@ -1593,6 +1613,7 @@ struct GameConfig {
 
     etank_capacity: Option<u32>,
     item_max_capacity: Option<HashMap<String, u32>>,
+    missile_costs: Option<HashMap<String, u32>>,
 
     phazon_elite_without_dynamo: Option<bool>,
     main_plaza_door: Option<bool>,
@@ -2287,6 +2308,14 @@ impl PatchConfigPrivate {
 
         if self
             .preferences
+            .qol_game_breaking
+            .unwrap_or(!force_vanilla_layout)
+        {
+            merge_json(&mut result, GAME_BREAKING)?;
+        }
+
+        if self
+            .preferences
             .qol_general
             .unwrap_or(!force_vanilla_layout)
         {
@@ -2404,6 +2433,27 @@ impl PatchConfigPrivate {
         {
             panic!("Illegal pickup name in 'itemMaxCapacity'");
         }
+
+        let missile_costs: HashMap<u32, u32> = match &self.game_config.missile_costs {
+            Some(costs) => costs
+                .iter()
+                .map(|(name, cost)| {
+                    (
+                        match name.as_str() {
+                            // Missile costs are stored as an array of integers
+                            // Convert name to index
+                            "Super Missile" => 0,
+                            "Ice Spreader" => 1,
+                            "Wavebuster" => 2,
+                            "Flamethrower" => 3,
+                            _ => panic!("Invalid missile type `{}`", name),
+                        },
+                        *cost,
+                    )
+                })
+                .collect(),
+            None => HashMap::new(),
+        };
 
         let qol_game_breaking = self
             .preferences
@@ -2787,6 +2837,7 @@ impl PatchConfigPrivate {
 
             etank_capacity: self.game_config.etank_capacity.unwrap_or(100),
             item_max_capacity,
+            missile_costs,
 
             game_banner: self.game_config.game_banner.clone().unwrap_or_default(),
             comment: self.game_config.comment.clone().unwrap_or_default(),

@@ -1,0 +1,29 @@
+{
+    "$schema": "../../schema/randomprime.schema.json",
+    "levelData": {
+        "Chozo Ruins": {
+            "rooms": {
+                "Training Chamber": {
+                    /**
+                      * Training Chamber Softlock Fix
+                      * 
+                      * If the player triggers the ghosts but does not defeat them before unloading the room
+                      * (e.g. wallcrawling), then the room is permanently stuck in a state where neither the ghosts
+                      * are active, nor the half-pipe puzze is enabled.
+                      *
+                      * Solution: Delete the redundant layer decrement specialfunction which is being activated too
+                      * early, then repair retro's broken specialfunction that is activated at the correct time.
+                      *
+                      */
+                    "deleteIds": [786964],
+                    "specialFunctions": [
+                        {
+                            "id": 786858,
+                            "type": "ScriptLayerController" // accidentally type=0 in vanilla
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

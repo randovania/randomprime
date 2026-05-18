@@ -42,9 +42,10 @@ use crate::{
     patch_config::{
         ArtifactHintBehavior, BlockConfig, BombSlotCover, ConnectionConfig, ConnectionMsg,
         ConnectionState, CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode,
-        FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat,
-        LevelConfig, PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType,
-        RoomConfig, RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig, Version, Visor, EditObjConfig,
+        EditObjConfig, FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig,
+        IsoFormat, LevelConfig, PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig,
+        PlatformType, RoomConfig, RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig,
+        Version, Visor,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -476,6 +477,82 @@ fn patch_add_scans_to_savw(
     Ok(())
 }
 
+fn patch_rotate_hive_totem_door(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+
+    let door_id = 0x00240233;
+    let door_shield_id = 0x00240236;
+    let door_shield_key_id = 0x0024022F;
+    let door_unlock_id = 0x00240234;
+    let door_key_id = 0x0024022E;
+
+    let door = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_id)
+        .and_then(|obj| obj.property_data.as_door_mut())
+        .unwrap();
+    door.rotation[0] = 0.0;
+    door.rotation[1] = 0.0;
+
+    let door_shield = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_shield_id)
+        .and_then(|obj| obj.property_data.as_actor_mut())
+        .unwrap();
+    door_shield.rotation[0] = 0.0;
+    door_shield.rotation[1] = 0.0;
+    door_shield.position[0] = 94.625_73;
+    door_shield.position[1] = 335.590_03;
+    door_shield.position[2] = -4.336928;
+
+    let door_shield_key = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_shield_key_id)
+        .and_then(|obj| obj.property_data.as_actor_mut())
+        .unwrap();
+    door_shield_key.rotation[0] = 0.0;
+    door_shield_key.rotation[1] = 0.0;
+    door_shield_key.position[0] = 94.625_73;
+    door_shield_key.position[1] = 335.590_03;
+    door_shield_key.position[2] = -4.336928;
+
+    let door_unlock = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_unlock_id)
+        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
+        .unwrap();
+    door_unlock.scale[0] = 4.0;
+    door_unlock.scale[1] = 0.25;
+    door_unlock.scale[2] = 4.0;
+    door_unlock.position[1] = 335.746_8;
+
+    let door_key = layer
+        .objects
+        .as_mut_vec()
+        .iter_mut()
+        .find(|obj| obj.instance_id == door_key_id)
+        .and_then(|obj| obj.property_data.as_damageable_trigger_mut())
+        .unwrap();
+    door_key.scale[0] = 4.0;
+    door_key.scale[1] = 0.25;
+    door_key.scale[2] = 4.0;
+    door_key.position[1] = 335.746_8;
+
+    Ok(())
+}
+
 fn patch_map_door_icon(
     res: &mut structs::Resource,
     door: ModifiableDoorLocation,
@@ -756,7 +833,7 @@ fn patch_door<'r>(
             instance_id: special_function_id,
             connections: vec![].into(),
             property_data: structs::SpecialFunction::layer_change_fn(
-                b"Artifact Layer Switch\0".as_cstr(),
+                b"Door Lock Layer Switch\0".as_cstr(),
                 area_internal_id,
                 blast_shield_layer_idx as u32,
             )
@@ -783,12 +860,12 @@ fn patch_door<'r>(
         let blast_shield_type = blast_shield_type.as_ref().unwrap();
 
         // Calculate placement //
-        let rotation: GenericArray<f32, U3>;
-        // this is actually scan offset
+        let mut rotation: GenericArray<f32, U3>;
         let scale: GenericArray<f32, U3>;
-        // this is actually hitbox
 
+        // CollisionBox
         let scan_offset: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
+        // CollisionOffset
         let hitbox: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
 
         let door_rotation = door_loc.door_rotation.unwrap();
@@ -803,42 +880,27 @@ fn patch_door<'r>(
                 );
             }
 
-            if mrea_id == 0xFB54A0CB {
-                // hall of the elders
-                scale = [1.6, 1.6, 1.6].into();
-
-                // Floor door
-                is_floor = true;
-                position = [
-                    door_shield.position[0] - 2.0,
-                    door_shield.position[1],
-                    door_shield.position[2] - 0.3,
-                ]
-                .into();
-                rotation = [0.0, 90.0, 0.0].into();
-            } else {
-                scale = [1.6, 1.6, 1.6].into();
+            {
+                scale = [1.1776, 1.8, 1.8].into();
 
                 if door_rotation[0] > -90.0 && door_rotation[0] < 90.0 {
-                    // Ceiling door
                     is_ceiling = true;
                     position = [
-                        door_shield.position[0] + 2.0,
-                        door_shield.position[1],
-                        door_shield.position[2] + 0.2,
+                        door_shield.position[0] + 0.016708,
+                        door_shield.position[1] - 2.141243,
+                        door_shield.position[2] + 0.40522,
                     ]
                     .into();
-                    rotation = [0.0, -90.0, 0.0].into();
+                    rotation = [0.0, -90.0, -90.0].into();
                 } else if door_rotation[0] < -90.0 && door_rotation[0] > -270.0 {
-                    // Floor door
                     is_floor = true;
                     position = [
-                        door_shield.position[0] - 2.0,
-                        door_shield.position[1],
-                        door_shield.position[2] - 0.2,
+                        door_shield.position[0] - 0.0112,
+                        door_shield.position[1] - 2.140015,
+                        door_shield.position[2] - 0.371151,
                     ]
                     .into();
-                    rotation = [0.0, 90.0, 0.0].into();
+                    rotation = [-90.0, 90.0, 0.0].into();
                 } else {
                     panic!(
                         "Unhandled door rotation on vertical door {:?} in room 0x{:X}",
@@ -851,41 +913,84 @@ fn patch_door<'r>(
             scale = [1.0 * scale_scale, 1.5 * scale_scale, 1.5 * scale_scale].into();
             rotation = door_rotation.into();
 
-            let door_offset: f32 = -0.05;
-            let door_offset_z: f32 = 1.8017;
-
-            if door_rotation[2] >= 45.0 && door_rotation[2] < 135.0 {
+            if door_rotation[0] >= 11.0 && door_rotation[0] < 13.0 {
+                // Leads South (Biotech Research Area 1)
+                position = [
+                    door_shield.position[0] + 0.374077,
+                    door_shield.position[1] - 0.406525,
+                    door_shield.position[2] - 1.762893,
+                ]
+                .into();
+            } else if door_rotation[0] >= -13.0 && door_rotation[0] < -11.0 {
+                // Leads North (Biotech Research Area 1)
+                position = [
+                    door_shield.position[0] + 0.374184,
+                    door_shield.position[1] + 0.392502,
+                    door_shield.position[2] - 1.763191,
+                ]
+                .into();
+            } else if door_rotation[1] >= 8.0 && door_rotation[1] < 9.0 {
+                // Leads North (Hive Totem)
+                position = [
+                    door_shield.position[0] - 0.00595,
+                    door_shield.position[1] + 0.383209,
+                    door_shield.position[2] - 1.801748,
+                ]
+                .into();
+                rotation = [
+                    door_shield.rotation[0],
+                    door_shield.rotation[1],
+                    door_shield.rotation[2],
+                ]
+                .into();
+            } else if door_rotation[0] >= 8.0 && door_rotation[0] < 9.0 {
+                // Leads West (Hive Totem)
+                position = [
+                    door_shield.position[0] - 0.406285,
+                    door_shield.position[1] - 0.27829,
+                    door_shield.position[2] - 1.780129,
+                ]
+                .into();
+            } else if door_rotation[0] >= -9.0 && door_rotation[0] < -7.0 {
+                // Leads East (Hive Totem)
+                position = [
+                    door_shield.position[0] + 0.392498,
+                    door_shield.position[1] - 0.27829,
+                    door_shield.position[2] - 1.780126,
+                ]
+                .into();
+            } else if door_rotation[2] >= 45.0 && door_rotation[2] < 135.0 {
                 // Leads North
                 position = [
-                    door_shield.position[0],
-                    door_shield.position[1] - door_offset,
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[0] - 0.00595,
+                    door_shield.position[1] + 0.383209,
+                    door_shield.position[2] - 1.801748,
                 ]
                 .into();
             } else if (door_rotation[2] >= 135.0 && door_rotation[2] < 225.0)
                 || (door_rotation[2] < -135.0 && door_rotation[2] > -225.0)
             {
-                // Leads East
+                // Leads West
                 position = [
-                    door_shield.position[0] + door_offset,
+                    door_shield.position[0] - 0.383225,
                     door_shield.position[1],
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[2] - 1.80175,
                 ]
                 .into();
             } else if door_rotation[2] >= -135.0 && door_rotation[2] < -45.0 {
                 // Leads South
                 position = [
-                    door_shield.position[0],
-                    door_shield.position[1] + door_offset,
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[0] - 0.00769,
+                    door_shield.position[1] - 0.383224,
+                    door_shield.position[2] - 1.801752,
                 ]
                 .into();
             } else if door_rotation[2] >= -45.0 && door_rotation[2] < 45.0 {
-                // Leads West
+                // Leads East
                 position = [
-                    door_shield.position[0] - door_offset,
+                    door_shield.position[0] + 0.392517,
                     door_shield.position[1],
-                    door_shield.position[2] - door_offset_z,
+                    door_shield.position[2] - 1.801746,
                 ]
                 .into();
             } else {
@@ -1075,6 +1180,16 @@ fn patch_door<'r>(
             .into(),
         };
 
+        // Deactivate invulnerable door dtrigger after destruction of shield
+
+        for door_force in door_loc.door_force_locations.iter() {
+            relay.connections.as_mut_vec().push(structs::Connection {
+                state: structs::ConnectionState::ZERO,
+                message: structs::ConnectionMsg::DEACTIVATE,
+                target_object_id: door_force.instance_id,
+            });
+        }
+
         if DO_GIBBS {
             relay.connections.as_mut_vec().push(structs::Connection {
                 // Make gibbs
@@ -1086,26 +1201,67 @@ fn patch_door<'r>(
 
         /* Create damageable trigger to actually handle vulnerability, because actor collision extent/offset/rotation is very unreliable */
         let (dt_pos, dt_scale) = {
-            let dt_offset_z = 1.9;
-            let dt_offset = 1.25;
+            let dt_offset_y = 0.35;
+            let dt_offset_z = 2.0;
+            let dt_offset = 1.0;
 
             if is_ceiling {
                 (
                     [
-                        position[0] - dt_offset_z,
-                        position[1],
+                        position[0],
+                        position[1] + dt_offset_z,
                         position[2] - dt_offset,
                     ],
-                    [4.0, 4.0, 0.8],
+                    [5.0, 5.0, 0.875],
                 )
             } else if is_floor {
                 (
                     [
-                        position[0] + dt_offset_z,
-                        position[1],
+                        position[0],
+                        position[1] + dt_offset_z,
                         position[2] + dt_offset,
                     ],
-                    [4.0, 4.0, 0.8],
+                    [5.0, 5.0, 0.875],
+                )
+            } else if door_rotation[0] >= -15.0 && door_rotation[0] < -10.0 {
+                // Leads North (Biotech Research Area 1)
+                (
+                    [
+                        position[0] - dt_offset_y,
+                        position[1] - dt_offset,
+                        position[2] + dt_offset_z,
+                    ],
+                    [5.0, 0.875, 4.0],
+                )
+            } else if door_rotation[0] >= 10.0 && door_rotation[0] < 15.0 {
+                // Leads South (Biotech Research Area 1)
+                (
+                    [
+                        position[0] - dt_offset_y,
+                        position[1] + dt_offset,
+                        position[2] + dt_offset_z,
+                    ],
+                    [5.0, 0.875, 4.0],
+                )
+            } else if door_rotation[0] >= 8.0 && door_rotation[0] < 9.0 {
+                // Leads West (Hive Totem)
+                (
+                    [
+                        position[0] + dt_offset,
+                        position[1] + dt_offset_y,
+                        position[2] + dt_offset_z,
+                    ],
+                    [0.875, 5.0, 4.0],
+                )
+            } else if door_rotation[0] >= -9.0 && door_rotation[0] < -7.0 {
+                // Leads East (Hive Totem)
+                (
+                    [
+                        position[0] - dt_offset,
+                        position[1] + dt_offset_y,
+                        position[2] + dt_offset_z,
+                    ],
+                    [0.875, 5.0, 4.0],
                 )
             } else if door_rotation[2] >= 45.0 && door_rotation[2] < 135.0 {
                 // Leads North
@@ -1115,7 +1271,7 @@ fn patch_door<'r>(
                         position[1] - dt_offset,
                         position[2] + dt_offset_z,
                     ],
-                    [4.0, 0.8, 4.0],
+                    [5.0, 0.875, 4.0],
                 )
             } else if (door_rotation[2] >= 135.0 && door_rotation[2] < 225.0)
                 || (door_rotation[2] < -135.0 && door_rotation[2] > -225.0)
@@ -1127,7 +1283,7 @@ fn patch_door<'r>(
                         position[1],
                         position[2] + dt_offset_z,
                     ],
-                    [0.8, 4.0, 4.0],
+                    [0.875, 5.0, 4.0],
                 )
             } else if door_rotation[2] >= -135.0 && door_rotation[2] < -45.0 {
                 // Leads South
@@ -1137,7 +1293,7 @@ fn patch_door<'r>(
                         position[1] + dt_offset,
                         position[2] + dt_offset_z,
                     ],
-                    [4.0, 0.8, 4.0],
+                    [5.0, 0.875, 4.0],
                 )
             } else if door_rotation[2] >= -45.0 && door_rotation[2] < 45.0 {
                 // Leads West
@@ -1147,7 +1303,7 @@ fn patch_door<'r>(
                         position[1],
                         position[2] + dt_offset_z,
                     ],
-                    [0.8, 4.0, 4.0],
+                    [0.875, 5.0, 4.0],
                 )
             } else {
                 panic!(
@@ -1295,7 +1451,7 @@ fn patch_door<'r>(
                             panic!("Custom Blast Shields cannot be placed on morph ball doors");
                         }
 
-                        // Disable the blast shield via memory relay when the door is opened from the other side
+                        // Disable blast shield layer when the door is opened from the other side
                         obj.connections.as_mut_vec().push(structs::Connection {
                             state: structs::ConnectionState::MAX_REACHED,
                             message: structs::ConnectionMsg::DECREMENT,
@@ -1330,6 +1486,31 @@ fn patch_door<'r>(
                             target_object_id: timer_id,
                         });
 
+                        // If it's a powered door, update the doors when door is opened from the other side
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: activate_old_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::OPEN,
+                            message: structs::ConnectionMsg::DEACTIVATE,
+                            target_object_id: activate_old_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: activate_new_door_id,
+                        });
+
+                        obj.connections.as_mut_vec().push(structs::Connection {
+                            state: structs::ConnectionState::OPEN,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: activate_new_door_id,
+                        });
+
                         _break = true;
                         break;
                     }
@@ -1342,7 +1523,7 @@ fn patch_door<'r>(
             instance_id: timer_id,
             property_data: structs::Timer {
                 name: b"disable-blast-shield\0".as_cstr(),
-                start_time: 0.2,
+                start_time: 0.01,
                 max_random_add: 0.0,
                 looping: 0,
                 start_immediately: 1,
@@ -1362,7 +1543,7 @@ fn patch_door<'r>(
                     connections: vec![].into(),
                     property_data: structs::Timer {
                         name: b"disable-door-dt\0".as_cstr(),
-                        start_time: 0.5,
+                        start_time: 0.1,
                         max_random_add: 0.0,
                         looping: 0,
                         start_immediately: 1,
@@ -1371,11 +1552,11 @@ fn patch_door<'r>(
                     .into(),
                 };
 
-                // Doors can't be shot open with splash damage until the blast shield is gone
+                // Doors can't be shot open with splash damage until the blast shield is gone. INCREMENT = Invulnerable
                 for door_force in door_loc.door_force_locations.iter() {
                     timer2.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::DEACTIVATE,
+                        message: structs::ConnectionMsg::INCREMENT,
                         target_object_id: door_force.instance_id,
                     });
                 }
@@ -1985,7 +2166,12 @@ fn patch_door<'r>(
                     },
                     structs::Connection {
                         state: structs::ConnectionState::ZERO,
-                        message: structs::ConnectionMsg::ACTIVATE,
+                        message: structs::ConnectionMsg::INCREMENT,
+                        target_object_id: existing_door_force_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::INCREMENT,
                         target_object_id: existing_door_shield_id,
                     },
                 ]
@@ -2001,7 +2187,7 @@ fn patch_door<'r>(
                 instance_id: update_door_timer_id,
                 property_data: structs::Timer {
                     name: b"update_door_timer\0".as_cstr(),
-                    start_time: 0.5,
+                    start_time: 0.02,
                     max_random_add: 0.0,
                     looping: 0,
                     start_immediately: 0,
@@ -2158,6 +2344,18 @@ fn patch_door<'r>(
                         .unwrap();
                     timer.start_immediately = 1;
 
+                    // It's an unpowered door but only after the blackout, so it starts enabled
+
+                    let relay = layers[blast_shield_layer_idx]
+                        .objects
+                        .iter_mut()
+                        .find(|obj| obj.instance_id == auto_open_relay_id)
+                        .unwrap()
+                        .property_data
+                        .as_relay_mut()
+                        .unwrap();
+                    relay.active = 1;
+
                     // When the outage happens, deactivate both doors
                     let obj = layers[0]
                         .objects
@@ -2170,23 +2368,13 @@ fn patch_door<'r>(
                     obj.connections.as_mut_vec().extend_from_slice(&[
                         structs::Connection {
                             state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
+                            message: structs::ConnectionMsg::DECREMENT,
                             target_object_id: door_shield_id,
                         },
                         structs::Connection {
                             state: structs::ConnectionState::ZERO,
                             message: structs::ConnectionMsg::DEACTIVATE,
                             target_object_id: door_force_id,
-                        },
-                        structs::Connection {
-                            state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
-                            target_object_id: existing_door_shield_id,
-                        },
-                        structs::Connection {
-                            state: structs::ConnectionState::ZERO,
-                            message: structs::ConnectionMsg::DEACTIVATE,
-                            target_object_id: existing_door_force_id,
                         },
                         structs::Connection {
                             state: structs::ConnectionState::ZERO,
@@ -2229,7 +2417,7 @@ fn patch_door<'r>(
                             target_object_id: update_door_timer_id,
                         },
                         structs::Connection {
-                            state: structs::ConnectionState::ZERO,
+                            state: structs::ConnectionState::DEAD,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: auto_open_relay_id,
                         },
@@ -2246,13 +2434,18 @@ fn patch_door<'r>(
                                 mrea_id
                             )
                         });
-                    obj.connections
-                        .as_mut_vec()
-                        .extend_from_slice(&[structs::Connection {
+                    obj.connections.as_mut_vec().extend_from_slice(&[
+                        structs::Connection {
                             state: structs::ConnectionState::ACTIVE,
                             message: structs::ConnectionMsg::ACTIVATE,
                             target_object_id: existing_door_shield_id,
-                        }]);
+                        },
+                        structs::Connection {
+                            state: structs::ConnectionState::MAX_REACHED,
+                            message: structs::ConnectionMsg::ACTIVATE,
+                            target_object_id: existing_door_shield_id,
+                        },
+                    ]);
                 } else {
                     obj.connections.as_mut_vec().push(structs::Connection {
                         state: structs::ConnectionState::ZERO,
@@ -2340,6 +2533,40 @@ fn patch_door<'r>(
             new_door_force_data.damage_vulnerability = door_type_after_open.vulnerability();
             new_door_force_data.active = 1;
             layers[0].objects.as_mut_vec().push(new_door_force);
+
+            // Cargo Freight Lift to Deck Gamma
+            if mrea_id == 0x37B3AFE6 {
+                // Room does not have a "Deactivate Door" relay, so doors start inactive by default
+                let door_force = layers[0]
+                    .objects
+                    .iter_mut()
+                    .find(|obj| obj.instance_id == door_force_id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Could not find 0x{:X} in room 0x{:X}",
+                            door_force_id, mrea_id
+                        )
+                    })
+                    .property_data
+                    .as_damageable_trigger_mut()
+                    .unwrap();
+                door_force.active = 0;
+
+                let door_shield = layers[0]
+                    .objects
+                    .iter_mut()
+                    .find(|obj| obj.instance_id == door_shield_id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Could not find 0x{:X} in room 0x{:X}",
+                            door_shield_id, mrea_id
+                        )
+                    })
+                    .property_data
+                    .as_actor_mut()
+                    .unwrap();
+                door_shield.active = 0;
+            }
         }
     }
 
@@ -3179,8 +3406,9 @@ fn patch_remove_water(
 #[derive(Copy, Clone, Debug)]
 pub enum WaterType {
     Normal,
-    Poision,
+    Poison,
     Lava,
+    ThickLava,
     Phazon,
 }
 
@@ -3188,8 +3416,9 @@ impl WaterType {
     pub fn iter() -> impl Iterator<Item = WaterType> {
         [
             WaterType::Normal,
-            WaterType::Poision,
+            WaterType::Poison,
             WaterType::Lava,
+            WaterType::ThickLava,
             WaterType::Phazon,
         ]
         .iter()
@@ -3202,9 +3431,11 @@ impl WaterType {
         if string == "water" || string == "normal" {
             WaterType::Normal
         } else if string == "poison" || string == "acid" {
-            WaterType::Poision
+            WaterType::Poison
         } else if string == "lava" || string == "magma" {
             WaterType::Lava
+        } else if string == "thick_lava" || string == "thick_magma" {
+            WaterType::ThickLava
         } else if string == "phazon" {
             WaterType::Phazon
         } else {
@@ -3217,18 +3448,21 @@ impl WaterType {
         let water = water_obj.property_data.as_water().unwrap();
 
         let mut deps: Vec<(u32, FourCC)> = vec![
-            (water.txtr1, FourCC::from_bytes(b"TXTR")),
-            (water.txtr2, FourCC::from_bytes(b"TXTR")),
-            (water.txtr3, FourCC::from_bytes(b"TXTR")),
-            (water.txtr4, FourCC::from_bytes(b"TXTR")),
-            (water.refl_map_txtr, FourCC::from_bytes(b"TXTR")),
-            (water.txtr6, FourCC::from_bytes(b"TXTR")),
+            (water.pattern_map1, FourCC::from_bytes(b"TXTR")),
+            (water.pattern_map2, FourCC::from_bytes(b"TXTR")),
+            (water.color_map, FourCC::from_bytes(b"TXTR")),
+            (water.bump_map, FourCC::from_bytes(b"TXTR")),
+            (water.env_map, FourCC::from_bytes(b"TXTR")),
+            (water.env_bump_map, FourCC::from_bytes(b"TXTR")),
             (water.lightmap_txtr, FourCC::from_bytes(b"TXTR")),
             (water.small_enter_part, FourCC::from_bytes(b"PART")),
             (water.med_enter_part, FourCC::from_bytes(b"PART")),
             (water.large_enter_part, FourCC::from_bytes(b"PART")),
-            (water.part4, FourCC::from_bytes(b"PART")),
-            (water.part5, FourCC::from_bytes(b"PART")),
+            (water.visor_runoff_particle, FourCC::from_bytes(b"PART")),
+            (
+                water.unmorph_visor_runoff_particle,
+                FourCC::from_bytes(b"PART"),
+            ),
         ];
         deps.retain(|i| i.0 != 0xffffffff && i.0 != 0);
         deps
@@ -3249,90 +3483,90 @@ impl WaterType {
                         radius: 0.0,
                         knockback_power: 0.0,
                     },
-                    unknown1: [0.0, 0.0, 0.0].into(),
-                    unknown2: 2047,
-                    unknown3: 0,
-                    display_fluid_surface: 1,
-                    txtr1: 2837040919,
-                    txtr2: 2565985674,
-                    txtr3: 3001645351,
-                    txtr4: 4294967295,
-                    refl_map_txtr: 4294967295,
-                    txtr6: 1899158552,
-                    unknown5: [3.0, 3.0, -1.0].into(),
-                    unknown6: 35.0,
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 2047,
+                    thermal_cold: 0,
+                    display_surface: 1,
+                    pattern_map1: 2837040919,
+                    pattern_map2: 2565985674,
+                    color_map: 3001645351,
+                    bump_map: 4294967295,
+                    env_map: 4294967295,
+                    env_bump_map: 1899158552,
+                    bump_light_dir: [3.0, 3.0, -1.0].into(),
+                    bump_scale: 35.0,
                     morph_in_time: 5.0,
                     morph_out_time: 5.0,
                     active: 1,
                     fluid_type: 0,
-                    unknown11: 0,
-                    unknown12: 0.65,
+                    unknown: 0,
+                    alpha: 0.65,
                     fluid_uv_motion: structs::FluidUVMotion {
                         fluid_layer_motion1: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 20.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 20.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
                         fluid_layer_motion2: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 15.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 15.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
                         fluid_layer_motion3: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 30.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 30.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
-                        unknown1: 70.0,
-                        unknown2: 0.0,
+                        time_to_wrap: 70.0,
+                        orientation: 0.0,
                     },
-                    unknown30: 0.0,
-                    unknown31: 10.0,
-                    unknown32: 1.0,
-                    unknown33: 1.0,
-                    unknown34: 0.0,
-                    unknown35: 90.0,
-                    unknown36: 0.0,
-                    unknown37: 0.0,
-                    unknown38: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown39: [0.443137, 0.568627, 0.623529, 1.0].into(),
+                    turb_speed: 0.0,
+                    turb_distance: 10.0,
+                    turb_frequence_max: 1.0,
+                    turb_frequence_min: 1.0,
+                    turb_phase_max: 0.0,
+                    turb_phase_min: 90.0,
+                    turb_amplitude_max: 0.0,
+                    turb_amplitude_min: 0.0,
+                    splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    inside_fog_color: [0.443137, 0.568627, 0.623529, 1.0].into(),
                     small_enter_part: 0xffffffff,
                     med_enter_part: 0xffffffff,
                     large_enter_part: 0xffffffff,
-                    part4: 0xffffffff,
-                    part5: 0xffffffff,
-                    sound1: 2499,
-                    sound2: 2499,
-                    sound3: 463,
-                    sound4: 464,
-                    sound5: 465,
-                    unknown40: 2.4,
-                    unknown41: 6,
-                    unknown42: 0.0,
-                    unknown43: 1.0,
-                    unknown44: 0.5,
-                    unknown45: 0.8,
-                    unknown46: 0.5,
-                    unknown47: 0.0,
-                    heat_wave_height: 0.0,
-                    heat_wave_speed: 1.0,
-                    heat_wave_color: [1.0, 1.0, 1.0, 1.0].into(),
-                    lightmap_txtr: 231856622,
-                    unknown51: 0.3,
+                    visor_runoff_particle: 0xffffffff,
+                    unmorph_visor_runoff_particle: 0xffffffff,
+                    visor_runoff_sound: 2499,
+                    unmorph_visor_runoff_sound: 2499,
+                    splash_sfx1: 463,
+                    splash_sfx2: 464,
+                    splash_sfx3: 465,
+                    tile_size: 2.4,
+                    tile_subdivisions: 6,
+                    specular_min: 0.0,
+                    specular_max: 1.0,
+                    reflection_size: 0.5,
+                    ripple_intensity: 0.8,
+                    reflection_blend: 0.5,
+                    fog_bias: 0.0,
+                    fog_magnitude: 0.0,
+                    fog_speed: 1.0,
+                    fog_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    lightmap_txtr: 0xffffffff,
+                    units_per_lightmap_texel: 0.3,
                     alpha_in_time: 5.0,
                     alpha_out_time: 5.0,
-                    unknown54: 0,
-                    unknown55: 0,
+                    alpha_in_recip: 0,
+                    alpha_out_recip: 0,
                     crash_the_game: 0,
                 })),
             },
-            WaterType::Poision => structs::SclyObject {
+            WaterType::Poison => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
                 property_data: SclyProperty::Water(Box::new(structs::Water {
@@ -3345,86 +3579,86 @@ impl WaterType {
                         radius: 0.0,
                         knockback_power: 0.0,
                     },
-                    unknown1: [0.0, 0.0, 0.0].into(),
-                    unknown2: 2047,
-                    unknown3: 0,
-                    display_fluid_surface: 1,
-                    txtr1: 2671389366,
-                    txtr2: 430856216,
-                    txtr3: 1337209902,
-                    txtr4: 4294967295,
-                    refl_map_txtr: 4294967295,
-                    txtr6: 1899158552,
-                    unknown5: [3.0, 3.0, -4.0].into(),
-                    unknown6: 48.0,
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 2047,
+                    thermal_cold: 0,
+                    display_surface: 1,
+                    pattern_map1: 2671389366,
+                    pattern_map2: 430856216,
+                    color_map: 1337209902,
+                    bump_map: 4294967295,
+                    env_map: 4294967295,
+                    env_bump_map: 1899158552,
+                    bump_light_dir: [3.0, 3.0, -4.0].into(),
+                    bump_scale: 48.0,
                     morph_in_time: 5.0,
                     morph_out_time: 5.0,
                     active: 1,
                     fluid_type: 1,
-                    unknown11: 0,
-                    unknown12: 0.8,
+                    unknown: 0,
+                    alpha: 0.8,
                     fluid_uv_motion: structs::FluidUVMotion {
                         fluid_layer_motion1: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 20.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 20.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
                         fluid_layer_motion2: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 10.0,
-                            unknown2: 180.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 10.0,
+                            orientation: 180.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
                         fluid_layer_motion3: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 40.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 25.0,
+                            time_to_wrap: 40.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 25.0,
                         },
-                        unknown1: 100.0,
-                        unknown2: 0.0,
+                        time_to_wrap: 100.0,
+                        orientation: 0.0,
                     },
-                    unknown30: 20.0,
-                    unknown31: 100.0,
-                    unknown32: 1.0,
-                    unknown33: 3.0,
-                    unknown34: 0.0,
-                    unknown35: 90.0,
-                    unknown36: 0.0,
-                    unknown37: 0.0,
-                    unknown38: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown39: [0.619608, 0.705882, 0.560784, 1.0].into(),
+                    turb_speed: 20.0,
+                    turb_distance: 100.0,
+                    turb_frequence_max: 1.0,
+                    turb_frequence_min: 3.0,
+                    turb_phase_max: 0.0,
+                    turb_phase_min: 90.0,
+                    turb_amplitude_max: 0.0,
+                    turb_amplitude_min: 0.0,
+                    splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    inside_fog_color: [0.619608, 0.705882, 0.560784, 1.0].into(),
                     small_enter_part: 0xffffffff,
                     med_enter_part: 0xffffffff,
                     large_enter_part: 0xffffffff,
-                    part4: 0xffffffff,
-                    part5: 0xffffffff,
-                    sound1: 2499,
-                    sound2: 2499,
-                    sound3: 463,
-                    sound4: 464,
-                    sound5: 465,
-                    unknown40: 2.4,
-                    unknown41: 6,
-                    unknown42: 0.0,
-                    unknown43: 1.0,
-                    unknown44: 0.5,
-                    unknown45: 0.8,
-                    unknown46: 1.0,
-                    unknown47: 0.0,
-                    heat_wave_height: 0.0,
-                    heat_wave_speed: 1.0,
-                    heat_wave_color: [0.784314, 1.0, 0.27451, 1.0].into(),
+                    visor_runoff_particle: 0xffffffff,
+                    unmorph_visor_runoff_particle: 0xffffffff,
+                    visor_runoff_sound: 2499,
+                    unmorph_visor_runoff_sound: 2499,
+                    splash_sfx1: 463,
+                    splash_sfx2: 464,
+                    splash_sfx3: 465,
+                    tile_size: 2.4,
+                    tile_subdivisions: 6,
+                    specular_min: 0.0,
+                    specular_max: 1.0,
+                    reflection_size: 0.5,
+                    ripple_intensity: 0.8,
+                    reflection_blend: 1.0,
+                    fog_bias: 0.0,
+                    fog_magnitude: 0.0,
+                    fog_speed: 1.0,
+                    fog_color: [0.784314, 1.0, 0.27451, 1.0].into(),
                     lightmap_txtr: 1723170806,
-                    unknown51: 0.3,
+                    units_per_lightmap_texel: 0.3,
                     alpha_in_time: 5.0,
                     alpha_out_time: 5.0,
-                    unknown54: 0,
-                    unknown55: 0,
+                    alpha_in_recip: 0,
+                    alpha_out_recip: 0,
                     crash_the_game: 0,
                 })),
             },
@@ -3441,86 +3675,182 @@ impl WaterType {
                         radius: 0.0,
                         knockback_power: 0.0,
                     },
-                    unknown1: [0.0, 0.0, 0.0].into(),
-                    unknown2: 2047,
-                    unknown3: 1,
-                    display_fluid_surface: 1,
-                    txtr1: 117134624,
-                    txtr2: 2154768270,
-                    txtr3: 3598011320,
-                    txtr4: 1249771730,
-                    refl_map_txtr: 4294967295,
-                    txtr6: 4294967295,
-                    unknown5: [3.0, 3.0, -4.0].into(),
-                    unknown6: 70.0,
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 2047,
+                    thermal_cold: 1,
+                    display_surface: 1,
+                    pattern_map1: 117134624,
+                    pattern_map2: 2154768270,
+                    color_map: 3598011320,
+                    bump_map: 1249771730,
+                    env_map: 4294967295,
+                    env_bump_map: 4294967295,
+                    bump_light_dir: [3.0, 3.0, -4.0].into(),
+                    bump_scale: 70.0,
                     morph_in_time: 5.0,
                     morph_out_time: 5.0,
                     active: 1,
                     fluid_type: 2,
-                    unknown11: 0,
-                    unknown12: 0.65,
+                    unknown: 0,
+                    alpha: 0.65,
                     fluid_uv_motion: structs::FluidUVMotion {
                         fluid_layer_motion1: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 30.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 30.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
                         fluid_layer_motion2: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 40.0,
-                            unknown2: 180.0,
-                            unknown3: 0.15,
-                            unknown4: 20.0,
+                            time_to_wrap: 40.0,
+                            orientation: 180.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
                         },
                         fluid_layer_motion3: structs::FluidLayerMotion {
                             fluid_uv_motion: 0,
-                            unknown1: 45.0,
-                            unknown2: 0.0,
-                            unknown3: 0.15,
-                            unknown4: 10.0,
+                            time_to_wrap: 45.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
                         },
-                        unknown1: 70.0,
-                        unknown2: 0.0,
+                        time_to_wrap: 70.0,
+                        orientation: 0.0,
                     },
-                    unknown30: 20.0,
-                    unknown31: 100.0,
-                    unknown32: 1.0,
-                    unknown33: 3.0,
-                    unknown34: 0.0,
-                    unknown35: 90.0,
-                    unknown36: 0.0,
-                    unknown37: 0.0,
-                    unknown38: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown39: [0.631373, 0.270588, 0.270588, 1.0].into(),
+                    turb_speed: 20.0,
+                    turb_distance: 100.0,
+                    turb_frequence_max: 1.0,
+                    turb_frequence_min: 3.0,
+                    turb_phase_max: 0.0,
+                    turb_phase_min: 90.0,
+                    turb_amplitude_max: 0.0,
+                    turb_amplitude_min: 0.0,
+                    splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    inside_fog_color: [0.631373, 0.270588, 0.270588, 1.0].into(),
                     small_enter_part: 0xffffffff,
                     med_enter_part: 0xffffffff,
                     large_enter_part: 0xffffffff,
-                    part4: 0xffffffff,
-                    part5: 0xffffffff,
-                    sound1: 2412,
-                    sound2: 2412,
-                    sound3: 1373,
-                    sound4: 1374,
-                    sound5: 1375,
-                    unknown40: 2.4,
-                    unknown41: 6,
-                    unknown42: 0.0,
-                    unknown43: 1.0,
-                    unknown44: 0.5,
-                    unknown45: 0.8,
-                    unknown46: 0.5,
-                    unknown47: 1.7,
-                    heat_wave_height: 1.2,
-                    heat_wave_speed: 1.0,
-                    heat_wave_color: [1.0, 0.682353, 0.294118, 1.0].into(),
+                    visor_runoff_particle: 0xffffffff,
+                    unmorph_visor_runoff_particle: 0xffffffff,
+                    visor_runoff_sound: 2412,
+                    unmorph_visor_runoff_sound: 2412,
+                    splash_sfx1: 1373,
+                    splash_sfx2: 1374,
+                    splash_sfx3: 1375,
+                    tile_size: 2.4,
+                    tile_subdivisions: 6,
+                    specular_min: 0.0,
+                    specular_max: 1.0,
+                    reflection_size: 0.5,
+                    ripple_intensity: 0.8,
+                    reflection_blend: 0.5,
+                    fog_bias: 1.7,
+                    fog_magnitude: 1.2,
+                    fog_speed: 1.0,
+                    fog_color: [1.0, 0.682353, 0.294118, 1.0].into(),
                     lightmap_txtr: 4294967295,
-                    unknown51: 0.3,
+                    units_per_lightmap_texel: 0.3,
                     alpha_in_time: 5.0,
                     alpha_out_time: 5.0,
-                    unknown54: 4294967295,
-                    unknown55: 4294967295,
+                    alpha_in_recip: 4294967295,
+                    alpha_out_recip: 4294967295,
+                    crash_the_game: 0,
+                })),
+            },
+            WaterType::ThickLava => structs::SclyObject {
+                instance_id: 0xFFFFFFFF,
+                connections: vec![].into(),
+                property_data: structs::SclyProperty::Water(Box::new(structs::Water {
+                    name: b"thicklava\0".as_cstr(),
+                    position: [26.634968, -14.81889, 0.237813].into(),
+                    scale: [41.601, 52.502003, 7.0010004].into(),
+                    damage_info: structs::scly_structs::DamageInfo {
+                        weapon_type: 11,
+                        damage: 0.4,
+                        radius: 0.0,
+                        knockback_power: 0.0,
+                    },
+                    force: [0.0, 0.0, 0.0].into(),
+                    flags: 2047,
+                    thermal_cold: 1,
+                    display_surface: 1,
+                    pattern_map1: 117134624,
+                    pattern_map2: 2154768270,
+                    color_map: 3598011320,
+                    bump_map: 1249771730,
+                    env_map: 4294967295,
+                    env_bump_map: 4294967295,
+                    bump_light_dir: [3.0, 3.0, -4.0].into(),
+                    bump_scale: 70.0,
+                    morph_in_time: 5.0,
+                    morph_out_time: 5.0,
+                    active: 1,
+                    fluid_type: 5,
+                    unknown: 0,
+                    alpha: 0.65,
+                    fluid_uv_motion: structs::FluidUVMotion {
+                        fluid_layer_motion1: structs::FluidLayerMotion {
+                            fluid_uv_motion: 0,
+                            time_to_wrap: 30.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
+                        },
+                        fluid_layer_motion2: structs::FluidLayerMotion {
+                            fluid_uv_motion: 0,
+                            time_to_wrap: 40.0,
+                            orientation: 180.0,
+                            magnitude: 0.15,
+                            multiplication: 20.0,
+                        },
+                        fluid_layer_motion3: structs::FluidLayerMotion {
+                            fluid_uv_motion: 0,
+                            time_to_wrap: 45.0,
+                            orientation: 0.0,
+                            magnitude: 0.15,
+                            multiplication: 10.0,
+                        },
+                        time_to_wrap: 70.0,
+                        orientation: 0.0,
+                    },
+                    turb_speed: 20.0,
+                    turb_distance: 100.0,
+                    turb_frequence_max: 1.0,
+                    turb_frequence_min: 3.0,
+                    turb_phase_max: 0.0,
+                    turb_phase_min: 90.0,
+                    turb_amplitude_max: 0.0,
+                    turb_amplitude_min: 0.0,
+                    splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    inside_fog_color: [0.631373, 0.270588, 0.270588, 1.0].into(),
+                    small_enter_part: 0xffffffff,
+                    med_enter_part: 0xffffffff,
+                    large_enter_part: 0xffffffff,
+                    visor_runoff_particle: 0xffffffff,
+                    unmorph_visor_runoff_particle: 0xffffffff,
+                    visor_runoff_sound: 2412,
+                    unmorph_visor_runoff_sound: 2412,
+                    splash_sfx1: 1373,
+                    splash_sfx2: 1374,
+                    splash_sfx3: 1375,
+                    tile_size: 2.4,
+                    tile_subdivisions: 6,
+                    specular_min: 0.0,
+                    specular_max: 1.0,
+                    reflection_size: 0.5,
+                    ripple_intensity: 0.8,
+                    reflection_blend: 0.5,
+                    fog_bias: 1.7,
+                    fog_magnitude: 1.2,
+                    fog_speed: 1.0,
+                    fog_color: [1.0, 0.682353, 0.294118, 1.0].into(),
+                    lightmap_txtr: 4294967295,
+                    units_per_lightmap_texel: 0.3,
+                    alpha_in_time: 5.0,
+                    alpha_out_time: 5.0,
+                    alpha_in_recip: 4294967295,
+                    alpha_out_recip: 4294967295,
                     crash_the_game: 0,
                 })),
             },
@@ -5413,7 +5743,8 @@ fn patch_sunchamber_cutscene_hack(
     Ok(())
 }
 
-fn patch_add_boss_health_bar(
+// https://www.youtube.com/watch?v=rW0AtydVI9s
+fn patch_add_ruined_courtyard_water(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
     id: u32,
@@ -5422,23 +5753,97 @@ fn patch_add_boss_health_bar(
     let layer = &mut scly.layers.as_mut_vec()[0];
     layer.objects.as_mut_vec().push(structs::SclyObject {
         instance_id: id,
-        property_data: structs::SpecialFunction {
-            name: b"boss energy bar\0".as_cstr(),
-            position: [0.0, 0.0, 0.0].into(),
-            rotation: [0.0, 0.0, 0.0].into(),
-            type_: 12, // boss energy bar
-            unknown0: b"\0".as_cstr(),
-            unknown1: 0.0,
-            unknown2: 1.0,
-            unknown3: 0.0,
-            layer_change_room_id: 0xFFFFFFFF,
-            layer_change_layer_id: 0xFFFFFFFF,
-            item_id: 0,
+        property_data: structs::Water {
+            name: b"stupid water (it makes you stupid on entry)\0".as_cstr(),
+            position: [2.217131, -470.724_82, 17.693943].into(),
+            scale: [90.000_01, 65.0, 17.0].into(),
+            damage_info: structs::scly_structs::DamageInfo {
+                weapon_type: 0,
+                damage: 0.0,
+                radius: 0.0,
+                knockback_power: 0.0,
+            },
+            force: [0.0, 0.0, 0.0].into(),
+            flags: 2047,
+            thermal_cold: 0,
+            display_surface: 1,
+            pattern_map1: 2837040919,
+            pattern_map2: 2565985674,
+            color_map: 3001645351,
+            bump_map: 4294967295,
+            env_map: 4294967295,
+            env_bump_map: 1899158552,
+            bump_light_dir: [3.0, 3.0, -1.0].into(),
+            bump_scale: 35.0,
+            morph_in_time: 15.0,
+            morph_out_time: 15.0,
             active: 1,
-            unknown5: 0.0,
-            unknown6: 0xFFFFFFFF,
-            unknown7: 0xFFFFFFFF,
-            unknown8: 0xFFFFFFFF,
+            fluid_type: 0,
+            unknown: 0,
+            alpha: 0.65,
+            fluid_uv_motion: structs::FluidUVMotion {
+                fluid_layer_motion1: structs::FluidLayerMotion {
+                    fluid_uv_motion: 0,
+                    time_to_wrap: 20.0,
+                    orientation: 0.0,
+                    magnitude: 0.15,
+                    multiplication: 20.0,
+                },
+                fluid_layer_motion2: structs::FluidLayerMotion {
+                    fluid_uv_motion: 0,
+                    time_to_wrap: 15.0,
+                    orientation: 0.0,
+                    magnitude: 0.15,
+                    multiplication: 10.0,
+                },
+                fluid_layer_motion3: structs::FluidLayerMotion {
+                    fluid_uv_motion: 0,
+                    time_to_wrap: 30.0,
+                    orientation: 0.0,
+                    magnitude: 0.15,
+                    multiplication: 20.0,
+                },
+                time_to_wrap: 70.0,
+                orientation: 0.0,
+            },
+            turb_speed: 20.0,
+            turb_distance: 100.0,
+            turb_frequence_max: 1.0,
+            turb_frequence_min: 3.0,
+            turb_phase_max: 0.0,
+            turb_phase_min: 90.0,
+            turb_amplitude_max: 0.0,
+            turb_amplitude_min: 0.0,
+            splash_color: [1.0, 1.0, 1.0, 1.0].into(),
+            inside_fog_color: [0.443137, 0.568627, 0.623529, 1.0].into(),
+            small_enter_part: 4015287335,
+            med_enter_part: 2549240104,
+            large_enter_part: 2963887813,
+            visor_runoff_particle: 1859537006,
+            unmorph_visor_runoff_particle: 1390596347,
+            visor_runoff_sound: 2499,
+            unmorph_visor_runoff_sound: 2499,
+            splash_sfx1: 463,
+            splash_sfx2: 464,
+            splash_sfx3: 465,
+            tile_size: 2.4,
+            tile_subdivisions: 6,
+            specular_min: 0.0,
+            specular_max: 1.0,
+            reflection_size: 0.5,
+            ripple_intensity: 0.8,
+            reflection_blend: 0.5,
+            fog_bias: 0.0,
+            fog_magnitude: 0.0,
+            fog_speed: 1.0,
+            fog_color: [1.0, 1.0, 1.0, 1.0].into(),
+            lightmap_txtr: 231856622,
+            units_per_lightmap_texel: 0.3,
+            alpha_in_time: 0.0,
+            alpha_out_time: 0.0,
+            alpha_in_recip: 0,
+            alpha_out_recip: 0,
+            crash_the_game: 0,
         }
         .into(),
         connections: vec![].into(),
@@ -5460,6 +5865,117 @@ pub fn id_in_use(area: &mut mlvl_wrapper::MlvlArea, id: u32) -> bool {
     }
 
     false
+}
+
+fn patch_artifact_temple_pillar(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    id: u32,
+) -> Result<(), String> {
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[1];
+    layer.objects.as_mut_vec().push(structs::SclyObject {
+        instance_id: id,
+        property_data: structs::Platform {
+            name: b"Platform Stage 1 (Intangible)\0".as_cstr(),
+            position: [-373.276_15, 32.820946, -34.278522].into(),
+            rotation: [0.0, 0.0, -179.732_71].into(),
+            scale: [1.0, 1.0, 1.0].into(),
+            extent: [1.0, 1.0, 1.0].into(),          // CollisionBox
+            scan_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
+            cmdl: ResId::<res_id::CMDL>::new(0xFB87262C),
+            ancs: structs::scly_structs::AncsProp {
+                file_id: ResId::invalid(), // None
+                node_index: 0,
+                default_animation: 0xFFFFFFFF, // -1
+            },
+            actor_params: structs::scly_structs::ActorParameters {
+                light_params: structs::scly_structs::LightParameters {
+                    unknown0: 1,
+                    unknown1: 1.0,
+                    shadow_tessellation: 0,
+                    unknown2: 1.0,
+                    unknown3: 20.0,
+                    color: [1.0, 1.0, 1.0, 1.0].into(),
+                    unknown4: 1,
+                    world_lighting: 2,
+                    light_recalculation: 1,
+                    unknown5: [0.0, 0.0, 0.0].into(),
+                    unknown6: 4,
+                    unknown7: 4,
+                    unknown8: 1,
+                    light_layer_id: 0,
+                },
+                scan_params: structs::scly_structs::ScannableParameters {
+                    scan: ResId::invalid(), // None
+                },
+                xray_cmdl: ResId::invalid(),    // None
+                xray_cskr: ResId::invalid(),    // None
+                thermal_cmdl: ResId::invalid(), // None
+                thermal_cskr: ResId::invalid(), // None
+                unknown0: 1,
+                unknown1: 2.0,
+                unknown2: 2.0,
+                visor_params: structs::scly_structs::VisorParameters {
+                    unknown0: 0,
+                    target_passthrough: 0,
+                    visor_mask: 15, // Combat|Scan|Thermal|XRay
+                },
+                enable_thermal_heat: 0,
+                unknown3: 0,
+                unknown4: 0,
+                unknown5: 1.0,
+            },
+            speed: 1.0,
+            active: 0,
+            dcln: ResId::invalid(), // None
+            health_info: structs::scly_structs::HealthInfo {
+                health: 50.0,
+                knockback_resistance: 1.0,
+            },
+            damage_vulnerability: structs::scly_structs::DamageVulnerability {
+                power: 3,
+                ice: 3,
+                wave: 3,
+                plasma: 3,
+                bomb: 3,
+                power_bomb: 3,
+                missile: 1,
+                boost_ball: 3,
+                phazon: 3,
+                enemy_weapon0: 1,
+                enemy_weapon1: 2,
+                enemy_weapon2: 2,
+                enemy_weapon3: 2,
+                unknown_weapon0: 2,
+                unknown_weapon1: 2,
+                unknown_weapon2: 0,
+                charged_beams: structs::scly_structs::ChargedBeams {
+                    power: 3,
+                    ice: 3,
+                    wave: 3,
+                    plasma: 3,
+                    phazon: 0,
+                },
+                beam_combos: structs::scly_structs::BeamCombos {
+                    power: 3,
+                    ice: 3,
+                    wave: 3,
+                    plasma: 3,
+                    phazon: 0,
+                },
+            },
+            detect_collision: 0,
+            unknown4: 1.0,
+            unknown5: 0,
+            unknown6: 200,
+            unknown7: 20,
+        }
+        .into(),
+        connections: vec![].into(),
+    });
+
+    Ok(())
 }
 
 fn patch_add_cutscene_skip_fn(
@@ -5753,6 +6269,7 @@ fn patch_visible_aether_boundaries<'r>(
             None,
             true,
             true,
+            false,
         );
     }
 
@@ -6792,7 +7309,7 @@ fn patch_observatory_1st_pass_softlock(
                     knockback_power: 0.0,
                 },
                 force: [0.0, 0.0, 0.0].into(),
-                flags: 1,
+                flags: 1853,
                 active: 1,
                 deactivate_on_enter: 1,
                 deactivate_on_exit: 0,
@@ -6830,7 +7347,7 @@ fn patch_observatory_1st_pass_softlock(
                     knockback_power: 0.0,
                 },
                 force: [0.0, 0.0, 0.0].into(),
-                flags: 1,
+                flags: 1853,
                 active: 1,
                 deactivate_on_enter: 1,
                 deactivate_on_exit: 0,
@@ -8976,8 +9493,6 @@ fn object_is_dead(
         return true;
     }
 
-
-
     false
 }
 
@@ -9024,10 +9539,13 @@ fn patch_optimize_memory(
                 if !DEFAULT_LAYER_OBJS.contains(&obj.property_data.object_type()) {
                     continue;
                 }
-                edit_objs.insert(obj.instance_id & 0x00FFFFFF, EditObjConfig {
-                    layer: Some(0),
-                    ..Default::default()
-                });
+                edit_objs.insert(
+                    obj.instance_id & 0x00FFFFFF,
+                    EditObjConfig {
+                        layer: Some(0),
+                        ..Default::default()
+                    },
+                );
             }
         }
         patch_edit_objects(ps, area, edit_objs).ok();
@@ -9446,20 +9964,43 @@ fn patch_frost_cave_metroid_pal(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
-    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
-    let metroid = layers[3] // 3 is Don't Load layer
-        .objects
-        .iter_mut()
-        .find(|obj| obj.instance_id & 0x00FFFFFF == 0x00290199)
-        .unwrap()
-        .clone();
+    let flags = &mut area.layer_flags.flags;
+    *flags |= 1 << 3; // Turn on "Don't Load" Layer with Hunter Metroid
 
-    layers[2].objects.as_mut_vec().push(metroid.clone()); // 2 is 1st Pass layer
-    layers[3]
+    Ok(())
+}
+
+fn patch_frost_cave_metroid_pal_layer_switch(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let id = area.new_object_id_from_layer_id(0);
+
+    let scly = area.mrea().scly_section_mut();
+    let layer = &mut scly.layers.as_mut_vec()[0];
+
+    let obj = layer
         .objects
         .as_mut_vec()
-        .retain(|obj| obj.instance_id & 0x00FFFFFF != 0x00290199);
+        .iter_mut()
+        .find(|obj| obj.instance_id == 3473439)
+        .unwrap();
+    obj.connections.as_mut_vec().push(structs::Connection {
+        state: structs::ConnectionState::ARRIVED,
+        message: structs::ConnectionMsg::DECREMENT,
+        target_object_id: id,
+    });
 
+    layer.objects.as_mut_vec().push(structs::SclyObject {
+        instance_id: id,
+        property_data: structs::SpecialFunction::layer_change_fn(
+            b"SpecialFunction - Ice Cave A - Decrement Don't Load\0".as_cstr(),
+            0xC91D48C5,
+            3,
+        )
+        .into(),
+        connections: vec![].into(),
+    });
     Ok(())
 }
 
@@ -9930,8 +10471,8 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
         kind: structs::FrmeWidgetKind::TextPane(structs::TextPaneWidget {
             x_dim: 10.455326,
             z_dim: 1.813613,
-            scale_center: [-5.227663, 0.0, -0.51].into(),
-            font: resource_info!("Deface14B_O.FONT").try_into().unwrap(),
+            scale_center: [-25.227663, 0.0, -4.43].into(),
+            font: resource_info!("Deface13B.FONT").try_into().unwrap(),
             word_wrap: 0,
             horizontal: 1,
             justification: 0,
@@ -9943,7 +10484,7 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
             jpn_point_scale,
         }),
         worker_id: None,
-        origin: [9.25, 1.500001, 0.0].into(),
+        origin: [24.6, 1.500001, 0.3].into(),
         basis: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0].into(),
         rotation_center: [0.0, 0.0, 0.0].into(),
         unknown0: 0,
@@ -9958,9 +10499,9 @@ fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
     };
     tp.fill_color = [0.0, 0.0, 0.0, 0.4].into();
     tp.outline_color = [0.0, 0.0, 0.0, 0.2].into();
-    shadow_widget.origin[0] -= -0.235091;
-    shadow_widget.origin[1] -= -0.104353;
-    shadow_widget.origin[2] -= 0.176318;
+    shadow_widget.origin[0] -= -0.1;
+    shadow_widget.origin[1] -= -0.1;
+    shadow_widget.origin[2] -= 0.1;
 
     frme.widgets.as_mut_vec().push(shadow_widget);
 
@@ -10831,6 +11372,44 @@ fn patch_dol(
         // 801b3444 d0 1f 07 d4     stfs       f0,0x7d4(r31)
     */
 
+    if config.qol_general {
+        // Replaces the HasPowerUp condition in the if statement at the top of CPlayerGun::FireSecondary
+        // with a check for "or not wavebuster point-blank range"
+        let point_blank_patch = ppcasm!(
+            symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0x78,
+            {
+                // if (!IsWeaponStateSet(0x4)) { // x2f8_stateFlags
+                //     // goto "play sfx and return"
+                // }
+                lwz         r0, 0x2f8(r30);
+                rlwinm.     r0, r0, 0, 29, 29;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xA8 };
+
+                // if (x310_currentBeam != CPlayerState::kBI_Wave) {
+                //     // goto "normal flow"
+                // }
+                lwz         r0, 0x310(r30);
+                cmpwi       r0, 2;
+                bne         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+
+                // if (!x832_26_comboFiring) {
+                //     // goto "normal flow"
+                // }
+                lbz         r0, 0x832(r30);
+                rlwinm.     r0, r0, 27, 31, 31;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+
+                // if (!x833_29_pointBlankWorldSurface) {
+                //     // goto "normal flow"
+                // }
+                lbz         r0, 0x833(r30);
+                rlwinm.     r0, r0, 30, 31, 31;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+            }
+        );
+        dol_patcher.ppcasm_patch(&point_blank_patch)?;
+    }
+
     /* This is where I keep random dol patch experiments */
 
     // let boost_on_spider = ppcasm!(symbol_addr!("ComputeBoostBallMovement__10CMorphBallFRC11CFinalInputRC13CStateManagerf", version) + (0x800f4454 - 0x800f43ac), {
@@ -11164,6 +11743,13 @@ fn patch_dol(
             .long *value;
         });
         dol_patcher.ppcasm_patch(&capacity_patch)?;
+    }
+
+    for (missile_type, cost) in &config.missile_costs {
+        let cost_patch = ppcasm!(symbol_addr!("CPlayerState_MissileCostsValues", version) + missile_type * 4, {
+            .long *cost;
+        });
+        dol_patcher.ppcasm_patch(&cost_patch)?;
     }
 
     // set etank capacity and base health
@@ -12147,30 +12733,60 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_has_power_up_hook)?;
     let custom_item_has_power_up_patch = ppcasm!(new_text_section_end, {
+        // backup arguments
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        lwz          r3, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
+        lwz          r4, 0x0(r4);
+
         // check custom item in unknown item 2
         cmpwi        r4, { PickupType::ArtifactOfNewborn.kind() };
         ble          not_custom_item;
-        li           r15, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-        add          r15, r3, r0;
-        addi         r15, r15, 0x2c;
+        li           r4, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+        add          r4, r3, r0;
+        addi         r4, r4, 0x2c;
+        lwz          r0, 0x0(r4);
+
+        // restore r4 back to its previous value because we need it now
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
+        // check if we got the custom item
         li           r3, { first_custom_item_idx };
         add          r3, r3, r4;
-        lwz          r0, 0x0(r15);
         srw          r0, r3, r3;
         andi         r3, r3, 1;
-        andi         r15, r15, 0;
+
+    powerup_not_valid:
         blr;
 
-        // restore previous context
     not_custom_item:
-        andi         r15, r15, 0;
+        // restore previous context
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
         cmpwi        r4, 0;
-        b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
+        blt          powerup_not_valid;
+        b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
     });
 
     new_text_section_end += custom_item_has_power_up_patch.encoded_bytes().len() as u32;
@@ -12185,117 +12801,116 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_get_item_amount_hook)?;
     let custom_item_get_item_amount_patch = ppcasm!(new_text_section_end, {
-            // backup arguments
-            mr           r0, r3;
-            lis          r3, r3_backup@h;
-            addi         r3, r3, r3_backup@l;
-            stw          r0, 0x0(r3);
-            mr           r0, r4;
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            stw          r0, 0x0(r4);
+        // backup arguments
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        lwz          r3, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
+        lwz          r4, 0x0(r4);
 
-            // preload unknown item 2 for future checks in the function
-            lis          r4, r3_backup@h;
-            addi         r4, r4, r3_backup@l;
-            lwz          r4, 0x0(r4);
-            li           r3, { PickupType::UnknownItem2.kind() };
-            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-            add          r3, r4, r3;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            mr           r0, r3;
+        // preload unknown item 2 for future checks in the function
+        mr           r4, r3;
+        li           r3, { PickupType::UnknownItem2.kind() };
+        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+        add          r3, r4, r3;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        mr           r0, r3;
 
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            cmpwi        r4, { PickupType::Missile.kind() };
-            bne          check_power_bomb;
-            // check for missile launcher
-            andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          no_launcher;
-            // check for missile capacity
-            lis          r4, r3_backup@h;
-            addi         r4, r4, r3_backup@l;
-            lwz          r4, 0x0(r4);
-            li           r3, { PickupType::Missile.kind() };
-            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-            add          r3, r4, r3;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            cmpwi        r3, 0;
-            ble          no_launcher;
-            // check for unlimited missiles
-            andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
-            li           r3, 255;
-            b            is_unlimited;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+        cmpwi        r4, { PickupType::Missile.kind() };
+        bne          check_power_bomb;
+        // check for missile launcher
+        andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          no_launcher;
+        // check for missile capacity
+        lis          r4, r3_backup@h;
+        addi         r4, r4, r3_backup@l;
+        lwz          r4, 0x0(r4);
+        li           r3, { PickupType::Missile.kind() };
+        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+        add          r3, r4, r3;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        cmpwi        r3, 0;
+        ble          no_launcher;
+        // check for unlimited missiles
+        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
+        li           r3, 255;
+        b            is_unlimited;
 
-        check_power_bomb:
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            cmpwi        r4, { PickupType::PowerBomb.kind() };
-            bne          not_unlimited_or_not_pb_missiles;
-            // check for power bomb launcher
-            andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          no_launcher;
-            // check for power bomb capacity
-            lis          r4, r3_backup@h;
-            addi         r4, r4, r3_backup@l;
-            lwz          r4, 0x0(r4);
-            li           r3, { PickupType::PowerBomb.kind() };
-            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-            add          r3, r4, r3;
-            addi         r3, r3, 0x2c;
-            lwz          r3, 0x0(r3);
-            cmpwi        r3, 0;
-            ble          no_launcher;
-            // check for unlimited power bombs
-            andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
-            cmpwi        r3, 0;
-            beq          not_unlimited_or_not_pb_missiles;
-            li           r3, 8;
-            b            is_unlimited;
+    check_power_bomb:
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+        cmpwi        r4, { PickupType::PowerBomb.kind() };
+        bne          not_unlimited_or_not_pb_missiles;
+        // check for power bomb launcher
+        andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          no_launcher;
+        // check for power bomb capacity
+        lis          r4, r3_backup@h;
+        addi         r4, r4, r3_backup@l;
+        lwz          r4, 0x0(r4);
+        li           r3, { PickupType::PowerBomb.kind() };
+        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+        add          r3, r4, r3;
+        addi         r3, r3, 0x2c;
+        lwz          r3, 0x0(r3);
+        cmpwi        r3, 0;
+        ble          no_launcher;
+        // check for unlimited power bombs
+        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        cmpwi        r3, 0;
+        beq          not_unlimited_or_not_pb_missiles;
+        li           r3, 8;
+        b            is_unlimited;
 
-        no_launcher:
-            li           r3, 0;
-            lis          r3, r3_backup@h;
-            addi         r3, r3, r3_backup@l;
-            lwz          r3, 0x0(r3);
-        is_unlimited:
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            blr;
+    no_launcher:
+        li           r3, 0;
+    is_unlimited:
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+        blr;
 
-        not_unlimited_or_not_pb_missiles:
-            // restore previous context
-            lis          r3, r3_backup@h;
-            addi         r3, r3, r3_backup@l;
-            lwz          r3, 0x0(r3);
-            lis          r4, r4_backup@h;
-            addi         r4, r4, r4_backup@l;
-            lwz          r4, 0x0(r4);
-            cmpwi        r4, 0;
-            blt          item_type_negative;
-            b            { symbol_addr!("GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
-        item_type_negative:
-            li           r3, 0;
-            blr;
+    not_unlimited_or_not_pb_missiles:
+        // restore previous context
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
 
-        r3_backup:
-            .long 0;
-        r4_backup:
-            .long 0;
-        });
+        cmpwi        r4, 0;
+        blt          item_type_negative;
+        b            { symbol_addr!("GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
+    item_type_negative:
+        li           r3, 0;
+        blr;
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
+    });
 
     new_text_section_end += custom_item_get_item_amount_patch.encoded_bytes().len() as u32;
     new_text_section.extend(custom_item_get_item_amount_patch.encoded_bytes());
@@ -12309,77 +12924,112 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_get_item_capacity_hook)?;
     let custom_item_get_item_capacity_patch = ppcasm!(new_text_section_end, {
         // backup arguments
-        mr           r14, r3;
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
 
         // preload unknown item 2 for future checks in the function
-        li           r15, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-        add          r15, r14, r0;
-        addi         r15, r15, 0x2c;
-        lwz          r15, 0x0(r15);
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+        add          r4, r3, r0;
+        addi         r4, r4, 0x2c;
+        lwz          r0, 0x0(r4);
+
+        // restore r4 back to its previous value because we need it now
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
 
         cmpwi        r4, { PickupType::Missile.kind() };
         bne          check_power_bomb;
         // check for missile launcher
-        andi         r15, r3, { PickupType::MissileLauncher.custom_item_value() };
+        andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
         cmpwi        r3, 0;
         beq          no_launcher;
         // check for missile capacity
-        li           r3, { PickupType::Missile.kind() };
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r14, r0;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::Missile.kind() };
+        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
+        add          r3, r3, r4;
         addi         r3, r3, 0x2c;
         lwz          r3, 0x0(r3);
         cmpwi        r3, 0;
         ble          no_launcher;
         // check for unlimited missiles
-        andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
         cmpwi        r3, 0;
         beq          not_unlimited_or_not_pb_missiles;
         li           r3, 255;
-        b            is_unlimited;
+        b            custom_capacity_returned;
 
     check_power_bomb:
         cmpwi        r4, { PickupType::PowerBomb.kind() };
         bne          not_unlimited_or_not_pb_missiles;
         // check for power bomb launcher
-        andi         r15, r3, { PickupType::PowerBombLauncher.custom_item_value() };
+        andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
         cmpwi        r3, 0;
         beq          no_launcher;
         // check for power bomb capacity
-        li           r3, { PickupType::PowerBomb.kind() };
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r14, r0;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::PowerBomb.kind() };
+        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
+        add          r3, r3, r4;
         addi         r3, r3, 0x2c;
         lwz          r3, 0x0(r3);
         cmpwi        r3, 0;
         ble          no_launcher;
         // check for unlimited power bombs
-        andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
         cmpwi        r3, 0;
         beq          not_unlimited_or_not_pb_missiles;
         li           r3, 8;
-        b            is_unlimited;
+        b            custom_capacity_returned;
 
     no_launcher:
         li           r3, 0;
-    is_unlimited:
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+
+    custom_capacity_returned:
+        // restore previous context
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
+    powerup_not_valid:
         blr;
 
     not_unlimited_or_not_pb_missiles:
         // restore previous context
-        mr           r3, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
         cmpwi        r4, 0;
-        b            { symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x4 };
+        blt          powerup_not_valid;
+        b            { symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
     });
 
     new_text_section_end += custom_item_get_item_capacity_patch.encoded_bytes().len() as u32;
@@ -12394,48 +13044,80 @@ fn patch_dol(
             b {
                 new_text_section_end
             };
+            nop;
         }
     );
     dol_patcher.ppcasm_patch(&custom_item_decr_pickup_hook)?;
     let custom_item_decr_pickup_patch = ppcasm!(new_text_section_end, {
         // backup arguments
-        mr           r14, r3;
+        mr           r0, r3;
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        stw          r0, 0x0(r3);
+        mr           r0, r4;
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        stw          r0, 0x0(r4);
 
         // preload unknown item 2 for future checks in the function
-        li           r15, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r15, 0x3, 0x0, 0x1c;
-        add          r15, r3, r0;
-        addi         r15, r15, 0x2c;
-        lwz          r15, 0x0(r15);
+        lwz          r3, 0x0(r3);
+        li           r4, { PickupType::UnknownItem2.kind() };
+        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+        add          r4, r3, r0;
+        addi         r4, r4, 0x28;
+        lwz          r0, 0x0(r4);
+
+        // restore r4 back to its previous value because we need it now
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
 
         cmpwi        r4, { PickupType::Missile.kind() };
         bne          check_power_bomb;
         // check for unlimited missiles
-        andi         r15, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
         cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        b            is_unlimited;
+        beq          pre_cleanup;
+        li           r0, 1;
+        b            cleanup;
 
     check_power_bomb:
         cmpwi        r4, { PickupType::PowerBomb.kind() };
-        bne          not_unlimited_or_not_pb_missiles;
+        bne          cleanup;
         // check for unlimited power bombs
-        andi         r15, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
+        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
         cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
+        beq          pre_cleanup;
+        li           r0, 1;
+        b            cleanup;
 
-    is_unlimited:
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+    // if not unlimited then set r0 to 0
+    pre_cleanup:
+        li           r0, 0;
+    cleanup:
+        // restore previous context
+        lis          r3, r3_backup@h;
+        addi         r3, r3, r3_backup@l;
+        lwz          r3, 0x0(r3);
+        lis          r4, r4_backup@h;
+        addi         r4, r4, r4_backup@l;
+        lwz          r4, 0x0(r4);
+
+        // if unlimited then we return
+        cmpwi        r0, 0;
+        beq          not_unlimited;
+    powerup_not_valid:
         blr;
 
-    not_unlimited_or_not_pb_missiles:
-        // restore previous context
-        mr           r3, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
+    not_unlimited:
         cmpwi        r4, 0;
-        b            { symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x4 };
+        blt          powerup_not_valid;
+        b            { symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x8 };
+
+    r3_backup:
+        .long 0;
+    r4_backup:
+        .long 0;
     });
 
     new_text_section_end += custom_item_decr_pickup_patch.encoded_bytes().len() as u32;
@@ -15301,6 +15983,10 @@ fn patch_qol_game_breaking(
                 resource_info!("15_ice_cave_a.MREA").into(),
                 patch_frost_cave_metroid_pal,
             );
+            patcher.add_scly_patch(
+                resource_info!("18_ice_gravity_chamber.MREA").into(),
+                patch_frost_cave_metroid_pal_layer_switch,
+            );
         }
     }
 
@@ -17260,6 +17946,7 @@ fn build_and_run_patches<'r>(
                             position: [42.9551, -287.1726, -240.7044],
                             scale: Some([50.0, 50.0, 1.0]),
                             texture: None,
+                            thermal_hot: Some(false),
                         },
                         false,
                     )
@@ -17305,6 +17992,13 @@ fn build_and_run_patches<'r>(
         patcher.add_scly_patch(
             resource_info!("01_mainplaza.MREA").into(),
             make_main_plaza_locked_door_two_ways,
+        );
+    }
+
+    if config.qol_cosmetic {
+        patcher.add_scly_patch(
+            resource_info!("19_hive_totem.MREA").into(),
+            patch_rotate_hive_totem_door,
         );
     }
 
@@ -17763,26 +18457,28 @@ fn build_and_run_patches<'r>(
                             /* Some rooms need to be update to play nicely with skippable cutscenes */
                             match room_info.room_id.to_u32() {
                                 0x9A0A03EB => {
-                                    // sunchamber
+                                    // Sunchamber
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                         move |ps, area| patch_sunchamber_cutscene_hack(ps, area),
                                     );
                                 }
-                                0x70181194 => {
-                                    // quarantine cave
+                                0x1921876D => {
+                                    // ruined courtyard
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                         move |ps, area| {
-                                            patch_add_boss_health_bar(ps, area, 0x00100000)
+                                            patch_add_ruined_courtyard_water(ps, area, 0x000F28C1)
                                         },
                                     );
                                 }
-                                0xA7AC009B => {
-                                    // subchamber four
+                                0x2398E906 => {
+                                    // Artifact Temple
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| patch_add_boss_health_bar(ps, area, 696969),
+                                        move |ps, area| {
+                                            patch_artifact_temple_pillar(ps, area, 1048911)
+                                        },
                                     );
                                 }
                                 _ => {}
