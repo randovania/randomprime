@@ -11198,7 +11198,7 @@ fn patch_dol(
     }
 
     for (missile_type, cost) in &config.missile_costs {
-        let cost_patch = ppcasm!(symbol_addr!("CPlayerState_MissileCostsValues", version) + missile_type * 4, {
+        let cost_patch = ppcasm!(symbol_addr!("CPlayerState_MissileCostValues", version) + missile_type * 4, {
             .long *cost;
         });
         dol_patcher.ppcasm_patch(&cost_patch)?;
