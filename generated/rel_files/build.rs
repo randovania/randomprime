@@ -91,12 +91,14 @@ fn main() {
         .unwrap();
     }
 
-    let walkdir = WalkDir::new(ppc_dir).into_iter().filter_entry(|entry| {
-        let name = entry.file_name().to_str().unwrap_or("");
-        !name.starts_with('.') && name != "target"
-    });
-    for entry in walkdir {
-        let entry = entry.unwrap();
-        println!("cargo:rerun-if-changed={}", entry.path().display());
+    for watch_dir in [&ppc_dir, &symbol_table_dir] {
+        let walkdir = WalkDir::new(watch_dir).into_iter().filter_entry(|entry| {
+            let name = entry.file_name().to_str().unwrap_or("");
+            !name.starts_with('.') && name != "target"
+        });
+        for entry in walkdir {
+            let entry = entry.unwrap();
+            println!("cargo:rerun-if-changed={}", entry.path().display());
+        }
     }
 }
