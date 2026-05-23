@@ -14452,7 +14452,6 @@ fn build_and_run_patches<'r>(
     let morph_ball_size = config.ctwk_config.morph_ball_size.unwrap_or(1.0);
     let player_size = config.ctwk_config.player_size.unwrap_or(1.0);
 
-    let remove_ball_color = morph_ball_size < 0.999;
     let remove_control_disabler = player_size < 0.999 || morph_ball_size < 0.999;
     let move_item_loss_scan = player_size > 1.001;
     let mut rng = StdRng::seed_from_u64(config.seed);
@@ -16337,18 +16336,7 @@ fn build_and_run_patches<'r>(
     }
 
     patcher.add_file_patch(b"default.dol", move |file| {
-        dol_patches::patch_dol(
-            file,
-            starting_room,
-            config.version,
-            config,
-            remove_ball_color,
-            smoother_teleports,
-            config.skip_splash_screens,
-            config.escape_sequence_counts_up,
-            config.uuid,
-            config.shoot_in_grapple,
-        )
+        dol_patches::patch_dol(file, starting_room, config)
     });
 
     if smoother_teleports {

@@ -1,5 +1,5 @@
-0x80003278 __init_registers
 0x80003100 __check_pad3
+0x80003278 __init_registers
 0x80003354 __init_hardware
 0x80003374 __flush_cache
 0x800033a8 memset
@@ -25,6 +25,8 @@
 0x8000c0b0 GetLastCineCameraId__14CCameraManagerCFv
 0x8000c0e0 GetCurrentCameraId__14CCameraManagerCFv
 0x8000cd00 SetCommandFiltered__13ControlMapperFQ213ControlMapper9ECommandsb
+0x8000CF34 GetDescriptionForCommand__13ControlMapperFQ213ControlMapper9ECommands
+0x8000D310 GetDescriptionForFunction__13ControlMapperFQ213ControlMapper13EFunctionList
 0x8000db84 ADPUp__11CFinalInputCFv
 0x8000e84c SkipCinematic__18CFirstPersonCameraFv
 0x8000e874 Reset__18CFirstPersonCameraFRC12CTransform4fR13CStateManager
@@ -2505,6 +2507,7 @@
 0x803644f0 GXInitTlutRegion
 0x80364538 GXInvalidateTexRegion
 0x80364644 GXInvalidateTexAll
+0x80364740 GXSetTexCoordBias
 0x803647bc __SetSURegs
 0x80364c30 GXSetTevIndirect
 0x803650bc GXSetNumIndStages
@@ -2541,6 +2544,7 @@
 0x8036709c PSMTXTrans
 0x803670d0 PSMTXScale
 0x803670f8 PSMTXScaleApply
+0x80367150 C_MTXLookAt
 0x80367150 sub_8037e0e4
 0x803672dc PSMTXMultVec
 0x80367330 PSMTXMultVecSR
@@ -2674,6 +2678,7 @@
 0x8038687c sub_8039d87c
 0x80386938 SetHWMix
 0x803872f8 GetPrivateIndex
+0x80387D3C sndStreamAllocStereo
 0x80387ffc sndStreamAllocLength
 0x8038c8d8 dataInit
 0x8038fa88 mcmdGetVID

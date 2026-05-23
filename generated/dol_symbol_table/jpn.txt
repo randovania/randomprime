@@ -1,6 +1,8 @@
 0x80003278 __init_registers
 0x80003490 memcpy
 0x80008ad4 __nw__FUlPCcPCc
+0x8000D224 GetDescriptionForCommand__13ControlMapperFQ213ControlMapper9ECommands
+0x8000D600 GetDescriptionForFunction__13ControlMapperFQ213ControlMapper13EFunctionList
 0x80011a58 UpdatePhazonDamage__7CPlayerFfR13CStateManager
 0x8001660c wstring_l__4rstlFPCw
 0x80016920 Freeze__7CPlayerFR13CStateManagerUiUsUi
@@ -86,10 +88,14 @@
 0x8035d4a4 DVDOpen
 0x8035d56c DVDClose
 0x8035d7b4 DVDReadAsyncPrio
+0x80366498 GXSetTexCoordBias
+0x80368EA8 C_MTXLookAt
 0x80369468 OSInit
 0x8036e02c OSLink
+0x8036E45C __OSModuleInit
 0x80379ab8 sprintf
 0x80379c8c printf
+0x80389B00 sndStreamAllocStereo
 0x803b86cc __build_info
 0x803b9a50 CPlayerState_PowerUpMaxValues
 0x803b9af4 CPlayerState_MissileCostValues

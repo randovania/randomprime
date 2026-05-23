@@ -12,6 +12,24 @@ use crate::patch_config::{
 use crate::pickup_meta::PickupType;
 use crate::txtr_conversions::{huerotate_color, huerotate_matrix};
 
+macro_rules! symbol_addr {
+    ($sym:tt, $version:expr) => {{
+        let s = mp1_symbol!($sym);
+        match &$version {
+            Version::NtscU0_00 => s.addr_0_00,
+            Version::NtscU0_01 => s.addr_0_01,
+            Version::NtscU0_02 => s.addr_0_02,
+            Version::NtscK => s.addr_kor,
+            Version::NtscJ => s.addr_jpn,
+            Version::Pal => s.addr_pal,
+            Version::NtscUTrilogy => unreachable!(),
+            Version::NtscJTrilogy => unreachable!(),
+            Version::PalTrilogy => unreachable!(),
+        }
+        .unwrap_or_else(|| panic!("Symbol {} unknown for version {}", $sym, $version))
+    }};
+}
+
 pub struct CodeCave {
     start: u32,
     size: u32,
@@ -45,7 +63,7 @@ impl CodeCaveAllocator {
         CodeCaveAllocator { caves }
     }
 
-    /// Best-fit: pick the smallest cave that still has room.
+    // Pick the smallest cave that still has room
     pub fn alloc(&mut self, label: &str, bytes: u32) -> u32 {
         let idx = self
             .caves
@@ -63,13 +81,30 @@ impl CodeCaveAllocator {
         self.caves[idx].alloc(bytes)
     }
 
-    /// Force allocation from the first cave (used for rel_loader, which is linked to that
-    /// specific base address and must land there).
-    pub fn alloc_first_cave(&mut self, label: &str, bytes: u32) -> u32 {
-        let cave = self.caves.first_mut().expect("no caves defined");
+    // Allocate from the start of the cave at `cave_start`. This is used for payloads
+    // that are pre-linked to a fixed base address (for example rel_loader).
+    pub fn alloc_from_cave_start(&mut self, label: &str, cave_start: u32, bytes: u32) -> u32 {
+        let cave = self
+            .caves
+            .iter_mut()
+            .find(|c| c.start == cave_start)
+            .unwrap_or_else(|| {
+                panic!(
+                    "CodeCaveAllocator: no cave starts at 0x{:08x} for block '{}'",
+                    cave_start, label
+                )
+            });
+        assert!(
+            cave.used == 0,
+            "Code cave 0x{:08x} already consumed {} bytes before '{}'",
+            cave_start,
+            cave.used,
+            label
+        );
         assert!(
             cave.remaining() >= bytes,
-            "First cave has only {} bytes remaining for '{}'",
+            "Code cave 0x{:08x} has only {} bytes remaining for '{}'",
+            cave_start,
             cave.remaining(),
             label
         );
@@ -77,8 +112,6 @@ impl CodeCaveAllocator {
     }
 }
 
-/// Routes new code payloads to code caves. `dol_patcher` is passed per-call rather than stored
-/// so it remains accessible for direct `ppcasm_patch` / `patch` calls throughout `patch_dol`.
 pub struct TextEmitter {
     pub cave_alloc: CodeCaveAllocator,
 }
@@ -88,36 +121,20 @@ impl TextEmitter {
         TextEmitter { cave_alloc }
     }
 
-    /// Emit `bytes` into the first cave (used for pre-linked binaries like rel_loader).
-    pub fn emit_first_cave(
+    pub fn emit_at_cave_start(
         &mut self,
         dol_patcher: &mut DolPatcher<'_>,
         label: &str,
+        cave_start: u32,
         bytes: Vec<u8>,
     ) -> Result<u32, String> {
-        let addr = self.cave_alloc.alloc_first_cave(label, bytes.len() as u32);
+        let addr = self
+            .cave_alloc
+            .alloc_from_cave_start(label, cave_start, bytes.len() as u32);
         dol_patcher.patch(addr, Cow::Owned(bytes))?;
         Ok(addr)
     }
 
-    /// Emit pre-built bytes via best-fit cave allocation.
-    /// Use when the payload's content does not depend on its load address.
-    pub fn emit(
-        &mut self,
-        dol_patcher: &mut DolPatcher<'_>,
-        label: &str,
-        bytes: Vec<u8>,
-    ) -> Result<u32, String> {
-        let addr = self.cave_alloc.alloc(label, bytes.len() as u32);
-        dol_patcher.patch(addr, Cow::Owned(bytes))?;
-        Ok(addr)
-    }
-
-    /// Emit a payload whose encoded bytes depend on the load address. Calls `build(PROBE_ADDR)`
-    /// first to measure size (for cave allocation), then `build(real_addr)` for the final
-    /// encoding. PROBE_ADDR is chosen to be inside the game's address space so that `bl`
-    /// instructions to game symbols stay within the 24-bit branch range during the probe.
-    /// A `debug_assert` catches any future instruction-count change between the two encodings.
     pub fn emit_addressed<F>(
         &mut self,
         dol_patcher: &mut DolPatcher<'_>,
@@ -127,8 +144,8 @@ impl TextEmitter {
     where
         F: Fn(u32) -> Vec<u8>,
     {
-        // 0x80000000 keeps all game-symbol bl targets within ±32 MB
-        const PROBE_ADDR: u32 = 0x8000_0000;
+        // 0x80000000 keeps all game-symbol bl targets within opcode limits
+        const PROBE_ADDR: u32 = 0x80000000;
         let probe = build(PROBE_ADDR);
         let len = probe.len() as u32;
         let addr = self.cave_alloc.alloc(label, len);
@@ -144,65 +161,77 @@ impl TextEmitter {
     }
 }
 
-/// Return the code caves for `version`, ordered largest-first so rel_loader's
-/// `alloc_first_cave` lands at the GetDescriptionForCommand/Function cave
-/// (which is where the cave-linked binary was loaded).
 pub fn caves_for_version(version: Version) -> CodeCaveAllocator {
-    let caves: Vec<CodeCave> = match version {
-        Version::NtscU0_00 => vec![
-            CodeCave::new(0x8000C9BC, 988), // GetDescriptionForCommand (rel_loader target)
-            CodeCave::new(0x8039DD24, 704), // sndStreamAllocStereo
-            CodeCave::new(0x80382810, 516), // OS dead code (__OSModuleInit..OnReset gap)
-            CodeCave::new(0x8000CD98, 416), // GetDescriptionForFunction
-            CodeCave::new(0x8037D2E8, 396), // C_MTXLookAt
-            CodeCave::new(0x8037A93C, 124), // GXSetTexCoordBias
-        ],
-        Version::NtscU0_01 => vec![
-            CodeCave::new(0x8000CA38, 988), // GetDescriptionForCommand
-            CodeCave::new(0x8039DF00, 704), // sndStreamAllocStereo
-            CodeCave::new(0x803829EC, 516), // OS dead code
-            CodeCave::new(0x8000CE14, 416), // GetDescriptionForFunction
-            CodeCave::new(0x8037D4C4, 396), // C_MTXLookAt
-            CodeCave::new(0x8037AB18, 124), // GXSetTexCoordBias
-        ],
-        Version::NtscU0_02 => vec![
-            CodeCave::new(0x8000CC78, 988), // GetDescriptionForCommand
-            CodeCave::new(0x8039ED3C, 704), // sndStreamAllocStereo
-            CodeCave::new(0x803836B0, 516), // OS dead code
-            CodeCave::new(0x8000D054, 416), // GetDescriptionForFunction
-            CodeCave::new(0x8037E0E4, 396), // C_MTXLookAt
-            CodeCave::new(0x8037B6D4, 124), // GXSetTexCoordBias
-        ],
-        Version::NtscJ => vec![
-            CodeCave::new(0x8000D224, 988), // GetDescriptionForCommand
-            CodeCave::new(0x80389B00, 704), // sndStreamAllocStereo
-            CodeCave::new(0x8036E474, 516), // OS dead code
-            CodeCave::new(0x8000D600, 416), // GetDescriptionForFunction
-            CodeCave::new(0x80368EA8, 396), // C_MTXLookAt
-            CodeCave::new(0x80366498, 124), // GXSetTexCoordBias
-        ],
-        Version::Pal => vec![
-            CodeCave::new(0x8000CF34, 988), // GetDescriptionForCommand
-            CodeCave::new(0x80387D3C, 704), // sndStreamAllocStereo
-            CodeCave::new(0x8036C71C, 516), // OS dead code
-            CodeCave::new(0x8000D310, 416), // GetDescriptionForFunction
-            CodeCave::new(0x80367150, 396), // C_MTXLookAt
-            CodeCave::new(0x80364740, 124), // GXSetTexCoordBias
-        ],
-        Version::NtscK => vec![
-            // Estimated: 8 bytes before NtscU0_01 throughout
-            CodeCave::new(0x8000CA30, 988),
-            CodeCave::new(0x8039DEF8, 704),
-            CodeCave::new(0x803829E4, 516),
-            CodeCave::new(0x8000CE0C, 416),
-            CodeCave::new(0x8037D4BC, 396),
-            CodeCave::new(0x8037AB10, 124),
-        ],
-        Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy => {
-            return CodeCaveAllocator::new(vec![]);
-        }
-    };
+    if version == Version::NtscUTrilogy
+        || version == Version::NtscJTrilogy
+        || version == Version::PalTrilogy
+    {
+        todo!();
+    }
+
+    let caves = vec![
+        CodeCave::new(
+            symbol_addr!(
+                "GetDescriptionForCommand__13ControlMapperFQ213ControlMapper9ECommands",
+                version
+            ),
+            988,
+        ),
+        CodeCave::new(symbol_addr!("sndStreamAllocStereo", version), 704),
+        CodeCave::new(symbol_addr!("__OSModuleInit", version) + 0x18, 516),
+        CodeCave::new(
+            symbol_addr!(
+                "GetDescriptionForFunction__13ControlMapperFQ213ControlMapper13EFunctionList",
+                version
+            ),
+            416,
+        ),
+        CodeCave::new(symbol_addr!("C_MTXLookAt", version), 396),
+        CodeCave::new(symbol_addr!("GXSetTexCoordBias", version), 124),
+    ];
     CodeCaveAllocator::new(caves)
+}
+
+struct RelLoaderSelection {
+    cave_bytes: &'static [u8],
+    cave_map_str: &'static str,
+    cave_start: u32,
+}
+
+fn rel_loader_selection(version: Version) -> RelLoaderSelection {
+    match version {
+        Version::NtscU0_00 => RelLoaderSelection {
+            cave_bytes: rel_files::REL_LOADER_100_CAVE,
+            cave_map_str: rel_files::REL_LOADER_100_CAVE_MAP,
+            cave_start: rel_files::REL_LOADER_100_CAVE_BASE,
+        },
+        Version::NtscU0_01 => RelLoaderSelection {
+            cave_bytes: rel_files::REL_LOADER_101_CAVE,
+            cave_map_str: rel_files::REL_LOADER_101_CAVE_MAP,
+            cave_start: rel_files::REL_LOADER_101_CAVE_BASE,
+        },
+        Version::NtscU0_02 => RelLoaderSelection {
+            cave_bytes: rel_files::REL_LOADER_102_CAVE,
+            cave_map_str: rel_files::REL_LOADER_102_CAVE_MAP,
+            cave_start: rel_files::REL_LOADER_102_CAVE_BASE,
+        },
+        Version::NtscK => RelLoaderSelection {
+            cave_bytes: rel_files::REL_LOADER_KOR_CAVE,
+            cave_map_str: rel_files::REL_LOADER_KOR_CAVE_MAP,
+            cave_start: rel_files::REL_LOADER_KOR_CAVE_BASE,
+        },
+        Version::NtscJ => RelLoaderSelection {
+            cave_bytes: rel_files::REL_LOADER_JPN_CAVE,
+            cave_map_str: rel_files::REL_LOADER_JPN_CAVE_MAP,
+            cave_start: rel_files::REL_LOADER_JPN_CAVE_BASE,
+        },
+        Version::Pal => RelLoaderSelection {
+            cave_bytes: rel_files::REL_LOADER_PAL_CAVE,
+            cave_map_str: rel_files::REL_LOADER_PAL_CAVE_MAP,
+            cave_start: rel_files::REL_LOADER_PAL_CAVE_BASE,
+        },
+        Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy => unreachable!(),
+    }
 }
 
 pub fn patch_is_memory_relay_active_func(
@@ -315,28 +344,6 @@ pub fn patch_set_pickup_icon_txtr_pal_j(
         beq          {addr + 0x4c};
         fmr          f30, f14;
         b            {draw_func_284};
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_warp_to_start(addr: u32, g_main: u32, think_save_station: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-        lis       r14, {g_main}@h;
-        addi      r14, r14, {g_main}@l;
-        lwz       r14, 0x0(r14);
-        lwz       r14, 0x164(r14);
-        lwz       r14, 0x34(r14);
-        lbz       r0, 0x86(r14);
-        cmpwi     r0, 0;
-        beq       {addr + 0x34};
-        lbz       r0, 0x89(r14);
-        cmpwi     r0, 0;
-        beq       {addr + 0x34};
-        li        r4, 12;
-        b         {addr + 0x38};
-        li        r4, 9;
-        andi      r14, r14, 0;
-        b         {think_save_station + 0x58};
     })
     .encoded_bytes()
 }
@@ -1065,214 +1072,429 @@ pub fn patch_restore_original_check_code_cave(addr: u32, cridley_acceptscriptmsg
     .encoded_bytes()
 }
 
-pub fn patch_staggered_suit_damage_progressive(addr: u32, jump_target: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-        lwz     r3, 0x8b8(r25);
-        lwz     r3, 0(r3);
-        lwz     r4, 220(r3);
-        lwz     r5, 212(r3);
-        addc    r4, r4, r5;
-        lwz     r5, 228(r3);
-        addc    r4, r4, r5;
-        rlwinm  r4, r4, 2, 0, 29;
-        lis     r6, data@h;
-        addi    r6, r6, data@l;
-        lfsx    f0, r4, r6;
-        b       { jump_target };
-    data:
-        .float 0.0;
-        .float 0.1;
-        .float 0.2;
-        .float 0.5;
-    })
-    .encoded_bytes()
+fn patch_rel_loader(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let rel_loader = rel_loader_selection(version);
+    let mut rel_loader_bytes = rel_loader.cave_bytes.to_vec();
+    let padding = ((rel_loader_bytes.len() + 3) & !3) - rel_loader_bytes.len();
+    rel_loader_bytes.extend([0u8; 4][..padding].iter().copied());
+    let rel_loader_map = dol_linker::parse_symbol_table(
+        "extra_assets/rel_loader_cave.bin.map".as_ref(),
+        rel_loader.cave_map_str.lines().map(|l| Ok(l.to_owned())),
+    )
+    .map_err(|e| e.to_string())?;
+    emitter.emit_at_cave_start(
+        dol_patcher,
+        "rel_loader",
+        rel_loader.cave_start,
+        rel_loader_bytes,
+    )?;
+    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("PPCSetFpIEEEMode", version), {
+        b { rel_loader_map["rel_loader_hook"] };
+    }))?;
+    Ok(())
 }
 
-pub fn patch_staggered_suit_damage_additive(addr: u32, jump_target: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-        lwz     r3, 0x8b8(r25);
-        lwz     r3, 0(r3);
-        lwz     r4, 220(r3);
-        lwz     r5, 212(r3);
-        slwi    r5, r5, 1;
-        or      r4, r4, r5;
-        lwz     r5, 228(r3);
-        slwi    r5, r5, 2;
-        or      r4, r4, r5;
-        rlwinm  r4, r4, 2, 0, 29;
-        lis     r6, data@h;
-        addi    r6, r6, data@l;
-        lfsx    f0, r4, r6;
-        b       { jump_target };
-    data:
-        .float 0.0;
-        .float 0.1;
-        .float 0.1;
-        .float 0.2;
-        .float 0.3;
-        .float 0.4;
-        .float 0.4;
-        .float 0.5;
+fn patch_emit_is_memory_relay_active_func(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<u32, String> {
+    emitter.emit_addressed(dol_patcher, "is_memory_relay_active_func", |addr| {
+        patch_is_memory_relay_active_func(
+            addr,
+            symbol_addr!("g_GameState", version),
+            symbol_addr!("StateForWorld__10CGameStateFUi", version),
+        )
     })
-    .encoded_bytes()
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn patch_default_game_options(
-    addr: u32,
-    screen_brightness: i64,
-    screen_offset_x: i64,
-    screen_offset_y: i64,
-    screen_stretch: i64,
-    sfx_volume: i64,
-    music_volume: i64,
-    sound_mode: i64,
-    visor_opacity: i64,
-    helmet_opacity: i64,
-    bit_flags: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        li         r0, screen_brightness;
-        stw        r0, 0x48(r3);
-        li         r0, screen_offset_x;
-        stw        r0, 0x4C(r3);
-        li         r0, screen_offset_y;
-        stw        r0, 0x50(r3);
-        li         r0, screen_stretch;
-        stw        r0, 0x54(r3);
-        li         r0, sfx_volume;
-        stw        r0, 0x58(r3);
-        li         r0, music_volume;
-        stw        r0, 0x5C(r3);
-        li         r0, sound_mode;
-        stw        r0, 0x44(r3);
-        li         r0, visor_opacity;
-        stw        r0, 0x60(r3);
-        li         r0, helmet_opacity;
-        stw        r0, 0x64(r3);
-        li         r0, bit_flags;
-        stb        r0, 0x68(r3);
-        nop;
-        nop;
-        nop;
-        nop;
-        nop;
-    })
-    .encoded_bytes()
+fn patch_set_pickup_icon_txtr(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    is_memory_relay_active_func: u32,
+) -> Result<(), String> {
+    let sitp_off: i32 = if version == Version::Pal {
+        -0x5e3c
+    } else if version == Version::NtscJ {
+        -0x5e64
+    } else {
+        -0x5eb4
+    };
+    let draw_func = symbol_addr!("Draw__15CMappableObjectCFiRC13CMapWorldInfofb", version);
+    let map_pickup_icon_txtr = custom_asset_ids::MAP_PICKUP_ICON_TXTR.to_u32();
+
+    let sitp_addr = if version == Version::NtscJ || version == Version::Pal {
+        emitter.emit_addressed(dol_patcher, "sitp_pal_j", |addr| {
+            patch_set_pickup_icon_txtr_pal_j(
+                addr,
+                is_memory_relay_active_func,
+                sitp_off,
+                map_pickup_icon_txtr,
+                draw_func + 0x284,
+            )
+        })?
+    } else {
+        emitter.emit_addressed(dol_patcher, "sitp_ntsc", |addr| {
+            patch_set_pickup_icon_txtr_ntsc(
+                addr,
+                is_memory_relay_active_func,
+                sitp_off,
+                map_pickup_icon_txtr,
+                draw_func + 0x298,
+            )
+        })?
+    };
+    dol_patcher.ppcasm_patch(&ppcasm!(
+        symbol_addr!("Case1B_Switch_Draw__CMappableObject", version) + ((structs::MapaObjectType::Pickup as u32) - 0x1b) * 4,
+        { .long sitp_addr; }
+    ))?;
+    Ok(())
 }
 
-pub fn patch_point_blank(addr: u32, fire_secondary_fn: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-        lwz         r0, 0x2f8(r30);
-        rlwinm.     r0, r0, 0, 29, 29;
-        beq         { fire_secondary_fn + 0xA8 };
-        lwz         r0, 0x310(r30);
-        cmpwi       r0, 2;
-        bne         { fire_secondary_fn + 0xC8 };
-        lbz         r0, 0x832(r30);
-        rlwinm.     r0, r0, 27, 31, 31;
-        beq         { fire_secondary_fn + 0xC8 };
-        lbz         r0, 0x833(r30);
-        rlwinm.     r0, r0, 30, 31, 31;
-        beq         { fire_secondary_fn + 0xC8 };
-    })
-    .encoded_bytes()
+fn patch_warp_to_start(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let think_save_station = symbol_addr!(
+        "ThinkSaveStation__22CScriptSpecialFunctionFfR13CStateManager",
+        version
+    );
+    let wts_addr = emitter.emit_addressed(dol_patcher, "warp_to_start", |addr| {
+        ppcasm!(addr, {
+            lis       r14, {symbol_addr!("g_Main", version)}@h;
+            addi      r14, r14, {symbol_addr!("g_Main", version)}@l;
+            lwz       r14, 0x0(r14);
+            lwz       r14, 0x164(r14);
+            lwz       r14, 0x34(r14);
+            lbz       r0, 0x86(r14);
+            cmpwi     r0, 0;
+            beq       {addr + 0x34};
+            lbz       r0, 0x89(r14);
+            cmpwi     r0, 0;
+            beq       {addr + 0x34};
+            li        r4, 12;
+            b         {addr + 0x38};
+            li        r4, 9;
+            andi      r14, r14, 0;
+            b         {think_save_station + 0x58};
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(think_save_station + 0x54, {
+        b { wts_addr };
+    }))?;
+    Ok(())
 }
 
-pub fn patch_missile_hud_formatting(addr: u32, sprintf: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-            b          skip;
-        fmt:
-            .asciiz b"%03d/%03d";
-
-        skip:
-            stw        r30, 40(r1);
-            mr         r30, r3;
-            stw        r4, 8(r1);
-
-            lwz        r6, 4(r30);
-
-            mr         r5, r4;
-
-            lis        r4, fmt@h;
-            addi       r4, r4, fmt@l;
-
-            addi       r3, r1, 12;
-
-            nop;
-            bl         { sprintf };
-
-            addi       r3, r1, 20;
-            addi       r4, r1, 12;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_powerbomb_hud_formatting(addr: u32, sprintf: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-            b skip;
-        fmt:
-            .asciiz b"%d/%d";
-            nop;
-        skip:
-            mr         r6, r27;
-            mr         r5, r28;
-            lis        r4, fmt@h;
-            addi       r4, r4, fmt@l;
-            addi       r3, r1, 12;
-            nop;
-            bl         { sprintf };
-    })
-    .encoded_bytes()
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn patch_dol(
-    file: &mut structs::FstEntryFile,
-    spawn_room: SpawnRoomData,
+fn patch_spring_ball(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
     version: Version,
     config: &PatchConfig,
-    remove_ball_color: bool,
-    smoother_teleports: bool,
-    skip_splash_screens: bool,
-    escape_sequence_counts_up: bool,
-    uuid: Option<[u8; 16]>,
-    shoot_in_grapple: bool,
 ) -> Result<(), String> {
-    if version == Version::NtscUTrilogy
-        || version == Version::NtscJTrilogy
-        || version == Version::PalTrilogy
+    let (
+        velocity_offset,
+        movement_state_offset,
+        attached_actor_offset,
+        energy_drain_offset,
+        sb_out_of_water_ticks_offset,
+        surface_restraint_type_offset,
+        morph_ball_offset,
+    ) = if version == Version::NtscU0_00
+        || version == Version::NtscU0_01
+        || version == Version::NtscK
     {
-        return Ok(());
-    }
-
-    macro_rules! symbol_addr {
-        ($sym:tt, $version:expr) => {{
-            let s = mp1_symbol!($sym);
-            match &$version {
-                Version::NtscU0_00 => s.addr_0_00,
-                Version::NtscU0_01 => s.addr_0_01,
-                Version::NtscU0_02 => s.addr_0_02,
-                Version::NtscK => s.addr_kor,
-                Version::NtscJ => s.addr_jpn,
-                Version::Pal => s.addr_pal,
-                Version::NtscUTrilogy => unreachable!(),
-                Version::NtscJTrilogy => unreachable!(),
-                Version::PalTrilogy => unreachable!(),
-            }
-            .unwrap_or_else(|| panic!("Symbol {} unknown for version {}", $sym, $version))
-        }};
-    }
-
-    let mut emitter = TextEmitter::new(caves_for_version(version));
-
-    let reader = match *file {
-        structs::FstEntryFile::Unknown(ref reader) => reader.clone(),
-        _ => panic!(),
+        (0x138, 0x258, 0x26c, 0x274, 0x2b0, 0x2ac, 0x768)
+    } else {
+        (0x148, 0x268, 0x27c, 0x284, 0x2c0, 0x2bc, 0x778)
     };
-    let mut dol_patcher = DolPatcher::new(reader);
+    let spring_ball_item_kind = if config.spring_ball_item != PickupType::Nothing {
+        Some(config.spring_ball_item.kind())
+    } else {
+        None
+    };
+    let has_power_up_sym = symbol_addr!(
+        "HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType",
+        version
+    );
+    let is_movement_allowed_sym = symbol_addr!("IsMovementAllowed__10CMorphBallCFv", version);
+    let bomb_jump_sym = symbol_addr!("BombJump__7CPlayerFRC9CVector3fR13CStateManager", version);
+    let set_move_state_sym = symbol_addr!(
+        "SetMoveState__7CPlayerFQ27NPlayer20EPlayerMovementStateR13CStateManager",
+        version
+    );
+    let compute_boost_ball_sym = symbol_addr!(
+        "ComputeBoostBallMovement__10CMorphBallFRC11CFinalInputRC13CStateManagerf",
+        version
+    );
+    let get_energy_drain_sym =
+        symbol_addr!("GetEnergyDrainIntensity__18CPlayerEnergyDrainCFv", version);
 
-    if let Some(uuid) = uuid {
+    // All three spring-ball parts are one contiguous allocation (conditional branches
+    // between them use the +-32 KB BC form and require contiguity).
+    let compute_spring_ball_movement =
+        emitter.emit_addressed(dol_patcher, "spring_ball", |base| {
+            let sb_start = patch_spring_ball_start(
+                base,
+                morph_ball_offset,
+                movement_state_offset,
+                sb_out_of_water_ticks_offset,
+                surface_restraint_type_offset,
+                is_movement_allowed_sym,
+            );
+            let sb_item_addr = base + sb_start.len() as u32;
+            let sb_item = patch_spring_ball_item_condition(
+                sb_item_addr,
+                base,
+                spring_ball_item_kind,
+                has_power_up_sym,
+            );
+            let sb_end_addr = sb_item_addr + sb_item.len() as u32;
+            let sb_end = patch_spring_ball_end(
+                sb_end_addr,
+                base,
+                attached_actor_offset,
+                energy_drain_offset,
+                velocity_offset,
+                get_energy_drain_sym,
+                bomb_jump_sym,
+                set_move_state_sym,
+                compute_boost_ball_sym,
+            );
+            let mut all = sb_start;
+            all.extend(sb_item);
+            all.extend(sb_end);
+            all
+        })?;
+    #[rustfmt::skip]
+    dol_patcher.ppcasm_patch(&ppcasm!(
+        symbol_addr!("ComputeBallMovement__10CMorphBallFRC11CFinalInputR13CStateManagerf", version) + 0x2c,
+        { bl {compute_spring_ball_movement}; }))?;
+
+    // spring_ball_cooldown is the .long 0 word embedded in patch_spring_ball_end's data section.
+    let spring_ball_cooldown = compute_spring_ball_movement + 0x1c0;
+
+    let (call_leave_morph_ball_offset, call_enter_morph_ball_offset) =
+        if version == Version::NtscJ || version == Version::Pal {
+            (0x850, 0x940)
+        } else {
+            (0xa34, 0xb24)
+        };
+    let update_morph_ball_transition = symbol_addr!(
+        "UpdateMorphBallTransition__7CPlayerFfR13CStateManager",
+        version
+    );
+    let leave_morph_ball_sym =
+        symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version);
+    let enter_morph_ball_sym =
+        symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version);
+
+    let sb_unmorph_addr = emitter.emit_addressed(dol_patcher, "sb_unmorph", |addr| {
+        patch_spring_ball_cooldown_unmorph(addr, spring_ball_cooldown, leave_morph_ball_sym)
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(
+        update_morph_ball_transition + call_leave_morph_ball_offset,
+        {
+            bl { sb_unmorph_addr };
+        }
+    ))?;
+
+    let sb_morph_addr = emitter.emit_addressed(dol_patcher, "sb_morph", |addr| {
+        patch_spring_ball_cooldown_morph(addr, spring_ball_cooldown, enter_morph_ball_sym)
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(
+        update_morph_ball_transition + call_enter_morph_ball_offset,
+        {
+            bl { sb_morph_addr };
+        }
+    ))?;
+
+    Ok(())
+}
+
+fn patch_custom_items(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let first_custom_item_idx = -((PickupType::ArtifactOfNewborn.kind() + 1) as i32);
+    let (actor_flags_offset, out_of_water_ticks_offset, fluid_depth_offset) =
+        if [Version::Pal, Version::NtscJ, Version::NtscU0_02].contains(&version) {
+            (0xf0, 0x2c0, 0x838)
+        } else {
+            (0xe4, 0x2b0, 0x828)
+        };
+    let (probability_offset, life_time_offset) =
+        if [Version::Pal, Version::NtscJ].contains(&version) {
+            (0x274, 0x27c)
+        } else {
+            (0x264, 0x26c)
+        };
+    let init_power_up_sym = symbol_addr!(
+        "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
+        version
+    );
+    let power_up_max_values_sym = symbol_addr!("CPlayerState_PowerUpMaxValues", version);
+    let freeze_sym = symbol_addr!("Freeze__7CPlayerFR13CStateManagerUiUsUi", version);
+
+    let ci_init_addr = emitter.emit_addressed(dol_patcher, "ci_init", |addr| {
+        patch_custom_item_initialize_power_up(
+            addr,
+            power_up_max_values_sym,
+            life_time_offset,
+            probability_offset,
+            actor_flags_offset,
+            out_of_water_ticks_offset,
+            fluid_depth_offset,
+            freeze_sym,
+            init_power_up_sym,
+            first_custom_item_idx,
+        )
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(init_power_up_sym + 0x1c, {
+        b { ci_init_addr };
+    }))?;
+
+    let has_power_up_sym = symbol_addr!(
+        "HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType",
+        version
+    );
+    let ci_has_addr = emitter.emit_addressed(dol_patcher, "ci_has", |addr| {
+        patch_custom_item_has_power_up(addr, first_custom_item_idx, has_power_up_sym)
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(has_power_up_sym, {
+        b { ci_has_addr };
+        nop;
+    }))?;
+
+    let get_item_amount_sym = symbol_addr!(
+        "GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType",
+        version
+    );
+    let ci_amount_addr = emitter.emit_addressed(dol_patcher, "ci_amount", |addr| {
+        patch_custom_item_get_item_amount(addr, get_item_amount_sym)
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(get_item_amount_sym, {
+        b { ci_amount_addr };
+        nop;
+    }))?;
+
+    let get_item_capacity_sym = symbol_addr!(
+        "GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType",
+        version
+    );
+    let ci_capacity_addr = emitter.emit_addressed(dol_patcher, "ci_capacity", |addr| {
+        patch_custom_item_get_item_capacity(addr, get_item_capacity_sym)
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(get_item_capacity_sym, {
+        b { ci_capacity_addr };
+        nop;
+    }))?;
+
+    let decr_pickup_sym = symbol_addr!(
+        "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
+        version
+    );
+    let ci_decr_addr = emitter.emit_addressed(dol_patcher, "ci_decr", |addr| {
+        patch_custom_item_decr_pickup(addr, decr_pickup_sym)
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(decr_pickup_sym, {
+        b { ci_decr_addr };
+        nop;
+    }))?;
+
+    Ok(())
+}
+
+fn patch_restore_ntsc_00(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    if [Version::Pal, Version::NtscJ].contains(&version) {
+        let cridley_addr = symbol_addr!(
+            "AcceptScriptMsg__7CRidleyF20EScriptObjectMessage9TUniqueIdR13CStateManager",
+            version
+        );
+        dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x830, {
+            nop;
+        }))?;
+        dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x840, {
+            nop;
+        }))?;
+        let restore_addr = emitter.emit_addressed(dol_patcher, "restore_ridley_check", |addr| {
+            patch_restore_original_check_code_cave(addr, cridley_addr)
+        })?;
+        dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x884, {
+            beq { cridley_addr + 0x88C };
+            b   { restore_addr + 0x18 };
+            b   { restore_addr };
+            nop;
+            nop;
+        }))?;
+    }
+
+    if version == Version::NtscU0_02 || version == Version::Pal || version == Version::NtscJ {
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SidewaysDashAllowed__7CPlayerCFffRC11CFinalInputR13CStateManager", version) + 0x3c, {
+            b { symbol_addr!("SidewaysDashAllowed__7CPlayerCFffRC11CFinalInputR13CStateManager", version) + 0x54 };
+        }))?;
+    }
+
+    dol_patcher.ppcasm_patch(
+        &ppcasm!(symbol_addr!("g_maxPhazonLagBeforeDamaging", version), {
+            .float 0.2;
+        }),
+    )?;
+
+    if config.phazon_damage_modifier != PhazonDamageModifier::Default {
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("g_maxPhazonLagBeforeDamaging", version) + 4, {
+                .float config.phazon_damage_per_sec;
+            }),
+        )?;
+        let lin_off = if version == Version::Pal && version == Version::NtscJ {
+            0x558
+        } else {
+            0x3ec
+        };
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("UpdatePhazonDamage__7CPlayerFfR13CStateManager", version) + lin_off, {
+            fmr f2, f0;
+        }))?;
+        if config.phazon_damage_modifier == PhazonDamageModifier::Linear {
+            let del_off = if version == Version::Pal && version == Version::NtscJ {
+                0x534
+            } else {
+                0x3c8
+            };
+            dol_patcher.ppcasm_patch(&ppcasm!(
+                symbol_addr!("UpdatePhazonDamage__7CPlayerFfR13CStateManager", version) + del_off,
+                {
+                    nop;
+                    nop;
+                }
+            ))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn patch_meta(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    patch_rel_loader(dol_patcher, emitter, version)?;
+
+    if let Some(uuid) = config.uuid {
         let build_info_address: u32 = match version {
             Version::NtscU0_00 => 0x803cc588,
             Version::NtscU0_01 => 0x803cc768,
@@ -1303,35 +1525,147 @@ pub fn patch_dol(
             )?;
     }
 
-    if config.difficulty_behavior != DifficultyBehavior::Either {
-        let only_one_option_jump_offset = if version == Version::Pal || version == Version::NtscJ {
-            0x210
+    if config.automatic_crash_screen {
+        let off = if version == Version::NtscU0_00 {
+            0xEC
         } else {
-            0x1f8
+            0x120
         };
-        let only_one_option_patch = ppcasm!(symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + 0x110, {
-            b { symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + only_one_option_jump_offset };
-        });
-        dol_patcher.ppcasm_patch(&only_one_option_patch)?;
+        dol_patcher.ppcasm_patch(&ppcasm!(
+            symbol_addr!("CrashScreenControllerPollBranch", version) + off,
+            {
+                nop;
+            }
+        ))?;
     }
 
-    match config.difficulty_behavior {
-        DifficultyBehavior::NormalOnly => {
-            let patch = ppcasm!(symbol_addr!("DoPopupAdvance__19SNewFileSelectFrameFPC14CGuiTableGroup", version) + 0x78, {
-                b { symbol_addr!("DoPopupAdvance__19SNewFileSelectFrameFPC14CGuiTableGroup", version) + 0xd0 };
-            });
-            dol_patcher.ppcasm_patch(&patch)?;
-        }
-        DifficultyBehavior::HardOnly => {}
-        DifficultyBehavior::Either => {
-            let patch = ppcasm!(symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + 0x3C, {
-                li r4, 2;
-            });
-            dol_patcher.ppcasm_patch(&patch)?;
-        }
-    };
+    if config.skip_splash_screens {
+        dol_patcher.ppcasm_patch(&ppcasm!(
+            symbol_addr!(
+                "__ct__13CSplashScreenFQ213CSplashScreen13ESplashScreen",
+                version
+            ) + 0x70,
+            {
+                nop;
+            }
+        ))?;
+    }
 
-    if escape_sequence_counts_up {
+    if config.multiworld_dol_patches {
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("IncrPickUpSwitchCaseData", version) + 21 * 4, {
+            .long symbol_addr!("IncrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 25 * 4;
+        }))?;
+        dol_patcher.ppcasm_patch(&ppcasm!(
+            symbol_addr!(
+                "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
+                version
+            ) + 5 * 4,
+            {
+                nop;
+                nop;
+                nop;
+                nop;
+                nop;
+                nop;
+                nop;
+            }
+        ))?;
+    }
+
+    if let Some(bytes) = &config.update_hint_state_replacement {
+        dol_patcher.patch(
+            symbol_addr!("UpdateHintState__13CStateManagerFf", version),
+            Cow::from(bytes.clone()),
+        )?;
+    }
+
+    Ok(())
+}
+
+fn should_patch_smoother_reposition(config: &PatchConfig) -> bool {
+    let mut smoother_reposition = false;
+    for (_, level) in config.level_data.iter() {
+        if smoother_reposition {
+            break;
+        }
+        for (_, room) in level.rooms.iter() {
+            if smoother_reposition {
+                break;
+            }
+            if room.doors.is_none() {
+                continue;
+            }
+            for (_, door) in room.doors.as_ref().unwrap().iter() {
+                if door.destination.is_some() {
+                    smoother_reposition = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    smoother_reposition
+}
+
+fn patch_gameplay_tweaks(
+    dol_patcher: &mut DolPatcher<'_>,
+    _emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    if config.shoot_in_grapple {
+        let off = if [Version::NtscJ, Version::Pal].contains(&version) {
+            0x324
+        } else {
+            0x330
+        };
+        dol_patcher.ppcasm_patch(&ppcasm!(
+            symbol_addr!(
+                "UpdateGrappleState__7CPlayerFRC11CFinalInputR13CStateManager",
+                version
+            ) + off,
+            {
+                nop;
+            }
+        ))?;
+    }
+
+    if config.qol_general {
+        dol_patcher.ppcasm_patch(&ppcasm!(
+            symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0x78,
+            {
+                lwz         r0, 0x2f8(r30);
+                rlwinm.     r0, r0, 0, 29, 29;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xA8 };
+                lwz         r0, 0x310(r30);
+                cmpwi       r0, 2;
+                bne         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+                lbz         r0, 0x832(r30);
+                rlwinm.     r0, r0, 27, 31, 31;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+                lbz         r0, 0x833(r30);
+                rlwinm.     r0, r0, 30, 31, 31;
+                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
+            }
+        ))?;
+    }
+
+    if should_patch_smoother_reposition(config) {
+        dol_patcher.ppcasm_patch(&ppcasm!(
+            symbol_addr!(
+                "Teleport__7CPlayerFRC12CTransform4fR13CStateManagerb",
+                version
+            ) + 0x31C,
+            {
+                nop;
+            }
+        ))?;
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0x24, { nop; }))?;
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0x104, { nop; }))?;
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0xf8, { nop; }))?;
+    }
+
+    if config.escape_sequence_counts_up {
         let patch = ppcasm!(symbol_addr!("UpdateEscapeSequenceTimer__13CStateManagerFf", version) + 0x30, {
             fadds f2, f2, f1;
         });
@@ -1352,12 +1686,77 @@ pub fn patch_dol(
         dol_patcher.ppcasm_patch(&patch)?;
     }
 
-    if config.force_fusion {
-        let patch = ppcasm!(symbol_addr!("GetIsFusionEnabled__12CPlayerStateFv", version) + 4, {
-            li r0, 1;
-        });
-        dol_patcher.ppcasm_patch(&patch)?;
+    if config.nonvaria_heat_damage {
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ThinkAreaDamage__22CScriptSpecialFunctionFfR13CStateManager", version) + 0x4c, {
+            lwz r4, 0xdc(r4); nop; subf r0, r6, r5; cntlzw r0, r0; nop;
+        }))?;
     }
+
+    match config.staggered_suit_damage {
+        SuitDamageReduction::Progressive => {
+            let (po, jo) = if version == Version::Pal || version == Version::NtscJ {
+                (0x11c, 0x1b8)
+            } else {
+                (0x128, 0x1c4)
+            };
+            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + po, {
+                lwz r3, 0x8b8(r25); lwz r3, 0(r3); lwz r4, 220(r3);
+                lwz r5, 212(r3); addc r4, r4, r5; lwz r5, 228(r3); addc r4, r4, r5;
+                rlwinm r4, r4, 2, 0, 29; lis r6, data@h; addi r6, r6, data@l;
+                lfsx f0, r4, r6;
+                b { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jo };
+                data: .float 0.0; .float 0.1; .float 0.2; .float 0.5;
+            }))?;
+        }
+        SuitDamageReduction::Additive => {
+            let (po, jo) = if version == Version::Pal || version == Version::NtscJ {
+                (0x11c, 0x1b8)
+            } else {
+                (0x128, 0x1c4)
+            };
+            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + po, {
+                lwz r3, 0x8b8(r25); lwz r3, 0(r3); lwz r4, 220(r3);
+                lwz r5, 212(r3); slwi r5, r5, 1; or r4, r4, r5;
+                lwz r5, 228(r3); slwi r5, r5, 2; or r4, r4, r5;
+                rlwinm r4, r4, 2, 0, 29; lis r6, data@h; addi r6, r6, data@l;
+                lfsx f0, r4, r6;
+                b { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jo };
+                data: .float 0.0; .float 0.1; .float 0.1; .float 0.2; .float 0.3; .float 0.4; .float 0.4; .float 0.5;
+            }))?;
+        }
+        SuitDamageReduction::Default => {}
+    }
+
+    for (pickup_type, value) in &config.item_max_capacity {
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("CPlayerState_PowerUpMaxValues", version) + pickup_type.kind() * 4, {
+            .long *value;
+        }))?;
+    }
+
+    for (missile_type, cost) in &config.missile_costs {
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("CPlayerState_MissileCostValues", version) + missile_type * 4, {
+                .long *cost;
+            }),
+        )?;
+    }
+
+    let etank_capacity = config.etank_capacity as f32;
+    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("g_EtankCapacity", version), {
+        .float etank_capacity;
+        .float { etank_capacity - 1.0 };
+    }))?;
+
+    Ok(())
+}
+
+fn patch_cosmetic(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    let remove_ball_color = config.ctwk_config.morph_ball_size.unwrap_or(1.0) < 0.999;
 
     if remove_ball_color {
         let colors = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
@@ -1443,16 +1842,6 @@ pub fn patch_dol(
                 color[r_idx + 2] = new_rgb[2];
             }
         }
-        let symbols = [
-            "skBallInnerGlowColors",
-            "BallAuxGlowColors",
-            "BallTransFlashColors",
-            "BallSwooshColors",
-            "BallSwooshColorsJaggy",
-            "BallSwooshColorsCharged",
-            "BallGlowColors",
-        ];
-        // symbol_addr! macro not callable in array context; patch each symbol directly
         let addrs = [
             symbol_addr!("skBallInnerGlowColors", version),
             symbol_addr!("BallAuxGlowColors", version),
@@ -1462,12 +1851,213 @@ pub fn patch_dol(
             symbol_addr!("BallSwooshColorsCharged", version),
             symbol_addr!("BallGlowColors", version),
         ];
-        let _ = symbols; // only for documentation
         for (addr, color) in addrs.iter().zip(colors.into_iter()) {
             dol_patcher.patch(*addr, color.into())?;
         }
     }
 
+    if config.qol_cosmetic {
+        if version != Version::Pal && version != Version::NtscJ {
+            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetNumMissiles__20CHudMissileInterfaceFiRC13CStateManager", version) + 0x14, {
+                b skip; fmt: .asciiz b"%03d/%03d"; skip:
+                stw r30, 40(r1); mr r30, r3; stw r4, 8(r1); lwz r6, 4(r30);
+                mr r5, r4; lis r4, fmt@h; addi r4, r4, fmt@l; addi r3, r1, 12;
+                nop; bl { symbol_addr!("sprintf", version) }; addi r3, r1, 20; addi r4, r1, 12;
+            }))?;
+        }
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("SetBombParams__17CHudBallInterfaceFiiibbb", version) + 0x2c, {
+                b skip; fmt: .asciiz b"%d/%d"; nop; skip:
+                mr r6, r27; mr r5, r28; lis r4, fmt@h; addi r4, r4, fmt@l;
+                addi r3, r1, 12; nop; bl { symbol_addr!("sprintf", version) };
+            }),
+        )?;
+    }
+
+    let is_memory_relay_active_func =
+        patch_emit_is_memory_relay_active_func(dol_patcher, emitter, version)?;
+    patch_set_pickup_icon_txtr(dol_patcher, emitter, version, is_memory_relay_active_func)?;
+
+    Ok(())
+}
+
+fn patch_game_options(
+    dol_patcher: &mut DolPatcher<'_>,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    {
+        let mut screen_brightness: u32 = 4;
+        let mut screen_offset_x: i32 = 0;
+        let mut screen_offset_y: i32 = 0;
+        let mut screen_stretch: i32 = 0;
+        let mut sound_mode: u32 = 1;
+        let mut sfx_volume: u32 = 0x7f;
+        let mut music_volume: u32 = 0x7f;
+        let mut visor_opacity: u32 = 0xff;
+        let mut helmet_opacity: u32 = 0xff;
+        let mut hud_lag: bool = true;
+        let mut reverse_y_axis: bool = false;
+        let mut rumble: bool = true;
+        let mut swap_beam_controls: bool = false;
+        let hints: bool = false;
+        if let Some(opts) = config.default_game_options.clone() {
+            if let Some(v) = opts.screen_brightness {
+                screen_brightness = v;
+            }
+            if let Some(v) = opts.screen_offset_x {
+                screen_offset_x = v;
+            }
+            if let Some(v) = opts.screen_offset_y {
+                screen_offset_y = v;
+            }
+            if let Some(v) = opts.screen_stretch {
+                screen_stretch = v;
+            }
+            if let Some(v) = opts.sound_mode {
+                sound_mode = v;
+            }
+            if let Some(v) = opts.sfx_volume {
+                sfx_volume = v;
+            }
+            if let Some(v) = opts.music_volume {
+                music_volume = v;
+            }
+            if let Some(v) = opts.visor_opacity {
+                visor_opacity = v;
+            }
+            if let Some(v) = opts.helmet_opacity {
+                helmet_opacity = v;
+            }
+            if let Some(v) = opts.hud_lag {
+                hud_lag = v;
+            }
+            if let Some(v) = opts.reverse_y_axis {
+                reverse_y_axis = v;
+            }
+            if let Some(v) = opts.rumble {
+                rumble = v;
+            }
+            if let Some(v) = opts.swap_beam_controls {
+                swap_beam_controls = v;
+            }
+        }
+        let mut bit_flags: u32 = 0x00;
+        if hud_lag {
+            bit_flags |= 1 << 7;
+        }
+        if reverse_y_axis {
+            bit_flags |= 1 << 6;
+        }
+        if rumble {
+            bit_flags |= 1 << 5;
+        }
+        if swap_beam_controls {
+            bit_flags |= 1 << 4;
+        }
+        if hints {
+            bit_flags |= 1 << 3;
+        }
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("ResetToDefaults__12CGameOptionsFv", version) + 9 * 4, {
+                li r0, screen_brightness; stw r0, 0x48(r3);
+                li r0, screen_offset_x;  stw r0, 0x4C(r3);
+                li r0, screen_offset_y;  stw r0, 0x50(r3);
+                li r0, screen_stretch;   stw r0, 0x54(r3);
+                li r0, sfx_volume;       stw r0, 0x58(r3);
+                li r0, music_volume;     stw r0, 0x5C(r3);
+                li r0, sound_mode;       stw r0, 0x44(r3);
+                li r0, visor_opacity;    stw r0, 0x60(r3);
+                li r0, helmet_opacity;   stw r0, 0x64(r3);
+                li r0, bit_flags;        stb r0, 0x68(r3);
+                nop; nop; nop; nop; nop;
+            }),
+        )?;
+    }
+
+    if version == Version::Pal {
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x1dc, {
+                li r6, 100; stw r6, 0x80(r31); lis r6, 0xF7FF; stw r6, 0x84(r31);
+            }),
+        )?;
+    } else if version == Version::NtscJ {
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x1bc, {
+                li r6, 100; stw r6, 0x664(r31); lis r6, 0xF7FF; stw r6, 0x668(r31);
+            }),
+        )?;
+    } else {
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x194, {
+                li r6, 100; stw r6, 0xcc(r3); lis r6, 0xF7FF; stw r6, 0xd0(r3);
+            }),
+        )?;
+    }
+
+    if version == Version::Pal {
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x330, {
+            li r6, 100; stw r6, 0x80(r28); lis r6, 0xF7FF; stw r6, 0x84(r28); mr r3, r29; li r4, 2;
+        }))?;
+    } else if version == Version::NtscJ {
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x310, {
+            li r6, 100; stw r6, 0x664(r29); lis r6, 0xF7FF; stw r6, 0x668(r29); mr r3, r30; li r4, 2;
+        }))?;
+    } else {
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x308, {
+            li r6, 100; stw r6, 0xcc(r28); lis r6, 0xF7FF; stw r6, 0xd0(r28); mr r3, r29; li r4, 2;
+        }))?;
+    }
+
+    match config.difficulty_behavior {
+        DifficultyBehavior::NormalOnly => {
+            let patch = ppcasm!(symbol_addr!("DoPopupAdvance__19SNewFileSelectFrameFPC14CGuiTableGroup", version) + 0x78, {
+                b { symbol_addr!("DoPopupAdvance__19SNewFileSelectFrameFPC14CGuiTableGroup", version) + 0xd0 };
+            });
+            dol_patcher.ppcasm_patch(&patch)?;
+        }
+        DifficultyBehavior::HardOnly => {}
+        DifficultyBehavior::Either => {
+            let patch = ppcasm!(symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + 0x3C, {
+                li r4, 2;
+            });
+            dol_patcher.ppcasm_patch(&patch)?;
+        }
+    };
+
+    if config.difficulty_behavior != DifficultyBehavior::Either {
+        let only_one_option_jump_offset = if version == Version::Pal || version == Version::NtscJ {
+            0x210
+        } else {
+            0x1f8
+        };
+        let only_one_option_patch = ppcasm!(symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + 0x110, {
+            b { symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + only_one_option_jump_offset };
+        });
+        dol_patcher.ppcasm_patch(&only_one_option_patch)?;
+    }
+
+    if config.force_fusion {
+        let patch = ppcasm!(symbol_addr!("GetIsFusionEnabled__12CPlayerStateFv", version) + 4, {
+            li r0, 1;
+        });
+        dol_patcher.ppcasm_patch(&patch)?;
+    }
+
+    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ShouldSkipCinematic__22CScriptSpecialFunctionFR13CStateManager", version), {
+        li r3, 0x1; blr;
+    }))?;
+
+    Ok(())
+}
+
+fn patch_game_start(
+    dol_patcher: &mut DolPatcher<'_>,
+    _emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+    spawn_room: SpawnRoomData,
+) -> Result<(), String> {
     if config.starting_visor != Visor::Combat {
         let visor = config.starting_visor as u16;
         let no_starting_visor = !config.starting_items.combat_visor
@@ -1613,145 +2203,6 @@ pub fn patch_dol(
         }),
     )?;
 
-    if skip_splash_screens {
-        dol_patcher.ppcasm_patch(&ppcasm!(
-            symbol_addr!(
-                "__ct__13CSplashScreenFQ213CSplashScreen13ESplashScreen",
-                version
-            ) + 0x70,
-            {
-                nop;
-            }
-        ))?;
-    }
-
-    if shoot_in_grapple {
-        let off = if [Version::NtscJ, Version::Pal].contains(&version) {
-            0x324
-        } else {
-            0x330
-        };
-        dol_patcher.ppcasm_patch(&ppcasm!(
-            symbol_addr!(
-                "UpdateGrappleState__7CPlayerFRC11CFinalInputR13CStateManager",
-                version
-            ) + off,
-            {
-                nop;
-            }
-        ))?;
-    }
-
-    // Commented-out experimental patches preserved here:
-    // fn _patch_flaahgra_instant_kill(...) { ... }
-    // fn _patch_bouncy_beam(...) { ... }
-    // fn _patch_roll_shot(...) { ... }
-
-    if config.qol_general {
-        dol_patcher.ppcasm_patch(&ppcasm!(
-            symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0x78,
-            {
-                lwz         r0, 0x2f8(r30);
-                rlwinm.     r0, r0, 0, 29, 29;
-                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xA8 };
-                lwz         r0, 0x310(r30);
-                cmpwi       r0, 2;
-                bne         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
-                lbz         r0, 0x832(r30);
-                rlwinm.     r0, r0, 27, 31, 31;
-                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
-                lbz         r0, 0x833(r30);
-                rlwinm.     r0, r0, 30, 31, 31;
-                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
-            }
-        ))?;
-    }
-
-    if smoother_teleports {
-        dol_patcher.ppcasm_patch(&ppcasm!(
-            symbol_addr!(
-                "Teleport__7CPlayerFRC12CTransform4fR13CStateManagerb",
-                version
-            ) + 0x31C,
-            {
-                nop;
-            }
-        ))?;
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0x24, { nop; }))?;
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0x104, { nop; }))?;
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0xf8, { nop; }))?;
-    }
-
-    if config.automatic_crash_screen {
-        let off = if version == Version::NtscU0_00 {
-            0xEC
-        } else {
-            0x120
-        };
-        dol_patcher.ppcasm_patch(&ppcasm!(
-            symbol_addr!("CrashScreenControllerPollBranch", version) + off,
-            {
-                nop;
-            }
-        ))?;
-    }
-
-    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ShouldSkipCinematic__22CScriptSpecialFunctionFR13CStateManager", version), {
-        li r3, 0x1; blr;
-    }))?;
-
-    if version == Version::Pal {
-        dol_patcher.ppcasm_patch(
-            &ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x1dc, {
-                li r6, 100; stw r6, 0x80(r31); lis r6, 0xF7FF; stw r6, 0x84(r31);
-            }),
-        )?;
-    } else if version == Version::NtscJ {
-        dol_patcher.ppcasm_patch(
-            &ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x1bc, {
-                li r6, 100; stw r6, 0x664(r31); lis r6, 0xF7FF; stw r6, 0x668(r31);
-            }),
-        )?;
-    } else {
-        dol_patcher.ppcasm_patch(
-            &ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x194, {
-                li r6, 100; stw r6, 0xcc(r3); lis r6, 0xF7FF; stw r6, 0xd0(r3);
-            }),
-        )?;
-    }
-
-    if version == Version::Pal {
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x330, {
-            li r6, 100; stw r6, 0x80(r28); lis r6, 0xF7FF; stw r6, 0x84(r28); mr r3, r29; li r4, 2;
-        }))?;
-    } else if version == Version::NtscJ {
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x310, {
-            li r6, 100; stw r6, 0x664(r29); lis r6, 0xF7FF; stw r6, 0x668(r29); mr r3, r30; li r4, 2;
-        }))?;
-    } else {
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x308, {
-            li r6, 100; stw r6, 0xcc(r28); lis r6, 0xF7FF; stw r6, 0xd0(r28); mr r3, r29; li r4, 2;
-        }))?;
-    }
-
-    if config.qol_cosmetic {
-        if version != Version::Pal && version != Version::NtscJ {
-            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SetNumMissiles__20CHudMissileInterfaceFiRC13CStateManager", version) + 0x14, {
-                b skip; fmt: .asciiz b"%03d/%03d"; skip:
-                stw r30, 40(r1); mr r30, r3; stw r4, 8(r1); lwz r6, 4(r30);
-                mr r5, r4; lis r4, fmt@h; addi r4, r4, fmt@l; addi r3, r1, 12;
-                nop; bl { symbol_addr!("sprintf", version) }; addi r3, r1, 20; addi r4, r1, 12;
-            }))?;
-        }
-        dol_patcher.ppcasm_patch(
-            &ppcasm!(symbol_addr!("SetBombParams__17CHudBallInterfaceFiiibbb", version) + 0x2c, {
-                b skip; fmt: .asciiz b"%d/%d"; nop; skip:
-                mr r6, r27; mr r5, r28; lis r4, fmt@h; addi r4, r4, fmt@l;
-                addi r3, r1, 12; nop; bl { symbol_addr!("sprintf", version) };
-            }),
-        )?;
-    }
-
     if version == Version::Pal || version == Version::NtscJ {
         dol_patcher.ppcasm_patch(
             &ppcasm!(symbol_addr!("__sinit_CFrontEndUI_cpp", version) + 0x0c, {
@@ -1782,552 +2233,41 @@ pub fn patch_dol(
         }),
     )?;
 
-    if config.nonvaria_heat_damage {
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ThinkAreaDamage__22CScriptSpecialFunctionFfR13CStateManager", version) + 0x4c, {
-            lwz r4, 0xdc(r4); nop; subf r0, r6, r5; cntlzw r0, r0; nop;
-        }))?;
-    }
+    Ok(())
+}
 
-    match config.staggered_suit_damage {
-        SuitDamageReduction::Progressive => {
-            let (po, jo) = if version == Version::Pal || version == Version::NtscJ {
-                (0x11c, 0x1b8)
-            } else {
-                (0x128, 0x1c4)
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + po, {
-                lwz r3, 0x8b8(r25); lwz r3, 0(r3); lwz r4, 220(r3);
-                lwz r5, 212(r3); addc r4, r4, r5; lwz r5, 228(r3); addc r4, r4, r5;
-                rlwinm r4, r4, 2, 0, 29; lis r6, data@h; addi r6, r6, data@l;
-                lfsx f0, r4, r6;
-                b { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jo };
-                data: .float 0.0; .float 0.1; .float 0.2; .float 0.5;
-            }))?;
-        }
-        SuitDamageReduction::Additive => {
-            let (po, jo) = if version == Version::Pal || version == Version::NtscJ {
-                (0x11c, 0x1b8)
-            } else {
-                (0x128, 0x1c4)
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + po, {
-                lwz r3, 0x8b8(r25); lwz r3, 0(r3); lwz r4, 220(r3);
-                lwz r5, 212(r3); slwi r5, r5, 1; or r4, r4, r5;
-                lwz r5, 228(r3); slwi r5, r5, 2; or r4, r4, r5;
-                rlwinm r4, r4, 2, 0, 29; lis r6, data@h; addi r6, r6, data@l;
-                lfsx f0, r4, r6;
-                b { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jo };
-                data: .float 0.0; .float 0.1; .float 0.1; .float 0.2; .float 0.3; .float 0.4; .float 0.4; .float 0.5;
-            }))?;
-        }
-        SuitDamageReduction::Default => {}
-    }
+pub fn patch_dol(
+    file: &mut structs::FstEntryFile,
+    spawn_room: SpawnRoomData,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    let version = config.version;
 
-    for (pickup_type, value) in &config.item_max_capacity {
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("CPlayerState_PowerUpMaxValues", version) + pickup_type.kind() * 4, {
-            .long *value;
-        }))?;
-    }
-
-    for (missile_type, cost) in &config.missile_costs {
-        dol_patcher.ppcasm_patch(
-            &ppcasm!(symbol_addr!("CPlayerState_MissileCostValues", version) + missile_type * 4, {
-                .long *cost;
-            }),
-        )?;
-    }
-
-    let etank_capacity = config.etank_capacity as f32;
-    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("g_EtankCapacity", version), {
-        .float etank_capacity;
-        .float { etank_capacity - 1.0 };
-    }))?;
-
-    if version == Version::NtscU0_02 || version == Version::Pal || version == Version::NtscJ {
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("SidewaysDashAllowed__7CPlayerCFffRC11CFinalInputR13CStateManager", version) + 0x3c, {
-            b { symbol_addr!("SidewaysDashAllowed__7CPlayerCFffRC11CFinalInputR13CStateManager", version) + 0x54 };
-        }))?;
-    }
-
+    if version == Version::NtscUTrilogy
+        || version == Version::NtscJTrilogy
+        || version == Version::PalTrilogy
     {
-        let mut screen_brightness: u32 = 4;
-        let mut screen_offset_x: i32 = 0;
-        let mut screen_offset_y: i32 = 0;
-        let mut screen_stretch: i32 = 0;
-        let mut sound_mode: u32 = 1;
-        let mut sfx_volume: u32 = 0x7f;
-        let mut music_volume: u32 = 0x7f;
-        let mut visor_opacity: u32 = 0xff;
-        let mut helmet_opacity: u32 = 0xff;
-        let mut hud_lag: bool = true;
-        let mut reverse_y_axis: bool = false;
-        let mut rumble: bool = true;
-        let mut swap_beam_controls: bool = false;
-        let hints: bool = false;
-        if let Some(opts) = config.default_game_options.clone() {
-            if let Some(v) = opts.screen_brightness {
-                screen_brightness = v;
-            }
-            if let Some(v) = opts.screen_offset_x {
-                screen_offset_x = v;
-            }
-            if let Some(v) = opts.screen_offset_y {
-                screen_offset_y = v;
-            }
-            if let Some(v) = opts.screen_stretch {
-                screen_stretch = v;
-            }
-            if let Some(v) = opts.sound_mode {
-                sound_mode = v;
-            }
-            if let Some(v) = opts.sfx_volume {
-                sfx_volume = v;
-            }
-            if let Some(v) = opts.music_volume {
-                music_volume = v;
-            }
-            if let Some(v) = opts.visor_opacity {
-                visor_opacity = v;
-            }
-            if let Some(v) = opts.helmet_opacity {
-                helmet_opacity = v;
-            }
-            if let Some(v) = opts.hud_lag {
-                hud_lag = v;
-            }
-            if let Some(v) = opts.reverse_y_axis {
-                reverse_y_axis = v;
-            }
-            if let Some(v) = opts.rumble {
-                rumble = v;
-            }
-            if let Some(v) = opts.swap_beam_controls {
-                swap_beam_controls = v;
-            }
-        }
-        let mut bit_flags: u32 = 0x00;
-        if hud_lag {
-            bit_flags |= 1 << 7;
-        }
-        if reverse_y_axis {
-            bit_flags |= 1 << 6;
-        }
-        if rumble {
-            bit_flags |= 1 << 5;
-        }
-        if swap_beam_controls {
-            bit_flags |= 1 << 4;
-        }
-        if hints {
-            bit_flags |= 1 << 3;
-        }
-        dol_patcher.ppcasm_patch(
-            &ppcasm!(symbol_addr!("ResetToDefaults__12CGameOptionsFv", version) + 9 * 4, {
-                li r0, screen_brightness; stw r0, 0x48(r3);
-                li r0, screen_offset_x;  stw r0, 0x4C(r3);
-                li r0, screen_offset_y;  stw r0, 0x50(r3);
-                li r0, screen_stretch;   stw r0, 0x54(r3);
-                li r0, sfx_volume;       stw r0, 0x58(r3);
-                li r0, music_volume;     stw r0, 0x5C(r3);
-                li r0, sound_mode;       stw r0, 0x44(r3);
-                li r0, visor_opacity;    stw r0, 0x60(r3);
-                li r0, helmet_opacity;   stw r0, 0x64(r3);
-                li r0, bit_flags;        stb r0, 0x68(r3);
-                nop; nop; nop; nop; nop;
-            }),
-        )?;
+        return Ok(());
     }
 
-    if config.multiworld_dol_patches {
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("IncrPickUpSwitchCaseData", version) + 21 * 4, {
-            .long symbol_addr!("IncrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 25 * 4;
-        }))?;
-        dol_patcher.ppcasm_patch(&ppcasm!(
-            symbol_addr!(
-                "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
-                version
-            ) + 5 * 4,
-            {
-                nop;
-                nop;
-                nop;
-                nop;
-                nop;
-                nop;
-                nop;
-            }
-        ))?;
-    }
-
-    if let Some(bytes) = &config.update_hint_state_replacement {
-        dol_patcher.patch(
-            symbol_addr!("UpdateHintState__13CStateManagerFf", version),
-            Cow::from(bytes.clone()),
-        )?;
-    }
-
-    dol_patcher.ppcasm_patch(
-        &ppcasm!(symbol_addr!("g_maxPhazonLagBeforeDamaging", version), {
-            .float 0.2;
-        }),
-    )?;
-
-    if config.phazon_damage_modifier != PhazonDamageModifier::Default {
-        dol_patcher.ppcasm_patch(
-            &ppcasm!(symbol_addr!("g_maxPhazonLagBeforeDamaging", version) + 4, {
-                .float config.phazon_damage_per_sec;
-            }),
-        )?;
-        let lin_off = if version == Version::Pal && version == Version::NtscJ {
-            0x558
-        } else {
-            0x3ec
-        };
-        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("UpdatePhazonDamage__7CPlayerFfR13CStateManager", version) + lin_off, {
-            fmr f2, f0;
-        }))?;
-        if config.phazon_damage_modifier == PhazonDamageModifier::Linear {
-            let del_off = if version == Version::Pal && version == Version::NtscJ {
-                0x534
-            } else {
-                0x3c8
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(
-                symbol_addr!("UpdatePhazonDamage__7CPlayerFfR13CStateManager", version) + del_off,
-                {
-                    nop;
-                    nop;
-                }
-            ))?;
-        }
-    }
-
-    // ── rel_loader ──────────────────────────────────────────────────────────────
-    let (rel_loader_bytes, rel_loader_map_str) = match version {
-        Version::NtscU0_00 => (
-            rel_files::REL_LOADER_100_CAVE,
-            rel_files::REL_LOADER_100_CAVE_MAP,
-        ),
-        Version::NtscU0_01 => (
-            rel_files::REL_LOADER_101_CAVE,
-            rel_files::REL_LOADER_101_CAVE_MAP,
-        ),
-        Version::NtscU0_02 => (
-            rel_files::REL_LOADER_102_CAVE,
-            rel_files::REL_LOADER_102_CAVE_MAP,
-        ),
-        Version::NtscK => (
-            rel_files::REL_LOADER_KOR_CAVE,
-            rel_files::REL_LOADER_KOR_CAVE_MAP,
-        ),
-        Version::NtscJ => (
-            rel_files::REL_LOADER_JPN_CAVE,
-            rel_files::REL_LOADER_JPN_CAVE_MAP,
-        ),
-        Version::Pal => (
-            rel_files::REL_LOADER_PAL_CAVE,
-            rel_files::REL_LOADER_PAL_CAVE_MAP,
-        ),
-        _ => unreachable!(),
+    let reader = match *file {
+        structs::FstEntryFile::Unknown(ref reader) => reader.clone(),
+        _ => panic!(),
     };
-    let mut rel_loader = rel_loader_bytes.to_vec();
-    let padding = ((rel_loader.len() + 3) & !3) - rel_loader.len();
-    rel_loader.extend([0u8; 4][..padding].iter().copied());
-    let rel_loader_map = dol_linker::parse_symbol_table(
-        "extra_assets/rel_loader_cave.bin.map".as_ref(),
-        rel_loader_map_str.lines().map(|l| Ok(l.to_owned())),
-    )
-    .map_err(|e| e.to_string())?;
-    emitter.emit_first_cave(&mut dol_patcher, "rel_loader", rel_loader)?;
-    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("PPCSetFpIEEEMode", version), {
-        b { rel_loader_map["rel_loader_hook"] };
-    }))?;
+    let mut dol_patcher = DolPatcher::new(reader);
+    let mut emitter = TextEmitter::new(caves_for_version(version));
 
-    // ── is_memory_relay_active_func ──────────────────────────────────────────────
-    let is_memory_relay_active_func =
-        emitter.emit_addressed(&mut dol_patcher, "is_memory_relay_active_func", |addr| {
-            patch_is_memory_relay_active_func(
-                addr,
-                symbol_addr!("g_GameState", version),
-                symbol_addr!("StateForWorld__10CGameStateFUi", version),
-            )
-        })?;
+    patch_meta(&mut dol_patcher, &mut emitter, version, config)?;
+    patch_game_options(&mut dol_patcher, version, config)?;
+    patch_cosmetic(&mut dol_patcher, &mut emitter, version, config)?;
+    patch_game_start(&mut dol_patcher, &mut emitter, version, config, spawn_room)?;
+    patch_restore_ntsc_00(&mut dol_patcher, &mut emitter, version, config)?;
+    patch_gameplay_tweaks(&mut dol_patcher, &mut emitter, version, config)?;
 
-    // ── set_pickup_icon_txtr ─────────────────────────────────────────────────────
-    let sitp_off: i32 = if version == Version::Pal {
-        -0x5e3c
-    } else if version == Version::NtscJ {
-        -0x5e64
-    } else {
-        -0x5eb4
-    };
-    let draw_func = symbol_addr!("Draw__15CMappableObjectCFiRC13CMapWorldInfofb", version);
-    let map_pickup_icon_txtr = custom_asset_ids::MAP_PICKUP_ICON_TXTR.to_u32();
-
-    let sitp_addr = if version == Version::NtscJ || version == Version::Pal {
-        emitter.emit_addressed(&mut dol_patcher, "sitp_pal_j", |addr| {
-            patch_set_pickup_icon_txtr_pal_j(
-                addr,
-                is_memory_relay_active_func,
-                sitp_off,
-                map_pickup_icon_txtr,
-                draw_func + 0x284,
-            )
-        })?
-    } else {
-        emitter.emit_addressed(&mut dol_patcher, "sitp_ntsc", |addr| {
-            patch_set_pickup_icon_txtr_ntsc(
-                addr,
-                is_memory_relay_active_func,
-                sitp_off,
-                map_pickup_icon_txtr,
-                draw_func + 0x298,
-            )
-        })?
-    };
-    dol_patcher.ppcasm_patch(&ppcasm!(
-        symbol_addr!("Case1B_Switch_Draw__CMappableObject", version) + ((structs::MapaObjectType::Pickup as u32) - 0x1b) * 4,
-        { .long sitp_addr; }
-    ))?;
-
-    // ── warp_to_start ────────────────────────────────────────────────────────────
+    patch_spring_ball(&mut dol_patcher, &mut emitter, version, config)?;
+    patch_custom_items(&mut dol_patcher, &mut emitter, version)?;
     if config.warp_to_start {
-        let think_save_station = symbol_addr!(
-            "ThinkSaveStation__22CScriptSpecialFunctionFfR13CStateManager",
-            version
-        );
-        let wts_addr = emitter.emit_addressed(&mut dol_patcher, "warp_to_start", |addr| {
-            patch_warp_to_start(addr, symbol_addr!("g_Main", version), think_save_station)
-        })?;
-        dol_patcher.ppcasm_patch(&ppcasm!(think_save_station + 0x54, {
-            b { wts_addr };
-        }))?;
-    }
-
-    // ── spring_ball ──────────────────────────────────────────────────────────────
-    let (
-        velocity_offset,
-        movement_state_offset,
-        attached_actor_offset,
-        energy_drain_offset,
-        sb_out_of_water_ticks_offset,
-        surface_restraint_type_offset,
-        morph_ball_offset,
-    ) = if version == Version::NtscU0_00
-        || version == Version::NtscU0_01
-        || version == Version::NtscK
-    {
-        (0x138, 0x258, 0x26c, 0x274, 0x2b0, 0x2ac, 0x768)
-    } else {
-        (0x148, 0x268, 0x27c, 0x284, 0x2c0, 0x2bc, 0x778)
-    };
-    let spring_ball_item_kind = if config.spring_ball_item != PickupType::Nothing {
-        Some(config.spring_ball_item.kind())
-    } else {
-        None
-    };
-    let has_power_up_sym = symbol_addr!(
-        "HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType",
-        version
-    );
-    let is_movement_allowed_sym = symbol_addr!("IsMovementAllowed__10CMorphBallCFv", version);
-    let bomb_jump_sym = symbol_addr!("BombJump__7CPlayerFRC9CVector3fR13CStateManager", version);
-    let set_move_state_sym = symbol_addr!(
-        "SetMoveState__7CPlayerFQ27NPlayer20EPlayerMovementStateR13CStateManager",
-        version
-    );
-    let compute_boost_ball_sym = symbol_addr!(
-        "ComputeBoostBallMovement__10CMorphBallFRC11CFinalInputRC13CStateManagerf",
-        version
-    );
-    let get_energy_drain_sym =
-        symbol_addr!("GetEnergyDrainIntensity__18CPlayerEnergyDrainCFv", version);
-
-    // All three spring-ball parts are one contiguous allocation (conditional branches
-    // between them use the ±32 KB BC form and require contiguity).
-    let compute_spring_ball_movement =
-        emitter.emit_addressed(&mut dol_patcher, "spring_ball", |base| {
-            let sb_start = patch_spring_ball_start(
-                base,
-                morph_ball_offset,
-                movement_state_offset,
-                sb_out_of_water_ticks_offset,
-                surface_restraint_type_offset,
-                is_movement_allowed_sym,
-            );
-            let sb_item_addr = base + sb_start.len() as u32;
-            let sb_item = patch_spring_ball_item_condition(
-                sb_item_addr,
-                base,
-                spring_ball_item_kind,
-                has_power_up_sym,
-            );
-            let sb_end_addr = sb_item_addr + sb_item.len() as u32;
-            let sb_end = patch_spring_ball_end(
-                sb_end_addr,
-                base,
-                attached_actor_offset,
-                energy_drain_offset,
-                velocity_offset,
-                get_energy_drain_sym,
-                bomb_jump_sym,
-                set_move_state_sym,
-                compute_boost_ball_sym,
-            );
-            let mut all = sb_start;
-            all.extend(sb_item);
-            all.extend(sb_end);
-            all
-        })?;
-    #[rustfmt::skip]
-    dol_patcher.ppcasm_patch(&ppcasm!(
-        symbol_addr!("ComputeBallMovement__10CMorphBallFRC11CFinalInputR13CStateManagerf", version) + 0x2c,
-        { bl {compute_spring_ball_movement}; }))?;
-
-    // spring_ball_cooldown is the .long 0 word embedded in patch_spring_ball_end's data section.
-    let spring_ball_cooldown = compute_spring_ball_movement + 0x1c0;
-
-    let (call_leave_morph_ball_offset, call_enter_morph_ball_offset) =
-        if version == Version::NtscJ || version == Version::Pal {
-            (0x850, 0x940)
-        } else {
-            (0xa34, 0xb24)
-        };
-    let update_morph_ball_transition = symbol_addr!(
-        "UpdateMorphBallTransition__7CPlayerFfR13CStateManager",
-        version
-    );
-    let leave_morph_ball_sym =
-        symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version);
-    let enter_morph_ball_sym =
-        symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version);
-
-    let sb_unmorph_addr = emitter.emit_addressed(&mut dol_patcher, "sb_unmorph", |addr| {
-        patch_spring_ball_cooldown_unmorph(addr, spring_ball_cooldown, leave_morph_ball_sym)
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(
-        update_morph_ball_transition + call_leave_morph_ball_offset,
-        {
-            bl { sb_unmorph_addr };
-        }
-    ))?;
-
-    let sb_morph_addr = emitter.emit_addressed(&mut dol_patcher, "sb_morph", |addr| {
-        patch_spring_ball_cooldown_morph(addr, spring_ball_cooldown, enter_morph_ball_sym)
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(
-        update_morph_ball_transition + call_enter_morph_ball_offset,
-        {
-            bl { sb_morph_addr };
-        }
-    ))?;
-
-    // ── custom items ─────────────────────────────────────────────────────────────
-    let first_custom_item_idx = -((PickupType::ArtifactOfNewborn.kind() + 1) as i32);
-    let (actor_flags_offset, out_of_water_ticks_offset, fluid_depth_offset) =
-        if [Version::Pal, Version::NtscJ, Version::NtscU0_02].contains(&version) {
-            (0xf0, 0x2c0, 0x838)
-        } else {
-            (0xe4, 0x2b0, 0x828)
-        };
-    let (probability_offset, life_time_offset) =
-        if [Version::Pal, Version::NtscJ].contains(&version) {
-            (0x274, 0x27c)
-        } else {
-            (0x264, 0x26c)
-        };
-    let init_power_up_sym = symbol_addr!(
-        "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
-        version
-    );
-    let power_up_max_values_sym = symbol_addr!("CPlayerState_PowerUpMaxValues", version);
-    let freeze_sym = symbol_addr!("Freeze__7CPlayerFR13CStateManagerUiUsUi", version);
-
-    let ci_init_addr = emitter.emit_addressed(&mut dol_patcher, "ci_init", |addr| {
-        patch_custom_item_initialize_power_up(
-            addr,
-            power_up_max_values_sym,
-            life_time_offset,
-            probability_offset,
-            actor_flags_offset,
-            out_of_water_ticks_offset,
-            fluid_depth_offset,
-            freeze_sym,
-            init_power_up_sym,
-            first_custom_item_idx,
-        )
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(init_power_up_sym + 0x1c, {
-        b { ci_init_addr };
-    }))?;
-
-    let ci_has_addr = emitter.emit_addressed(&mut dol_patcher, "ci_has", |addr| {
-        patch_custom_item_has_power_up(addr, first_custom_item_idx, has_power_up_sym)
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(has_power_up_sym, {
-        b { ci_has_addr };
-        nop;
-    }))?;
-
-    let get_item_amount_sym = symbol_addr!(
-        "GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType",
-        version
-    );
-    let ci_amount_addr = emitter.emit_addressed(&mut dol_patcher, "ci_amount", |addr| {
-        patch_custom_item_get_item_amount(addr, get_item_amount_sym)
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(get_item_amount_sym, {
-        b { ci_amount_addr };
-        nop;
-    }))?;
-
-    let get_item_capacity_sym = symbol_addr!(
-        "GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType",
-        version
-    );
-    let ci_capacity_addr = emitter.emit_addressed(&mut dol_patcher, "ci_capacity", |addr| {
-        patch_custom_item_get_item_capacity(addr, get_item_capacity_sym)
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(get_item_capacity_sym, {
-        b { ci_capacity_addr };
-        nop;
-    }))?;
-
-    let decr_pickup_sym = symbol_addr!(
-        "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
-        version
-    );
-    let ci_decr_addr = emitter.emit_addressed(&mut dol_patcher, "ci_decr", |addr| {
-        patch_custom_item_decr_pickup(addr, decr_pickup_sym)
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(decr_pickup_sym, {
-        b { ci_decr_addr };
-        nop;
-    }))?;
-
-    // ── restore Ridley chest vulnerability (PAL / NtscJ only) ────────────────────
-    if [Version::Pal, Version::NtscJ].contains(&version) {
-        let cridley_addr = symbol_addr!(
-            "AcceptScriptMsg__7CRidleyF20EScriptObjectMessage9TUniqueIdR13CStateManager",
-            version
-        );
-        dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x830, {
-            nop;
-        }))?;
-        dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x840, {
-            nop;
-        }))?;
-        let restore_addr =
-            emitter.emit_addressed(&mut dol_patcher, "restore_ridley_check", |addr| {
-                patch_restore_original_check_code_cave(addr, cridley_addr)
-            })?;
-        dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x884, {
-            beq { cridley_addr + 0x88C };
-            b   { restore_addr + 0x18 };
-            b   { restore_addr };
-            nop;
-            nop;
-        }))?;
+        patch_warp_to_start(&mut dol_patcher, &mut emitter, version)?;
     }
 
     *file = structs::FstEntryFile::ExternalFile(Box::new(dol_patcher));

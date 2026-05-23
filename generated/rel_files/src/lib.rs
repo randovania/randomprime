@@ -1,3 +1,5 @@
+include!(concat!(env!("OUT_DIR"), "/rel_loader_cave_base_addrs.rs"));
+
 pub const REL_LOADER_100_CAVE: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_1.00.cave.bin"));
 pub const REL_LOADER_100_CAVE_MAP: &str =
