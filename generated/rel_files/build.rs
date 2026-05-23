@@ -89,7 +89,9 @@ fn main() {
         });
         for entry in walkdir {
             let entry = entry.unwrap();
-            println!("cargo:rerun-if-changed={}", entry.path().display());
+            if entry.file_type().is_file() {
+                println!("cargo:rerun-if-changed={}", entry.path().display());
+            }
         }
     }
 }
