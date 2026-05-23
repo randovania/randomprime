@@ -51,25 +51,34 @@ fn main() {
         let sym_table_path = symbol_table_dir.join(format!("{}.txt", version));
         eprintln!("{:?}", root_dir.join("..").join(&sym_table_path));
         let mut symbol_table = read_symbol_table(root_dir.join(sym_table_path)).unwrap();
-        let os_arena_hi = symbol_table.get("OSArenaHi").unwrap();
 
-        let bin_path = out_dir.join(format!("rel_loader_{}.bin", version));
-        let symbols_map = link_obj_files_to_bin(
+        // First code cave (GetDescriptionForCommand/Function dead code) per version
+        let cave_base_addr: u32 = match *version {
+            "1.00" => 0x8000C9BC,
+            "1.01" => 0x8000CA38,
+            "1.02" => 0x8000CC78,
+            "jpn" => 0x8000D224,
+            "pal" => 0x8000CF34,
+            "kor" => 0x8000CA30, // estimated: 8 bytes before 1.01
+            _ => unreachable!(),
+        };
+        let cave_bin_path = out_dir.join(format!("rel_loader_{}.cave.bin", version));
+        let cave_symbols_map = link_obj_files_to_bin(
             [target_dir.join("librel_loader.a")].iter(),
-            *os_arena_hi,
+            cave_base_addr,
             &symbol_table,
-            &bin_path,
+            &cave_bin_path,
         )
         .unwrap();
-        let map_path = bin_path.with_extension("bin.map");
         {
-            let mut map_file = File::create(map_path).unwrap();
-            for (sym_name, addr) in &symbols_map {
-                writeln!(map_file, "0x{:08x} {}", addr, sym_name).unwrap();
+            let cave_map_path = cave_bin_path.with_extension("bin.map");
+            let mut cave_map_file = File::create(cave_map_path).unwrap();
+            for (sym_name, addr) in &cave_symbols_map {
+                writeln!(cave_map_file, "0x{:08x} {}", addr, sym_name).unwrap();
             }
         }
 
-        for (sym_name, addr) in symbols_map {
+        for (sym_name, addr) in cave_symbols_map {
             symbol_table.entry(sym_name).or_insert(addr);
         }
 
