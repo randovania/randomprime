@@ -740,7 +740,7 @@
                     "required": [],
                     "additionalProperties": false
                 },
-                "missileCost": {
+                "missileCosts": {
                     "description": "The number of missiles consumed when firing missiles and using beam combos. This does not impact the cost of sustaining the beam combo in the case of Wavebuster and Flamethrower.",
                     "type": "object",
                     "properties": {

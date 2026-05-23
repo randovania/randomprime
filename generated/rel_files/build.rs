@@ -26,6 +26,45 @@ fn invoke_cargo(ppc_manifest: &Path, package: &str) {
     }
 }
 
+struct RelLoaderVersionInfo {
+    version: &'static str,
+    cave_base_addr: u32,
+    cave_base_const_name: &'static str,
+}
+
+const REL_LOADER_VERSION_INFO: &[RelLoaderVersionInfo] = &[
+    RelLoaderVersionInfo {
+        version: "1.00",
+        cave_base_addr: 0x8000C9BC,
+        cave_base_const_name: "REL_LOADER_100_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "1.01",
+        cave_base_addr: 0x8000CA38,
+        cave_base_const_name: "REL_LOADER_101_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "1.02",
+        cave_base_addr: 0x8000CC78,
+        cave_base_const_name: "REL_LOADER_102_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "pal",
+        cave_base_addr: 0x8000CF34,
+        cave_base_const_name: "REL_LOADER_PAL_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "kor",
+        cave_base_addr: 0x8000CA30,
+        cave_base_const_name: "REL_LOADER_KOR_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "jpn",
+        cave_base_addr: 0x8000D224,
+        cave_base_const_name: "REL_LOADER_JPN_CAVE_BASE",
+    },
+];
+
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir);
@@ -47,29 +86,40 @@ fn main() {
     invoke_cargo(&ppc_manifest, "rel_loader");
     invoke_cargo(&ppc_manifest, "rel_patches");
 
-    for version in &["1.00", "1.01", "1.02", "pal", "kor", "jpn"] {
+    let cave_base_addrs_rs_path = out_dir.join("rel_loader_cave_base_addrs.rs");
+    let mut cave_base_addrs_rs = File::create(cave_base_addrs_rs_path).unwrap();
+    for info in REL_LOADER_VERSION_INFO {
+        writeln!(
+            cave_base_addrs_rs,
+            "pub const {}: u32 = 0x{:08X};",
+            info.cave_base_const_name, info.cave_base_addr
+        )
+        .unwrap();
+    }
+
+    for info in REL_LOADER_VERSION_INFO {
+        let version = info.version;
         let sym_table_path = symbol_table_dir.join(format!("{}.txt", version));
         eprintln!("{:?}", root_dir.join("..").join(&sym_table_path));
         let mut symbol_table = read_symbol_table(root_dir.join(sym_table_path)).unwrap();
-        let os_arena_hi = symbol_table.get("OSArenaHi").unwrap();
 
-        let bin_path = out_dir.join(format!("rel_loader_{}.bin", version));
-        let symbols_map = link_obj_files_to_bin(
+        let cave_bin_path = out_dir.join(format!("rel_loader_{}.cave.bin", version));
+        let cave_symbols_map = link_obj_files_to_bin(
             [target_dir.join("librel_loader.a")].iter(),
-            *os_arena_hi,
+            info.cave_base_addr,
             &symbol_table,
-            &bin_path,
+            &cave_bin_path,
         )
         .unwrap();
-        let map_path = bin_path.with_extension("bin.map");
         {
-            let mut map_file = File::create(map_path).unwrap();
-            for (sym_name, addr) in &symbols_map {
-                writeln!(map_file, "0x{:08x} {}", addr, sym_name).unwrap();
+            let cave_map_path = cave_bin_path.with_extension("bin.map");
+            let mut cave_map_file = File::create(cave_map_path).unwrap();
+            for (sym_name, addr) in &cave_symbols_map {
+                writeln!(cave_map_file, "0x{:08x} {}", addr, sym_name).unwrap();
             }
         }
 
-        for (sym_name, addr) in symbols_map {
+        for (sym_name, addr) in cave_symbols_map {
             symbol_table.entry(sym_name).or_insert(addr);
         }
 
@@ -82,12 +132,14 @@ fn main() {
         .unwrap();
     }
 
-    let walkdir = WalkDir::new(ppc_dir).into_iter().filter_entry(|entry| {
-        let name = entry.file_name().to_str().unwrap_or("");
-        !name.starts_with('.') && name != "target"
-    });
-    for entry in walkdir {
-        let entry = entry.unwrap();
-        println!("cargo:rerun-if-changed={}", entry.path().display());
+    for watch_dir in [&ppc_dir, &symbol_table_dir] {
+        let walkdir = WalkDir::new(watch_dir).into_iter().filter_entry(|entry| {
+            let name = entry.file_name().to_str().unwrap_or("");
+            !name.starts_with('.') && name != "target"
+        });
+        for entry in walkdir {
+            let entry = entry.unwrap();
+            println!("cargo:rerun-if-changed={}", entry.path().display());
+        }
     }
 }

@@ -6,6 +6,7 @@ use std::{
 };
 
 fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
     let output_path = Path::new(&env::var("OUT_DIR").unwrap()).join("codegen.rs");
     let mut output_file = BufWriter::new(File::create(output_path).unwrap());
 
@@ -26,6 +27,8 @@ fn main() {
             .join("..")
             .join(file_name);
         let symbol_file = BufReader::new(File::open(&symbol_path).unwrap());
+
+        println!("cargo:rerun-if-changed={}", symbol_path.display());
 
         write!(
             &mut output_file,
