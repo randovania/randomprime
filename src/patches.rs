@@ -40,9 +40,9 @@ use crate::{
     patch_config::{
         ArtifactHintBehavior, BlockConfig, BombSlotCover, ConnectionConfig, ConnectionMsg,
         ConnectionState, CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode,
-        EditObjConfig, FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig,
-        IsoFormat, LevelConfig, PatchConfig, PickupConfig, PlatformConfig, PlatformType,
-        RoomConfig, RunMode, SpecialFunctionType, TimerConfig, Version,
+        FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat,
+        LevelConfig, PatchConfig, PickupConfig, PlatformConfig, PlatformType, RoomConfig, RunMode,
+        SpecialFunctionType, TimerConfig, Version,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -4197,6 +4197,30 @@ fn add_player_freeze_assets<'r>(
     ];
 
     // append at the end of the pak
+    let mut cursor = pak.resources.cursor();
+    while cursor.cursor_advancer().peek().is_some() {}
+    for asset in ASSETS.iter() {
+        cursor.insert_after(iter::once(resources[&(*asset).into()].clone()));
+    }
+    Ok(())
+}
+
+// Add fallback assets used when serving a placeholder on OOM (steps 4-7 of plan.md strategy 1).
+// 3801DE98.CMDL - a simple invisible box with one dependency: black.TXTR
+fn add_oom_fallback_assets<'r>(
+    file: &mut structs::FstEntryFile<'r>,
+    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+) -> Result<(), String> {
+    let pak = match file {
+        structs::FstEntryFile::Pak(pak) => pak,
+        _ => unreachable!(),
+    };
+
+    const ASSETS: &[ResourceInfo] = &[
+        resource_info!("black.TXTR"),
+        resource_info!("3801DE98.CMDL"),
+    ];
+
     let mut cursor = pak.resources.cursor();
     while cursor.cursor_advancer().peek().is_some() {}
     for asset in ASSETS.iter() {
@@ -9494,7 +9518,7 @@ fn object_is_dead(
 }
 
 fn patch_optimize_memory(
-    ps: &mut PatcherState,
+    _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
 ) -> Result<(), String> {
     /* Shrink Names */
@@ -9512,41 +9536,41 @@ fn patch_optimize_memory(
     }
 
     /* Move objs to layer 0 for better de-dupe results */
-    {
-        const DEFAULT_LAYER_OBJS: &[u8] = &[
-            structs::HudMemo::OBJECT_TYPE,
-            structs::Sound::OBJECT_TYPE,
-            structs::CameraHint::OBJECT_TYPE,
-            structs::CameraFilterKeyframe::OBJECT_TYPE,
-            structs::CameraBlurKeyframe::OBJECT_TYPE,
-            structs::CameraShaker::OBJECT_TYPE,
-            structs::ActorKeyFrame::OBJECT_TYPE,
-            structs::PlayerHint::OBJECT_TYPE,
-            structs::StreamedAudio::OBJECT_TYPE,
-            structs::WorldTransporter::OBJECT_TYPE,
-            structs::RumbleEffect::OBJECT_TYPE,
-            structs::WorldLightFader::OBJECT_TYPE,
-            structs::ScriptBeam::OBJECT_TYPE,
-            structs::NewCameraShaker::OBJECT_TYPE,
-        ];
-        let mut edit_objs: HashMap<u32, EditObjConfig> = HashMap::new();
-        let scly = area.mrea().scly_section();
-        for layer in scly.layers.iter() {
-            for obj in layer.objects.iter() {
-                if !DEFAULT_LAYER_OBJS.contains(&obj.property_data.object_type()) {
-                    continue;
-                }
-                edit_objs.insert(
-                    obj.instance_id & 0x00FFFFFF,
-                    EditObjConfig {
-                        layer: Some(0),
-                        ..Default::default()
-                    },
-                );
-            }
-        }
-        patch_edit_objects(ps, area, edit_objs).ok();
-    }
+    // {
+    //     const DEFAULT_LAYER_OBJS: &[u8] = &[
+    //         structs::HudMemo::OBJECT_TYPE,
+    //         structs::Sound::OBJECT_TYPE,
+    //         structs::CameraHint::OBJECT_TYPE,
+    //         structs::CameraFilterKeyframe::OBJECT_TYPE,
+    //         structs::CameraBlurKeyframe::OBJECT_TYPE,
+    //         structs::CameraShaker::OBJECT_TYPE,
+    //         structs::ActorKeyFrame::OBJECT_TYPE,
+    //         structs::PlayerHint::OBJECT_TYPE,
+    //         structs::StreamedAudio::OBJECT_TYPE,
+    //         structs::WorldTransporter::OBJECT_TYPE,
+    //         structs::RumbleEffect::OBJECT_TYPE,
+    //         structs::WorldLightFader::OBJECT_TYPE,
+    //         structs::ScriptBeam::OBJECT_TYPE,
+    //         structs::NewCameraShaker::OBJECT_TYPE,
+    //     ];
+    //     let mut edit_objs: HashMap<u32, EditObjConfig> = HashMap::new();
+    //     let scly = area.mrea().scly_section();
+    //     for layer in scly.layers.iter() {
+    //         for obj in layer.objects.iter() {
+    //             if !DEFAULT_LAYER_OBJS.contains(&obj.property_data.object_type()) {
+    //                 continue;
+    //             }
+    //             edit_objs.insert(
+    //                 obj.instance_id & 0x00FFFFFF,
+    //                 EditObjConfig {
+    //                     layer: Some(0),
+    //                     ..Default::default()
+    //                 },
+    //             );
+    //         }
+    //     }
+    //     patch_edit_objects(ps, area, edit_objs).ok();
+    // }
 
     let mrea_id = area.mlvl_area.mrea.to_u32();
     let scly = area.mrea().scly_section();
@@ -9577,19 +9601,19 @@ fn patch_optimize_memory(
 
     let mut dead_objs = HashSet::<u32>::new();
     let mut dead_connections = HashSet::<(u32, structs::Connection)>::new();
-    let mut add_connections = HashSet::<(u32, structs::Connection)>::new();
-    // let mut dead_deps = Vec::<Dependency>::new();
+    let add_connections = HashSet::<(u32, structs::Connection)>::new();
+    let _dead_deps = Vec::<Dependency>::new();
 
     let mut counts = (0, 0, 0, 0);
 
     /* Dedupe Objects */
-    dedupe_objs(
-        &scly,
-        &incoming_connections,
-        &mut dead_objs,
-        &mut dead_connections,
-        &mut add_connections,
-    );
+    // dedupe_objs(
+    //     &scly,
+    //     &incoming_connections,
+    //     &mut dead_objs,
+    //     &mut dead_connections,
+    //     &mut add_connections,
+    // );
     let dedupe_obj_lens = dead_objs.len();
 
     loop {
@@ -9660,8 +9684,6 @@ fn patch_optimize_memory(
 
     /* Collect dead dependencies */
     // TODO: unused SCAN/STRG
-    // TODO: unused TXTR from randomprime deletions
-    // e.g. pickups no longer in room
 
     let scly = area.mrea().scly_section_mut();
 
@@ -9691,10 +9713,83 @@ fn patch_optimize_memory(
         }
     }
 
-    /* Purge dead dependencies */
-    // area.remove_dependencies(dead_deps.into_iter());
+    /* Prune dead pickup model dependencies */
+    {
+        /* AGSC (audio groups), STRG/SCAN (scan text), and FRME (UI frames) are excluded
+         * because they may be shared with non-pickup room objects. */
+        let pickup_dep_filter = |fourcc: &FourCC| {
+            matches!(
+                fourcc.as_bytes(),
+                b"TXTR" | b"CMDL" | b"ANCS" | b"PART" | b"CSKR" | b"CINF" | b"ANIM" | b"EVNT"
+            )
+        };
 
-    area.dedup_dependencies();
+        let all_pickup_deps: HashSet<(u32, FourCC)> = pickup_meta::PickupModel::iter()
+            .flat_map(|model| model.dependencies().iter().copied())
+            .filter(|(_, fourcc)| pickup_dep_filter(fourcc))
+            .collect();
+
+        let live_pickup_deps: HashSet<(u32, FourCC)> = {
+            let scly = area.mrea().scly_section();
+            let mut set = HashSet::new();
+            for layer in scly.layers.iter() {
+                for obj in layer.objects.iter() {
+                    if let Some(pickup) = obj.property_data.as_pickup() {
+                        if let Some(model) = pickup_meta::pickup_model_for_pickup(&pickup) {
+                            set.extend(
+                                model
+                                    .dependencies()
+                                    .iter()
+                                    .copied()
+                                    .filter(|(_, fourcc)| pickup_dep_filter(fourcc)),
+                            );
+                        }
+                        let cmdl_id = pickup.cmdl.to_u32();
+                        if cmdl_id != u32::MAX && cmdl_id != 0 {
+                            set.insert((cmdl_id, FourCC::from_bytes(b"CMDL")));
+                        }
+                        let ancs_id = pickup.ancs.file_id.to_u32();
+                        if ancs_id != u32::MAX && ancs_id != 0 {
+                            set.insert((ancs_id, FourCC::from_bytes(b"ANCS")));
+                        }
+                        let part_id = pickup.part.to_u32();
+                        if part_id != u32::MAX && part_id != 0 {
+                            set.insert((part_id, FourCC::from_bytes(b"PART")));
+                        }
+                    }
+                }
+            }
+            set
+        };
+
+        let dead_pickup_deps: Vec<Dependency> = area
+            .mlvl_area
+            .dependencies
+            .deps
+            .iter()
+            .flat_map(|layer| layer.iter().map(|d| d.into_owned()).collect::<Vec<_>>())
+            .filter(|dep| {
+                let key = (dep.asset_id, dep.asset_type);
+                all_pickup_deps.contains(&key) && !live_pickup_deps.contains(&key)
+            })
+            .collect();
+
+        if !dead_pickup_deps.is_empty() {
+            println!(
+                "[room 0x{:X}] pruning {} dead pickup deps: {}",
+                mrea_id,
+                dead_pickup_deps.len(),
+                dead_pickup_deps
+                    .iter()
+                    .map(|d| format!("0x{:X}({})", d.asset_id, d.asset_type))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+            area.remove_dependencies(dead_pickup_deps);
+        }
+    }
+
+    // area.dedup_dependencies();
 
     /* TODO: Purge dead memory relay connections */
 
@@ -15328,6 +15423,12 @@ fn build_and_run_patches<'r>(
         add_player_freeze_assets(file, game_resources)
     });
 
+    // Add fallback assets for OOM recovery (3801DE98.CMDL + its dep black.TXTR).
+    // SamGunFx.pak is always loaded via AddPaksAndFactories at game startup.
+    patcher.add_file_patch(b"SamGunFx.pak", |file| {
+        add_oom_fallback_assets(file, game_resources)
+    });
+
     // Add the pickup icon
     patcher.add_file_patch(b"GGuiSys.pak", |file| add_map_pickup_icon_txtr(file));
 
@@ -18083,7 +18184,7 @@ fn build_and_run_patches<'r>(
 
     /* Optimize rooms that are likely to crash */
     {
-        let rooms = vec![
+        let rooms = [
             (World::ChozoRuins, "Main Plaza"),
             (World::ChozoRuins, "Ruined Fountain Access"),
             (World::ChozoRuins, "Ruins Entrance"),
@@ -18099,9 +18200,9 @@ fn build_and_run_patches<'r>(
                 .get(&(world_name.to_string(), room_name.to_string()))
                 .unwrap_or_else(|| panic!("'{} - {}' is not a real room", world_name, room_name))
                 .mrea_id;
-            patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
-                patch_purge_debris_extended(ps, area)
-            });
+            // patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
+            //     patch_purge_debris_extended(ps, area)
+            // });
             patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
                 patch_optimize_memory(ps, area)
             });

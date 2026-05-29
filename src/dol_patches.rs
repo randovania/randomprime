@@ -1486,6 +1486,630 @@ fn patch_restore_ntsc_00(
     Ok(())
 }
 
+// Make CMemory::Alloc return null on allocation failure instead of calling rs_debugger_printf,
+// which unconditionally crashes via ErrorHandler/OSFatal. Without this patch, any failed
+// heap allocation (e.g. during CSamusDoll construction) freezes the game before Alloc even
+// returns. With this patch, Alloc returns null and the caller can handle it gracefully.
+//
+// Implementation: CMemory::Alloc contains a conditional branch at +0x64:
+//   mr. r31, r3                    ; r31 = alloc result; set CR0
+//   bne .epilogue                  ; if non-null, skip error
+//   ... setup args ...
+//   bl rs_debugger_printf          ; CRASH: calls ErrorHandler(0xff,...,0xd1dd0d1e)
+// .epilogue:
+//   lbz r3, 0x8(r1)
+//   bl OSRestoreInterrupts
+//   mr r3, r31                     ; return result (null if alloc failed)
+//   ...
+//   blr
+//
+// We replace the bne with an unconditional b, always jumping to the epilogue.
+// OSRestoreInterrupts still executes, and null is returned to the caller.
+// Works together with patch_build_async_null_guard which handles the null return.
+fn patch_alloc_null_on_failure(
+    dol_patcher: &mut DolPatcher<'_>,
+    version: Version,
+) -> Result<(), String> {
+    if matches!(
+        version,
+        Version::NtscK | Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy
+    ) {
+        return Ok(());
+    }
+
+    let alloc_addr = symbol_addr!(
+        "Alloc__7CMemoryFUlQ210IAllocator5EHintQ210IAllocator6EScopeQ210IAllocator5ETypeRC10CCallStack",
+        version
+    );
+
+    // Replace bne .epilogue with b .epilogue at Alloc+0x64.
+    dol_patcher.ppcasm_patch(&ppcasm!(alloc_addr + 0x64, {
+        b {alloc_addr + 0x7C};
+    }))?;
+
+    Ok(())
+}
+
+// Eliminate the 1-2 second freeze (and controller-rumble buzz) that occurs when CGameAllocator
+// fails to find a free block. The freeze comes from two sources in CGameAllocator::Alloc:
+//
+//   1. OOM callback (x58_oomCallback): CStateManager registers SwapOutAllPossibleMemory as this
+//      callback. That function calls CARAMManager::WaitForAllDMAsToComplete(), which spins on
+//      ARAM DMA hardware with interrupts disabled -- approximately 1 second.
+//   2. DumpAllocations: Called unconditionally after the callback path. It iterates every heap
+//      block and calls CStopwatch::Wait(0.005f) every 4 blocks -- roughly 0.5 seconds total.
+//
+// In CGameAllocator::Alloc at +0x284 there is a branch:
+//   cmplwi r12, 0x0       ; is OOM callback registered?
+//   beq  skip_callback    ; if not, jump to DumpAllocations path
+//   ... setup + bctrl     ; call OOM callback (SwapOutAllPossibleMemory)
+//   ... retry alloc ...
+//   bl DumpAllocations    ; at +0x31C; iterates blocks with 5ms waits
+//   li r3, 0              ; at +0x320; return null
+//
+// We replace the beq with an unconditional b that jumps directly to "li r3, 0", skipping both
+// the OOM callback invocation and DumpAllocations entirely. Allocation simply returns null
+// immediately, which is then handled gracefully by patch_alloc_null_on_failure and
+// patch_build_async_null_guard.
+//
+// The offset +0x284 and jump distance +0xA0 are identical across all five supported versions
+// (verified by binary pattern search against all production ISOs).
+fn patch_alloc_oom_fast_fail(
+    dol_patcher: &mut DolPatcher<'_>,
+    version: Version,
+) -> Result<(), String> {
+    if matches!(
+        version,
+        Version::NtscK | Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy
+    ) {
+        return Ok(());
+    }
+
+    let alloc_addr = symbol_addr!(
+        "Alloc__14CGameAllocatorFUlQ210IAllocator5EHintQ210IAllocator6EScopeQ210IAllocator5ETypeRC10CCallStack",
+        version
+    );
+
+    // Replace beq (skip to DumpAllocations path) with b (skip to li r3,0 / null return).
+    dol_patcher.ppcasm_patch(&ppcasm!(alloc_addr + 0x284, {
+        b {alloc_addr + 0x284 + 0xA0};
+    }))?;
+
+    Ok(())
+}
+
+// Null-guard CResFactory::BuildAsync so that a failed heap allocation does not crash the game.
+// When the allocator returns null (e.g. severe fragmentation during CSamusDoll construction),
+// BuildAsync returns early leaving *ppObj == null. CSamusDoll::IsLoaded() then returns false,
+// and CSamusDoll::Draw() already guards on IsLoaded() and skips rendering gracefully.
+// Requires patch_alloc_null_on_failure to be applied first so that Alloc actually returns null.
+fn patch_build_async_null_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if matches!(
+        version,
+        Version::NtscK | Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy
+    ) {
+        return Ok(());
+    }
+
+    let build_async_addr = symbol_addr!(
+        "BuildAsync__11CResFactoryFRC10SObjectTagRC15CVParamTransferPP4IObj",
+        version
+    );
+    let load_resource_async_addr =
+        symbol_addr!("LoadResourceAsync__10CResLoaderFRC10SObjectTagPc", version);
+
+    // BuildAsync frame layout (size 0x70):
+    //   0x54(r1): stmw r25 - saves r25..r31
+    //   0x74(r1): saved LR (caller's return address)
+    // The epilogue at +0xC8 restores all of this and returns.
+
+    let cave_addr =
+        emitter.emit_addressed(dol_patcher, "build_async_null_guard_cave", |cave_addr| {
+            ppcasm!(cave_addr, {
+                cmpwi r29, 0x0;                                // null alloc result?
+                bne do_load;
+                b {build_async_addr + 0xC8};                   // early return via BuildAsync epilogue
+            do_load:
+                mr r4, r26;                                    // original instr: mr r4, r26
+                addi r3, r25, 0x4;                             // original instr: addi r3, r25, 0x4
+                mr r5, r29;                                    // original instr: mr r5, r29
+                b {load_resource_async_addr};                  // tail call; LR = return addr of bl cave
+            })
+            .encoded_bytes()
+        })?;
+
+    // Patch 4 instructions in BuildAsync at offset +0x6C:
+    //   Original: mr r4,r26 | addi r3,r25,4 | mr r5,r29 | bl LoadResourceAsync
+    //   Patched:  bl cave   | b +0x7C        | nop        | nop
+    // After LoadResourceAsync returns to (bl cave)+4 = +0x70, the b +0x7C skips the now-dead
+    // instructions and resumes at the mr r30,r3 that consumes the return value.
+    dol_patcher.ppcasm_patch(&ppcasm!(build_async_addr + 0x6C, {
+        bl {cave_addr};
+        b {build_async_addr + 0x7C};
+        nop;
+        nop;
+    }))?;
+
+    Ok(())
+}
+
+// Intercept OOM during resource decompression so the game retries instead of crashing.
+// Only applied for NTSC 0-00; other versions lack symbol table entries for the unnamed
+// functions and have not been verified.
+//
+// fn_803394A8 inflates PAK-compressed resources. On OOM, the inflate output buffer
+// (SLD_inner[0x20]) is null. The inflate loop at 0x803396A8 loads that null pointer
+// and passes it as z_stream.next_out, crashing inside inflate().
+//
+// The stub intercepts the load. On null (OOM):
+//   1. Call inflateEnd to free the ~10KB zlib internal state.
+//   2. Clear SLD_inner's z_stream reference (small 56-byte struct is accepted as a leak).
+//   3. Jump to fn_803394A8's failure epilogue (0x80339868), which restores registers
+//      from the stack frame and returns 0 to PumpResource.
+// PumpResource returns 0; AsyncIdle retries next frame. If memory later frees up,
+// the retry succeeds. The 56-byte z_stream leak is bounded to one per OOM event.
+fn patch_inflate_null_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    let oom_flag_addr = {
+        emitter.emit_addressed(dol_patcher, "inflate_oom_flag", |_| {
+            0u32.to_be_bytes().to_vec()
+        })?
+    };
+
+    // Hardcoded 0-00 addresses (unnamed functions not in symbol table)
+    let inflate_oom_site: u32 = 0x803396A8; // lwz r3, 0x20(r30) -- OOM intercept site
+    let inflate_fail_addr: u32 = 0x80339868; // fn_803394A8 failure epilogue: li r3,0; restore; blr
+    let inflate_end_addr = symbol_addr!("inflateEnd", version);
+
+    // r30 = SLD_inner, r23 = z_stream ptr (both set up by fn_803394A8 before the loop)
+    // Non-OOM (r3 != 0): return normally via blr; caller continues with valid inflate buf.
+    // OOM (r3 == 0): inflateEnd frees internal zlib state, clear SLD_inner z_stream
+    //   reference, set oom_flag so patch_build_retry_guard can detect the OOM cause,
+    //   then jump to failure epilogue. Next retry re-allocates z_stream + buf fresh.
+    // r12 is volatile (may be clobbered by inflateEnd), so reload fresh with lis before use.
+    let stub_addr =
+        emitter.emit_addressed(dol_patcher, "inflate_null_guard_stub", |cave_addr| {
+            ppcasm!(cave_addr, {
+                lwz r3, 0x20(r30);              // original instruction: load inflate buf ptr
+                cmpwi r3, 0x0;
+                bne no_oom;                     // non-null: return r3 normally
+                mr r3, r23;                     // r3 = z_stream ptr
+                bl {inflate_end_addr};          // inflateEnd(z_stream) -- frees internal state
+                li r0, 0;
+                stb r0, 0x24(r30);              // SLD_inner[0x24] = 0 (release z_stream ownership)
+                stw r0, 0x28(r30);              // SLD_inner[0x28] = null (forget z_stream ptr)
+                lis r12, {oom_flag_addr}@h;     // signal OOM to Build's retry guard
+                li r3, 0x1;
+                stw r3, {oom_flag_addr}@l(r12);
+                b {inflate_fail_addr};          // jump to fn_803394A8 failure epilogue
+            no_oom:
+                blr;
+            })
+            .encoded_bytes()
+        })?;
+
+    dol_patcher.ppcasm_patch(&ppcasm!(inflate_oom_site, {
+        bl { stub_addr };
+    }))?;
+
+    Ok(())
+}
+
+// Null-guard the medium-pool expansion inside CGameAllocator::Alloc so that a failed inner
+// allocator call does not crash the game.
+//
+// When CGameAllocator::Alloc cannot satisfy a request from the existing medium pool, it calls
+// itself recursively (via vtable) to allocate a new 0x21000-byte expansion block, then passes
+// the result to CMediumAllocPool::AddPuddle. patch_alloc_null_on_failure causes that inner call
+// to return null. Without this guard, the null is forwarded to AddPuddle, which computes
+// (0 + capacity*32 = 0x20000) as the bookkeeping pointer and crashes writing to address 0x20000.
+//
+// The fix: if the inner bctrl returns null, skip AddPuddle and fall through to the pool-retry
+// path at 0x80351FAC, which attempts CMediumAllocPool::Alloc once more (still fails, r23 = 0)
+// and then reaches the normal OOM-handling path at 0x80351FE0 that returns null to the caller.
+//
+// Only applied for NTSC 0-00; these are unnamed internal functions absent from other symbol tables.
+fn patch_add_puddle_null_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // NTSC 0-00 hardcoded addresses
+    let intercept_addr: u32 = 0x80351F94; // mr r0, r3 -- first instr after bctrl in CGameAllocator::Alloc
+    let add_puddle_addr: u32 = 0x80350990; // CMediumAllocPool::AddPuddle
+    let retry_addr: u32 = 0x80351FAC; // CMediumAllocPool::Alloc retry after AddPuddle
+
+    // After bctrl: r3 = inner alloc result (null on OOM), r31 = this (CGameAllocator*).
+    // Non-null path: replay original instrs, tail-call AddPuddle (returns to LR=intercept+4).
+    //   The nop at intercept+4 is a b {retry_addr} that continues execution normally.
+    // Null path: blr back to intercept+4 (= b {retry_addr}), skip AddPuddle entirely.
+    //   Pool retry fails (pool not expanded), r23 = 0, falls into OOM handling at 0x80351FE0.
+    let stub_addr =
+        emitter.emit_addressed(dol_patcher, "add_puddle_null_guard_stub", |cave_addr| {
+            ppcasm!(cave_addr, {
+                cmpwi r3, 0x0;
+                beq null_path;
+                mr r0, r3;             // original instruction
+                lwz r3, 0x74(r31);    // original instruction
+                mr r5, r0;             // original instruction
+                li r4, 0x1000;         // original instruction
+                li r6, 0x1;            // original instruction
+                b {add_puddle_addr};   // tail call; AddPuddle blr returns to LR=intercept+4
+            null_path:
+                blr;                   // return to intercept+4 = b {retry_addr}
+            })
+            .encoded_bytes()
+        })?;
+
+    // Replace 6 instructions starting at intercept_addr:
+    //   Original: mr r0,r3 | lwz r3,0x74(r31) | mr r5,r0 | li r4,0x1000 | li r6,0x1 | bl AddPuddle
+    //   Patched:  bl stub  | b {retry_addr}   | nop      | nop          | nop       | nop
+    // AddPuddle and the null path both return to LR=intercept+4, which is the b {retry_addr}.
+    dol_patcher.ppcasm_patch(&ppcasm!(intercept_addr, {
+        bl { stub_addr };
+        b { retry_addr };
+        nop;
+        nop;
+        nop;
+        nop;
+    }))?;
+
+    Ok(())
+}
+
+// Null-guard CTexture::InitBitmapBuffers so that a failed bitmap buffer allocation does not crash.
+// When the heap returns null (OOM during beam-switch or large texture load), skips PostConstruct
+// and CountMemory and jumps to the function epilogue, leaving CARAMToken in its default-
+// constructed state (state field = 6). LoadToARAM checks state==6 and returns 0 early, so no
+// downstream crash occurs.
+// Requires patch_alloc_null_on_failure to be applied first so that Alloc actually returns null.
+//
+// Only applied for NTSC 0-00; InitBitmapBuffers address is absent from other symbol tables.
+fn patch_init_bitmap_buffers_null_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // NTSC 0-00 hardcoded addresses (function not in other versions' symbol tables)
+    let intercept_addr: u32 = 0x8030EAD4; // first instruction after bl Alloc in InitBitmapBuffers
+    let epilogue_addr: u32 = 0x8030EAF0; // InitBitmapBuffers epilogue (lwz r0, 0x24(r1))
+
+    // After bl Alloc returns: r3 = alloc result, r31 = this (CTexture*).
+    // Non-OOM path: replay original lwz r5,0xc(r31) and return to normal flow.
+    // OOM path (r3==0): zero x0c_bmpDataSize, skip PostConstruct+CountMemory, branch to epilogue.
+    //   CARAMToken at this+0x44 stays default-constructed (state=6); LoadToARAM returns 0 safely.
+    let stub_addr = emitter.emit_addressed(
+        dol_patcher,
+        "init_bitmap_buffers_null_guard_stub",
+        |cave_addr| {
+            ppcasm!(cave_addr, {
+                cmpwi r3, 0x0;
+                beq oom;
+                lwz r5, 0xc(r31);  // original instruction: load bmpDataSize into r5
+                blr;               // return; continues with mr r4,r3 then bl PostConstruct
+            oom:
+                li r0, 0;
+                stw r0, 0xc(r31); // zero x0c_bmpDataSize (no buffer was allocated)
+                b {epilogue_addr}; // skip PostConstruct + CountMemory
+            })
+            .encoded_bytes()
+        },
+    )?;
+
+    dol_patcher.ppcasm_patch(&ppcasm!(intercept_addr, {
+        bl { stub_addr };
+    }))?;
+
+    Ok(())
+}
+
+fn patch_morph_transition_oom_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // Intercept CanEnterMorphBallState and CanLeaveMorphBallState instead of
+    // TransitionToMorphBallState/TransitionFromMorphBallState to avoid patching
+    // inside the crash chain (CAnimData->memcpy, multiple null-deref sites we
+    // can't fully audit). When these "can enter?" functions return false, the
+    // caller already plays SFXsam_b_malfxn_00 via its pre-existing sound path,
+    // and the stfs writes to player offsets 0x574/0x578 (before the transition
+    // call) never happen, so no partial morph state is left.
+    //
+    // Both functions start with stwu (stack frame allocation). We overwrite the
+    // first instruction with a b-trampoline (not bl, so LR is unchanged): the
+    // OOM path does li r3,0; blr to return false directly to the caller.
+    let free_bytes_addr: u32 = 0x804BFDF4;
+    let threshold: u32 = 600 * 1024; // 500 KB - highest confirmed crash
+
+    // CanEnterMorphBallState__7CPlayerCFR13CStateManagerf (NTSC 0-00: 0x80012EFC)
+    //   First instruction: stwu r1, -0x820(r1)
+    let can_enter_addr: u32 = 0x80012EFC;
+    let stub = emitter.emit_addressed(dol_patcher, "can_enter_morph_oom_guard", |cave_addr| {
+        ppcasm!(cave_addr, {
+            lis   r12, { free_bytes_addr }@h;
+            lwz   r0,  { free_bytes_addr }@l(r12);
+            lis   r12, { threshold }@h;
+            cmplw r0, r12;
+            bge   ok;
+            li    r3, 0x0;                   // OOM: return false (caller plays malfunction SFX)
+            blr;
+        ok:
+            stwu  r1, -0x820(r1);            // trampoline: original first instruction
+            b     { can_enter_addr + 4 };
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(can_enter_addr, {
+        b { stub };
+    }))?;
+
+    // CanLeaveMorphBallState__7CPlayerCFR13CStateManagerR9CVector3f (NTSC 0-00: 0x80012A94)
+    //   First instruction: stwu r1, -0x980(r1)
+    // let can_leave_addr: u32 = 0x80012A94;
+    // let stub2 = emitter.emit_addressed(
+    //     dol_patcher,
+    //     "can_leave_morph_oom_guard",
+    //     |cave_addr| {
+    //         ppcasm!(cave_addr, {
+    //             lis   r12, { free_bytes_addr }@h;
+    //             lwz   r0,  { free_bytes_addr }@l(r12);
+    //             lis   r12, { threshold }@h;
+    //             cmplw r0, r12;
+    //             bge   ok;
+    //             li    r3, 0x0;                   // OOM: return false (caller plays malfunction SFX)
+    //             blr;
+    //         ok:
+    //             stwu  r1, -0x980(r1);            // trampoline: original first instruction
+    //             b     { can_leave_addr + 4 };
+    //         })
+    //         .encoded_bytes()
+    //     },
+    // )?;
+    // dol_patcher.ppcasm_patch(&ppcasm!(can_leave_addr, { b { stub2 }; }))?;
+
+    Ok(())
+}
+
+fn patch_map_open_oom_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // CanShowMapScreen__13CStateManagerFv (NTSC 0-00: 0x800447EC) returns bool.
+    // When false, CMFGame skips DeferStateTransition(kSMT_MapScreen).
+    // Unlike the morph case, the game has no pre-existing sound path when this
+    // returns false, so the stub plays SFXsam_b_malfxn_00 explicitly.
+    //
+    // b-trampoline (LR preserved in register). OOM path: push a 32-byte
+    // mini-frame (16-byte linkage area + 16-byte CSfxHandle output buffer),
+    // call SfxStart, restore caller LR from the mini-frame, pop, return false.
+    //
+    // First instruction of CanShowMapScreen: stwu r1, -0x10(r1)
+    let free_bytes_addr: u32 = 0x804BFDF4;
+    let threshold: u32 = 650 * 1024; // 595 KB - highest confirmed crash
+    let func_addr: u32 = 0x800447EC;
+    // SfxStart__11CSfxManagerFUsssbsbi: r3=CSfxHandle* out, r4=u16 id, r5=s16 vol,
+    // r6=s16 pan, r7=bool useAcoustics, r8=s16 priority, r9=bool looped, r10=s32 areaId.
+    let sfx_start_addr: u32 = 0x802E9D74;
+
+    let stub = emitter.emit_addressed(dol_patcher, "map_open_oom_guard", |cave_addr| {
+        ppcasm!(cave_addr, {
+            lis   r12, { free_bytes_addr }@h;
+            lwz   r0,  { free_bytes_addr }@l(r12);
+            lis   r12, { threshold }@h;
+            cmplw r0, r12;
+            bge   ok;
+            // OOM path: push mini-frame to hold CSfxHandle output and save caller LR.
+            // b-trampoline leaves caller's return address in the LR register; bl SfxStart
+            // would clobber it, so we save it in the mini-frame before the call.
+            stwu  r1, -0x20(r1);
+            mflr  r0;
+            stw   r0, 0x24(r1);              // save caller LR
+            addi  r3, r1, 0x10;              // r3 = CSfxHandle output buffer
+            li    r4, 0x6f5;                 // SFXsam_b_malfxn_00
+            li    r5, 0x7f;                  // vol 127
+            li    r6, 0x40;                  // pan center
+            li    r7, 0x1;                   // useAcoustics = true
+            li    r8, 0x40;                  // priority (medium)
+            li    r9, 0x0;                   // not looped
+            li    r10, -1;                   // areaId = -1 (all areas)
+            bl    { sfx_start_addr };
+            lwz   r0, 0x24(r1);              // restore caller LR
+            mtlr  r0;
+            addi  r1, r1, 0x20;              // pop mini-frame
+            li    r3, 0x0;                   // return false (block map open)
+            blr;
+        ok:
+            stwu  r1, -0x10(r1);             // trampoline: original first instruction
+            b     { func_addr + 4 };
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(func_addr, {
+        b { stub };
+    }))?;
+
+    Ok(())
+}
+
+fn patch_change_weapon_oom_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // ChangeWeapon__10CPlayerGunFRC12CPlayerStateR13CStateManager (0x8003EF98):
+    //   0x8003F00C: cmplw r3, r0   (r3=loadingBeam, r0=currentBeam)
+    //   0x8003F010: beq .L_8003F03C  (skip Load if same beam)
+    //   0x8003F014-0x8003F038: loadingBeam->Load + auxWeapon->Load
+    //   0x8003F03C: .L_8003F03C (EnableFx / ResetBeamParams / StartWipe)
+    //   0x8003F08C: function epilogue (lwz r0,0x24(r1); restore r29-r31; mtlr; addi r1; blr)
+    //
+    // Replace the beq with bl to a stub that:
+    //   1. Honours the original beq (same beam -> 0x8003F03C for wipe animation)
+    //   2. Checks heap free bytes; if sufficient, falls through to Load block
+    //   3. If OOM: jumps to function EPILOGUE (0x8003F08C), skipping wipe animation
+    //      entirely so the morphing flag is never set and the player can still fire.
+    //      Jumping to the epilogue is safe: ChangeWeapon's prologue frame is intact.
+    //
+    // CR0[EQ] is preserved by bl, r0/r12 are safe to clobber (both overwritten at 0x8003F014+).
+    let intercept_addr: u32 = 0x8003F010;
+    // Same-beam path: honour original beq, land at EnableFx/ResetBeamParams/StartWipe.
+    let skip_target: u32 = 0x8003F03C;
+    // OOM path: jump past StartWipe directly to the function epilogue.
+    // This prevents ResetBeamParams from setting the morphing flag, so the player
+    // keeps the old beam and can fire without the morph state machine stalling.
+    let epilogue_addr: u32 = 0x8003F08C;
+    // Heap free-bytes counter (user-provided address).
+    let free_bytes_addr: u32 = 0x804BFDF4;
+    let threshold: u32 = 600 * 1024; // 550 KB - highest confirmed crash
+                                     // SfxStart__11CSfxManagerFUsssbsbi: static, r3=CSfxHandle* out, r4=id, r5=vol,
+                                     // r6=pan, r7=useAcoustics, r8=priority, r9=looped, r10=areaId.
+    let sfx_start_addr: u32 = 0x802E9D74;
+
+    let stub_addr =
+        emitter.emit_addressed(dol_patcher, "change_weapon_oom_guard_stub", |cave_addr| {
+            ppcasm!(cave_addr, {
+                bne  no_orig_skip;                        // beams differ: check OOM
+                b    { skip_target };                     // beams same: honour original beq
+            no_orig_skip:
+                lis  r12, { free_bytes_addr }@h;
+                lwz  r0,  { free_bytes_addr }@l(r12);    // r0 = heap free bytes
+                lis  r12, { threshold }@h;                // r12 = threshold
+                cmplw r0, r12;                            // unsigned compare
+                bge  no_oom;                              // enough memory: allow Load
+                // OOM path: HandleBeamChange (from ProcessInput) set x2f8_stateFlags |= 0x8
+                // (morphing). ProcessInput exits early when x2f8 >= 4, so x2f4 is never
+                // updated from the fire button -> player cannot fire. SetupBeam processing
+                // would normally clear the morphing flag, but it only runs after a successful
+                // morph, which never happens when we cancel early.
+                // Restore x2f8 = 1 (beam mode) so ProcessInput reads fire input normally.
+                li   r0, 0x1;
+                stw  r0, 0x2f8(r29);                     // x2f8_stateFlags = 1 (beam mode)
+                // Play malfunction SFX to signal blocked beam switch.
+                // Push a mini-frame for the CSfxHandle output buffer (SfxStart writes to r3).
+                // The epilogue at epilogue_addr uses the stack-saved LR from ChangeWeapon's
+                // frame (0x24(r1)), not the LR register, so bl SfxStart clobbering LR is safe.
+                // Pop the mini-frame before the epilogue jump so ChangeWeapon's frame is on top.
+                stwu r1, -0x20(r1);                      // push 32-byte mini-frame
+                addi r3, r1, 0x10;                       // r3 = CSfxHandle output buffer
+                li   r4, 0x6f5;                          // SFXsam_b_malfxn_00
+                li   r5, 0x7f;                           // vol 127
+                li   r6, 0x40;                           // pan center
+                li   r7, 0x1;                            // useAcoustics = true
+                li   r8, 0x40;                           // priority (medium)
+                li   r9, 0x0;                            // not looped
+                li   r10, -1;                            // areaId = -1 (all areas)
+                bl   { sfx_start_addr };
+                addi r1, r1, 0x20;                       // pop mini-frame
+                b    { epilogue_addr };                   // cancel beam switch, return to caller
+            no_oom:
+                blr;                                      // fall through to Load block
+            })
+            .encoded_bytes()
+        })?;
+
+    dol_patcher.ppcasm_patch(&ppcasm!(intercept_addr, {
+        bl { stub_addr };
+    }))?;
+
+    Ok(())
+}
+
+fn patch_beam_load_retry(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // ProcessGunMorph__10CPlayerGunFfR13CStateManager (0x8003AE90) polls IsLoaded()
+    // on x734(CPlayerGun*) each frame. If Load() silently failed (OOM), IsLoaded()
+    // never returns true and the beam transition hangs forever.
+    //
+    // Intercept the beq at 0x8003AF40 (branch-if-not-loaded to the bottom of the
+    // state machine). Replace with bl stub. If heap has enough room, call Load()
+    // via vtable[0x38] to retry the allocation; either way bail to the bottom so
+    // the state machine retries next frame.
+    //
+    // Register state at intercept: r28=CPlayerGun*, r29=CStateManager*,
+    // CR0 set by IsLoaded() result (EQ=1 if not loaded, EQ=0 if loaded).
+    // LR = intercept_addr+4 (SetupBeam path) after bl replaces the beq.
+    let intercept_addr: u32 = 0x8003AF40;
+    let bottom_addr: u32 = 0x8003B02C;
+    let free_bytes_addr: u32 = 0x804BFDF4;
+    let threshold: u32 = 500 * 1024;
+
+    let stub_addr = emitter.emit_addressed(dol_patcher, "beam_load_retry_stub", |cave_addr| {
+        ppcasm!(cave_addr, {
+            bne  is_loaded;
+            lis  r12, { free_bytes_addr }@h;
+            lwz  r0,  { free_bytes_addr }@l(r12);
+            lis  r12, { threshold }@h;
+            cmplw r0, r12;
+            blt  no_retry;
+            // Enough memory: retry Load() via vtable[0x38].
+            // Save/restore LR (in LR register) around bctrl which clobbers it.
+            stwu r1, -0x10(r1);
+            mflr r0;
+            stw  r0, 0x14(r1);
+            lwz  r3, 0x734(r28);    // loadingBeam (non-null by earlier guard)
+            lwz  r12, 0x0(r3);      // vtable
+            mr   r4, r29;           // CStateManager
+            li   r5, 0x0;
+            lwz  r12, 0x38(r12);    // Load() = vtable[0x38]
+            .long 0x7D804BA6;       // mtctr r12 (ppcasm does not support mtctr)
+            .long 0x4E800421;       // bctrl
+            lwz  r0, 0x14(r1);
+            mtlr r0;
+            addi r1, r1, 0x10;
+        no_retry:
+            b    { bottom_addr };   // bail; state machine retries next frame
+        is_loaded:
+            blr;                    // loaded: return to SetupBeam path
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(intercept_addr, {
+        bl { stub_addr };
+    }))?;
+
+    Ok(())
+}
+
 fn patch_meta(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1578,6 +2202,151 @@ fn patch_meta(
             Cow::from(bytes.clone()),
         )?;
     }
+
+    Ok(())
+}
+
+fn patch_bss_heap_extension(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // Inject the 80KB BSS gap at 0x80577BAC-0x8058BBAC into the heap free pool.
+    // This region sits between CMetroidAreaCollider::sDupVertexList and sDupEdgeList
+    // and is never accessed by the game binary. We hook the epilogue blr of
+    // CGameAllocator::Initialize to construct a standalone free block chain
+    // (head -> tail sentinel) and call AddFreeEntryToFreeList to register it.
+    // Both addresses must be 32-byte aligned: SGameMemInfo pointer fields use & ~31 masking.
+    // Raw gap: [0x80577BAC, 0x8058BBAC); snap inward to 32-byte boundaries.
+    let head_addr: u32 = 0x8057_7BC0; // 0x80577BAC rounded up to 32-byte boundary
+    let tail_addr: u32 = 0x8058_BB80; // last 32-byte boundary where tail + 0x20 <= 0x8058BBAC
+    let game_allocator_addr: u32 = 0x804B_FD64;
+    let heap_counter_addr: u32 = 0x804B_FDF4; // gGameAllocator + 0x90 = x90_heapSize2
+    let add_free_entry_addr = symbol_addr!(
+        "AddFreeEntryToFreeList__14CGameAllocatorFPQ214CGameAllocator12SGameMemInfo",
+        version
+    );
+    let init_blr_addr =
+        symbol_addr!("Initialize__14CGameAllocatorFR10COsContext", version) + 0x384;
+
+    let cave_addr =
+        emitter.emit_addressed(dol_patcher, "bss_heap_extension_stub", |cave_addr| {
+            ppcasm!(cave_addr, {
+                // CGameAllocator::Initialize already restored its own stack frame
+                // (addi r1,r1,0x80) before the blr we replaced, so r1 is at the
+                // caller's frame. We allocate a mini-frame for our bl below.
+                stwu r1, -0x10(r1);
+                mflr r0;
+                stw  r0, 0x14(r1);
+
+                // Build head SGameMemInfo at head_addr
+                lis  r12, { head_addr }@h;
+                addi r12, r12, { head_addr }@l;
+                lis  r0, 0xEFEF;
+                ori  r0, r0, 0xEFEF;
+                stw  r0, 0x00(r12);        // x0_priorGuard = 0xEFEFEFEF
+                lis  r0, 0x0001;
+                ori  r0, r0, 0x3FA0;
+                stw  r0, 0x04(r12);        // x4_len = 0x13FA0 (tail_addr - head_addr - 0x20)
+                li   r0, 0;
+                stw  r0, 0x08(r12);        // x8_fileAndLine = 0
+                stw  r0, 0x0C(r12);        // xc_type = 0
+                stw  r0, 0x10(r12);        // x10_prev = 0 (not allocated, no prior block)
+                // addi with r0 as destination ignores r0's value (PPC r0 special case);
+                // use lis+ori (zero-extend, no r0 exception) with plain upper bits.
+                lis  r0, { (tail_addr >> 16) as i32 };
+                ori  r0, r0, { (tail_addr & 0xFFFF) as i32 };
+                stw  r0, 0x14(r12);        // x14_next = tail_addr
+                li   r0, 0;
+                stw  r0, 0x18(r12);        // x18_nextFree = 0 (set by AddFreeEntryToFreeList)
+                lis  r0, 0xEAEA;
+                ori  r0, r0, 0xEAEA;
+                stw  r0, 0x1C(r12);        // x1c_postGuard = 0xEAEAEAEA
+
+                // Build tail sentinel SGameMemInfo at tail_addr (len=0, next=null)
+                lis  r12, { tail_addr }@h;
+                addi r12, r12, { tail_addr }@l;
+                lis  r0, 0xEFEF;
+                ori  r0, r0, 0xEFEF;
+                stw  r0, 0x00(r12);        // x0_priorGuard = 0xEFEFEFEF
+                li   r0, 0;
+                stw  r0, 0x04(r12);        // x4_len = 0 (sentinel: never selected by FindFreeBlock)
+                stw  r0, 0x08(r12);        // x8_fileAndLine = 0
+                stw  r0, 0x0C(r12);        // xc_type = 0
+                lis  r0, { (head_addr >> 16) as i32 };
+                ori  r0, r0, { (head_addr & 0xFFFF) as i32 };
+                stw  r0, 0x10(r12);        // x10_prev = head_addr (bit0=0, not allocated)
+                li   r0, 0;
+                stw  r0, 0x14(r12);        // x14_next = 0 (null; guards forward-coalesce path)
+                stw  r0, 0x18(r12);        // x18_nextFree = 0
+                lis  r0, 0xEAEA;
+                ori  r0, r0, 0xEAEA;
+                stw  r0, 0x1C(r12);        // x1c_postGuard = 0xEAEAEAEA
+
+                // x90_heapSize2 += free_len (keep OOM debug counter accurate)
+                lis  r12, { heap_counter_addr }@h;
+                lwz  r0, { heap_counter_addr }@l(r12);
+                lis  r6, 0x0001;
+                ori  r6, r6, 0x3FA0;       // r6 = 0x13FA0
+                add  r0, r0, r6;
+                stw  r0, { heap_counter_addr }@l(r12);
+
+                // AddFreeEntryToFreeList(this=gGameAllocator, info=head)
+                lis  r3, { game_allocator_addr }@h;
+                addi r3, r3, { game_allocator_addr }@l;
+                lis  r4, { head_addr }@h;
+                addi r4, r4, { head_addr }@l;
+                bl   { add_free_entry_addr };
+
+                lwz  r0, 0x14(r1);
+                mtlr r0;
+                addi r1, r1, 0x10;
+                blr;
+            })
+            .encoded_bytes()
+        })?;
+
+    dol_patcher.ppcasm_patch(&ppcasm!(init_blr_addr, {
+        b { cave_addr };
+    }))?;
+
+    Ok(())
+}
+
+fn patch_heap_optimization(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    // if !config.qol_game_breaking {
+    //     return Ok(());
+    // }
+
+    /* Patch heap allocator to tolerate failed allocations (return nullptr instead of panic) */
+    patch_alloc_null_on_failure(dol_patcher, version)?;
+    patch_alloc_oom_fast_fail(dol_patcher, version)?;
+    patch_add_puddle_null_guard(dol_patcher, emitter, version)?;
+
+    /* Patch to deny memory-hungry actions if heap below danger threshold (approx. 400KB - 700KB) */
+    patch_morph_transition_oom_guard(dol_patcher, emitter, version)?;
+    patch_map_open_oom_guard(dol_patcher, emitter, version)?;
+    patch_change_weapon_oom_guard(dol_patcher, emitter, version)?;
+
+    /* Retry beam load each frame until it succeeds (handles OOM mid-load stuck state) */
+    patch_beam_load_retry(dol_patcher, emitter, version)?;
+
+    /* Inject unused 80KB BSS gap into heap free pool (NTSC 0-00 only) */
+    patch_bss_heap_extension(dol_patcher, emitter, version)?;
+
+    /* Patch alloc call sites to tolerate nullptr return values */
+    patch_build_async_null_guard(dol_patcher, emitter, version)?; // Solves start menu crash
+    patch_inflate_null_guard(dol_patcher, emitter, version)?;
+    patch_init_bitmap_buffers_null_guard(dol_patcher, emitter, version)?;
 
     Ok(())
 }
@@ -2238,7 +3007,7 @@ fn patch_game_start(
 
 pub fn patch_dol(
     file: &mut structs::FstEntryFile,
-    spawn_room: SpawnRoomData,
+    #[allow(unused_variables)] spawn_room: SpawnRoomData,
     config: &PatchConfig,
 ) -> Result<(), String> {
     let version = config.version;
@@ -2258,17 +3027,19 @@ pub fn patch_dol(
     let mut emitter = TextEmitter::new(caves_for_version(version));
 
     patch_meta(&mut dol_patcher, &mut emitter, version, config)?;
-    patch_game_options(&mut dol_patcher, version, config)?;
-    patch_cosmetic(&mut dol_patcher, &mut emitter, version, config)?;
-    patch_game_start(&mut dol_patcher, &mut emitter, version, config, spawn_room)?;
-    patch_restore_ntsc_00(&mut dol_patcher, &mut emitter, version, config)?;
-    patch_gameplay_tweaks(&mut dol_patcher, &mut emitter, version, config)?;
+    patch_heap_optimization(&mut dol_patcher, &mut emitter, version, config)?;
 
-    patch_spring_ball(&mut dol_patcher, &mut emitter, version, config)?;
-    patch_custom_items(&mut dol_patcher, &mut emitter, version)?;
-    if config.warp_to_start {
-        patch_warp_to_start(&mut dol_patcher, &mut emitter, version)?;
-    }
+    // patch_game_options(&mut dol_patcher, version, config)?;
+    // patch_cosmetic(&mut dol_patcher, &mut emitter, version, config)?;
+    // patch_game_start(&mut dol_patcher, &mut emitter, version, config, spawn_room)?;
+    // patch_restore_ntsc_00(&mut dol_patcher, &mut emitter, version, config)?;
+    // patch_gameplay_tweaks(&mut dol_patcher, &mut emitter, version, config)?;
+
+    // patch_spring_ball(&mut dol_patcher, &mut emitter, version, config)?;
+    // patch_custom_items(&mut dol_patcher, &mut emitter, version)?;
+    // if config.warp_to_start {
+    //     patch_warp_to_start(&mut dol_patcher, &mut emitter, version)?;
+    // }
 
     *file = structs::FstEntryFile::ExternalFile(Box::new(dol_patcher));
     Ok(())
