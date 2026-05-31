@@ -9193,6 +9193,7 @@ fn patch_purge_debris_extended(
     Ok(())
 }
 
+#[allow(dead_code)]
 fn is_duplicate(
     a: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
     b: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
@@ -9255,6 +9256,7 @@ fn is_duplicate(
     }
 }
 
+#[allow(dead_code)]
 fn dedupe_objs(
     scly: &reader_writer::LCow<'_, structs::Scly<'_>>,
     incoming_connections: &HashMap<
@@ -16983,8 +16985,12 @@ fn build_and_run_patches<'r>(
         }
     }
 
+    let overflow_cell = std::rc::Rc::new(std::cell::RefCell::new(Vec::<u8>::new()));
+    let overflow_capture = std::rc::Rc::clone(&overflow_cell);
     patcher.add_file_patch(b"default.dol", move |file| {
-        dol_patches::patch_dol(file, starting_room, config)
+        let bytes = dol_patches::patch_dol(file, starting_room, config)?;
+        *overflow_capture.borrow_mut() = bytes;
+        Ok(())
     });
 
     if smoother_teleports {
@@ -18220,6 +18226,18 @@ fn build_and_run_patches<'r>(
     // }
 
     patcher.run(gc_disc)?;
+    drop(patcher); // release the Rc clone held by the DOL closure
+
+    let overflow_bytes = std::rc::Rc::try_unwrap(overflow_cell)
+        .ok()
+        .unwrap()
+        .into_inner();
+    if !overflow_bytes.is_empty() {
+        gc_disc.add_file(
+            "cave_overflow.bin",
+            structs::FstEntryFile::Unknown(Reader::new(overflow_bytes.leak())),
+        )?;
+    }
 
     Ok(())
 }
