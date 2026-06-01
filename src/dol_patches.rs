@@ -2160,8 +2160,8 @@ fn patch_beam_load_retry(
             mr   r4, r29;           // CStateManager
             li   r5, 0x0;
             lwz  r12, 0x38(r12);    // Load() = vtable[0x38]
-            .long 0x7D804BA6;       // mtctr r12 (ppcasm does not support mtctr)
-            .long 0x4E800421;       // bctrl
+            mtctr r12;
+            bctrl;
             lwz  r0, 0x14(r1);
             mtlr r0;
             addi r1, r1, 0x10;
