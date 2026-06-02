@@ -10,6 +10,10 @@ fn main() {
     let output_path = Path::new(&env::var("OUT_DIR").unwrap()).join("codegen.rs");
     let mut output_file = BufWriter::new(File::create(output_path).unwrap());
 
+    // The symbol tables live one directory up, in the `dol_symbol_table` crate root.
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let symbol_table_dir = Path::new(&manifest_dir).parent().unwrap();
+
     const GAME_VERSIONS: &[(&str, &str)] = &[
         ("1.00.txt", "MP1_100_SYMBOL_TABLE"),
         ("1.01.txt", "MP1_101_SYMBOL_TABLE"),
@@ -23,9 +27,8 @@ fn main() {
     ];
 
     for (file_name, table_name) in GAME_VERSIONS {
-        let symbol_path = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap())
-            .join("..")
-            .join(file_name);
+        // Build a clean (no `..`) path so Cargo records a normalized rerun-if-changed entry.
+        let symbol_path = symbol_table_dir.join(file_name);
         let symbol_file = BufReader::new(File::open(&symbol_path).unwrap());
 
         println!("cargo:rerun-if-changed={}", symbol_path.display());
