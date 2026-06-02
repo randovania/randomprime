@@ -28612,6 +28612,9 @@
                     ]
                 },
                 "Subchamber Five": {
+                    "deleteIds": [
+                        721370
+                    ],
                     "removeConnections": [
                         {
                             "senderId": 655378, // [Camera] Cinematic Camera1
@@ -28781,10 +28784,6 @@
                         {
                             "id": 655396, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "type": "CinematicSkip"
-                        },
-                        {
-                            "id": 655435, // [SpecialFunction] PlayerInArea
-                            "type": "PlayerInAreaRelay"
                         }
                     ]
                 },
@@ -28993,8 +28992,7 @@
                         },
                         {
                             "id": 721075, // [Timer] Disable Failsafe
-                            "time": 0.5,
-                            "startImmediately": true
+                            "time": 0.5
                         }
                     ],
                     "streamedAudios": [
