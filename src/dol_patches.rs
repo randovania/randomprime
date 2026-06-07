@@ -38,7 +38,7 @@ const STUB_COMPILE_BASE: u32 = 0x81000000;
 pub struct HeapOverflowStub {
     dol_patch_site: u32,
     patch_is_bl: bool,
-    stub_bytes: Vec<u8>, // position-independent; external b/bl expanded to lis+ori+mtctr+b/bctrl
+    stub_bytes: Vec<u8>,
 }
 
 pub struct CodeCave {
@@ -74,7 +74,7 @@ impl CodeCaveAllocator {
         CodeCaveAllocator { caves }
     }
 
-    // Pick the smallest cave that still has room. Returns None when no cave fits.
+    // Pick the smallest cave that still has room
     pub fn alloc(&mut self, bytes: u32) -> Option<u32> {
         let idx = self
             .caves
@@ -86,32 +86,28 @@ impl CodeCaveAllocator {
         Some(self.caves[idx].alloc(bytes))
     }
 
-    // Allocate from the start of the cave at `cave_start`. This is used for payloads
-    // that are pre-linked to a fixed base address (for example rel_loader).
-    pub fn alloc_from_cave_start(&mut self, label: &str, cave_start: u32, bytes: u32) -> u32 {
+    pub fn alloc_from_cave_start(&mut self, cave_start: u32, bytes: u32) -> u32 {
         let cave = self
             .caves
             .iter_mut()
             .find(|c| c.start == cave_start)
             .unwrap_or_else(|| {
                 panic!(
-                    "CodeCaveAllocator: no cave starts at 0x{:08x} for block '{}'",
-                    cave_start, label
+                    "CodeCaveAllocator: no cave starts at 0x{:08x}",
+                    cave_start
                 )
             });
         assert!(
             cave.used == 0,
-            "Code cave 0x{:08x} already consumed {} bytes before '{}'",
+            "Code cave 0x{:08x} already consumed {} bytes",
             cave_start,
             cave.used,
-            label
         );
         assert!(
             cave.remaining() >= bytes,
-            "Code cave 0x{:08x} has only {} bytes remaining for '{}'",
+            "Code cave 0x{:08x} has only {} bytes remaining",
             cave_start,
             cave.remaining(),
-            label
         );
         cave.alloc(bytes)
     }
@@ -133,13 +129,12 @@ impl TextEmitter {
     pub fn emit_at_cave_start(
         &mut self,
         dol_patcher: &mut DolPatcher<'_>,
-        label: &str,
         cave_start: u32,
         bytes: Vec<u8>,
     ) -> Result<u32, String> {
         let addr = self
             .cave_alloc
-            .alloc_from_cave_start(label, cave_start, bytes.len() as u32);
+            .alloc_from_cave_start(cave_start, bytes.len() as u32);
         dol_patcher.patch(addr, Cow::Owned(bytes))?;
         Ok(addr)
     }
@@ -147,7 +142,6 @@ impl TextEmitter {
     pub fn emit_addressed<F>(
         &mut self,
         dol_patcher: &mut DolPatcher<'_>,
-        label: &str,
         build: F,
     ) -> Result<u32, String>
     where
@@ -157,19 +151,12 @@ impl TextEmitter {
         const PROBE_ADDR: u32 = 0x80000000;
         let probe = build(PROBE_ADDR);
         let len = probe.len() as u32;
-        let addr = self.cave_alloc.alloc(len).unwrap_or_else(|| {
-            panic!(
-                "CodeCaveAllocator: no cave fits {} bytes for block '{}'",
-                len, label
-            )
-        });
+        let addr = self
+            .cave_alloc
+            .alloc(len)
+            .unwrap_or_else(|| panic!("CodeCaveAllocator: no cave fits {} bytes", len));
         let final_bytes = build(addr);
-        debug_assert_eq!(
-            final_bytes.len(),
-            probe.len(),
-            "{} size changed under final address",
-            label
-        );
+        debug_assert_eq!(final_bytes.len(), probe.len(), "stub size changed under final address");
         dol_patcher.patch(addr, Cow::Owned(final_bytes))?;
         Ok(addr)
     }
@@ -180,7 +167,6 @@ impl TextEmitter {
     pub fn emit_and_patch<F>(
         &mut self,
         dol_patcher: &mut DolPatcher<'_>,
-        label: &str,
         dol_patch_site: u32,
         patch_is_bl: bool,
         build: F,
@@ -194,12 +180,7 @@ impl TextEmitter {
 
         if let Some(cave_addr) = self.cave_alloc.alloc(len) {
             let final_bytes = build(cave_addr);
-            debug_assert_eq!(
-                final_bytes.len(),
-                probe.len(),
-                "{} size changed under final address",
-                label
-            );
+            debug_assert_eq!(final_bytes.len(), probe.len(), "stub size changed under final address");
             dol_patcher.patch(cave_addr, Cow::Owned(final_bytes))?;
             let rel = (cave_addr as i64 - dol_patch_site as i64) as u64;
             let lk: u32 = if patch_is_bl { 1 } else { 0 };
@@ -217,7 +198,7 @@ impl TextEmitter {
         Ok(())
     }
 
-    // Serializes overflow stubs to the cave_overflow.bin wire format.
+    // Serializes overflow stubs to the cave_overflow.bin format.
     // Returns an empty Vec when there are no overflow stubs.
     pub fn serialize_overflow(&self) -> Vec<u8> {
         if self.overflow_stubs.is_empty() {
@@ -242,12 +223,24 @@ impl TextEmitter {
 }
 
 // Replaces external b/bl instructions in a stub with position-independent equivalents.
-// External = branch target is below stub_base (i.e., into the DOL at 0x80xxxxxx).
-// Internal branches (within the stub) are left unchanged.
+// External = branch target is below stub_base (i.e., into the DOL at 0x80xxxxxx)
+// Internal branches (within the stub) are left unchanged
 //   b  target -> lis r12, target@h; ori r12, r12, target@l; mtctr r12; bctr
 //   bl target -> lis r0,  target@h; ori r0,  r0,  target@l; mtctr r0;  bctrl
 // Only call this for pure-code stubs without embedded data words.
 fn make_pic(stub_bytes: &[u8], stub_base: u32) -> Vec<u8> {
+    fn enc_lis(rd: u32, imm: u16) -> u32 {
+        (15u32 << 26) | (rd << 21) | u32::from(imm)
+    }
+    fn enc_ori(rs: u32, ra: u32, imm: u16) -> u32 {
+        (24u32 << 26) | (rs << 21) | (ra << 16) | u32::from(imm)
+    }
+    fn enc_mtctr(rs: u32) -> u32 {
+        (31u32 << 26) | (rs << 21) | (0x120 << 11) | (467 << 1)
+    }
+    const BCTR: u32 = 0x4E80_0420;
+    const BCTRL: u32 = 0x4E80_0421;
+
     assert_eq!(stub_bytes.len() % 4, 0);
     let stub_size = stub_bytes.len() as u32;
     let mut out = Vec::with_capacity(stub_bytes.len() * 2);
@@ -266,18 +259,18 @@ fn make_pic(stub_bytes: &[u8], stub_base: u32) -> Vec<u8> {
             let target = (pc as i32 + li * 4) as u32;
             if target < stub_base || target >= stub_base + stub_size {
                 let lk = instr & 1;
-                let hi = target >> 16;
-                let lo = target & 0xFFFF;
+                let hi = (target >> 16) as u16;
+                let lo = (target & 0xFFFF) as u16;
                 if lk == 0 {
-                    out.extend_from_slice(&(0x3D80_0000u32 | hi).to_be_bytes()); // lis r12
-                    out.extend_from_slice(&(0x618C_0000u32 | lo).to_be_bytes()); // ori r12, r12
-                    out.extend_from_slice(&0x7D89_03A6u32.to_be_bytes()); // mtctr r12
-                    out.extend_from_slice(&0x4E80_0420u32.to_be_bytes()); // bctr
+                    out.extend_from_slice(&enc_lis(12, hi).to_be_bytes());
+                    out.extend_from_slice(&enc_ori(12, 12, lo).to_be_bytes());
+                    out.extend_from_slice(&enc_mtctr(12).to_be_bytes());
+                    out.extend_from_slice(&BCTR.to_be_bytes());
                 } else {
-                    out.extend_from_slice(&(0x3C00_0000u32 | hi).to_be_bytes()); // lis r0
-                    out.extend_from_slice(&(0x6000_0000u32 | lo).to_be_bytes()); // ori r0, r0
-                    out.extend_from_slice(&0x7C09_03A6u32.to_be_bytes()); // mtctr r0
-                    out.extend_from_slice(&0x4E80_0421u32.to_be_bytes()); // bctrl
+                    out.extend_from_slice(&enc_lis(0, hi).to_be_bytes());
+                    out.extend_from_slice(&enc_ori(0, 0, lo).to_be_bytes());
+                    out.extend_from_slice(&enc_mtctr(0).to_be_bytes());
+                    out.extend_from_slice(&BCTRL.to_be_bytes());
                 }
                 i += 4;
                 continue;
@@ -362,783 +355,6 @@ fn rel_loader_selection(version: Version) -> RelLoaderSelection {
     }
 }
 
-pub fn patch_is_memory_relay_active_func(
-    addr: u32,
-    g_game_state: u32,
-    state_for_world: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        stwu      r1, -0x24(r1);
-        mflr      r0;
-        stw       r0, 0x24(r1);
-        stw       r14, 0x20(r1);
-        stw       r15, 0x1c(r1);
-        stw       r29, 0x18(r1);
-        mr        r29, r6;
-        stw       r30, 0x14(r1);
-        mr        r30, r4;
-        stw       r31, 0x10(r1);
-        mr        r31, r3;
-        lis       r3, {g_game_state}@h;
-        addi      r3, r3, {g_game_state}@l;
-        lwz       r3, 0x0(r3);
-        bl        {state_for_world};
-        lwz       r14, 0x08(r3);
-        lwz       r14, 0x00(r14);
-        li        r0, 0;
-        li        r3, 1;
-        lwz       r6, 0x00(r14);
-        addi      r6, r6, 1;
-        cmpw      r3, r6;
-        bge       {addr + 0x80};
-        rlwinm    r3, r3, 2, 0, 29;
-        lwzx      r15, r3, r14;
-        rlwinm    r3, r3, 30, 4, 31;
-        cmpw      r15, r31;
-        bne       {addr + 0x78};
-        li        r0, 1;
-        b         {addr + 0x80};
-        addi      r3, r3, 1;
-        b         {addr + 0x54};
-        mr        r3, r0;
-        lwz       r0, 0x24(r1);
-        lwz       r14, 0x20(r1);
-        lwz       r15, 0x1c(r1);
-        mr        r6, r29;
-        lwz       r29, 0x18(r1);
-        mr        r4, r30;
-        lwz       r30, 0x14(r1);
-        lwz       r31, 0x10(r1);
-        mtlr      r0;
-        addi      r1, r1, 0x24;
-        blr;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_set_pickup_icon_txtr_ntsc(
-    addr: u32,
-    is_memory_relay_active_func: u32,
-    off: i32,
-    map_pickup_icon_txtr: u32,
-    draw_func_298: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        lwz          r3, 0x08(r18);
-        lwz          r4, 0x24(r31);
-        lbz          r0, 0x04(r4);
-        cmpwi        r0, 1;
-        beq          {addr + 0x1c};
-        lwz          r4, 0x08(r4);
-        b            {addr + 0x20};
-        lwz          r4, 0x0c(r4);
-        bl           {is_memory_relay_active_func};
-        cmpwi        r3, 0;
-        lwz          r3, {off}(r13);
-        lis          r6, {map_pickup_icon_txtr}@h;
-        addi         r6, r6, {map_pickup_icon_txtr}@l;
-        beq          {addr + 0x3c};
-        fmr          f30, f14;
-        b            {draw_func_298};
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_set_pickup_icon_txtr_pal_j(
-    addr: u32,
-    is_memory_relay_active_func: u32,
-    off: i32,
-    map_pickup_icon_txtr: u32,
-    draw_func_284: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        lwz          r3, 0x08(r18);
-        lwz          r4, 0x6c(r1);
-        lwz          r4, 0x24(r4);
-        lbz          r0, 0x04(r4);
-        cmpwi        r0, 1;
-        beq          {addr + 0x20};
-        lwz          r4, 0x08(r4);
-        b            {addr + 0x24};
-        lwz          r4, 0x0c(r4);
-        bl           {is_memory_relay_active_func};
-        lis          r31, {map_pickup_icon_txtr}@h;
-        addi         r31, r31, {map_pickup_icon_txtr}@l;
-        mr           r0, r31;
-        cmpwi        r3, 0;
-        lis          r31, 0xffff;
-        ori          r31, r31, 0xffff;
-        lwz          r3, {off}(r13);
-        beq          {addr + 0x4c};
-        fmr          f30, f14;
-        b            {draw_func_284};
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_spring_ball_start(
-    addr: u32,
-    morph_ball_offset: u32,
-    movement_state_offset: u32,
-    out_of_water_ticks_offset: u32,
-    surface_restraint_type_offset: u32,
-    is_movement_allowed: u32,
-) -> Vec<u8> {
-    let data_addr = addr + 0x1b4;
-    ppcasm!(addr, {
-        stwu      r1, -0x20(r1);
-        mflr      r0;
-        stw       r0, 0x20(r1);
-        fmr       f15, f1;
-        stw       r31, 0x1c(r1);
-        stw       r30, 0x18(r1);
-        mr        r30, r5;
-        stw       r29, 0x14(r1);
-        mr        r29, r4;
-        stw       r28, 0x10(r1);
-        mr        r28, r3;
-        lwz       r14, 0x84c(r30);
-        lwz       r15, 0x8b8(r30);
-        lis       r16, {data_addr}@h;
-        addi      r16, r16, {data_addr}@l;
-        lwz       r17, {morph_ball_offset}(r14);
-        lfs       f1, 0x40(r14);
-        stfs      f1, 0x00(r16);
-        lfs       f1, 0x50(r14);
-        stfs      f1, 0x04(r16);
-        lfs       f1, 0x60(r14);
-        stfs      f1, 0x08(r16);
-        lwz       r0, 0x0c(r16);
-        cmplwi    r0, 0;
-        bgt       {addr + 0x14c};
-        lwz       r0, {movement_state_offset}(r14);
-        cmplwi    r0, 0;
-        beq       {addr + 0x84};
-        b         {addr + 0x14c};
-        cmplwi    r0, 4;
-        bne       {addr + 0x14c};
-        lwz       r0, {out_of_water_ticks_offset}(r14);
-        cmplwi    r0, 2;
-        bne       {addr + 0x90};
-        lwz       r0, {surface_restraint_type_offset}(r14);
-        b         {addr + 0x94};
-        li        r0, 4;
-        cmplwi    r0, 7;
-        beq       {addr + 0x14c};
-        mr        r3, r28;
-        bl        {is_movement_allowed};
-        cmplwi    r3, 0;
-        beq       {addr + 0x14c};
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_spring_ball_item_condition(
-    addr: u32,
-    spring_ball_start: u32,
-    spring_ball_item_kind: Option<u32>,
-    has_power_up: u32,
-) -> Vec<u8> {
-    if let Some(kind) = spring_ball_item_kind {
-        ppcasm!(addr, {
-            lwz       r3, 0x0(r15);
-            li        r4, {kind};
-            bl        {has_power_up};
-            cmplwi    r3, 0;
-            beq       {spring_ball_start + 0x14c};
-        })
-        .encoded_bytes()
-    } else {
-        ppcasm!(addr, {
-            nop;
-            nop;
-            nop;
-            nop;
-            nop;
-        })
-        .encoded_bytes()
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn patch_spring_ball_end(
-    addr: u32,
-    spring_ball_start: u32,
-    attached_actor_offset: u32,
-    energy_drain_offset: u32,
-    velocity_offset: u32,
-    get_energy_drain_intensity: u32,
-    bomb_jump: u32,
-    set_move_state: u32,
-    compute_boost_ball: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        lhz       r0, {attached_actor_offset}(r14);
-        cmplwi    r0, 65535;
-        bne       {spring_ball_start + 0x14c};
-        addi      r3, r14, {energy_drain_offset};
-        bl        {get_energy_drain_intensity};
-        fcmpu     cr0, f1, f14;
-        bgt       {spring_ball_start + 0x14c};
-        lwz       r0, 0x187c(r28);
-        cmplwi    r0, 0;
-        bne       {spring_ball_start + 0x14c};
-        lfs       f1, 0x14(r29);
-        fcmpu     cr0, f1, f14;
-        ble       {spring_ball_start + 0x14c};
-        lfs       f16, {velocity_offset}(r14);
-        lfs       f17, {velocity_offset + 4}(r14);
-        mr        r3, r14;
-        mr        r4, r16;
-        mr        r5, r30;
-        bl        {bomb_jump};
-        stfs      f16, {velocity_offset}(r14);
-        stfs      f17, {velocity_offset + 4}(r14);
-        lfs       f17, 0x1dfc(r17);
-        fcmpu     cr0, f17, f14;
-        ble       {spring_ball_start + 0x130};
-        lfs       f17, 0x10(r16);
-        lfs       f16, {velocity_offset + 8}(r14);
-        fdivs     f16, f16, f17;
-        stfs      f16, {velocity_offset + 8}(r14);
-        mr        r3, r14;
-        li        r4, 4;
-        mr        r5, r29;
-        bl        {set_move_state};
-        li        r3, 40;
-        stw       r3, 0x0c(r16);
-        b         {spring_ball_start + 0x160};
-        lwz       r3, 0x0c(r16);
-        cmplwi    r3, 0;
-        beq       {spring_ball_start + 0x160};
-        addi      r3, r3, -1;
-        stw       r3, 0x0c(r16);
-        mr        r3, r28;
-        mr        r4, r29;
-        mr        r5, r30;
-        fmr       f1, f15;
-        bl        {compute_boost_ball};
-        andi      r14, r14, 0;
-        andi      r15, r15, 0;
-        andi      r16, r16, 0;
-        andi      r17, r17, 0;
-        lwz       r0, 0x20(r1);
-        fmr       f1, f15;
-        fmr       f15, f14;
-        fmr       f16, f14;
-        fmr       f17, f14;
-        lwz       r31, 0x1c(r1);
-        lwz       r30, 0x18(r1);
-        lwz       r29, 0x14(r1);
-        lwz       r28, 0x10(r1);
-        mtlr      r0;
-        addi      r1, r1, 0x20;
-        blr;
-    data:
-        .float 0.0;
-        .float 0.0;
-        .float 0.0;
-        .long 0;
-        .float 1.5;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_spring_ball_cooldown_unmorph(
-    addr: u32,
-    spring_ball_cooldown: u32,
-    leave_morph_ball: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        stwu      r1, -0x18(r1);
-        mflr      r0;
-        stw       r0, 0x18(r1);
-        fmr       f15, f1;
-        stw       r31, 0x10(r1);
-        mr        r31, r3;
-        stw       r30, 0x14(r1);
-        mr        r30, r4;
-        lis       r14, {spring_ball_cooldown}@h;
-        addi      r14, r14, {spring_ball_cooldown}@l;
-        li        r0, 0;
-        stw       r0, 0x0(r14);
-        mr        r3, r31;
-        mr        r4, r30;
-        bl        {leave_morph_ball};
-        andi      r14, r14, 0;
-        lwz       r0, 0x18(r1);
-        lwz       r31, 0x14(r1);
-        lwz       r30, 0x10(r1);
-        mtlr      r0;
-        addi      r1, r1, 0x18;
-        blr;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_spring_ball_cooldown_morph(
-    addr: u32,
-    spring_ball_cooldown: u32,
-    enter_morph_ball: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        stwu      r1, -0x18(r1);
-        mflr      r0;
-        stw       r0, 0x18(r1);
-        fmr       f15, f1;
-        stw       r31, 0x10(r1);
-        mr        r31, r3;
-        stw       r30, 0x14(r1);
-        mr        r30, r4;
-        lis       r14, {spring_ball_cooldown}@h;
-        addi      r14, r14, {spring_ball_cooldown}@l;
-        li        r0, 0;
-        stw       r0, 0x0(r14);
-        mr        r3, r31;
-        mr        r4, r30;
-        bl        {enter_morph_ball};
-        andi      r14, r14, 0;
-        lwz       r0, 0x18(r1);
-        lwz       r31, 0x14(r1);
-        lwz       r30, 0x10(r1);
-        mtlr      r0;
-        addi      r1, r1, 0x18;
-        blr;
-    })
-    .encoded_bytes()
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn patch_custom_item_initialize_power_up(
-    addr: u32,
-    power_up_max_values: u32,
-    life_time_offset: u32,
-    probability_offset: u32,
-    actor_flags_offset: u32,
-    out_of_water_ticks_offset: u32,
-    fluid_depth_offset: u32,
-    freeze: u32,
-    init_power_up: u32,
-    first_custom_item_idx: i32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        mr           r29, r4;
-        mr           r14, r5;
-        lis          r15, {power_up_max_values}@h;
-        addi         r15, r15, {power_up_max_values}@l;
-        lwz          r4, 0x14(r1);
-        lwz          r3, {life_time_offset}(r4);
-        cmpwi        r3, 0;
-        lhz          r3, {probability_offset}(r4);
-        bne          check_custom_item;
-        cmpwi        r3, 0x42c8;
-        bne          check_custom_item;
-        li           r3, {PickupType::PowerSuit.kind()};
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r31, r0;
-        addi         r3, r3, 0x28;
-        lwz          r4, 0x4(r3);
-        addi         r4, r4, 1;
-        stw          r4, 0x4(r3);
-    check_custom_item:
-        cmpwi        r29, {PickupType::ArtifactOfNewborn.kind()};
-        ble          continue_init_power_up;
-        cmpwi        r29, {PickupType::Nothing.kind()};
-        bge          check_missile_launcher;
-        li           r3, {PickupType::UnknownItem2.kind()};
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r31, r0;
-        addi         r3, r3, 0x2c;
-        li           r4, {first_custom_item_idx};
-        add          r4, r4, r29;
-        li           r0, 1;
-        slw          r0, r4, r4;
-        lwz          r0, 0x0(r3);
-        cmpwi        r14, 0;
-        blt          remove_custom_item;
-        or           r0, r4, r4;
-        b            set_custom_item;
-    remove_custom_item:
-        not          r4, r4;
-        and          r0, r4, r4;
-    set_custom_item:
-        stw          r4, 0x0(r3);
-    check_missile_launcher:
-        cmpwi        r29, {PickupType::MissileLauncher.kind()};
-        bne          check_power_bomb;
-        li           r3, {PickupType::Missile.kind()};
-        lwz          r0, {PickupType::Missile.kind() * 4}(r15);
-        b            incr_capacity;
-    check_power_bomb:
-        cmpwi        r29, {PickupType::PowerBombLauncher.kind()};
-        bne          check_ice_trap;
-        li           r3, {PickupType::PowerBomb.kind()};
-        lwz          r0, {PickupType::PowerBomb.kind() * 4}(r15);
-        b            incr_capacity;
-    check_ice_trap:
-        cmpwi        r29, {PickupType::IceTrap.kind()};
-        bne          check_floaty_jump;
-        mr           r16, r5;
-        lwz          r3, 0x84c(r30);
-        mr           r4, r25;
-        lis          r5, 0x6FC0;
-        ori          r5, r5, 0x3D46;
-        li           r6, 0xC34;
-        lis          r7, 0x2B75;
-        ori          r7, r7, 0x7945;
-        bl           {freeze};
-        lis          r5, data@h;
-        addi         r5, r5, data@l;
-        lfs          f14, 0x0(r5);
-        lwz          r5, 0x8b8(r30);
-        lwz          r5, 0x0(r5);
-        lfs          f15, 0x0c(r5);
-        fsubs        f15, f15, f14;
-        stfs         f15, 0x0c(r5);
-        fcmpu        cr0, f15, f28;
-        bgt          not_dead_from_ice_trap;
-        lwz          r4, 0x0(r5);
-        andis        r4, r4, 0x7fff;
-        stw          r4, 0x0(r5);
-    not_dead_from_ice_trap:
-        b            end_init_power_up;
-    check_floaty_jump:
-        cmpwi        r29, {PickupType::FloatyJump.kind()};
-        bne          continue_init_power_up;
-        lwz          r3, 0x84c(r30);
-        lwz          r0, {out_of_water_ticks_offset}(r3);
-        lwz          r5, {actor_flags_offset}(r3);
-        mr           r4, r5;
-        srwi         r5, r5, 14;
-        andi         r5, r5, 7;
-        lis          r6, 0xffff;
-        ori          r6, r6, 0x3fff;
-        and          r4, r4, r6;
-        cmpwi        r14, 0;
-        blt          remove_floaty_jump;
-        addi         r5, r5, 1;
-        andi         r5, r5, 7;
-        slwi         r5, r5, 14;
-        or           r4, r4, r5;
-        cmpwi        r0, 2;
-        bne          apply_underwater_floaty_jump;
-        lis          r5, 0x41a0;
-        b            apply_floaty_jump;
-    remove_floaty_jump:
-        cmpwi        r0, 2;
-        bne          do_not_decrement_fluid_count_more_than_one;
-        cmpwi        r5, 0;
-        ble          do_not_decrement_fluid_count;
-        b            decrement_fluid_count;
-    do_not_decrement_fluid_count_more_than_one:
-        cmpwi        r5, 1;
-        ble          do_not_decrement_fluid_count;
-    decrement_fluid_count:
-        addi         r5, r5, -1;
-    do_not_decrement_fluid_count:
-        andi         r5, r5, 7;
-        slwi         r5, r5, 14;
-        or           r4, r4, r5;
-        cmpwi        r0, 2;
-        bne          apply_underwater_floaty_jump;
-        lis          r5, 0;
-    apply_floaty_jump:
-        stw          r5, {fluid_depth_offset}(r3);
-    apply_underwater_floaty_jump:
-        stw          r4, {actor_flags_offset}(r3);
-        b            end_init_power_up;
-    incr_capacity:
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r31, r0;
-        addi         r3, r3, 0x28;
-        lwz          r4, 0x4(r3);
-        add          r4, r4, r14;
-        cmpw         r4, r0;
-        ble          incr_capacity_check_for_negative;
-        mr           r4, r0;
-        b            incr_capacity_set_capacity;
-    incr_capacity_check_for_negative:
-        cmpwi        r4, 0;
-        bge          incr_capacity_set_capacity;
-        li           r4, 0;
-    incr_capacity_set_capacity:
-        stw          r4, 0x4(r3);
-        lwz          r4, 0x0(r3);
-        add          r4, r4, r14;
-        lwz          r0, 0x4(r3);
-        cmpw         r4, r0;
-        ble          incr_amount_check_for_negative;
-        mr           r4, r0;
-        b            incr_amount_set_amount;
-    incr_amount_check_for_negative:
-        cmpwi        r4, 0;
-        bge          incr_amount_set_amount;
-        li           r4, 0;
-    incr_amount_set_amount:
-        stw          r4, 0x0(r3);
-    end_init_power_up:
-        mr           r5, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
-        andi         r16, r16, 0;
-        fmr          f14, f28;
-        fmr          f15, f28;
-        b            {init_power_up + 0x108};
-    continue_init_power_up:
-        mr           r5, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
-        andi         r16, r16, 0;
-        fmr          f14, f28;
-        fmr          f15, f28;
-        cmpwi        r29, 0;
-        b            {init_power_up + 0x20};
-    data:
-        .float    75.0;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_custom_item_has_power_up(
-    addr: u32,
-    first_custom_item_idx: i32,
-    has_power_up: u32,
-) -> Vec<u8> {
-    ppcasm!(addr, {
-        lis          r5, r3_backup@h;
-        addi         r5, r5, r3_backup@l;
-        stw          r3, 0x0(r5);
-        stw          r4, 0x4(r5);
-        cmpwi        r4, {PickupType::ArtifactOfNewborn.kind()};
-        ble          not_custom_item;
-        li           r4, {PickupType::UnknownItem2.kind()};
-        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
-        add          r4, r3, r0;
-        addi         r4, r4, 0x2c;
-        lwz          r0, 0x0(r4);
-        lwz          r4, 0x4(r5);
-        li           r3, {first_custom_item_idx};
-        add          r3, r3, r4;
-        srw          r0, r3, r3;
-        andi         r3, r3, 1;
-    powerup_not_valid:
-        blr;
-    not_custom_item:
-        lwz          r4, 0x4(r5);
-        cmpwi        r4, 0;
-        blt          powerup_not_valid;
-        b            {has_power_up + 0x8};
-    r3_backup:
-        .long 0;
-    r4_backup:
-        .long 0;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_custom_item_get_item_amount(addr: u32, get_item_amount: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-        lis          r5, r3_backup@h;
-        addi         r5, r5, r3_backup@l;
-        stw          r3, 0x0(r5);
-        stw          r4, 0x4(r5);
-        mr           r4, r3;
-        li           r3, {PickupType::UnknownItem2.kind()};
-        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-        add          r3, r4, r3;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        mr           r0, r3;
-        lwz          r4, 0x4(r5);
-        cmpwi        r4, {PickupType::Missile.kind()};
-        bne          check_power_bomb;
-        andi         r0, r3, {PickupType::MissileLauncher.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        lwz          r4, 0x0(r5);
-        li           r3, {PickupType::Missile.kind()};
-        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-        add          r3, r4, r3;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        andi         r0, r3, {PickupType::UnlimitedMissiles.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 255;
-        b            is_unlimited;
-    check_power_bomb:
-        lwz          r4, 0x4(r5);
-        cmpwi        r4, {PickupType::PowerBomb.kind()};
-        bne          not_unlimited_or_not_pb_missiles;
-        andi         r0, r3, {PickupType::PowerBombLauncher.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        lwz          r4, 0x0(r5);
-        li           r3, {PickupType::PowerBomb.kind()};
-        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-        add          r3, r4, r3;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        andi         r0, r3, {PickupType::UnlimitedPowerBombs.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 8;
-        b            is_unlimited;
-    no_launcher:
-        li           r3, 0;
-    is_unlimited:
-        lwz          r4, 0x4(r5);
-        blr;
-    not_unlimited_or_not_pb_missiles:
-        lwz          r3, 0x0(r5);
-        lwz          r4, 0x4(r5);
-        cmpwi        r4, 0;
-        blt          item_type_negative;
-        b            {get_item_amount + 0x8};
-    item_type_negative:
-        li           r3, 0;
-        blr;
-    r3_backup:
-        .long 0;
-    r4_backup:
-        .long 0;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_custom_item_get_item_capacity(addr: u32, get_item_capacity: u32) -> Vec<u8> {
-    // r6/r7 are free volatiles (GetItemCapacity takes only r3, r4).
-    // Using registers instead of inline data makes this stub PIC-safe when heap-overflowed.
-    ppcasm!(addr, {
-        mr           r6, r3;
-        mr           r7, r4;
-        li           r4, {PickupType::UnknownItem2.kind()};
-        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
-        add          r4, r3, r0;
-        addi         r4, r4, 0x2c;
-        lwz          r0, 0x0(r4);
-        mr           r4, r7;
-        cmpwi        r4, {PickupType::Missile.kind()};
-        bne          check_power_bomb;
-        andi         r0, r3, {PickupType::MissileLauncher.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        mr           r3, r6;
-        li           r4, {PickupType::Missile.kind()};
-        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
-        add          r3, r3, r4;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        andi         r0, r3, {PickupType::UnlimitedMissiles.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 255;
-        b            custom_capacity_returned;
-    check_power_bomb:
-        cmpwi        r4, {PickupType::PowerBomb.kind()};
-        bne          not_unlimited_or_not_pb_missiles;
-        andi         r0, r3, {PickupType::PowerBombLauncher.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        mr           r3, r6;
-        li           r4, {PickupType::PowerBomb.kind()};
-        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
-        add          r3, r3, r4;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        andi         r0, r3, {PickupType::UnlimitedPowerBombs.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 8;
-        b            custom_capacity_returned;
-    no_launcher:
-        li           r3, 0;
-    custom_capacity_returned:
-        mr           r4, r7;
-    powerup_not_valid:
-        blr;
-    not_unlimited_or_not_pb_missiles:
-        mr           r3, r6;
-        mr           r4, r7;
-        cmpwi        r4, 0;
-        blt          powerup_not_valid;
-        b            {get_item_capacity + 0x8};
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_custom_item_decr_pickup(addr: u32, decr_pickup: u32) -> Vec<u8> {
-    // r5 is the third argument (amount), so use r7 as the backup base pointer.
-    ppcasm!(addr, {
-        lis          r7, r3_backup@h;
-        addi         r7, r7, r3_backup@l;
-        stw          r3, 0x0(r7);
-        stw          r4, 0x4(r7);
-        li           r4, {PickupType::UnknownItem2.kind()};
-        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
-        add          r4, r3, r0;
-        addi         r4, r4, 0x28;
-        lwz          r0, 0x0(r4);
-        lwz          r4, 0x4(r7);
-        cmpwi        r4, {PickupType::Missile.kind()};
-        bne          check_power_bomb;
-        andi         r0, r3, {PickupType::UnlimitedMissiles.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          pre_cleanup;
-        li           r0, 1;
-        b            cleanup;
-    check_power_bomb:
-        cmpwi        r4, {PickupType::PowerBomb.kind()};
-        bne          cleanup;
-        andi         r0, r3, {PickupType::UnlimitedPowerBombs.custom_item_value()};
-        cmpwi        r3, 0;
-        beq          pre_cleanup;
-        li           r0, 1;
-        b            cleanup;
-    pre_cleanup:
-        li           r0, 0;
-    cleanup:
-        lwz          r3, 0x0(r7);
-        lwz          r4, 0x4(r7);
-        cmpwi        r0, 0;
-        beq          not_unlimited;
-    powerup_not_valid:
-        blr;
-    not_unlimited:
-        cmpwi        r4, 0;
-        blt          powerup_not_valid;
-        b            {decr_pickup + 0x8};
-    r3_backup:
-        .long 0;
-    r4_backup:
-        .long 0;
-    })
-    .encoded_bytes()
-}
-
-pub fn patch_restore_original_check_code_cave(addr: u32, cridley_acceptscriptmsg: u32) -> Vec<u8> {
-    ppcasm!(addr, {
-        lbz       r0, 0x0140(r3);
-        rlwinm.   r0, r0, 26, 31, 31;
-        bne       {addr + 0x18};
-        lwz       r0, 0x13c(r3);
-        cmpwi     r0, 6;
-        bne       {addr + 0x20};
-        fmr       f0, f14;
-        stfs      f0, 0xad0(r30);
-        b         {cridley_acceptscriptmsg + 0x898};
-    })
-    .encoded_bytes()
-}
-
 fn patch_rel_loader(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1153,12 +369,7 @@ fn patch_rel_loader(
         rel_loader.cave_map_str.lines().map(|l| Ok(l.to_owned())),
     )
     .map_err(|e| e.to_string())?;
-    emitter.emit_at_cave_start(
-        dol_patcher,
-        "rel_loader",
-        rel_loader.cave_start,
-        rel_loader_bytes,
-    )?;
+    emitter.emit_at_cave_start(dol_patcher, rel_loader.cave_start, rel_loader_bytes)?;
     dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("PPCSetFpIEEEMode", version), {
         b { rel_loader_map["rel_loader_hook"] };
     }))?;
@@ -1170,12 +381,56 @@ fn patch_emit_is_memory_relay_active_func(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<u32, String> {
-    emitter.emit_addressed(dol_patcher, "is_memory_relay_active_func", |addr| {
-        patch_is_memory_relay_active_func(
-            addr,
-            symbol_addr!("g_GameState", version),
-            symbol_addr!("StateForWorld__10CGameStateFUi", version),
-        )
+    let g_game_state = symbol_addr!("g_GameState", version);
+    let state_for_world = symbol_addr!("StateForWorld__10CGameStateFUi", version);
+    emitter.emit_addressed(dol_patcher, |addr| {
+        ppcasm!(addr, {
+            stwu      r1, -0x24(r1);
+            mflr      r0;
+            stw       r0, 0x24(r1);
+            stw       r14, 0x20(r1);
+            stw       r15, 0x1c(r1);
+            stw       r29, 0x18(r1);
+            mr        r29, r6;
+            stw       r30, 0x14(r1);
+            mr        r30, r4;
+            stw       r31, 0x10(r1);
+            mr        r31, r3;
+            lis       r3, {g_game_state}@h;
+            addi      r3, r3, {g_game_state}@l;
+            lwz       r3, 0x0(r3);
+            bl        {state_for_world};
+            lwz       r14, 0x08(r3);
+            lwz       r14, 0x00(r14);
+            li        r0, 0;
+            li        r3, 1;
+            lwz       r6, 0x00(r14);
+            addi      r6, r6, 1;
+            cmpw      r3, r6;
+            bge       {addr + 0x80};
+            rlwinm    r3, r3, 2, 0, 29;
+            lwzx      r15, r3, r14;
+            rlwinm    r3, r3, 30, 4, 31;
+            cmpw      r15, r31;
+            bne       {addr + 0x78};
+            li        r0, 1;
+            b         {addr + 0x80};
+            addi      r3, r3, 1;
+            b         {addr + 0x54};
+            mr        r3, r0;
+            lwz       r0, 0x24(r1);
+            lwz       r14, 0x20(r1);
+            lwz       r15, 0x1c(r1);
+            mr        r6, r29;
+            lwz       r29, 0x18(r1);
+            mr        r4, r30;
+            lwz       r30, 0x14(r1);
+            lwz       r31, 0x10(r1);
+            mtlr      r0;
+            addi      r1, r1, 0x24;
+            blr;
+        })
+        .encoded_bytes()
     })
 }
 
@@ -1196,24 +451,54 @@ fn patch_set_pickup_icon_txtr(
     let map_pickup_icon_txtr = custom_asset_ids::MAP_PICKUP_ICON_TXTR.to_u32();
 
     let sitp_addr = if version == Version::NtscJ || version == Version::Pal {
-        emitter.emit_addressed(dol_patcher, "sitp_pal_j", |addr| {
-            patch_set_pickup_icon_txtr_pal_j(
-                addr,
-                is_memory_relay_active_func,
-                sitp_off,
-                map_pickup_icon_txtr,
-                draw_func + 0x284,
-            )
+        let draw_func_284 = draw_func + 0x284;
+        emitter.emit_addressed(dol_patcher, |addr| {
+            ppcasm!(addr, {
+                lwz          r3, 0x08(r18);
+                lwz          r4, 0x6c(r1);
+                lwz          r4, 0x24(r4);
+                lbz          r0, 0x04(r4);
+                cmpwi        r0, 1;
+                beq          {addr + 0x20};
+                lwz          r4, 0x08(r4);
+                b            {addr + 0x24};
+                lwz          r4, 0x0c(r4);
+                bl           {is_memory_relay_active_func};
+                lis          r31, {map_pickup_icon_txtr}@h;
+                addi         r31, r31, {map_pickup_icon_txtr}@l;
+                mr           r0, r31;
+                cmpwi        r3, 0;
+                lis          r31, 0xffff;
+                ori          r31, r31, 0xffff;
+                lwz          r3, {sitp_off}(r13);
+                beq          {addr + 0x4c};
+                fmr          f30, f14;
+                b            {draw_func_284};
+            })
+            .encoded_bytes()
         })?
     } else {
-        emitter.emit_addressed(dol_patcher, "sitp_ntsc", |addr| {
-            patch_set_pickup_icon_txtr_ntsc(
-                addr,
-                is_memory_relay_active_func,
-                sitp_off,
-                map_pickup_icon_txtr,
-                draw_func + 0x298,
-            )
+        let draw_func_298 = draw_func + 0x298;
+        emitter.emit_addressed(dol_patcher, |addr| {
+            ppcasm!(addr, {
+                lwz          r3, 0x08(r18);
+                lwz          r4, 0x24(r31);
+                lbz          r0, 0x04(r4);
+                cmpwi        r0, 1;
+                beq          {addr + 0x1c};
+                lwz          r4, 0x08(r4);
+                b            {addr + 0x20};
+                lwz          r4, 0x0c(r4);
+                bl           {is_memory_relay_active_func};
+                cmpwi        r3, 0;
+                lwz          r3, {sitp_off}(r13);
+                lis          r6, {map_pickup_icon_txtr}@h;
+                addi         r6, r6, {map_pickup_icon_txtr}@l;
+                beq          {addr + 0x3c};
+                fmr          f30, f14;
+                b            {draw_func_298};
+            })
+            .encoded_bytes()
         })?
     };
     dol_patcher.ppcasm_patch(&ppcasm!(
@@ -1232,7 +517,7 @@ fn patch_warp_to_start(
         "ThinkSaveStation__22CScriptSpecialFunctionFfR13CStateManager",
         version
     );
-    let wts_addr = emitter.emit_addressed(dol_patcher, "warp_to_start", |addr| {
+    let wts_addr = emitter.emit_addressed(dol_patcher, |addr| {
         ppcasm!(addr, {
             lis       r14, {symbol_addr!("g_Main", version)}@h;
             addi      r14, r14, {symbol_addr!("g_Main", version)}@l;
@@ -1306,34 +591,145 @@ fn patch_spring_ball(
     // All three spring-ball parts are one contiguous allocation (conditional branches
     // between them use the +-32 KB BC form and require contiguity).
     let compute_spring_ball_movement =
-        emitter.emit_addressed(dol_patcher, "spring_ball", |base| {
-            let sb_start = patch_spring_ball_start(
-                base,
-                morph_ball_offset,
-                movement_state_offset,
-                sb_out_of_water_ticks_offset,
-                surface_restraint_type_offset,
-                is_movement_allowed_sym,
-            );
+        emitter.emit_addressed(dol_patcher, |base| {
+            let data_addr = base + 0x1b4;
+            let sb_start = ppcasm!(base, {
+                stwu      r1, -0x20(r1);
+                mflr      r0;
+                stw       r0, 0x20(r1);
+                fmr       f15, f1;
+                stw       r31, 0x1c(r1);
+                stw       r30, 0x18(r1);
+                mr        r30, r5;
+                stw       r29, 0x14(r1);
+                mr        r29, r4;
+                stw       r28, 0x10(r1);
+                mr        r28, r3;
+                lwz       r14, 0x84c(r30);
+                lwz       r15, 0x8b8(r30);
+                lis       r16, {data_addr}@h;
+                addi      r16, r16, {data_addr}@l;
+                lwz       r17, {morph_ball_offset}(r14);
+                lfs       f1, 0x40(r14);
+                stfs      f1, 0x00(r16);
+                lfs       f1, 0x50(r14);
+                stfs      f1, 0x04(r16);
+                lfs       f1, 0x60(r14);
+                stfs      f1, 0x08(r16);
+                lwz       r0, 0x0c(r16);
+                cmplwi    r0, 0;
+                bgt       {base + 0x14c};
+                lwz       r0, {movement_state_offset}(r14);
+                cmplwi    r0, 0;
+                beq       {base + 0x84};
+                b         {base + 0x14c};
+                cmplwi    r0, 4;
+                bne       {base + 0x14c};
+                lwz       r0, {sb_out_of_water_ticks_offset}(r14);
+                cmplwi    r0, 2;
+                bne       {base + 0x90};
+                lwz       r0, {surface_restraint_type_offset}(r14);
+                b         {base + 0x94};
+                li        r0, 4;
+                cmplwi    r0, 7;
+                beq       {base + 0x14c};
+                mr        r3, r28;
+                bl        {is_movement_allowed_sym};
+                cmplwi    r3, 0;
+                beq       {base + 0x14c};
+            })
+            .encoded_bytes();
             let sb_item_addr = base + sb_start.len() as u32;
-            let sb_item = patch_spring_ball_item_condition(
-                sb_item_addr,
-                base,
-                spring_ball_item_kind,
-                has_power_up_sym,
-            );
+            let sb_item = if let Some(kind) = spring_ball_item_kind {
+                ppcasm!(sb_item_addr, {
+                    lwz       r3, 0x0(r15);
+                    li        r4, {kind};
+                    bl        {has_power_up_sym};
+                    cmplwi    r3, 0;
+                    beq       {base + 0x14c};
+                })
+                .encoded_bytes()
+            } else {
+                ppcasm!(sb_item_addr, {
+                    nop;
+                    nop;
+                    nop;
+                    nop;
+                    nop;
+                })
+                .encoded_bytes()
+            };
             let sb_end_addr = sb_item_addr + sb_item.len() as u32;
-            let sb_end = patch_spring_ball_end(
-                sb_end_addr,
-                base,
-                attached_actor_offset,
-                energy_drain_offset,
-                velocity_offset,
-                get_energy_drain_sym,
-                bomb_jump_sym,
-                set_move_state_sym,
-                compute_boost_ball_sym,
-            );
+            let sb_end = ppcasm!(sb_end_addr, {
+                lhz       r0, {attached_actor_offset}(r14);
+                cmplwi    r0, 65535;
+                bne       {base + 0x14c};
+                addi      r3, r14, {energy_drain_offset};
+                bl        {get_energy_drain_sym};
+                fcmpu     cr0, f1, f14;
+                bgt       {base + 0x14c};
+                lwz       r0, 0x187c(r28);
+                cmplwi    r0, 0;
+                bne       {base + 0x14c};
+                lfs       f1, 0x14(r29);
+                fcmpu     cr0, f1, f14;
+                ble       {base + 0x14c};
+                lfs       f16, {velocity_offset}(r14);
+                lfs       f17, {velocity_offset + 4}(r14);
+                mr        r3, r14;
+                mr        r4, r16;
+                mr        r5, r30;
+                bl        {bomb_jump_sym};
+                stfs      f16, {velocity_offset}(r14);
+                stfs      f17, {velocity_offset + 4}(r14);
+                lfs       f17, 0x1dfc(r17);
+                fcmpu     cr0, f17, f14;
+                ble       {base + 0x130};
+                lfs       f17, 0x10(r16);
+                lfs       f16, {velocity_offset + 8}(r14);
+                fdivs     f16, f16, f17;
+                stfs      f16, {velocity_offset + 8}(r14);
+                mr        r3, r14;
+                li        r4, 4;
+                mr        r5, r29;
+                bl        {set_move_state_sym};
+                li        r3, 40;
+                stw       r3, 0x0c(r16);
+                b         {base + 0x160};
+                lwz       r3, 0x0c(r16);
+                cmplwi    r3, 0;
+                beq       {base + 0x160};
+                addi      r3, r3, -1;
+                stw       r3, 0x0c(r16);
+                mr        r3, r28;
+                mr        r4, r29;
+                mr        r5, r30;
+                fmr       f1, f15;
+                bl        {compute_boost_ball_sym};
+                andi      r14, r14, 0;
+                andi      r15, r15, 0;
+                andi      r16, r16, 0;
+                andi      r17, r17, 0;
+                lwz       r0, 0x20(r1);
+                fmr       f1, f15;
+                fmr       f15, f14;
+                fmr       f16, f14;
+                fmr       f17, f14;
+                lwz       r31, 0x1c(r1);
+                lwz       r30, 0x18(r1);
+                lwz       r29, 0x14(r1);
+                lwz       r28, 0x10(r1);
+                mtlr      r0;
+                addi      r1, r1, 0x20;
+                blr;
+            data:
+                .float 0.0;
+                .float 0.0;
+                .float 0.0;
+                .long 0;
+                .float 1.5;
+            })
+            .encoded_bytes();
             let mut all = sb_start;
             all.extend(sb_item);
             all.extend(sb_end);
@@ -1344,7 +740,6 @@ fn patch_spring_ball(
         symbol_addr!("ComputeBallMovement__10CMorphBallFRC11CFinalInputR13CStateManagerf", version) + 0x2c,
         { bl {compute_spring_ball_movement}; }))?;
 
-    // spring_ball_cooldown is the .long 0 word embedded in patch_spring_ball_end's data section.
     let spring_ball_cooldown = compute_spring_ball_movement + 0x1c0;
 
     let (call_leave_morph_ball_offset, call_enter_morph_ball_offset) =
@@ -1362,8 +757,32 @@ fn patch_spring_ball(
     let enter_morph_ball_sym =
         symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version);
 
-    let sb_unmorph_addr = emitter.emit_addressed(dol_patcher, "sb_unmorph", |addr| {
-        patch_spring_ball_cooldown_unmorph(addr, spring_ball_cooldown, leave_morph_ball_sym)
+    let sb_unmorph_addr = emitter.emit_addressed(dol_patcher, |addr| {
+        ppcasm!(addr, {
+            stwu      r1, -0x18(r1);
+            mflr      r0;
+            stw       r0, 0x18(r1);
+            fmr       f15, f1;
+            stw       r31, 0x10(r1);
+            mr        r31, r3;
+            stw       r30, 0x14(r1);
+            mr        r30, r4;
+            lis       r14, {spring_ball_cooldown}@h;
+            addi      r14, r14, {spring_ball_cooldown}@l;
+            li        r0, 0;
+            stw       r0, 0x0(r14);
+            mr        r3, r31;
+            mr        r4, r30;
+            bl        {leave_morph_ball_sym};
+            andi      r14, r14, 0;
+            lwz       r0, 0x18(r1);
+            lwz       r31, 0x14(r1);
+            lwz       r30, 0x10(r1);
+            mtlr      r0;
+            addi      r1, r1, 0x18;
+            blr;
+        })
+        .encoded_bytes()
     })?;
     dol_patcher.ppcasm_patch(&ppcasm!(
         update_morph_ball_transition + call_leave_morph_ball_offset,
@@ -1372,8 +791,32 @@ fn patch_spring_ball(
         }
     ))?;
 
-    let sb_morph_addr = emitter.emit_addressed(dol_patcher, "sb_morph", |addr| {
-        patch_spring_ball_cooldown_morph(addr, spring_ball_cooldown, enter_morph_ball_sym)
+    let sb_morph_addr = emitter.emit_addressed(dol_patcher, |addr| {
+        ppcasm!(addr, {
+            stwu      r1, -0x18(r1);
+            mflr      r0;
+            stw       r0, 0x18(r1);
+            fmr       f15, f1;
+            stw       r31, 0x10(r1);
+            mr        r31, r3;
+            stw       r30, 0x14(r1);
+            mr        r30, r4;
+            lis       r14, {spring_ball_cooldown}@h;
+            addi      r14, r14, {spring_ball_cooldown}@l;
+            li        r0, 0;
+            stw       r0, 0x0(r14);
+            mr        r3, r31;
+            mr        r4, r30;
+            bl        {enter_morph_ball_sym};
+            andi      r14, r14, 0;
+            lwz       r0, 0x18(r1);
+            lwz       r31, 0x14(r1);
+            lwz       r30, 0x10(r1);
+            mtlr      r0;
+            addi      r1, r1, 0x18;
+            blr;
+        })
+        .encoded_bytes()
     })?;
     dol_patcher.ppcasm_patch(&ppcasm!(
         update_morph_ball_transition + call_enter_morph_ball_offset,
@@ -1410,67 +853,422 @@ fn patch_custom_items(
     let power_up_max_values_sym = symbol_addr!("CPlayerState_PowerUpMaxValues", version);
     let freeze_sym = symbol_addr!("Freeze__7CPlayerFR13CStateManagerUiUsUi", version);
 
-    // ci_* stubs are overflow-eligible: their only data words are .long 0 (opcode 0,
-    // not matched by make_pic's b/bl check) and external branches target DOL addresses.
-    emitter.emit_and_patch(
-        dol_patcher,
-        "ci_init",
-        init_power_up_sym + 0x1c,
-        false,
-        |addr| {
-            patch_custom_item_initialize_power_up(
-                addr,
-                power_up_max_values_sym,
-                life_time_offset,
-                probability_offset,
-                actor_flags_offset,
-                out_of_water_ticks_offset,
-                fluid_depth_offset,
-                freeze_sym,
-                init_power_up_sym,
-                first_custom_item_idx,
-            )
-        },
-    )?;
-
     let has_power_up_sym = symbol_addr!(
         "HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType",
         version
     );
-    emitter.emit_and_patch(dol_patcher, "ci_has", has_power_up_sym, false, |addr| {
-        patch_custom_item_has_power_up(addr, first_custom_item_idx, has_power_up_sym)
-    })?;
-
     let get_item_amount_sym = symbol_addr!(
         "GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType",
         version
     );
-    emitter.emit_and_patch(
-        dol_patcher,
-        "ci_amount",
-        get_item_amount_sym,
-        false,
-        |addr| patch_custom_item_get_item_amount(addr, get_item_amount_sym),
-    )?;
-
     let get_item_capacity_sym = symbol_addr!(
         "GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType",
         version
     );
-    emitter.emit_and_patch(
-        dol_patcher,
-        "ci_capacity",
-        get_item_capacity_sym,
-        false,
-        |addr| patch_custom_item_get_item_capacity(addr, get_item_capacity_sym),
-    )?;
-
     let decr_pickup_sym = symbol_addr!(
         "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
         version
     );
-    emitter.emit_and_patch(dol_patcher, "ci_decr", decr_pickup_sym, false, |addr| {
-        patch_custom_item_decr_pickup(addr, decr_pickup_sym)
+
+    // ci_* stubs are overflow-eligible: their only data words are .long 0 (opcode 0,
+    // not matched by make_pic's b/bl check) and external branches target DOL addresses
+    emitter.emit_and_patch(dol_patcher, init_power_up_sym + 0x1c, false, |addr| {
+        ppcasm!(addr, {
+            mr           r29, r4;
+            mr           r14, r5;
+            lis          r15, {power_up_max_values_sym}@h;
+            addi         r15, r15, {power_up_max_values_sym}@l;
+            lwz          r4, 0x14(r1);
+            lwz          r3, {life_time_offset}(r4);
+            cmpwi        r3, 0;
+            lhz          r3, {probability_offset}(r4);
+            bne          check_custom_item;
+            cmpwi        r3, 0x42c8;
+            bne          check_custom_item;
+            li           r3, {PickupType::PowerSuit.kind()};
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r31, r0;
+            addi         r3, r3, 0x28;
+            lwz          r4, 0x4(r3);
+            addi         r4, r4, 1;
+            stw          r4, 0x4(r3);
+        check_custom_item:
+            cmpwi        r29, {PickupType::ArtifactOfNewborn.kind()};
+            ble          continue_init_power_up;
+            cmpwi        r29, {PickupType::Nothing.kind()};
+            bge          check_missile_launcher;
+            li           r3, {PickupType::UnknownItem2.kind()};
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r31, r0;
+            addi         r3, r3, 0x2c;
+            li           r4, {first_custom_item_idx};
+            add          r4, r4, r29;
+            li           r0, 1;
+            slw          r0, r4, r4;
+            lwz          r0, 0x0(r3);
+            cmpwi        r14, 0;
+            blt          remove_custom_item;
+            or           r0, r4, r4;
+            b            set_custom_item;
+        remove_custom_item:
+            not          r4, r4;
+            and          r0, r4, r4;
+        set_custom_item:
+            stw          r4, 0x0(r3);
+        check_missile_launcher:
+            cmpwi        r29, {PickupType::MissileLauncher.kind()};
+            bne          check_power_bomb;
+            li           r3, {PickupType::Missile.kind()};
+            lwz          r0, {PickupType::Missile.kind() * 4}(r15);
+            b            incr_capacity;
+        check_power_bomb:
+            cmpwi        r29, {PickupType::PowerBombLauncher.kind()};
+            bne          check_ice_trap;
+            li           r3, {PickupType::PowerBomb.kind()};
+            lwz          r0, {PickupType::PowerBomb.kind() * 4}(r15);
+            b            incr_capacity;
+        check_ice_trap:
+            cmpwi        r29, {PickupType::IceTrap.kind()};
+            bne          check_floaty_jump;
+            mr           r16, r5;
+            lwz          r3, 0x84c(r30);
+            mr           r4, r25;
+            lis          r5, 0x6FC0;
+            ori          r5, r5, 0x3D46;
+            li           r6, 0xC34;
+            lis          r7, 0x2B75;
+            ori          r7, r7, 0x7945;
+            bl           {freeze_sym};
+            lis          r5, data@h;
+            addi         r5, r5, data@l;
+            lfs          f14, 0x0(r5);
+            lwz          r5, 0x8b8(r30);
+            lwz          r5, 0x0(r5);
+            lfs          f15, 0x0c(r5);
+            fsubs        f15, f15, f14;
+            stfs         f15, 0x0c(r5);
+            fcmpu        cr0, f15, f28;
+            bgt          not_dead_from_ice_trap;
+            lwz          r4, 0x0(r5);
+            andis        r4, r4, 0x7fff;
+            stw          r4, 0x0(r5);
+        not_dead_from_ice_trap:
+            b            end_init_power_up;
+        check_floaty_jump:
+            cmpwi        r29, {PickupType::FloatyJump.kind()};
+            bne          continue_init_power_up;
+            lwz          r3, 0x84c(r30);
+            lwz          r0, {out_of_water_ticks_offset}(r3);
+            lwz          r5, {actor_flags_offset}(r3);
+            mr           r4, r5;
+            srwi         r5, r5, 14;
+            andi         r5, r5, 7;
+            lis          r6, 0xffff;
+            ori          r6, r6, 0x3fff;
+            and          r4, r4, r6;
+            cmpwi        r14, 0;
+            blt          remove_floaty_jump;
+            addi         r5, r5, 1;
+            andi         r5, r5, 7;
+            slwi         r5, r5, 14;
+            or           r4, r4, r5;
+            cmpwi        r0, 2;
+            bne          apply_underwater_floaty_jump;
+            lis          r5, 0x41a0;
+            b            apply_floaty_jump;
+        remove_floaty_jump:
+            cmpwi        r0, 2;
+            bne          do_not_decrement_fluid_count_more_than_one;
+            cmpwi        r5, 0;
+            ble          do_not_decrement_fluid_count;
+            b            decrement_fluid_count;
+        do_not_decrement_fluid_count_more_than_one:
+            cmpwi        r5, 1;
+            ble          do_not_decrement_fluid_count;
+        decrement_fluid_count:
+            addi         r5, r5, -1;
+        do_not_decrement_fluid_count:
+            andi         r5, r5, 7;
+            slwi         r5, r5, 14;
+            or           r4, r4, r5;
+            cmpwi        r0, 2;
+            bne          apply_underwater_floaty_jump;
+            lis          r5, 0;
+        apply_floaty_jump:
+            stw          r5, {fluid_depth_offset}(r3);
+        apply_underwater_floaty_jump:
+            stw          r4, {actor_flags_offset}(r3);
+            b            end_init_power_up;
+        incr_capacity:
+            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
+            add          r3, r31, r0;
+            addi         r3, r3, 0x28;
+            lwz          r4, 0x4(r3);
+            add          r4, r4, r14;
+            cmpw         r4, r0;
+            ble          incr_capacity_check_for_negative;
+            mr           r4, r0;
+            b            incr_capacity_set_capacity;
+        incr_capacity_check_for_negative:
+            cmpwi        r4, 0;
+            bge          incr_capacity_set_capacity;
+            li           r4, 0;
+        incr_capacity_set_capacity:
+            stw          r4, 0x4(r3);
+            lwz          r4, 0x0(r3);
+            add          r4, r4, r14;
+            lwz          r0, 0x4(r3);
+            cmpw         r4, r0;
+            ble          incr_amount_check_for_negative;
+            mr           r4, r0;
+            b            incr_amount_set_amount;
+        incr_amount_check_for_negative:
+            cmpwi        r4, 0;
+            bge          incr_amount_set_amount;
+            li           r4, 0;
+        incr_amount_set_amount:
+            stw          r4, 0x0(r3);
+        end_init_power_up:
+            mr           r5, r14;
+            andi         r14, r14, 0;
+            andi         r15, r15, 0;
+            andi         r16, r16, 0;
+            fmr          f14, f28;
+            fmr          f15, f28;
+            b            {init_power_up_sym + 0x108};
+        continue_init_power_up:
+            mr           r5, r14;
+            andi         r14, r14, 0;
+            andi         r15, r15, 0;
+            andi         r16, r16, 0;
+            fmr          f14, f28;
+            fmr          f15, f28;
+            cmpwi        r29, 0;
+            b            {init_power_up_sym + 0x20};
+        data:
+            .float    75.0;
+        })
+        .encoded_bytes()
+    })?;
+
+    emitter.emit_and_patch(dol_patcher, has_power_up_sym, false, |addr| {
+        ppcasm!(addr, {
+            lis          r5, r3_backup@h;
+            addi         r5, r5, r3_backup@l;
+            stw          r3, 0x0(r5);
+            stw          r4, 0x4(r5);
+            cmpwi        r4, {PickupType::ArtifactOfNewborn.kind()};
+            ble          not_custom_item;
+            li           r4, {PickupType::UnknownItem2.kind()};
+            rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+            add          r4, r3, r0;
+            addi         r4, r4, 0x2c;
+            lwz          r0, 0x0(r4);
+            lwz          r4, 0x4(r5);
+            li           r3, {first_custom_item_idx};
+            add          r3, r3, r4;
+            srw          r0, r3, r3;
+            andi         r3, r3, 1;
+        powerup_not_valid:
+            blr;
+        not_custom_item:
+            lwz          r4, 0x4(r5);
+            cmpwi        r4, 0;
+            blt          powerup_not_valid;
+            b            {has_power_up_sym + 0x8};
+        r3_backup:
+            .long 0;
+        r4_backup:
+            .long 0;
+        })
+        .encoded_bytes()
+    })?;
+
+    emitter.emit_and_patch(dol_patcher, get_item_amount_sym, false, |addr| {
+        ppcasm!(addr, {
+            lis          r5, r3_backup@h;
+            addi         r5, r5, r3_backup@l;
+            stw          r3, 0x0(r5);
+            stw          r4, 0x4(r5);
+            mr           r4, r3;
+            li           r3, {PickupType::UnknownItem2.kind()};
+            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+            add          r3, r4, r3;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            mr           r0, r3;
+            lwz          r4, 0x4(r5);
+            cmpwi        r4, {PickupType::Missile.kind()};
+            bne          check_power_bomb;
+            andi         r0, r3, {PickupType::MissileLauncher.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          no_launcher;
+            lwz          r4, 0x0(r5);
+            li           r3, {PickupType::Missile.kind()};
+            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+            add          r3, r4, r3;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
+            andi         r0, r3, {PickupType::UnlimitedMissiles.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          not_unlimited_or_not_pb_missiles;
+            li           r3, 255;
+            b            is_unlimited;
+        check_power_bomb:
+            lwz          r4, 0x4(r5);
+            cmpwi        r4, {PickupType::PowerBomb.kind()};
+            bne          not_unlimited_or_not_pb_missiles;
+            andi         r0, r3, {PickupType::PowerBombLauncher.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          no_launcher;
+            lwz          r4, 0x0(r5);
+            li           r3, {PickupType::PowerBomb.kind()};
+            rlwinm       r3, r3, 0x3, 0x0, 0x1c;
+            add          r3, r4, r3;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
+            andi         r0, r3, {PickupType::UnlimitedPowerBombs.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          not_unlimited_or_not_pb_missiles;
+            li           r3, 8;
+            b            is_unlimited;
+        no_launcher:
+            li           r3, 0;
+        is_unlimited:
+            lwz          r4, 0x4(r5);
+            blr;
+        not_unlimited_or_not_pb_missiles:
+            lwz          r3, 0x0(r5);
+            lwz          r4, 0x4(r5);
+            cmpwi        r4, 0;
+            blt          item_type_negative;
+            b            {get_item_amount_sym + 0x8};
+        item_type_negative:
+            li           r3, 0;
+            blr;
+        r3_backup:
+            .long 0;
+        r4_backup:
+            .long 0;
+        })
+        .encoded_bytes()
+    })?;
+
+    emitter.emit_and_patch(dol_patcher, get_item_capacity_sym, false, |addr| {
+        // r6/r7 are free volatiles (GetItemCapacity takes only r3, r4).
+        ppcasm!(addr, {
+            mr           r6, r3;
+            mr           r7, r4;
+            li           r4, {PickupType::UnknownItem2.kind()};
+            rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+            add          r4, r3, r0;
+            addi         r4, r4, 0x2c;
+            lwz          r0, 0x0(r4);
+            mr           r4, r7;
+            cmpwi        r4, {PickupType::Missile.kind()};
+            bne          check_power_bomb;
+            andi         r0, r3, {PickupType::MissileLauncher.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          no_launcher;
+            mr           r3, r6;
+            li           r4, {PickupType::Missile.kind()};
+            rlwinm       r4, r4, 0x3, 0x0, 0x1c;
+            add          r3, r3, r4;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
+            andi         r0, r3, {PickupType::UnlimitedMissiles.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          not_unlimited_or_not_pb_missiles;
+            li           r3, 255;
+            b            custom_capacity_returned;
+        check_power_bomb:
+            cmpwi        r4, {PickupType::PowerBomb.kind()};
+            bne          not_unlimited_or_not_pb_missiles;
+            andi         r0, r3, {PickupType::PowerBombLauncher.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          no_launcher;
+            mr           r3, r6;
+            li           r4, {PickupType::PowerBomb.kind()};
+            rlwinm       r4, r4, 0x3, 0x0, 0x1c;
+            add          r3, r3, r4;
+            addi         r3, r3, 0x2c;
+            lwz          r3, 0x0(r3);
+            cmpwi        r3, 0;
+            ble          no_launcher;
+            andi         r0, r3, {PickupType::UnlimitedPowerBombs.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          not_unlimited_or_not_pb_missiles;
+            li           r3, 8;
+            b            custom_capacity_returned;
+        no_launcher:
+            li           r3, 0;
+        custom_capacity_returned:
+            mr           r4, r7;
+        powerup_not_valid:
+            blr;
+        not_unlimited_or_not_pb_missiles:
+            mr           r3, r6;
+            mr           r4, r7;
+            cmpwi        r4, 0;
+            blt          powerup_not_valid;
+            b            {get_item_capacity_sym + 0x8};
+        })
+        .encoded_bytes()
+    })?;
+
+    emitter.emit_and_patch(dol_patcher, decr_pickup_sym, false, |addr| {
+        // r5 is the third argument (amount), so use r7 as the backup base pointer.
+        ppcasm!(addr, {
+            lis          r7, r3_backup@h;
+            addi         r7, r7, r3_backup@l;
+            stw          r3, 0x0(r7);
+            stw          r4, 0x4(r7);
+            li           r4, {PickupType::UnknownItem2.kind()};
+            rlwinm       r0, r4, 0x3, 0x0, 0x1c;
+            add          r4, r3, r0;
+            addi         r4, r4, 0x28;
+            lwz          r0, 0x0(r4);
+            lwz          r4, 0x4(r7);
+            cmpwi        r4, {PickupType::Missile.kind()};
+            bne          check_power_bomb;
+            andi         r0, r3, {PickupType::UnlimitedMissiles.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          pre_cleanup;
+            li           r0, 1;
+            b            cleanup;
+        check_power_bomb:
+            cmpwi        r4, {PickupType::PowerBomb.kind()};
+            bne          cleanup;
+            andi         r0, r3, {PickupType::UnlimitedPowerBombs.custom_item_value()};
+            cmpwi        r3, 0;
+            beq          pre_cleanup;
+            li           r0, 1;
+            b            cleanup;
+        pre_cleanup:
+            li           r0, 0;
+        cleanup:
+            lwz          r3, 0x0(r7);
+            lwz          r4, 0x4(r7);
+            cmpwi        r0, 0;
+            beq          not_unlimited;
+        powerup_not_valid:
+            blr;
+        not_unlimited:
+            cmpwi        r4, 0;
+            blt          powerup_not_valid;
+            b            {decr_pickup_sym + 0x8};
+        r3_backup:
+            .long 0;
+        r4_backup:
+            .long 0;
+        })
+        .encoded_bytes()
     })?;
 
     Ok(())
@@ -1493,8 +1291,19 @@ fn patch_restore_ntsc_00(
         dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x840, {
             nop;
         }))?;
-        let restore_addr = emitter.emit_addressed(dol_patcher, "restore_ridley_check", |addr| {
-            patch_restore_original_check_code_cave(addr, cridley_addr)
+        let restore_addr = emitter.emit_addressed(dol_patcher, |addr| {
+            ppcasm!(addr, {
+                lbz       r0, 0x0140(r3);
+                rlwinm.   r0, r0, 26, 31, 31;
+                bne       {addr + 0x18};
+                lwz       r0, 0x13c(r3);
+                cmpwi     r0, 6;
+                bne       {addr + 0x20};
+                fmr       f0, f14;
+                stfs      f0, 0xad0(r30);
+                b         {cridley_addr + 0x898};
+            })
+            .encoded_bytes()
         })?;
         dol_patcher.ppcasm_patch(&ppcasm!(cridley_addr + 0x884, {
             beq { cridley_addr + 0x88C };
@@ -1672,7 +1481,7 @@ fn patch_build_async_null_guard(
     // The epilogue at +0xC8 restores all of this and returns.
 
     let cave_addr =
-        emitter.emit_addressed(dol_patcher, "build_async_null_guard_cave", |cave_addr| {
+        emitter.emit_addressed(dol_patcher, |cave_addr| {
             ppcasm!(cave_addr, {
                 cmpwi r29, 0x0;                                // null alloc result?
                 bne do_load;
@@ -1726,7 +1535,7 @@ fn patch_inflate_null_guard(
     }
 
     let oom_flag_addr = {
-        emitter.emit_addressed(dol_patcher, "inflate_oom_flag", |_| {
+        emitter.emit_addressed(dol_patcher, |_| {
             0u32.to_be_bytes().to_vec()
         })?
     };
@@ -1743,7 +1552,7 @@ fn patch_inflate_null_guard(
     //   then jump to failure epilogue. Next retry re-allocates z_stream + buf fresh.
     // r12 is volatile (may be clobbered by inflateEnd), so reload fresh with lis before use.
     let stub_addr =
-        emitter.emit_addressed(dol_patcher, "inflate_null_guard_stub", |cave_addr| {
+        emitter.emit_addressed(dol_patcher, |cave_addr| {
             ppcasm!(cave_addr, {
                 lwz r3, 0x20(r30);              // original instruction: load inflate buf ptr
                 cmpwi r3, 0x0;
@@ -1804,7 +1613,7 @@ fn patch_add_puddle_null_guard(
     // Null path: blr back to intercept+4 (= b {retry_addr}), skip AddPuddle entirely.
     //   Pool retry fails (pool not expanded), r23 = 0, falls into OOM handling at 0x80351FE0.
     let stub_addr =
-        emitter.emit_addressed(dol_patcher, "add_puddle_null_guard_stub", |cave_addr| {
+        emitter.emit_addressed(dol_patcher, |cave_addr| {
             ppcasm!(cave_addr, {
                 cmpwi r3, 0x0;
                 beq null_path;
@@ -1863,7 +1672,6 @@ fn patch_init_bitmap_buffers_null_guard(
     //   CARAMToken at this+0x44 stays default-constructed (state=6); LoadToARAM returns 0 safely.
     emitter.emit_and_patch(
         dol_patcher,
-        "init_bitmap_buffers_null_guard_stub",
         intercept_addr,
         true,
         |cave_addr| {
@@ -1876,6 +1684,130 @@ fn patch_init_bitmap_buffers_null_guard(
                 li r0, 0;
                 stw r0, 0xc(r31); // zero x0c_bmpDataSize (no buffer was allocated)
                 b {epilogue_addr}; // skip PostConstruct + CountMemory
+            })
+            .encoded_bytes()
+        },
+    )?;
+
+    Ok(())
+}
+
+// Completes patch_init_bitmap_buffers_null_guard. That guard makes InitBitmapBuffers leave the
+// CARAMToken default-constructed (state=6, null MRAM buffer) on OOM, relying on LoadToARAM
+// returning 0 for state==6 downstream. But the CTexture stream constructor reads the texel data
+// into that buffer immediately after InitBitmapBuffers returns -- long before any LoadToARAM --
+// so a null buffer makes the read loop memcpy into address 0 and crash. This is the crash seen
+// during low-heap beam switches (async texture build via CResFactory::PumpResource).
+//
+// __ct__8CTextureFR12CInputStream... (NTSC 0-00) fetches the buffer at 0x8030FD80:
+//   0x8030FD80  bl GetMRAMSafe
+//   0x8030FD84  mr r28, r3          ; r28 = MRAM buffer (null on OOM)
+//   0x8030FD88  li r26, 0           ; read-loop setup; loop copies texels into buf+off
+//   0x8030FDB0  bl Get              ; <- memcpy into null buffer (crash site)
+//   ...         MangleMipmap loop   ; also dereferences the buffer
+//   0x8030FE08  bl InitTextureObjects
+//
+// Replace `mr r28, r3` with a stub that replays it, then if the buffer is null skips both the
+// read loop and the mangle loop straight to InitTextureObjects. InitTextureObjects only does
+// CPU-side GXInitTexObj setup (it never dereferences the texel buffer), so it is safe with a
+// null pointer; the texture renders blank/garbage at worst but the CPU never faults, matching
+// the state=6 safety net the companion guard already depends on.
+//
+// Requires patch_init_bitmap_buffers_null_guard (and patch_alloc_null_on_failure) to be applied.
+// Only applied for NTSC 0-00; the constructor address is absent from other symbol tables.
+fn patch_texture_ctor_null_read_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    let intercept_addr: u32 = 0x8030FD84; // mr r28, r3 -- buffer from GetMRAMSafe
+    let init_tex_objects_addr: u32 = 0x8030FE08; // skip target: mr r3,r29; bl InitTextureObjects
+
+    emitter.emit_and_patch(
+        dol_patcher,
+        intercept_addr,
+        true,
+        |cave_addr| {
+            ppcasm!(cave_addr, {
+                mr    r28, r3;                   // original instruction: r28 = MRAM buffer
+                cmpwi r28, 0x0;
+                bne   ok;
+                b     {init_tex_objects_addr};   // null buffer: skip read + mangle loops
+            ok:
+                blr;                             // valid buffer: resume normal read loop
+            })
+            .encoded_bytes()
+        },
+    )?;
+
+    Ok(())
+}
+
+// Reduce peak heap during a beam switch by freeing the outgoing beam's assets earlier.
+//
+// The beam-switch (gun morph) holds BOTH the old and new beam in memory simultaneously. The new
+// beam is loaded at the start of the morph (ChangeWeapon), and the old beam is not freed until the
+// very end (ProcessGunMorph kGS_OutWipeDone). If an area transition loads new assets during that
+// window, free heap can hit zero and a later unchecked scratch allocation (e.g. the in-game
+// automap sort vector in CMapWorld::DrawAreas) crashes. Threshold guards do not help: the drop is
+// driven by the post-switch area load, not by the switch itself.
+//
+// This shrinks the overlap window. ProcessGunMorph performs the beam swap in the kGS_InWipeDone
+// case (NTSC 0-00: 0x8003AF54-0x8003AFC8), after which the morph spends the entire wipe-in phase
+// (kGS_OutWipe) drawing only the NEW beam (x72c_currentBeam); the outgoing beam (x730) is held but
+// never rendered until kGS_OutWipeDone unloads it. Verified: x730 has exactly three accesses in the
+// function -- written at the swap (0x8003AF6C), read at the OutWipeDone guard (0x8003B080), and
+// nulled at OutWipeDone (0x8003B0B0) -- so nothing reads the outgoing beam between the swap and its
+// original unload. We replicate the OutWipeDone unload immediately after the swap. The original
+// OutWipeDone code then re-checks x730, finds it null, and skips (no double free).
+//
+// The swap case ends at 0x8003AFC8 with `b 0x8003B02C` (break to the morph-Update switch). We
+// replace that branch with `bl stub`; the stub does the unload and falls through to 0x8003B02C.
+// Register state at the swap tail (verified against the 0-00 disassembly): r28 = this (CPlayerGun),
+// r29 = CStateManager* (mgr, set once in the prologue and never reused before here). This mirrors
+// the original OutWipeDone unload exactly, which also calls Unload via vtable[0x3c] with mr r4,r29.
+//
+// Only applied for NTSC 0-00; the addresses are version specific.
+fn patch_beam_switch_early_unload(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    let swap_break_addr: u32 = 0x8003AFC8; // `b 0x8003B02C` at the tail of the kGS_InWipeDone swap
+    let break_target: u32 = 0x8003B02C; // original branch target (start of the morph-Update switch)
+
+    emitter.emit_and_patch(
+        dol_patcher,
+        swap_break_addr,
+        true,
+        |cave_addr| {
+            ppcasm!(cave_addr, {
+                lwz   r3, 0x730(r28);    // outgoingBeam (old)
+                cmplwi r3, 0x0;
+                beq   done;              // no outgoing beam: nothing to free
+                lwz   r0, 0x72c(r28);    // currentBeam (new)
+                cmplw r3, r0;
+                beq   done;              // outgoing == current: do not unload the live beam
+                // outgoingBeam->Unload(mgr) via CGunWeapon vtable[0x3c]. r1 is the live
+                // ProcessGunMorph frame; Unload builds its own frame. We exit via `b`, not blr,
+                // so the LR clobbered by bctrl is irrelevant (mirrors the OutWipeDone code).
+                lwz   r12, 0x0(r3);      // vtable
+                mr    r4, r29;           // mgr
+                lwz   r12, 0x3c(r12);    // Unload = vtable[0x3c]
+                mtctr r12;
+                bctrl;
+                li    r0, 0x0;
+                stw   r0, 0x730(r28);    // outgoingBeam = NULL (OutWipeDone will now skip)
+            done:
+                b     { break_target };  // resume at the morph-Update switch
             })
             .encoded_bytes()
         },
@@ -1905,14 +1837,13 @@ fn patch_morph_transition_oom_guard(
     // first instruction with a b-trampoline (not bl, so LR is unchanged): the
     // OOM path does li r3,0; blr to return false directly to the caller.
     let free_bytes_addr: u32 = 0x804BFDF4;
-    let threshold: u32 = 650 * 1024;
+    let threshold: u32 = 704 * 1024;
 
     // CanEnterMorphBallState__7CPlayerCFR13CStateManagerf (NTSC 0-00: 0x80012EFC)
     //   First instruction: stwu r1, -0x820(r1)
     let can_enter_addr: u32 = 0x80012EFC;
     emitter.emit_and_patch(
         dol_patcher,
-        "can_enter_morph_oom_guard",
         can_enter_addr,
         false,
         |cave_addr| {
@@ -1937,7 +1868,6 @@ fn patch_morph_transition_oom_guard(
     let can_leave_addr: u32 = 0x80012A94;
     emitter.emit_and_patch(
         dol_patcher,
-        "can_leave_morph_oom_guard",
         can_leave_addr,
         false,
         |cave_addr| {
@@ -1960,7 +1890,7 @@ fn patch_morph_transition_oom_guard(
     Ok(())
 }
 
-fn patch_map_open_oom_guard(
+fn patch_draw_areas_oom_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
@@ -1969,26 +1899,32 @@ fn patch_map_open_oom_guard(
         return Ok(());
     }
 
-    // CanShowMapScreen__13CStateManagerFv (NTSC 0-00: 0x800447EC) returns bool.
-    // When false, CMFGame skips DeferStateTransition(kSMT_MapScreen).
-    // Unlike the morph case, the game has no pre-existing sound path when this
-    // returns false, so the stub plays SFXsam_b_malfxn_00 explicitly.
+    // DrawAreas__9CMapWorldCF... (NTSC 0-00: 0x8009FB08) renders the automap every frame.
+    // It builds a local (stack) vector<CMapObjectSortInfo> via an inlined push_back loop,
+    // then sorts and draws it. The push_back grows the vector through a reserve() at
+    // 0x800A2154; under OOM that reserve leaves the backing pointer null while capacity is
+    // already bumped, so the next element stores to null + size*0x14 (the crash at
+    // 0x800A0020, DAR=0x14: CMapObjectSortInfo is 0x14 bytes).
     //
-    // b-trampoline (LR preserved in register). OOM path: push a 32-byte
-    // mini-frame (16-byte linkage area + 16-byte CSfxHandle output buffer),
-    // call SfxStart, restore caller LR from the mini-frame, pop, return false.
+    // A per-store guard is insufficient: the loop still increments size, and the later
+    // sort/draw pass dereferences the same null buffer. The only clean point is the whole
+    // function, which returns void and whose caller reads no result -- so under low heap we
+    // skip the entire automap draw for this frame. It is per-frame and stack-only (nothing
+    // cached), so it self-corrects the moment heap recovers, with no broken-cache risk.
     //
-    // First instruction of CanShowMapScreen: stwu r1, -0x10(r1)
+    // b-trampoline (not bl, so the caller's return address stays in LR): the OOM path blr's
+    // straight back to the caller before the stack frame is even set up. The reserve is tiny
+    // (initial 4 * 0x14 = 0x50 bytes), so it only fails at near-zero heap; a small floor
+    // blanks the map only in the genuinely dangerous window. Silent (no SFX): this runs every
+    // frame.
+    //
+    // First instruction of DrawAreas: stwu r1, -0x5d0(r1)
     let free_bytes_addr: u32 = 0x804BFDF4;
-    let threshold: u32 = 650 * 1024;
-    let func_addr: u32 = 0x800447EC;
-    // SfxStart__11CSfxManagerFUsssbsbi: r3=CSfxHandle* out, r4=u16 id, r5=s16 vol,
-    // r6=s16 pan, r7=bool useAcoustics, r8=s16 priority, r9=bool looped, r10=s32 areaId.
-    let sfx_start_addr: u32 = 0x802E9D74;
+    let threshold: u32 = 256 * 1024;
+    let func_addr: u32 = 0x8009FB08;
 
     emitter.emit_and_patch(
         dol_patcher,
-        "map_open_oom_guard",
         func_addr,
         false,
         |cave_addr| {
@@ -1998,28 +1934,9 @@ fn patch_map_open_oom_guard(
                 lis   r12, { threshold }@h;
                 cmplw r0, r12;
                 bge   ok;
-                // OOM path: push mini-frame to hold CSfxHandle output and save caller LR.
-                // b-trampoline leaves caller's return address in the LR register; bl SfxStart
-                // would clobber it, so we save it in the mini-frame before the call.
-                stwu  r1, -0x20(r1);
-                mflr  r0;
-                stw   r0, 0x24(r1);              // save caller LR
-                addi  r3, r1, 0x10;              // r3 = CSfxHandle output buffer
-                li    r4, 0x6f5;                 // SFXsam_b_malfxn_00
-                li    r5, 0x7f;                  // vol 127
-                li    r6, 0x40;                  // pan center
-                li    r7, 0x1;                   // useAcoustics = true
-                li    r8, 0x40;                  // priority (medium)
-                li    r9, 0x0;                   // not looped
-                li    r10, -1;                   // areaId = -1 (all areas)
-                bl    { sfx_start_addr };
-                lwz   r0, 0x24(r1);              // restore caller LR
-                mtlr  r0;
-                addi  r1, r1, 0x20;              // pop mini-frame
-                li    r3, 0x0;                   // return false (block map open)
-                blr;
+                blr;                             // OOM: skip the whole automap draw this frame
             ok:
-                stwu  r1, -0x10(r1);             // trampoline: original first instruction
+                stwu  r1, -0x5d0(r1);            // trampoline: original first instruction
                 b     { func_addr + 4 };
             })
             .encoded_bytes()
@@ -2062,13 +1979,13 @@ fn patch_change_weapon_oom_guard(
     let epilogue_addr: u32 = 0x8003F08C;
     // Heap free-bytes counter (user-provided address).
     let free_bytes_addr: u32 = 0x804BFDF4;
-    let threshold: u32 = 650 * 1024;
-                                     // SfxStart__11CSfxManagerFUsssbsbi: static, r3=CSfxHandle* out, r4=id, r5=vol,
-                                     // r6=pan, r7=useAcoustics, r8=priority, r9=looped, r10=areaId.
+    let threshold: u32 = 320 * 1024;
+    // SfxStart__11CSfxManagerFUsssbsbi: static, r3=CSfxHandle* out, r4=id, r5=vol,
+    // r6=pan, r7=useAcoustics, r8=priority, r9=looped, r10=areaId.
     let sfx_start_addr: u32 = 0x802E9D74;
 
     let stub_addr =
-        emitter.emit_addressed(dol_patcher, "change_weapon_oom_guard_stub", |cave_addr| {
+        emitter.emit_addressed(dol_patcher, |cave_addr| {
             ppcasm!(cave_addr, {
                 bne  no_orig_skip;                        // beams differ: check OOM
                 b    { skip_target };                     // beams same: honour original beq
@@ -2116,7 +2033,7 @@ fn patch_change_weapon_oom_guard(
     Ok(())
 }
 
-fn patch_beam_load_retry(
+fn patch_logbook_oom_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
@@ -2125,56 +2042,293 @@ fn patch_beam_load_retry(
         return Ok(());
     }
 
-    // ProcessGunMorph__10CPlayerGunFfR13CStateManager (0x8003AE90) polls IsLoaded()
-    // on x734(CPlayerGun*) each frame. If Load() silently failed (OOM), IsLoaded()
-    // never returns true and the beam transition hangs forever.
+    // CPauseScreen::BuildPauseSubScreen (NTSC 0-00: 0x80073830) is the pause-screen page factory.
+    // ESubScreen 0 = Log Book, 1 = Options, 2 = Inventory. The Log Book case (0x8007387C) news a
+    // CLogBookScreen whose constructor (0x80247CC4) calls CMain::EnsureWorldPaksReady (0x80004810),
+    // forcing every world pak's resource directory to be built synchronously. Under OOM that
+    // build's rstl::vector<SResInfo> reserve (fn_80368AF8) leaves a null backing pointer while
+    // size still increments, so the second element stores to null + 1*0xa -> crash 0x80367320,
+    // DAR=0xa. Same alloc-then-store-without-null-check pattern as the automap (draw_areas guard).
     //
-    // Intercept the beq at 0x8003AF40 (branch-if-not-loaded to the bottom of the
-    // state machine). Replace with bl stub. If heap has enough room, call Load()
-    // via vtable[0x38] to retry the allocation; either way bail to the bottom so
-    // the state machine retries next frame.
+    // The pak build is core loading machinery; skipping it would break the log book, so instead we
+    // deny navigating to the page when heap is low (fallback approach, like the map_open guard).
+    // BuildPauseSubScreen already returns null on operator-new failure, and StartTransition
+    // (0x8007375C) tolerates that: it records the subscreen slot as (valid=false, ptr=null). We
+    // reuse that handled path -- under low heap the Log Book case returns null via 0x80073938
+    // (li r3,0; epilogue), so the tab simply does not populate (no crash; recovers when heap frees
+    // up). Silent, matching how the inventory page's CSamusDoll already degrades under low heap.
     //
-    // Register state at intercept: r28=CPlayerGun*, r29=CStateManager*,
-    // CR0 set by IsLoaded() result (EQ=1 if not loaded, EQ=0 if loaded).
-    // LR = intercept_addr+4 (SetupBeam path) after bl replaces the beq.
-    let intercept_addr: u32 = 0x8003AF40;
-    let bottom_addr: u32 = 0x8003B02C;
+    // b-trampoline at the Log Book case entry. r0/r12/CR0 are dead here (page dispatch is already
+    // done; r0 is next written at 0x80073894), so the heap check clobbers nothing live.
+    // First instruction at 0x8007387C: lis r4, lbl_803CD2D8@ha  (== lis r4, 0x803D).
+    //
+    // The threshold uses the family's single-lis compare, so it must stay 0x10000-aligned to be
+    // exact (@h is high-adjusted; a non-aligned value would round). EnsureWorldPaksReady loads all
+    // world paks, so this floor is set generously high; lower it if the log book blanks too often.
     let free_bytes_addr: u32 = 0x804BFDF4;
-    let threshold: u32 = 500 * 1024;
+    let threshold: u32 = 1280 * 1024;
+    let intercept_addr: u32 = 0x8007387C;
+    let return_null_addr: u32 = 0x80073938;
 
-    let stub_addr = emitter.emit_addressed(dol_patcher, "beam_load_retry_stub", |cave_addr| {
-        ppcasm!(cave_addr, {
-            bne  is_loaded;
-            lis  r12, { free_bytes_addr }@h;
-            lwz  r0,  { free_bytes_addr }@l(r12);
-            lis  r12, { threshold }@h;
-            cmplw r0, r12;
-            blt  no_retry;
-            // Enough memory: retry Load() via vtable[0x38].
-            // Save/restore LR (in LR register) around bctrl which clobbers it.
-            stwu r1, -0x10(r1);
-            mflr r0;
-            stw  r0, 0x14(r1);
-            lwz  r3, 0x734(r28);    // loadingBeam (non-null by earlier guard)
-            lwz  r12, 0x0(r3);      // vtable
-            mr   r4, r29;           // CStateManager
-            li   r5, 0x0;
-            lwz  r12, 0x38(r12);    // Load() = vtable[0x38]
-            mtctr r12;
-            bctrl;
-            lwz  r0, 0x14(r1);
-            mtlr r0;
-            addi r1, r1, 0x10;
-        no_retry:
-            b    { bottom_addr };   // bail; state machine retries next frame
-        is_loaded:
-            blr;                    // loaded: return to SetupBeam path
-        })
-        .encoded_bytes()
-    })?;
-    dol_patcher.ppcasm_patch(&ppcasm!(intercept_addr, {
-        bl { stub_addr };
-    }))?;
+    emitter.emit_and_patch(
+        dol_patcher,
+        intercept_addr,
+        false,
+        |cave_addr| {
+            ppcasm!(cave_addr, {
+                lis   r12, { free_bytes_addr }@h;
+                lwz   r0,  { free_bytes_addr }@l(r12);
+                lis   r12, { threshold }@h;
+                cmplw r0, r12;
+                bge   ok;
+                b     { return_null_addr };       // OOM: return null subscreen, skip log book
+            ok:
+                lis   r4, 0x803d;                 // trampoline: original (lis r4, lbl_803CD2D8@ha)
+                b     { intercept_addr + 4 };
+            })
+            .encoded_bytes()
+        },
+    )?;
+
+    Ok(())
+}
+
+fn patch_world_pak_ready_oom_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    // CPakFile::EnsureWorldPakReady (NTSC 0-00: 0x8036723C) builds a world pak's resource
+    // directory synchronously: it grows an rstl::vector<SResInfo> (and a parallel offset
+    // vector) via reserve (fn_80368AF8). Under OOM that reserve leaves a null backing pointer
+    // while size still increments, so the second element stores to null + 1*0xa -> crash
+    // 0x80367320, DAR=0xa. This is the same site hit by both the map (CAutoMapper
+    // ::OnNewInGameGuiState -> CMain::EnsureWorldPaksReady, 0x8009C354) and the log book
+    // (CLogBookScreen ctor, 0x80247CC4).
+    //
+    // The other guards (map_open, draw_areas, ...) read the x90 *total* free-bytes counter
+    // (0x804BFDF4). That is the wrong signal here: reserve needs one *contiguous* block, and the
+    // pause-menu's alloc/free churn fragments the heap -- total free can rise (passing a total-
+    // free threshold) while the largest contiguous chunk stays too small for the directory. That
+    // is exactly the reported repro: deny map -> open/close pause menu -> total free ticks up ->
+    // map guard now passes -> reserve still can't find a contiguous block -> crash. So this guard
+    // queries CGameAllocator::GetLargestFreeChunk (0x80351148) instead of the total counter.
+    //
+    // EnsureWorldPakReady is idempotent and deferrable: its entry already early-returns when the
+    // pak's needs-build flag bits (offset 0x28) are clear, and it only clears the needs-build bit
+    // at the very end (0x80367404). So when the largest free chunk is too small we just return to
+    // the caller without building -- the bit stays set and the build is retried on the next
+    // EnsureWorldPaksReady pass (next map/log-book open), once the heap has a big enough chunk.
+    // The map renders that area as not-yet-loaded for one open; no crash, self-correcting.
+    //
+    // b-trampoline at the function entry (LR preserved in register). We need a mini-frame because
+    // calling GetLargestFreeChunk via bl clobbers LR, and the incoming r3 (CPakFile* this) must
+    // survive to the original prologue's `mr r31, r3` at func+0x10. The allocator object base is
+    // 0x804BFDF4 - 0x90 = 0x804BFD64. Threshold compares against a single lis, so keep it
+    // 0x10000-aligned; it represents the largest contiguous block one pak's directory may need.
+    // First instruction of EnsureWorldPakReady: stwu r1, -0x30(r1)
+    let func_addr: u32 = 0x8036723C;
+    let get_largest_free_chunk: u32 = 0x80351148;
+    let threshold: u32 = 448 * 1024;
+
+    emitter.emit_and_patch(
+        dol_patcher,
+        func_addr,
+        false,
+        |cave_addr| {
+            ppcasm!(cave_addr, {
+                stwu  r1, -0x10(r1);             // mini-frame to survive the bl
+                mflr  r0;
+                stw   r0, 0x14(r1);              // save caller LR (b-trampoline left it in LR)
+                stw   r3, 0x10(r1);              // save incoming CPakFile* this
+                lis   r3, 0x804c;
+                addi  r3, r3, -0x29c;            // r3 = &gGameAllocator (0x804BFD64)
+                bl    { get_largest_free_chunk };// r3 = largest contiguous free bytes
+                lis   r12, { threshold }@h;
+                cmplw r3, r12;                   // unsigned compare vs contiguous floor
+                lwz   r0, 0x14(r1);              // restore caller LR
+                mtlr  r0;
+                lwz   r3, 0x10(r1);              // restore this ptr
+                addi  r1, r1, 0x10;              // pop mini-frame (CR0 from cmplw preserved)
+                blt   oom;
+                stwu  r1, -0x30(r1);             // trampoline: original first instruction
+                b     { func_addr + 4 };
+            oom:
+                blr;                             // defer build; needs-build bit stays set, retried
+            })
+            .encoded_bytes()
+        },
+    )?;
+
+    Ok(())
+}
+
+// Defer (instead of broken-build) async resource construction when heap is too low.
+//
+// This is the root-cause fix for the low-memory beam-switch failures. The null-guards above
+// (patch_init_bitmap_buffers_null_guard, patch_texture_ctor_null_read_guard, ...) keep the game
+// from crashing when an allocation fails mid-build, but they do so by letting the resource finish
+// constructing in a blank/degraded state -- and CResFactory::PumpResource then caches that broken
+// result as "loaded". Nothing ever re-pumps a resource the pool believes is loaded, so a beam (or
+// its dependency) built during a transient low-memory window stays permanently broken; the morph
+// hangs at kGS_InWipeDone even after the player returns to a memory-rich area (observed stuck with
+// ~960KB free, far more than a beam needs -- proof the issue is broken-caching, not capacity).
+//
+// PumpResource (0x80339A04) already has a deferral path: after the per-resource readiness check
+//   0x80339A30: bctrl                 ; ready? (vtable[0x10] on the loading data)
+//   0x80339A40: rlwinm. r0, r3, ...    ; test the returned bool
+//   0x80339A44: beq 0x80339B18         ; not ready -> return 0 (node stays queued, retried next pump)
+// Returning 0 leaves the node on the loading list (verified against AsyncIdle 0x80339C74-0x80339C94,
+// which advances to node->next WITHOUT removing it on a 0 return). We extend that same defer: if the
+// resource IS ready to build but free heap is below threshold, defer anyway so the heavy build (and
+// its allocations) waits until memory recovers -- at which point it builds cleanly and is cached
+// correctly.
+//
+// TIME BOUND: the deferral cannot be open-ended. The streaming loader keeps a build's already-read
+// data resident only for ~5 seconds; if we hold the build pending past that window the loader
+// reclaims the data and the resource's CObjectReference is orphaned (x10_object=null, loading=1)
+// FOREVER -- the morph then hangs even after the player reaches a memory-rich area (the user can
+// reproduce this by lingering >5s in low memory mid-morph). So we cap the memory-defer at
+// DEFER_TIMEOUT_TICKS (4.0s, safely under the loader's ~5s drop): once a low-heap stall has lasted
+// that long we force the build through even at low heap. Worst case the build degrades (blank/
+// partial, caught by the null-guards) instead of wedging permanently -- a recoverable broken-cache,
+// which the user accepted over an eternal hang. In normal play heap recovers in well under 4s, so
+// the timeout never fires and builds still wait for a clean heap. We time the stall with OSGetTime's
+// low word stored in a single global scratch slot: the heap floor is a global free-bytes threshold,
+// so at any pump either ALL builds defer or ALL proceed -- the first proceed clears the timer, so it
+// only accumulates across CONTINUOUS low heap, exactly the wedge condition. A forced build clears
+// the timer too, throttling forced builds to one per timeout window (no OOM stampede).
+//
+// We MUST NOT defer on the synchronous CResFactory::Build path (0x8033A11C), which loops
+// `bl PumpResource` until it returns nonzero -- deferring there would spin forever under sustained
+// low memory. The two callers are distinguishable by the time-budget argument r5 (saved to r31 at
+// the prologue, 0x80339A14): Build passes r5=0 (0x8033A124), AsyncIdle passes r5=remaining-time
+// (0x80339C7C, nonzero). So we only memory-defer when r31 != 0 (async). The sync path still relies
+// on the null-guards as its safety net.
+//
+// Replace the beq at 0x80339A44 with `bl stub`. CR0 (from the rlwinm. at 0x80339A40) is preserved
+// by bl. Scratch r0/r8/r9/r11/r12 are dead at both the proceed target (0x80339A48 reloads r3 then
+// overwrites the scratch regs) and the defer target (0x80339B18). The stub calls OSGetTime, which
+// clobbers volatiles and CR but preserves the nonvolatiles r29/r30/r31 PumpResource depends on;
+// CR is re-derived downstream before use. LR is saved to 0x64(r1) at entry and the epilogue restores
+// from there, so clobbering the LR register (trampoline bl and the OSGetTime bl) is safe; the stub
+// exits via `b`, not blr.
+//
+// Only applied for NTSC 0-00; PumpResource has no symbol-table entry for other versions.
+fn patch_pump_resource_oom_defer(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    let intercept_addr: u32 = 0x80339A44; // beq 0x80339B18 (the readiness-defer branch)
+    let not_ready_defer: u32 = 0x80339B18; // li r3,0; epilogue (return 0 -> node stays queued)
+    let proceed_addr: u32 = 0x80339A48; // original fall-through: build the resource
+    let free_bytes_addr: u32 = 0x804BFDF4;
+    let threshold: u32 = 576 * 1024;
+
+    emitter.emit_and_patch(
+        dol_patcher,
+        intercept_addr,
+        true,
+        |cave_addr| {
+            // Conditional branches reach only +/-32KB; the cave is farther than that from
+            // PumpResource, so all conditionals target local labels and the far jumps use
+            // unconditional b (24-bit range).
+            ppcasm!(cave_addr, {
+                beq   defer;                 // original: resource not ready -> defer (no timeout)
+                cmpwi r31, 0x0;              // r31 = time budget (0 = synchronous Build)
+                beq   proceed;               // sync path: never memory-defer (would spin forever)
+                lis   r12, { free_bytes_addr }@h;
+                lwz   r0,  { free_bytes_addr }@l(r12);
+                lis   r12, { threshold }@h;
+                cmplw r0, r12;
+                blt   defer;                 // low memory: defer
+            proceed:
+                b     { proceed_addr };
+            defer:
+                b     { not_ready_defer };   // return 0 -> node stays queued, retried next pump
+            })
+            .encoded_bytes()
+        },
+    )?;
+
+    Ok(())
+}
+
+// Recover the resource decompressor from a failed output-buffer allocation instead of wedging.
+//
+// CResFactory's decompress worker fn_803394A8 (NTSC 0-00) sets up a zlib stream once (stored at
+// [r30+0x28]) then allocates the decompress output buffer at 0x803395DC. Under heap FRAGMENTATION the
+// total-free defer guard can pass (>448KB total) yet this single contiguous ~tens-of-KB buffer alloc
+// still returns null. The original code then proceeds into the inflate loop with a null output buffer
+// (kept from crashing only by patch_inflate_null_guard) which produces 0 bytes and returns "not done";
+// every later call sees the stream already set up ([r30+0x28]!=0) and resumes into the same null buffer
+// FOREVER -- a permanent wedge (CObjectReference x3_loading stuck at 1, x10_object never set; the
+// confirmed beam-morph hang at high free heap).
+//
+// Fix: b-trampoline the `neg r0, r3` at 0x803395E0 (right after the buffer Alloc). If the buffer is
+// non-null, run the original instruction and continue. If null, tear the stream back down exactly like
+// the function's own completion cleanup does (inflateEnd at 0x80343B40, then Free the stream at
+// [r30+0x28] when owned per [r30+0x24]), clear the stream optional, and return 0 (not done) via
+// 0x80339868. The next pump then re-runs the full setup and re-allocates the buffer, so the decompress
+// recovers once a contiguous block is available. This only fires on a genuine alloc failure, so it
+// never over-defers normal loading (unlike a preemptive contiguous-chunk gate, which deadlocks boot).
+//
+// r23 = the zlib stream and r30 = the SLoadingData are nonvolatile and survive the inflateEnd/Free
+// calls; the stub runs in fn_803394A8's existing frame (callees save LR in the r1+4 linkage slot) and
+// exits via b, so the clobbered LR register is irrelevant. CR0 (clobbered by our cmpwi) is re-derived
+// downstream before any conditional uses it.
+fn patch_inflate_buffer_oom_recover(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+
+    let intercept_addr: u32 = 0x803395E0; // neg r0, r3  (right after the output-buffer Alloc)
+    let continue_addr: u32 = 0x803395E4; // original next instruction
+    let return_zero: u32 = 0x80339868; // li r3,0; epilogue (return "not done")
+    let inflate_end: u32 = 0x80343B40;
+    let free_addr: u32 = 0x80315930; // Free__7CMemoryFPCv
+
+    emitter.emit_and_patch(
+        dol_patcher,
+        intercept_addr,
+        false,
+        |cave_addr| {
+            ppcasm!(cave_addr, {
+                cmpwi r3, 0x0;                   // buffer alloc result
+                bne   ok;                        // non-null -> proceed normally
+                // null buffer: tear down the stream so the next pump retries from scratch
+                mr    r3, r23;                   // zlib stream
+                bl    { inflate_end };
+                lbz   r0, 0x24(r30);             // stream "owned" flag
+                cmpwi r0, 0x0;
+                beq   skip_free;
+                lwz   r3, 0x28(r30);             // stream ptr
+                bl    { free_addr };
+            skip_free:
+                li    r0, 0x0;
+                stw   r0, 0x28(r30);             // clear stream optional (ptr)
+                stb   r0, 0x24(r30);             //   and owned flag -> next call re-does setup
+                b     { return_zero };           // return 0 (not done); node stays pending
+            ok:
+                neg   r0, r3;                    // displaced original instruction
+                b     { continue_addr };
+            })
+            .encoded_bytes()
+        },
+    )?;
 
     Ok(())
 }
@@ -2302,7 +2456,7 @@ fn patch_bss_heap_extension(
     let init_blr_addr = symbol_addr!("Initialize__14CGameAllocatorFR10COsContext", version) + 0x384;
 
     let cave_addr =
-        emitter.emit_addressed(dol_patcher, "bss_heap_extension_stub", |cave_addr| {
+        emitter.emit_addressed(dol_patcher, |cave_addr| {
             ppcasm!(cave_addr, {
                 // CGameAllocator::Initialize already restored its own stack frame
                 // (addi r1,r1,0x80) before the blr we replaced, so r1 is at the
@@ -2400,13 +2554,15 @@ fn patch_heap_optimization(
     patch_alloc_oom_fast_fail(dol_patcher, version)?;
     patch_add_puddle_null_guard(dol_patcher, emitter, version)?;
 
-    /* Patch to deny memory-hungry actions if heap below danger threshold (approx. 400KB - 700KB) */
+    /* Patch to deny memory-hungry actions if heap below danger threshold */
     patch_morph_transition_oom_guard(dol_patcher, emitter, version)?;
-    patch_map_open_oom_guard(dol_patcher, emitter, version)?;
+    patch_draw_areas_oom_guard(dol_patcher, emitter, version)?;
+    patch_logbook_oom_guard(dol_patcher, emitter, version)?;
+    patch_world_pak_ready_oom_guard(dol_patcher, emitter, version)?;
     patch_change_weapon_oom_guard(dol_patcher, emitter, version)?;
 
-    /* Retry beam load each frame until it succeeds (handles OOM mid-load stuck state) */
-    patch_beam_load_retry(dol_patcher, emitter, version)?;
+    /* Reduce peak heap during beam switch by freeing the outgoing beam at the morph swap */
+    patch_beam_switch_early_unload(dol_patcher, emitter, version)?;
 
     /* Inject unused 80KB BSS gap into heap free pool (NTSC 0-00 only) */
     patch_bss_heap_extension(dol_patcher, emitter, version)?;
@@ -2415,6 +2571,11 @@ fn patch_heap_optimization(
     patch_build_async_null_guard(dol_patcher, emitter, version)?; // Solves start menu crash
     patch_inflate_null_guard(dol_patcher, emitter, version)?;
     patch_init_bitmap_buffers_null_guard(dol_patcher, emitter, version)?;
+    patch_texture_ctor_null_read_guard(dol_patcher, emitter, version)?;
+    patch_pump_resource_oom_defer(dol_patcher, emitter, version)?;
+
+    /* Recover the decompressor from a fragmentation-failed output-buffer alloc instead of wedging */
+    patch_inflate_buffer_oom_recover(dol_patcher, emitter, version)?;
 
     Ok(())
 }

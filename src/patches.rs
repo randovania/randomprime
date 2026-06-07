@@ -9193,186 +9193,6 @@ fn patch_purge_debris_extended(
     Ok(())
 }
 
-#[allow(dead_code)]
-fn is_duplicate(
-    a: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
-    b: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
-) -> bool {
-    fn empty_name() -> CStr<'static> {
-        b"\0".as_cstr()
-    }
-
-    if a.property_data.object_type() != b.property_data.object_type() {
-        return false;
-    }
-
-    macro_rules! compare_obj {
-        ($getter:ident, $ty:ty) => {{
-            let mut left = a.property_data.$getter().unwrap().clone().into_owned();
-            let mut right = b.property_data.$getter().unwrap().clone().into_owned();
-            left.name = empty_name();
-            right.name = empty_name();
-            left == right
-        }};
-    }
-
-    match a.property_data.object_type() {
-        structs::HudMemo::OBJECT_TYPE => compare_obj!(as_hud_memo, structs::HudMemo),
-        structs::Sound::OBJECT_TYPE => compare_obj!(as_sound, structs::Sound),
-        structs::SpawnPoint::OBJECT_TYPE => compare_obj!(as_spawn_point, structs::SpawnPoint),
-        structs::CameraHint::OBJECT_TYPE => compare_obj!(as_camera_hint, structs::CameraHint),
-        structs::CameraFilterKeyframe::OBJECT_TYPE => {
-            compare_obj!(as_camera_filter_keyframe, structs::CameraFilterKeyframe)
-        }
-        structs::CameraBlurKeyframe::OBJECT_TYPE => {
-            compare_obj!(as_camera_blur_keyframe, structs::CameraBlurKeyframe)
-        }
-        structs::CameraShaker::OBJECT_TYPE => compare_obj!(as_camera_shaker, structs::CameraShaker),
-        structs::ActorKeyFrame::OBJECT_TYPE => {
-            compare_obj!(as_actor_key_frame, structs::ActorKeyFrame)
-        }
-        structs::PlayerHint::OBJECT_TYPE => compare_obj!(as_player_hint, structs::PlayerHint),
-        structs::StreamedAudio::OBJECT_TYPE => {
-            compare_obj!(as_streamed_audio, structs::StreamedAudio)
-        }
-        structs::WorldTransporter::OBJECT_TYPE => {
-            compare_obj!(as_world_transporter, structs::WorldTransporter)
-        }
-        structs::RumbleEffect::OBJECT_TYPE => compare_obj!(as_rumble_effect, structs::RumbleEffect),
-        structs::WorldLightFader::OBJECT_TYPE => {
-            compare_obj!(as_world_light_fader, structs::WorldLightFader)
-        }
-        structs::ScriptBeam::OBJECT_TYPE => compare_obj!(as_script_beam, structs::ScriptBeam),
-        structs::NewCameraShaker::OBJECT_TYPE => {
-            compare_obj!(as_new_camera_shaker, structs::NewCameraShaker)
-        }
-        structs::Timer::OBJECT_TYPE => {
-            compare_obj!(as_timer, structs::Timer)
-        }
-        _ => panic!(
-            "Unhandled object type for duplicate detection {}",
-            a.property_data.object_type()
-        ),
-    }
-}
-
-#[allow(dead_code)]
-fn dedupe_objs(
-    scly: &reader_writer::LCow<'_, structs::Scly<'_>>,
-    incoming_connections: &HashMap<
-        u32,
-        HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>,
-    >,
-    dead_objs: &mut HashSet<u32>,
-    dead_connections: &mut HashSet<(u32, structs::Connection)>,
-    add_connections: &mut HashSet<(u32, structs::Connection)>,
-) {
-    const DEDUPE_OBJS: &[u8] = &[
-        structs::HudMemo::OBJECT_TYPE,
-        structs::Sound::OBJECT_TYPE,
-        structs::SpawnPoint::OBJECT_TYPE,
-        structs::CameraHint::OBJECT_TYPE,
-        structs::CameraFilterKeyframe::OBJECT_TYPE,
-        structs::CameraBlurKeyframe::OBJECT_TYPE,
-        structs::CameraShaker::OBJECT_TYPE,
-        structs::ActorKeyFrame::OBJECT_TYPE,
-        structs::PlayerHint::OBJECT_TYPE,
-        structs::StreamedAudio::OBJECT_TYPE,
-        structs::WorldTransporter::OBJECT_TYPE,
-        structs::RumbleEffect::OBJECT_TYPE,
-        structs::WorldLightFader::OBJECT_TYPE,
-        structs::ScriptBeam::OBJECT_TYPE,
-        structs::NewCameraShaker::OBJECT_TYPE,
-        structs::Timer::OBJECT_TYPE, // only if no incoming connections
-    ];
-
-    const DEDUPE_BLACKLIST_MESSAGES: &[structs::ConnectionMsg] = &[
-        structs::ConnectionMsg::DEACTIVATE,
-        structs::ConnectionMsg::ACTIVATE,
-        structs::ConnectionMsg::TOGGLE_ACTIVE,
-    ];
-
-    // TODO: De-dupe PickupGenerator with equal drop chances
-
-    for layer in scly.layers.iter() {
-        // Collect all items in this layer which:
-        // - Are a de-dupable object type
-        // - Do not have any incoming messages which modify persistent object state
-        let dedupe_candidates: Vec<_> = layer
-            .objects
-            .iter()
-            .filter(|obj| DEDUPE_OBJS.contains(&obj.property_data.object_type()))
-            .filter(|obj| {
-                incoming_connections
-                    .get(&(obj.instance_id & 0x00FFFFFF))
-                    .map(|conns| {
-                        if obj.property_data.object_type() == structs::Timer::OBJECT_TYPE {
-                            conns.is_empty()
-                        } else {
-                            !conns
-                                .iter()
-                                .map(|(_, msg, _)| msg)
-                                .any(|msg| DEDUPE_BLACKLIST_MESSAGES.contains(msg))
-                        }
-                    })
-                    .unwrap_or(true)
-            })
-            .collect();
-        let dedupe_candidates = &dedupe_candidates;
-
-        // Iterate through all candidates
-        for keep_obj in dedupe_candidates {
-            if dead_objs.contains(&(keep_obj.instance_id & 0x00FFFFFF)) {
-                continue; // This object was already discarded
-            }
-
-            // Filter out non-duplicates from the candidate list
-            let duplicates: Vec<_> = dedupe_candidates
-                .iter()
-                .filter(|obj| is_duplicate(keep_obj, obj))
-                .collect();
-
-            // For each duplicate of the current candidate
-            for duplicate in duplicates {
-                if keep_obj.instance_id == duplicate.instance_id {
-                    continue; // don't compare against itself
-                }
-                let duplicate_id = duplicate.instance_id & 0x00FFFFFF;
-
-                // Delete incoming connections
-                let conns = incoming_connections.get(&duplicate_id);
-                if let Some(conns) = conns {
-                    let conns: HashSet<_> = conns
-                        .iter()
-                        .map(|(sender_id, message, state)| {
-                            (
-                                *sender_id,
-                                structs::Connection {
-                                    message: *message,
-                                    state: *state,
-                                    target_object_id: duplicate_id,
-                                },
-                            )
-                        })
-                        .collect();
-                    dead_connections.extend(conns);
-                }
-
-                // Re-add connections to the keep object
-                let conns: HashSet<_> = duplicate
-                    .connections
-                    .iter()
-                    .map(|conn| (keep_obj.instance_id, conn.into_owned()))
-                    .collect();
-                add_connections.extend(conns);
-
-                // Delete the object
-                dead_objs.insert(duplicate_id);
-            }
-        }
-    }
-}
-
 fn object_is_dead(
     obj: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
     all_incoming_connections: &HashMap<
@@ -9381,22 +9201,22 @@ fn object_is_dead(
     >,
     dead_connections: &HashSet<(u32, structs::Connection)>,
 ) -> bool {
+    // Messages which never have gameplay affect
     const INERT_MESSAGES: &[structs::ConnectionMsg] = &[
         structs::ConnectionMsg::NONE,
-        // structs::ConnectionMsg::ACTIVATE,
         structs::ConnectionMsg::DEACTIVATE,
-        // structs::ConnectionMsg::RESET,
         structs::ConnectionMsg::STOP,
         structs::ConnectionMsg::STOP_AND_RESET,
-        // structs::ConnectionMsg::TOGGLE_ACTIVE,
         structs::ConnectionMsg::REGISTERED,
         structs::ConnectionMsg::DELETED,
         structs::ConnectionMsg::INITIALIZED_IN_AREA,
         structs::ConnectionMsg::WORLD_INITIALIZED,
     ];
 
+    // Object types which never have gameplay affect, but may
+    // send messages to object types which do
     const NO_SIDE_EFFECT_OBJS: &[u8] = &[
-        structs::Trigger::OBJECT_TYPE,
+        // structs::Trigger::OBJECT_TYPE, // except for push
         structs::Timer::OBJECT_TYPE,
         structs::Counter::OBJECT_TYPE,
         structs::Generator::OBJECT_TYPE,
@@ -9406,6 +9226,8 @@ fn object_is_dead(
         structs::Switch::OBJECT_TYPE,
     ];
 
+    // Object types which never have gameplay affect unless
+    // a non-inert message is received
     const INERT_OBJS: &[u8] = &[
         structs::Waypoint::OBJECT_TYPE,
         structs::Counter::OBJECT_TYPE,
@@ -9432,6 +9254,8 @@ fn object_is_dead(
         structs::StreamedAudio::OBJECT_TYPE,
     ];
 
+    // Object types which only have gameplay affect
+    // if sent the message "SET_TO_ZERO"
     const SET_TO_ZERO_OBJS: &[u8] = &[
         structs::Switch::OBJECT_TYPE,
         structs::Relay::OBJECT_TYPE,
@@ -9537,43 +9361,6 @@ fn patch_optimize_memory(
         }
     }
 
-    /* Move objs to layer 0 for better de-dupe results */
-    // {
-    //     const DEFAULT_LAYER_OBJS: &[u8] = &[
-    //         structs::HudMemo::OBJECT_TYPE,
-    //         structs::Sound::OBJECT_TYPE,
-    //         structs::CameraHint::OBJECT_TYPE,
-    //         structs::CameraFilterKeyframe::OBJECT_TYPE,
-    //         structs::CameraBlurKeyframe::OBJECT_TYPE,
-    //         structs::CameraShaker::OBJECT_TYPE,
-    //         structs::ActorKeyFrame::OBJECT_TYPE,
-    //         structs::PlayerHint::OBJECT_TYPE,
-    //         structs::StreamedAudio::OBJECT_TYPE,
-    //         structs::WorldTransporter::OBJECT_TYPE,
-    //         structs::RumbleEffect::OBJECT_TYPE,
-    //         structs::WorldLightFader::OBJECT_TYPE,
-    //         structs::ScriptBeam::OBJECT_TYPE,
-    //         structs::NewCameraShaker::OBJECT_TYPE,
-    //     ];
-    //     let mut edit_objs: HashMap<u32, EditObjConfig> = HashMap::new();
-    //     let scly = area.mrea().scly_section();
-    //     for layer in scly.layers.iter() {
-    //         for obj in layer.objects.iter() {
-    //             if !DEFAULT_LAYER_OBJS.contains(&obj.property_data.object_type()) {
-    //                 continue;
-    //             }
-    //             edit_objs.insert(
-    //                 obj.instance_id & 0x00FFFFFF,
-    //                 EditObjConfig {
-    //                     layer: Some(0),
-    //                     ..Default::default()
-    //                 },
-    //             );
-    //         }
-    //     }
-    //     patch_edit_objects(ps, area, edit_objs).ok();
-    // }
-
     let mrea_id = area.mlvl_area.mrea.to_u32();
     let scly = area.mrea().scly_section();
 
@@ -9604,19 +9391,7 @@ fn patch_optimize_memory(
     let mut dead_objs = HashSet::<u32>::new();
     let mut dead_connections = HashSet::<(u32, structs::Connection)>::new();
     let add_connections = HashSet::<(u32, structs::Connection)>::new();
-    let _dead_deps = Vec::<Dependency>::new();
-
     let mut counts = (0, 0, 0, 0);
-
-    /* Dedupe Objects */
-    // dedupe_objs(
-    //     &scly,
-    //     &incoming_connections,
-    //     &mut dead_objs,
-    //     &mut dead_connections,
-    //     &mut add_connections,
-    // );
-    let dedupe_obj_lens = dead_objs.len();
 
     loop {
         /* Collect dead objects */
@@ -9703,20 +9478,10 @@ fn patch_optimize_memory(
                 .as_mut_vec()
                 .retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
         }
-
-        /* Re-direct dead object connections */
-        for obj in layer.objects.as_mut_vec() {
-            let obj_id = obj.instance_id & 0x00FFFFFF;
-            for (sender_id, conn) in &add_connections {
-                if *sender_id == obj_id {
-                    obj.connections.as_mut_vec().push(conn.clone().to_owned());
-                }
-            }
-        }
     }
 
     /* Prune dead pickup model dependencies */
-    {
+    let dead_dep_len = {
         /* AGSC (audio groups), STRG/SCAN (scan text), and FRME (UI frames) are excluded
          * because they may be shared with non-pickup room objects. */
         let pickup_dep_filter = |fourcc: &FourCC| {
@@ -9776,22 +9541,24 @@ fn patch_optimize_memory(
             })
             .collect();
 
+        let dead_dep_len = dead_pickup_deps.len();
+
         if !dead_pickup_deps.is_empty() {
-            println!(
-                "[room 0x{:X}] pruning {} dead pickup deps: {}",
-                mrea_id,
-                dead_pickup_deps.len(),
-                dead_pickup_deps
-                    .iter()
-                    .map(|d| format!("0x{:X}({})", d.asset_id, d.asset_type))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
+            // println!(
+            //     "[room 0x{:X}] pruning {} dead pickup deps: {}",
+            //     mrea_id,
+            //     dead_pickup_deps.len(),
+            //     dead_pickup_deps
+            //         .iter()
+            //         .map(|d| format!("0x{:X}({})", d.asset_id, d.asset_type))
+            //         .collect::<Vec<_>>()
+            //         .join(", ")
+            // );
             area.remove_dependencies(dead_pickup_deps);
         }
-    }
 
-    // area.dedup_dependencies();
+        dead_dep_len
+    };
 
     /* TODO: Purge dead memory relay connections */
 
@@ -9826,14 +9593,13 @@ fn patch_optimize_memory(
         before - relay_conns.len()
     };
 
-    let _room_name = ROOM_BY_MREA.get(&mrea_id).unwrap().room_name;
     println!(
-        "OPTIMIZE | {:<27} {:>3} dupe objs {:>3} dead objs {:>3} conns {:>3} mem relay conns",
-        _room_name,
-        dedupe_obj_lens,
-        dead_objs.len() - dedupe_obj_lens,
+        "OPTIMIZE | {:<27} | dead_obj {:>3} | dead_conn {:>3} | dead_mem_relay_conn {:>3} | dead_dep {:>3}",
+        ROOM_BY_MREA.get(&mrea_id).unwrap().room_name,
+        dead_objs.len(),
         dead_connections.len(),
         dead_memory_relay_conn_len,
+        dead_dep_len,
     );
 
     Ok(())
@@ -18188,8 +17954,8 @@ fn build_and_run_patches<'r>(
         }
     }
 
-    /* Optimize rooms that are likely to crash */
-    {
+    if config.qol_game_breaking {
+        /* Optimize rooms that are likely to crash */
         let rooms = [
             (World::ChozoRuins, "Main Plaza"),
             (World::ChozoRuins, "Ruined Fountain Access"),
@@ -18206,24 +17972,21 @@ fn build_and_run_patches<'r>(
                 .get(&(world_name.to_string(), room_name.to_string()))
                 .unwrap_or_else(|| panic!("'{} - {}' is not a real room", world_name, room_name))
                 .mrea_id;
-            // patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
-            //     patch_purge_debris_extended(ps, area)
-            // });
             patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
                 patch_optimize_memory(ps, area)
             });
         }
-    }
 
-    /* Optimize ALL rooms */
-    // for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
-    //     for room_info in rooms.iter() {
-    //         patcher.add_scly_patch(
-    //             (pak_name.as_bytes(), room_info.room_id.to_u32()),
-    //             move |ps, area| patch_optimize_memory(ps, area),
-    //         );
-    //     }
-    // }
+        /* Optimize ALL rooms */
+        // for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+        //     for room_info in rooms.iter() {
+        //         patcher.add_scly_patch(
+        //             (pak_name.as_bytes(), room_info.room_id.to_u32()),
+        //             move |ps, area| patch_optimize_memory(ps, area),
+        //         );
+        //     }
+        // }
+    }
 
     patcher.run(gc_disc)?;
     drop(patcher); // release the Rc clone held by the DOL closure
