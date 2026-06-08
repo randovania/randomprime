@@ -2066,7 +2066,7 @@ fn patch_logbook_oom_guard(
     // exact (@h is high-adjusted; a non-aligned value would round). EnsureWorldPaksReady loads all
     // world paks, so this floor is set generously high; lower it if the log book blanks too often.
     let free_bytes_addr: u32 = 0x804BFDF4;
-    let threshold: u32 = 1280 * 1024;
+    let threshold: u32 = 2304 * 1024;
     let intercept_addr: u32 = 0x8007387C;
     let return_null_addr: u32 = 0x80073938;
 
