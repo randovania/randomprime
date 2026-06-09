@@ -30,6 +30,25 @@ macro_rules! symbol_addr {
     }};
 }
 
+// Non-panicking symbol lookup: yields Option<u32>, None when the symbol is absent for
+// the given version. Heap/memory-optimization patches use this to gracefully no-op on
+// versions whose symbol tables don't yet name the function they hook, instead of
+// panicking. As symbols get added for more versions, those patches light up automatically.
+macro_rules! symbol_addr_opt {
+    ($sym:tt, $version:expr) => {{
+        let s = mp1_symbol!($sym);
+        match &$version {
+            Version::NtscU0_00 => s.addr_0_00,
+            Version::NtscU0_01 => s.addr_0_01,
+            Version::NtscU0_02 => s.addr_0_02,
+            Version::NtscK => s.addr_kor,
+            Version::NtscJ => s.addr_jpn,
+            Version::Pal => s.addr_pal,
+            Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy => None,
+        }
+    }};
+}
+
 // Dummy base address used to compile overflow stubs before their heap address is known.
 // Must be above all DOL addresses (0x80xxxxxx) so external branch detection works:
 // any branch whose target < STUB_COMPILE_BASE is an external DOL reference.
@@ -91,12 +110,7 @@ impl CodeCaveAllocator {
             .caves
             .iter_mut()
             .find(|c| c.start == cave_start)
-            .unwrap_or_else(|| {
-                panic!(
-                    "CodeCaveAllocator: no cave starts at 0x{:08x}",
-                    cave_start
-                )
-            });
+            .unwrap_or_else(|| panic!("CodeCaveAllocator: no cave starts at 0x{:08x}", cave_start));
         assert!(
             cave.used == 0,
             "Code cave 0x{:08x} already consumed {} bytes",
@@ -156,7 +170,11 @@ impl TextEmitter {
             .alloc(len)
             .unwrap_or_else(|| panic!("CodeCaveAllocator: no cave fits {} bytes", len));
         let final_bytes = build(addr);
-        debug_assert_eq!(final_bytes.len(), probe.len(), "stub size changed under final address");
+        debug_assert_eq!(
+            final_bytes.len(),
+            probe.len(),
+            "stub size changed under final address"
+        );
         dol_patcher.patch(addr, Cow::Owned(final_bytes))?;
         Ok(addr)
     }
@@ -180,7 +198,11 @@ impl TextEmitter {
 
         if let Some(cave_addr) = self.cave_alloc.alloc(len) {
             let final_bytes = build(cave_addr);
-            debug_assert_eq!(final_bytes.len(), probe.len(), "stub size changed under final address");
+            debug_assert_eq!(
+                final_bytes.len(),
+                probe.len(),
+                "stub size changed under final address"
+            );
             dol_patcher.patch(cave_addr, Cow::Owned(final_bytes))?;
             let rel = (cave_addr as i64 - dol_patch_site as i64) as u64;
             let lk: u32 = if patch_is_bl { 1 } else { 0 };
@@ -280,6 +302,19 @@ fn make_pic(stub_bytes: &[u8], stub_base: u32) -> Vec<u8> {
         i += 4;
     }
     out
+}
+
+// Decodes the absolute target of a PPC I-form branch (b/bl, AA=0) located at `pc`.
+// Used to recover a call target from an original instruction when the callee's mangled
+// name differs across versions (so a symbol lookup is not portable).
+fn branch_target(instr: u32, pc: u32) -> u32 {
+    let li_raw = instr & 0x03FF_FFFC;
+    let li: i32 = if li_raw & 0x0200_0000 != 0 {
+        li_raw as i32 - 0x0400_0000
+    } else {
+        li_raw as i32
+    };
+    (pc as i32 + li) as u32
 }
 
 pub fn caves_for_version(version: Version) -> CodeCaveAllocator {
@@ -590,151 +625,150 @@ fn patch_spring_ball(
 
     // All three spring-ball parts are one contiguous allocation (conditional branches
     // between them use the +-32 KB BC form and require contiguity).
-    let compute_spring_ball_movement =
-        emitter.emit_addressed(dol_patcher, |base| {
-            let data_addr = base + 0x1b4;
-            let sb_start = ppcasm!(base, {
-                stwu      r1, -0x20(r1);
-                mflr      r0;
-                stw       r0, 0x20(r1);
-                fmr       f15, f1;
-                stw       r31, 0x1c(r1);
-                stw       r30, 0x18(r1);
-                mr        r30, r5;
-                stw       r29, 0x14(r1);
-                mr        r29, r4;
-                stw       r28, 0x10(r1);
-                mr        r28, r3;
-                lwz       r14, 0x84c(r30);
-                lwz       r15, 0x8b8(r30);
-                lis       r16, {data_addr}@h;
-                addi      r16, r16, {data_addr}@l;
-                lwz       r17, {morph_ball_offset}(r14);
-                lfs       f1, 0x40(r14);
-                stfs      f1, 0x00(r16);
-                lfs       f1, 0x50(r14);
-                stfs      f1, 0x04(r16);
-                lfs       f1, 0x60(r14);
-                stfs      f1, 0x08(r16);
-                lwz       r0, 0x0c(r16);
-                cmplwi    r0, 0;
-                bgt       {base + 0x14c};
-                lwz       r0, {movement_state_offset}(r14);
-                cmplwi    r0, 0;
-                beq       {base + 0x84};
-                b         {base + 0x14c};
-                cmplwi    r0, 4;
-                bne       {base + 0x14c};
-                lwz       r0, {sb_out_of_water_ticks_offset}(r14);
-                cmplwi    r0, 2;
-                bne       {base + 0x90};
-                lwz       r0, {surface_restraint_type_offset}(r14);
-                b         {base + 0x94};
-                li        r0, 4;
-                cmplwi    r0, 7;
-                beq       {base + 0x14c};
-                mr        r3, r28;
-                bl        {is_movement_allowed_sym};
+    let compute_spring_ball_movement = emitter.emit_addressed(dol_patcher, |base| {
+        let data_addr = base + 0x1b4;
+        let sb_start = ppcasm!(base, {
+            stwu      r1, -0x20(r1);
+            mflr      r0;
+            stw       r0, 0x20(r1);
+            fmr       f15, f1;
+            stw       r31, 0x1c(r1);
+            stw       r30, 0x18(r1);
+            mr        r30, r5;
+            stw       r29, 0x14(r1);
+            mr        r29, r4;
+            stw       r28, 0x10(r1);
+            mr        r28, r3;
+            lwz       r14, 0x84c(r30);
+            lwz       r15, 0x8b8(r30);
+            lis       r16, {data_addr}@h;
+            addi      r16, r16, {data_addr}@l;
+            lwz       r17, {morph_ball_offset}(r14);
+            lfs       f1, 0x40(r14);
+            stfs      f1, 0x00(r16);
+            lfs       f1, 0x50(r14);
+            stfs      f1, 0x04(r16);
+            lfs       f1, 0x60(r14);
+            stfs      f1, 0x08(r16);
+            lwz       r0, 0x0c(r16);
+            cmplwi    r0, 0;
+            bgt       {base + 0x14c};
+            lwz       r0, {movement_state_offset}(r14);
+            cmplwi    r0, 0;
+            beq       {base + 0x84};
+            b         {base + 0x14c};
+            cmplwi    r0, 4;
+            bne       {base + 0x14c};
+            lwz       r0, {sb_out_of_water_ticks_offset}(r14);
+            cmplwi    r0, 2;
+            bne       {base + 0x90};
+            lwz       r0, {surface_restraint_type_offset}(r14);
+            b         {base + 0x94};
+            li        r0, 4;
+            cmplwi    r0, 7;
+            beq       {base + 0x14c};
+            mr        r3, r28;
+            bl        {is_movement_allowed_sym};
+            cmplwi    r3, 0;
+            beq       {base + 0x14c};
+        })
+        .encoded_bytes();
+        let sb_item_addr = base + sb_start.len() as u32;
+        let sb_item = if let Some(kind) = spring_ball_item_kind {
+            ppcasm!(sb_item_addr, {
+                lwz       r3, 0x0(r15);
+                li        r4, {kind};
+                bl        {has_power_up_sym};
                 cmplwi    r3, 0;
                 beq       {base + 0x14c};
             })
-            .encoded_bytes();
-            let sb_item_addr = base + sb_start.len() as u32;
-            let sb_item = if let Some(kind) = spring_ball_item_kind {
-                ppcasm!(sb_item_addr, {
-                    lwz       r3, 0x0(r15);
-                    li        r4, {kind};
-                    bl        {has_power_up_sym};
-                    cmplwi    r3, 0;
-                    beq       {base + 0x14c};
-                })
-                .encoded_bytes()
-            } else {
-                ppcasm!(sb_item_addr, {
-                    nop;
-                    nop;
-                    nop;
-                    nop;
-                    nop;
-                })
-                .encoded_bytes()
-            };
-            let sb_end_addr = sb_item_addr + sb_item.len() as u32;
-            let sb_end = ppcasm!(sb_end_addr, {
-                lhz       r0, {attached_actor_offset}(r14);
-                cmplwi    r0, 65535;
-                bne       {base + 0x14c};
-                addi      r3, r14, {energy_drain_offset};
-                bl        {get_energy_drain_sym};
-                fcmpu     cr0, f1, f14;
-                bgt       {base + 0x14c};
-                lwz       r0, 0x187c(r28);
-                cmplwi    r0, 0;
-                bne       {base + 0x14c};
-                lfs       f1, 0x14(r29);
-                fcmpu     cr0, f1, f14;
-                ble       {base + 0x14c};
-                lfs       f16, {velocity_offset}(r14);
-                lfs       f17, {velocity_offset + 4}(r14);
-                mr        r3, r14;
-                mr        r4, r16;
-                mr        r5, r30;
-                bl        {bomb_jump_sym};
-                stfs      f16, {velocity_offset}(r14);
-                stfs      f17, {velocity_offset + 4}(r14);
-                lfs       f17, 0x1dfc(r17);
-                fcmpu     cr0, f17, f14;
-                ble       {base + 0x130};
-                lfs       f17, 0x10(r16);
-                lfs       f16, {velocity_offset + 8}(r14);
-                fdivs     f16, f16, f17;
-                stfs      f16, {velocity_offset + 8}(r14);
-                mr        r3, r14;
-                li        r4, 4;
-                mr        r5, r29;
-                bl        {set_move_state_sym};
-                li        r3, 40;
-                stw       r3, 0x0c(r16);
-                b         {base + 0x160};
-                lwz       r3, 0x0c(r16);
-                cmplwi    r3, 0;
-                beq       {base + 0x160};
-                addi      r3, r3, -1;
-                stw       r3, 0x0c(r16);
-                mr        r3, r28;
-                mr        r4, r29;
-                mr        r5, r30;
-                fmr       f1, f15;
-                bl        {compute_boost_ball_sym};
-                andi      r14, r14, 0;
-                andi      r15, r15, 0;
-                andi      r16, r16, 0;
-                andi      r17, r17, 0;
-                lwz       r0, 0x20(r1);
-                fmr       f1, f15;
-                fmr       f15, f14;
-                fmr       f16, f14;
-                fmr       f17, f14;
-                lwz       r31, 0x1c(r1);
-                lwz       r30, 0x18(r1);
-                lwz       r29, 0x14(r1);
-                lwz       r28, 0x10(r1);
-                mtlr      r0;
-                addi      r1, r1, 0x20;
-                blr;
-            data:
-                .float 0.0;
-                .float 0.0;
-                .float 0.0;
-                .long 0;
-                .float 1.5;
+            .encoded_bytes()
+        } else {
+            ppcasm!(sb_item_addr, {
+                nop;
+                nop;
+                nop;
+                nop;
+                nop;
             })
-            .encoded_bytes();
-            let mut all = sb_start;
-            all.extend(sb_item);
-            all.extend(sb_end);
-            all
-        })?;
+            .encoded_bytes()
+        };
+        let sb_end_addr = sb_item_addr + sb_item.len() as u32;
+        let sb_end = ppcasm!(sb_end_addr, {
+            lhz       r0, {attached_actor_offset}(r14);
+            cmplwi    r0, 65535;
+            bne       {base + 0x14c};
+            addi      r3, r14, {energy_drain_offset};
+            bl        {get_energy_drain_sym};
+            fcmpu     cr0, f1, f14;
+            bgt       {base + 0x14c};
+            lwz       r0, 0x187c(r28);
+            cmplwi    r0, 0;
+            bne       {base + 0x14c};
+            lfs       f1, 0x14(r29);
+            fcmpu     cr0, f1, f14;
+            ble       {base + 0x14c};
+            lfs       f16, {velocity_offset}(r14);
+            lfs       f17, {velocity_offset + 4}(r14);
+            mr        r3, r14;
+            mr        r4, r16;
+            mr        r5, r30;
+            bl        {bomb_jump_sym};
+            stfs      f16, {velocity_offset}(r14);
+            stfs      f17, {velocity_offset + 4}(r14);
+            lfs       f17, 0x1dfc(r17);
+            fcmpu     cr0, f17, f14;
+            ble       {base + 0x130};
+            lfs       f17, 0x10(r16);
+            lfs       f16, {velocity_offset + 8}(r14);
+            fdivs     f16, f16, f17;
+            stfs      f16, {velocity_offset + 8}(r14);
+            mr        r3, r14;
+            li        r4, 4;
+            mr        r5, r29;
+            bl        {set_move_state_sym};
+            li        r3, 40;
+            stw       r3, 0x0c(r16);
+            b         {base + 0x160};
+            lwz       r3, 0x0c(r16);
+            cmplwi    r3, 0;
+            beq       {base + 0x160};
+            addi      r3, r3, -1;
+            stw       r3, 0x0c(r16);
+            mr        r3, r28;
+            mr        r4, r29;
+            mr        r5, r30;
+            fmr       f1, f15;
+            bl        {compute_boost_ball_sym};
+            andi      r14, r14, 0;
+            andi      r15, r15, 0;
+            andi      r16, r16, 0;
+            andi      r17, r17, 0;
+            lwz       r0, 0x20(r1);
+            fmr       f1, f15;
+            fmr       f15, f14;
+            fmr       f16, f14;
+            fmr       f17, f14;
+            lwz       r31, 0x1c(r1);
+            lwz       r30, 0x18(r1);
+            lwz       r29, 0x14(r1);
+            lwz       r28, 0x10(r1);
+            mtlr      r0;
+            addi      r1, r1, 0x20;
+            blr;
+        data:
+            .float 0.0;
+            .float 0.0;
+            .float 0.0;
+            .long 0;
+            .float 1.5;
+        })
+        .encoded_bytes();
+        let mut all = sb_start;
+        all.extend(sb_item);
+        all.extend(sb_end);
+        all
+    })?;
     #[rustfmt::skip]
     dol_patcher.ppcasm_patch(&ppcasm!(
         symbol_addr!("ComputeBallMovement__10CMorphBallFRC11CFinalInputR13CStateManagerf", version) + 0x2c,
@@ -1480,20 +1514,19 @@ fn patch_build_async_null_guard(
     //   0x74(r1): saved LR (caller's return address)
     // The epilogue at +0xC8 restores all of this and returns.
 
-    let cave_addr =
-        emitter.emit_addressed(dol_patcher, |cave_addr| {
-            ppcasm!(cave_addr, {
-                cmpwi r29, 0x0;                                // null alloc result?
-                bne do_load;
-                b {build_async_addr + 0xC8};                   // early return via BuildAsync epilogue
-            do_load:
-                mr r4, r26;                                    // original instr: mr r4, r26
-                addi r3, r25, 0x4;                             // original instr: addi r3, r25, 0x4
-                mr r5, r29;                                    // original instr: mr r5, r29
-                b {load_resource_async_addr};                  // tail call; LR = return addr of bl cave
-            })
-            .encoded_bytes()
-        })?;
+    let cave_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
+        ppcasm!(cave_addr, {
+            cmpwi r29, 0x0;                                // null alloc result?
+            bne do_load;
+            b {build_async_addr + 0xC8};                   // early return via BuildAsync epilogue
+        do_load:
+            mr r4, r26;                                    // original instr: mr r4, r26
+            addi r3, r25, 0x4;                             // original instr: addi r3, r25, 0x4
+            mr r5, r29;                                    // original instr: mr r5, r29
+            b {load_resource_async_addr};                  // tail call; LR = return addr of bl cave
+        })
+        .encoded_bytes()
+    })?;
 
     // Patch 4 instructions in BuildAsync at offset +0x6C:
     //   Original: mr r4,r26 | addi r3,r25,4 | mr r5,r29 | bl LoadResourceAsync
@@ -1530,20 +1563,22 @@ fn patch_inflate_null_guard(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    // The zlib decompress worker (prime: fn_803394A8) is an unnamed function, so anchor on
+    // PumpResource (its sole caller) and decode the bl at PumpResource+0x5c to recover its
+    // start. Offsets within the worker are verified identical across the versions that have
+    // the PumpResource symbol.
+    let (Some(pump), Some(inflate_end_addr)) = (
+        symbol_addr_opt!("PumpResource__11CResFactoryFR12SLoadingData", version),
+        symbol_addr_opt!("inflateEnd", version),
+    ) else {
         return Ok(());
-    }
-
-    let oom_flag_addr = {
-        emitter.emit_addressed(dol_patcher, |_| {
-            0u32.to_be_bytes().to_vec()
-        })?
     };
+    let worker: u32 = branch_target(dol_patcher.read_u32(pump + 0x5c)?, pump + 0x5c);
 
-    // Hardcoded 0-00 addresses (unnamed functions not in symbol table)
-    let inflate_oom_site: u32 = 0x803396A8; // lwz r3, 0x20(r30) -- OOM intercept site
-    let inflate_fail_addr: u32 = 0x80339868; // fn_803394A8 failure epilogue: li r3,0; restore; blr
-    let inflate_end_addr = symbol_addr!("inflateEnd", version);
+    let oom_flag_addr = { emitter.emit_addressed(dol_patcher, |_| 0u32.to_be_bytes().to_vec())? };
+
+    let inflate_oom_site: u32 = worker + 0x200; // lwz r3, 0x20(r30) -- OOM intercept site
+    let inflate_fail_addr: u32 = worker + 0x3c0; // worker failure epilogue: li r3,0; restore; blr
 
     // r30 = SLD_inner, r23 = z_stream ptr (both set up by fn_803394A8 before the loop)
     // Non-OOM (r3 != 0): return normally via blr; caller continues with valid inflate buf.
@@ -1551,26 +1586,25 @@ fn patch_inflate_null_guard(
     //   reference, set oom_flag so patch_build_retry_guard can detect the OOM cause,
     //   then jump to failure epilogue. Next retry re-allocates z_stream + buf fresh.
     // r12 is volatile (may be clobbered by inflateEnd), so reload fresh with lis before use.
-    let stub_addr =
-        emitter.emit_addressed(dol_patcher, |cave_addr| {
-            ppcasm!(cave_addr, {
-                lwz r3, 0x20(r30);              // original instruction: load inflate buf ptr
-                cmpwi r3, 0x0;
-                bne no_oom;                     // non-null: return r3 normally
-                mr r3, r23;                     // r3 = z_stream ptr
-                bl {inflate_end_addr};          // inflateEnd(z_stream) -- frees internal state
-                li r0, 0;
-                stb r0, 0x24(r30);              // SLD_inner[0x24] = 0 (release z_stream ownership)
-                stw r0, 0x28(r30);              // SLD_inner[0x28] = null (forget z_stream ptr)
-                lis r12, {oom_flag_addr}@h;     // signal OOM to Build's retry guard
-                li r3, 0x1;
-                stw r3, {oom_flag_addr}@l(r12);
-                b {inflate_fail_addr};          // jump to fn_803394A8 failure epilogue
-            no_oom:
-                blr;
-            })
-            .encoded_bytes()
-        })?;
+    let stub_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lwz r3, 0x20(r30);              // original instruction: load inflate buf ptr
+            cmpwi r3, 0x0;
+            bne no_oom;                     // non-null: return r3 normally
+            mr r3, r23;                     // r3 = z_stream ptr
+            bl {inflate_end_addr};          // inflateEnd(z_stream) -- frees internal state
+            li r0, 0;
+            stb r0, 0x24(r30);              // SLD_inner[0x24] = 0 (release z_stream ownership)
+            stw r0, 0x28(r30);              // SLD_inner[0x28] = null (forget z_stream ptr)
+            lis r12, {oom_flag_addr}@h;     // signal OOM to Build's retry guard
+            li r3, 0x1;
+            stw r3, {oom_flag_addr}@l(r12);
+            b {inflate_fail_addr};          // jump to fn_803394A8 failure epilogue
+        no_oom:
+            blr;
+        })
+        .encoded_bytes()
+    })?;
 
     dol_patcher.ppcasm_patch(&ppcasm!(inflate_oom_site, {
         bl { stub_addr };
@@ -1592,42 +1626,52 @@ fn patch_inflate_null_guard(
 // path at 0x80351FAC, which attempts CMediumAllocPool::Alloc once more (still fails, r23 = 0)
 // and then reaches the normal OOM-handling path at 0x80351FE0 that returns null to the caller.
 //
-// Only applied for NTSC 0-00; these are unnamed internal functions absent from other symbol tables.
+// Anchored on CGameAllocator::Alloc; applies on every version whose symbol table names it.
 fn patch_add_puddle_null_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let Some(alloc) = symbol_addr_opt!(
+        "Alloc__14CGameAllocatorFUlQ210IAllocator5EHintQ210IAllocator6EScopeQ210IAllocator5ETypeRC10CCallStack",
+        version
+    ) else {
         return Ok(());
-    }
+    };
 
-    // NTSC 0-00 hardcoded addresses
-    let intercept_addr: u32 = 0x80351F94; // mr r0, r3 -- first instr after bctrl in CGameAllocator::Alloc
-    let add_puddle_addr: u32 = 0x80350990; // CMediumAllocPool::AddPuddle
-    let retry_addr: u32 = 0x80351FAC; // CMediumAllocPool::Alloc retry after AddPuddle
+    // The medium-pool expansion sequence sits at Alloc+0x1c4 (offset verified identical on
+    // all six versions): mr r0,r3 | lwz r3,0x74(r31) | mr r5,r0 | li r4,0x1000 | li r6,0x1 |
+    // bl AddPuddle. We intercept the `mr r0,r3`.
+    let intercept_addr: u32 = alloc + 0x1c4; // mr r0, r3 -- first instr after bctrl in CGameAllocator::Alloc
+                                             // AddPuddle is tail-called via the original `bl` at intercept+0x14. Its mangled name
+                                             // differs between versions (extra param on 1.02/PAL), so decode the branch target
+                                             // rather than looking the symbol up.
+    let add_puddle_addr: u32 = branch_target(
+        dol_patcher.read_u32(intercept_addr + 0x14)?,
+        intercept_addr + 0x14,
+    ); // CMediumAllocPool::AddPuddle
+    let retry_addr: u32 = intercept_addr + 0x18; // CMediumAllocPool::Alloc retry after AddPuddle
 
     // After bctrl: r3 = inner alloc result (null on OOM), r31 = this (CGameAllocator*).
     // Non-null path: replay original instrs, tail-call AddPuddle (returns to LR=intercept+4).
     //   The nop at intercept+4 is a b {retry_addr} that continues execution normally.
     // Null path: blr back to intercept+4 (= b {retry_addr}), skip AddPuddle entirely.
     //   Pool retry fails (pool not expanded), r23 = 0, falls into OOM handling at 0x80351FE0.
-    let stub_addr =
-        emitter.emit_addressed(dol_patcher, |cave_addr| {
-            ppcasm!(cave_addr, {
-                cmpwi r3, 0x0;
-                beq null_path;
-                mr r0, r3;             // original instruction
-                lwz r3, 0x74(r31);    // original instruction
-                mr r5, r0;             // original instruction
-                li r4, 0x1000;         // original instruction
-                li r6, 0x1;            // original instruction
-                b {add_puddle_addr};   // tail call; AddPuddle blr returns to LR=intercept+4
-            null_path:
-                blr;                   // return to intercept+4 = b {retry_addr}
-            })
-            .encoded_bytes()
-        })?;
+    let stub_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
+        ppcasm!(cave_addr, {
+            cmpwi r3, 0x0;
+            beq null_path;
+            mr r0, r3;             // original instruction
+            lwz r3, 0x74(r31);    // original instruction
+            mr r5, r0;             // original instruction
+            li r4, 0x1000;         // original instruction
+            li r6, 0x1;            // original instruction
+            b {add_puddle_addr};   // tail call; AddPuddle blr returns to LR=intercept+4
+        null_path:
+            blr;                   // return to intercept+4 = b {retry_addr}
+        })
+        .encoded_bytes()
+    })?;
 
     // Replace 6 instructions starting at intercept_addr:
     //   Original: mr r0,r3 | lwz r3,0x74(r31) | mr r5,r0 | li r4,0x1000 | li r6,0x1 | bl AddPuddle
@@ -1652,42 +1696,38 @@ fn patch_add_puddle_null_guard(
 // downstream crash occurs.
 // Requires patch_alloc_null_on_failure to be applied first so that Alloc actually returns null.
 //
-// Only applied for NTSC 0-00; InitBitmapBuffers address is absent from other symbol tables.
+// Anchored on CTexture::InitBitmapBuffers; applies on every version that names it.
 fn patch_init_bitmap_buffers_null_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let Some(func) = symbol_addr_opt!("InitBitmapBuffers__8CTextureF12ETexelFormatssi", version)
+    else {
         return Ok(());
-    }
+    };
 
-    // NTSC 0-00 hardcoded addresses (function not in other versions' symbol tables)
-    let intercept_addr: u32 = 0x8030EAD4; // first instruction after bl Alloc in InitBitmapBuffers
-    let epilogue_addr: u32 = 0x8030EAF0; // InitBitmapBuffers epilogue (lwz r0, 0x24(r1))
+    // Offsets verified identical across all versions that have this symbol.
+    let intercept_addr: u32 = func + 0x164; // first instruction after bl Alloc in InitBitmapBuffers
+    let epilogue_addr: u32 = func + 0x180; // InitBitmapBuffers epilogue (lwz r0, 0x24(r1))
 
     // After bl Alloc returns: r3 = alloc result, r31 = this (CTexture*).
     // Non-OOM path: replay original lwz r5,0xc(r31) and return to normal flow.
     // OOM path (r3==0): zero x0c_bmpDataSize, skip PostConstruct+CountMemory, branch to epilogue.
     //   CARAMToken at this+0x44 stays default-constructed (state=6); LoadToARAM returns 0 safely.
-    emitter.emit_and_patch(
-        dol_patcher,
-        intercept_addr,
-        true,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                cmpwi r3, 0x0;
-                beq oom;
-                lwz r5, 0xc(r31);  // original instruction: load bmpDataSize into r5
-                blr;               // return; continues with mr r4,r3 then bl PostConstruct
-            oom:
-                li r0, 0;
-                stw r0, 0xc(r31); // zero x0c_bmpDataSize (no buffer was allocated)
-                b {epilogue_addr}; // skip PostConstruct + CountMemory
-            })
-            .encoded_bytes()
-        },
-    )?;
+    emitter.emit_and_patch(dol_patcher, intercept_addr, true, |cave_addr| {
+        ppcasm!(cave_addr, {
+            cmpwi r3, 0x0;
+            beq oom;
+            lwz r5, 0xc(r31);  // original instruction: load bmpDataSize into r5
+            blr;               // return; continues with mr r4,r3 then bl PostConstruct
+        oom:
+            li r0, 0;
+            stw r0, 0xc(r31); // zero x0c_bmpDataSize (no buffer was allocated)
+            b {epilogue_addr}; // skip PostConstruct + CountMemory
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -1714,35 +1754,34 @@ fn patch_init_bitmap_buffers_null_guard(
 // the state=6 safety net the companion guard already depends on.
 //
 // Requires patch_init_bitmap_buffers_null_guard (and patch_alloc_null_on_failure) to be applied.
-// Only applied for NTSC 0-00; the constructor address is absent from other symbol tables.
+// Anchored on the CTexture stream constructor; applies on every version that names it.
 fn patch_texture_ctor_null_read_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let Some(func) = symbol_addr_opt!(
+        "__ct__8CTextureFR12CInputStreamQ28CTexture11EAutoMipmapQ28CTexture9EBlackKey",
+        version
+    ) else {
         return Ok(());
-    }
+    };
 
-    let intercept_addr: u32 = 0x8030FD84; // mr r28, r3 -- buffer from GetMRAMSafe
-    let init_tex_objects_addr: u32 = 0x8030FE08; // skip target: mr r3,r29; bl InitTextureObjects
+    // Offsets verified identical across all versions that have this symbol.
+    let intercept_addr: u32 = func + 0x2c0; // mr r28, r3 -- buffer from GetMRAMSafe
+    let init_tex_objects_addr: u32 = func + 0x344; // skip target: mr r3,r29; bl InitTextureObjects
 
-    emitter.emit_and_patch(
-        dol_patcher,
-        intercept_addr,
-        true,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                mr    r28, r3;                   // original instruction: r28 = MRAM buffer
-                cmpwi r28, 0x0;
-                bne   ok;
-                b     {init_tex_objects_addr};   // null buffer: skip read + mangle loops
-            ok:
-                blr;                             // valid buffer: resume normal read loop
-            })
-            .encoded_bytes()
-        },
-    )?;
+    emitter.emit_and_patch(dol_patcher, intercept_addr, true, |cave_addr| {
+        ppcasm!(cave_addr, {
+            mr    r28, r3;                   // original instruction: r28 = MRAM buffer
+            cmpwi r28, 0x0;
+            bne   ok;
+            b     {init_tex_objects_addr};   // null buffer: skip read + mangle loops
+        ok:
+            blr;                             // valid buffer: resume normal read loop
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -1771,47 +1810,44 @@ fn patch_texture_ctor_null_read_guard(
 // r29 = CStateManager* (mgr, set once in the prologue and never reused before here). This mirrors
 // the original OutWipeDone unload exactly, which also calls Unload via vtable[0x3c] with mr r4,r29.
 //
-// Only applied for NTSC 0-00; the addresses are version specific.
+// Anchored on CPlayerGun::ProcessGunMorph; applies on every version that names it.
 fn patch_beam_switch_early_unload(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let Some(func) = symbol_addr_opt!("ProcessGunMorph__10CPlayerGunFfR13CStateManager", version)
+    else {
         return Ok(());
-    }
+    };
 
-    let swap_break_addr: u32 = 0x8003AFC8; // `b 0x8003B02C` at the tail of the kGS_InWipeDone swap
-    let break_target: u32 = 0x8003B02C; // original branch target (start of the morph-Update switch)
+    // Offsets verified identical across all versions that have this symbol.
+    let swap_break_addr: u32 = func + 0x138; // `b func+0x19c` at the tail of the kGS_InWipeDone swap
+    let break_target: u32 = func + 0x19c; // original branch target (start of the morph-Update switch)
 
-    emitter.emit_and_patch(
-        dol_patcher,
-        swap_break_addr,
-        true,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                lwz   r3, 0x730(r28);    // outgoingBeam (old)
-                cmplwi r3, 0x0;
-                beq   done;              // no outgoing beam: nothing to free
-                lwz   r0, 0x72c(r28);    // currentBeam (new)
-                cmplw r3, r0;
-                beq   done;              // outgoing == current: do not unload the live beam
-                // outgoingBeam->Unload(mgr) via CGunWeapon vtable[0x3c]. r1 is the live
-                // ProcessGunMorph frame; Unload builds its own frame. We exit via `b`, not blr,
-                // so the LR clobbered by bctrl is irrelevant (mirrors the OutWipeDone code).
-                lwz   r12, 0x0(r3);      // vtable
-                mr    r4, r29;           // mgr
-                lwz   r12, 0x3c(r12);    // Unload = vtable[0x3c]
-                mtctr r12;
-                bctrl;
-                li    r0, 0x0;
-                stw   r0, 0x730(r28);    // outgoingBeam = NULL (OutWipeDone will now skip)
-            done:
-                b     { break_target };  // resume at the morph-Update switch
-            })
-            .encoded_bytes()
-        },
-    )?;
+    emitter.emit_and_patch(dol_patcher, swap_break_addr, true, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lwz   r3, 0x730(r28);    // outgoingBeam (old)
+            cmplwi r3, 0x0;
+            beq   done;              // no outgoing beam: nothing to free
+            lwz   r0, 0x72c(r28);    // currentBeam (new)
+            cmplw r3, r0;
+            beq   done;              // outgoing == current: do not unload the live beam
+            // outgoingBeam->Unload(mgr) via CGunWeapon vtable[0x3c]. r1 is the live
+            // ProcessGunMorph frame; Unload builds its own frame. We exit via `b`, not blr,
+            // so the LR clobbered by bctrl is irrelevant (mirrors the OutWipeDone code).
+            lwz   r12, 0x0(r3);      // vtable
+            mr    r4, r29;           // mgr
+            lwz   r12, 0x3c(r12);    // Unload = vtable[0x3c]
+            mtctr r12;
+            bctrl;
+            li    r0, 0x0;
+            stw   r0, 0x730(r28);    // outgoingBeam = NULL (OutWipeDone will now skip)
+        done:
+            b     { break_target };  // resume at the morph-Update switch
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -1821,9 +1857,19 @@ fn patch_morph_transition_oom_guard(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let (Some(alloc), Some(can_enter_addr), Some(can_leave_addr)) = (
+        symbol_addr_opt!("gGameAllocator", version),
+        symbol_addr_opt!(
+            "CanEnterMorphBallState__7CPlayerCFR13CStateManagerf",
+            version
+        ),
+        symbol_addr_opt!(
+            "CanLeaveMorphBallState__7CPlayerCFR13CStateManagerR9CVector3f",
+            version
+        ),
+    ) else {
         return Ok(());
-    }
+    };
 
     // Intercept CanEnterMorphBallState and CanLeaveMorphBallState instead of
     // TransitionToMorphBallState/TransitionFromMorphBallState to avoid patching
@@ -1836,56 +1882,44 @@ fn patch_morph_transition_oom_guard(
     // Both functions start with stwu (stack frame allocation). We overwrite the
     // first instruction with a b-trampoline (not bl, so LR is unchanged): the
     // OOM path does li r3,0; blr to return false directly to the caller.
-    let free_bytes_addr: u32 = 0x804BFDF4;
+    let free_bytes_addr: u32 = alloc + 0x90; // gGameAllocator x90_heapSize2 (free-bytes counter)
     let threshold: u32 = 704 * 1024;
 
-    // CanEnterMorphBallState__7CPlayerCFR13CStateManagerf (NTSC 0-00: 0x80012EFC)
-    //   First instruction: stwu r1, -0x820(r1)
-    let can_enter_addr: u32 = 0x80012EFC;
-    emitter.emit_and_patch(
-        dol_patcher,
-        can_enter_addr,
-        false,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                lis   r12, { free_bytes_addr }@h;
-                lwz   r0,  { free_bytes_addr }@l(r12);
-                lis   r12, { threshold }@h;
-                cmplw r0, r12;
-                bge   ok;
-                li    r3, 0x0;                   // OOM: return false (caller plays malfunction SFX)
-                blr;
-            ok:
-                stwu  r1, -0x820(r1);            // trampoline: original first instruction
-                b     { can_enter_addr + 4 };
-            })
-            .encoded_bytes()
-        },
-    )?;
+    // Both functions start with a stwu frame allocation; we replay that displaced first
+    // instruction (read from the original DOL, so the version-specific frame size is exact).
+    let can_enter_orig = dol_patcher.read_u32(can_enter_addr)?;
+    emitter.emit_and_patch(dol_patcher, can_enter_addr, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lis   r12, { free_bytes_addr }@h;
+            lwz   r0,  { free_bytes_addr }@l(r12);
+            lis   r12, { threshold }@h;
+            cmplw r0, r12;
+            bge   ok;
+            li    r3, 0x0;                   // OOM: return false (caller plays malfunction SFX)
+            blr;
+        ok:
+            .long can_enter_orig;            // trampoline: original first instruction
+            b     { can_enter_addr + 4 };
+        })
+        .encoded_bytes()
+    })?;
 
-    // CanLeaveMorphBallState__7CPlayerCFR13CStateManagerR9CVector3f (NTSC 0-00: 0x80012A94)
-    //   First instruction: stwu r1, -0x980(r1)
-    let can_leave_addr: u32 = 0x80012A94;
-    emitter.emit_and_patch(
-        dol_patcher,
-        can_leave_addr,
-        false,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                lis   r12, { free_bytes_addr }@h;
-                lwz   r0,  { free_bytes_addr }@l(r12);
-                lis   r12, { threshold }@h;
-                cmplw r0, r12;
-                bge   ok;
-                li    r3, 0x0;                   // OOM: return false (caller plays malfunction SFX)
-                blr;
-            ok:
-                stwu  r1, -0x980(r1);            // trampoline: original first instruction
-                b     { can_leave_addr + 4 };
-            })
-            .encoded_bytes()
-        },
-    )?;
+    let can_leave_orig = dol_patcher.read_u32(can_leave_addr)?;
+    emitter.emit_and_patch(dol_patcher, can_leave_addr, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lis   r12, { free_bytes_addr }@h;
+            lwz   r0,  { free_bytes_addr }@l(r12);
+            lis   r12, { threshold }@h;
+            cmplw r0, r12;
+            bge   ok;
+            li    r3, 0x0;                   // OOM: return false (caller plays malfunction SFX)
+            blr;
+        ok:
+            .long can_leave_orig;            // trampoline: original first instruction
+            b     { can_leave_addr + 4 };
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -1895,11 +1929,17 @@ fn patch_draw_areas_oom_guard(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let (Some(alloc), Some(func_addr)) = (
+        symbol_addr_opt!("gGameAllocator", version),
+        symbol_addr_opt!(
+            "DrawAreas__9CMapWorldCFRCQ29CMapWorld18CMapWorldDrawParmsiRCQ24rstl64vector<Q29CMapWorld15CMapAreaBFSInfo,Q24rstl17rmemory_allocator>b",
+            version
+        ),
+    ) else {
         return Ok(());
-    }
+    };
 
-    // DrawAreas__9CMapWorldCF... (NTSC 0-00: 0x8009FB08) renders the automap every frame.
+    // DrawAreas__9CMapWorldCF... renders the automap every frame.
     // It builds a local (stack) vector<CMapObjectSortInfo> via an inlined push_back loop,
     // then sorts and draws it. The push_back grows the vector through a reserve() at
     // 0x800A2154; under OOM that reserve leaves the backing pointer null while capacity is
@@ -1918,30 +1958,25 @@ fn patch_draw_areas_oom_guard(
     // blanks the map only in the genuinely dangerous window. Silent (no SFX): this runs every
     // frame.
     //
-    // First instruction of DrawAreas: stwu r1, -0x5d0(r1)
-    let free_bytes_addr: u32 = 0x804BFDF4;
+    // First instruction of DrawAreas is a stwu frame allocation, replayed below.
+    let free_bytes_addr: u32 = alloc + 0x90; // gGameAllocator x90_heapSize2 (free-bytes counter)
     let threshold: u32 = 256 * 1024;
-    let func_addr: u32 = 0x8009FB08;
 
-    emitter.emit_and_patch(
-        dol_patcher,
-        func_addr,
-        false,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                lis   r12, { free_bytes_addr }@h;
-                lwz   r0,  { free_bytes_addr }@l(r12);
-                lis   r12, { threshold }@h;
-                cmplw r0, r12;
-                bge   ok;
-                blr;                             // OOM: skip the whole automap draw this frame
-            ok:
-                stwu  r1, -0x5d0(r1);            // trampoline: original first instruction
-                b     { func_addr + 4 };
-            })
-            .encoded_bytes()
-        },
-    )?;
+    let func_orig = dol_patcher.read_u32(func_addr)?;
+    emitter.emit_and_patch(dol_patcher, func_addr, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lis   r12, { free_bytes_addr }@h;
+            lwz   r0,  { free_bytes_addr }@l(r12);
+            lis   r12, { threshold }@h;
+            cmplw r0, r12;
+            bge   ok;
+            blr;                             // OOM: skip the whole automap draw this frame
+        ok:
+            .long func_orig;                 // trampoline: original first instruction
+            b     { func_addr + 4 };
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -1951,80 +1986,86 @@ fn patch_change_weapon_oom_guard(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let (Some(alloc), Some(change_weapon), Some(sfx_start_addr)) = (
+        symbol_addr_opt!("gGameAllocator", version),
+        symbol_addr_opt!(
+            "ChangeWeapon__10CPlayerGunFRC12CPlayerStateR13CStateManager",
+            version
+        ),
+        symbol_addr_opt!("SfxStart__11CSfxManagerFUsssbsbi", version),
+    ) else {
         return Ok(());
-    }
+    };
 
-    // ChangeWeapon__10CPlayerGunFRC12CPlayerStateR13CStateManager (0x8003EF98):
-    //   0x8003F00C: cmplw r3, r0   (r3=loadingBeam, r0=currentBeam)
-    //   0x8003F010: beq .L_8003F03C  (skip Load if same beam)
-    //   0x8003F014-0x8003F038: loadingBeam->Load + auxWeapon->Load
-    //   0x8003F03C: .L_8003F03C (EnableFx / ResetBeamParams / StartWipe)
-    //   0x8003F08C: function epilogue (lwz r0,0x24(r1); restore r29-r31; mtlr; addi r1; blr)
+    // ChangeWeapon__10CPlayerGunFRC12CPlayerStateR13CStateManager:
+    //   +0x74: cmplw r3, r0   (r3=loadingBeam, r0=currentBeam)
+    //   +0x78: beq +0xa4      (skip Load if same beam)
+    //   +0x7c..+0xa0: loadingBeam->Load + auxWeapon->Load
+    //   +0xa4: EnableFx / ResetBeamParams / StartWipe
+    //   +0xf4: function epilogue (lwz r0,0x24(r1); restore r29-r31; mtlr; addi r1; blr)
+    // Offsets verified identical across all versions that have this symbol.
     //
     // Replace the beq with bl to a stub that:
-    //   1. Honours the original beq (same beam -> 0x8003F03C for wipe animation)
+    //   1. Honours the original beq (same beam -> +0xa4 for wipe animation)
     //   2. Checks heap free bytes; if sufficient, falls through to Load block
-    //   3. If OOM: jumps to function EPILOGUE (0x8003F08C), skipping wipe animation
+    //   3. If OOM: jumps to function EPILOGUE (+0xf4), skipping wipe animation
     //      entirely so the morphing flag is never set and the player can still fire.
     //      Jumping to the epilogue is safe: ChangeWeapon's prologue frame is intact.
     //
-    // CR0[EQ] is preserved by bl, r0/r12 are safe to clobber (both overwritten at 0x8003F014+).
-    let intercept_addr: u32 = 0x8003F010;
+    // CR0[EQ] is preserved by bl, r0/r12 are safe to clobber (both overwritten at +0x7c).
+    let intercept_addr: u32 = change_weapon + 0x78;
     // Same-beam path: honour original beq, land at EnableFx/ResetBeamParams/StartWipe.
-    let skip_target: u32 = 0x8003F03C;
+    let skip_target: u32 = change_weapon + 0xa4;
     // OOM path: jump past StartWipe directly to the function epilogue.
     // This prevents ResetBeamParams from setting the morphing flag, so the player
     // keeps the old beam and can fire without the morph state machine stalling.
-    let epilogue_addr: u32 = 0x8003F08C;
-    // Heap free-bytes counter (user-provided address).
-    let free_bytes_addr: u32 = 0x804BFDF4;
+    let epilogue_addr: u32 = change_weapon + 0xf4;
+    // gGameAllocator x90_heapSize2 (free-bytes counter).
+    let free_bytes_addr: u32 = alloc + 0x90;
     let threshold: u32 = 320 * 1024;
     // SfxStart__11CSfxManagerFUsssbsbi: static, r3=CSfxHandle* out, r4=id, r5=vol,
     // r6=pan, r7=useAcoustics, r8=priority, r9=looped, r10=areaId.
-    let sfx_start_addr: u32 = 0x802E9D74;
 
-    let stub_addr =
-        emitter.emit_addressed(dol_patcher, |cave_addr| {
-            ppcasm!(cave_addr, {
-                bne  no_orig_skip;                        // beams differ: check OOM
-                b    { skip_target };                     // beams same: honour original beq
-            no_orig_skip:
-                lis  r12, { free_bytes_addr }@h;
-                lwz  r0,  { free_bytes_addr }@l(r12);    // r0 = heap free bytes
-                lis  r12, { threshold }@h;                // r12 = threshold
-                cmplw r0, r12;                            // unsigned compare
-                bge  no_oom;                              // enough memory: allow Load
-                // OOM path: HandleBeamChange (from ProcessInput) set x2f8_stateFlags |= 0x8
-                // (morphing). ProcessInput exits early when x2f8 >= 4, so x2f4 is never
-                // updated from the fire button -> player cannot fire. SetupBeam processing
-                // would normally clear the morphing flag, but it only runs after a successful
-                // morph, which never happens when we cancel early.
-                // Restore x2f8 = 1 (beam mode) so ProcessInput reads fire input normally.
-                li   r0, 0x1;
-                stw  r0, 0x2f8(r29);                     // x2f8_stateFlags = 1 (beam mode)
-                // Play malfunction SFX to signal blocked beam switch.
-                // Push a mini-frame for the CSfxHandle output buffer (SfxStart writes to r3).
-                // The epilogue at epilogue_addr uses the stack-saved LR from ChangeWeapon's
-                // frame (0x24(r1)), not the LR register, so bl SfxStart clobbering LR is safe.
-                // Pop the mini-frame before the epilogue jump so ChangeWeapon's frame is on top.
-                stwu r1, -0x20(r1);                      // push 32-byte mini-frame
-                addi r3, r1, 0x10;                       // r3 = CSfxHandle output buffer
-                li   r4, 0x6f5;                          // SFXsam_b_malfxn_00
-                li   r5, 0x7f;                           // vol 127
-                li   r6, 0x40;                           // pan center
-                li   r7, 0x1;                            // useAcoustics = true
-                li   r8, 0x40;                           // priority (medium)
-                li   r9, 0x0;                            // not looped
-                li   r10, -1;                            // areaId = -1 (all areas)
-                bl   { sfx_start_addr };
-                addi r1, r1, 0x20;                       // pop mini-frame
-                b    { epilogue_addr };                   // cancel beam switch, return to caller
-            no_oom:
-                blr;                                      // fall through to Load block
-            })
-            .encoded_bytes()
-        })?;
+    let stub_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
+        ppcasm!(cave_addr, {
+            bne  no_orig_skip;                        // beams differ: check OOM
+            b    { skip_target };                     // beams same: honour original beq
+        no_orig_skip:
+            lis  r12, { free_bytes_addr }@h;
+            lwz  r0,  { free_bytes_addr }@l(r12);    // r0 = heap free bytes
+            lis  r12, { threshold }@h;                // r12 = threshold
+            cmplw r0, r12;                            // unsigned compare
+            bge  no_oom;                              // enough memory: allow Load
+            // OOM path: HandleBeamChange (from ProcessInput) set x2f8_stateFlags |= 0x8
+            // (morphing). ProcessInput exits early when x2f8 >= 4, so x2f4 is never
+            // updated from the fire button -> player cannot fire. SetupBeam processing
+            // would normally clear the morphing flag, but it only runs after a successful
+            // morph, which never happens when we cancel early.
+            // Restore x2f8 = 1 (beam mode) so ProcessInput reads fire input normally.
+            li   r0, 0x1;
+            stw  r0, 0x2f8(r29);                     // x2f8_stateFlags = 1 (beam mode)
+            // Play malfunction SFX to signal blocked beam switch.
+            // Push a mini-frame for the CSfxHandle output buffer (SfxStart writes to r3).
+            // The epilogue at epilogue_addr uses the stack-saved LR from ChangeWeapon's
+            // frame (0x24(r1)), not the LR register, so bl SfxStart clobbering LR is safe.
+            // Pop the mini-frame before the epilogue jump so ChangeWeapon's frame is on top.
+            stwu r1, -0x20(r1);                      // push 32-byte mini-frame
+            addi r3, r1, 0x10;                       // r3 = CSfxHandle output buffer
+            li   r4, 0x6f5;                          // SFXsam_b_malfxn_00
+            li   r5, 0x7f;                           // vol 127
+            li   r6, 0x40;                           // pan center
+            li   r7, 0x1;                            // useAcoustics = true
+            li   r8, 0x40;                           // priority (medium)
+            li   r9, 0x0;                            // not looped
+            li   r10, -1;                            // areaId = -1 (all areas)
+            bl   { sfx_start_addr };
+            addi r1, r1, 0x20;                       // pop mini-frame
+            b    { epilogue_addr };                   // cancel beam switch, return to caller
+        no_oom:
+            blr;                                      // fall through to Load block
+        })
+        .encoded_bytes()
+    })?;
 
     dol_patcher.ppcasm_patch(&ppcasm!(intercept_addr, {
         bl { stub_addr };
@@ -2038,57 +2079,58 @@ fn patch_logbook_oom_guard(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let (Some(alloc), Some(func)) = (
+        symbol_addr_opt!("gGameAllocator", version),
+        symbol_addr_opt!(
+            "BuildPauseSubScreen__12CPauseScreenFQ212CPauseScreen10ESubScreenRC13CStateManagerRC9CGuiFrame",
+            version
+        ),
+    ) else {
         return Ok(());
-    }
+    };
 
-    // CPauseScreen::BuildPauseSubScreen (NTSC 0-00: 0x80073830) is the pause-screen page factory.
-    // ESubScreen 0 = Log Book, 1 = Options, 2 = Inventory. The Log Book case (0x8007387C) news a
-    // CLogBookScreen whose constructor (0x80247CC4) calls CMain::EnsureWorldPaksReady (0x80004810),
-    // forcing every world pak's resource directory to be built synchronously. Under OOM that
-    // build's rstl::vector<SResInfo> reserve (fn_80368AF8) leaves a null backing pointer while
-    // size still increments, so the second element stores to null + 1*0xa -> crash 0x80367320,
-    // DAR=0xa. Same alloc-then-store-without-null-check pattern as the automap (draw_areas guard).
+    // CPauseScreen::BuildPauseSubScreen is the pause-screen page factory. ESubScreen 0 = Log
+    // Book, 1 = Options, 2 = Inventory. The Log Book case (func+0x4c) news a CLogBookScreen whose
+    // constructor calls CMain::EnsureWorldPaksReady, forcing every world pak's resource directory
+    // to be built synchronously. Under OOM that build's rstl::vector<SResInfo> reserve leaves a
+    // null backing pointer while size still increments, so the second element stores to
+    // null + 1*0xa -> crash. Same alloc-then-store-without-null-check pattern as the automap.
     //
     // The pak build is core loading machinery; skipping it would break the log book, so instead we
     // deny navigating to the page when heap is low (fallback approach, like the map_open guard).
     // BuildPauseSubScreen already returns null on operator-new failure, and StartTransition
-    // (0x8007375C) tolerates that: it records the subscreen slot as (valid=false, ptr=null). We
-    // reuse that handled path -- under low heap the Log Book case returns null via 0x80073938
-    // (li r3,0; epilogue), so the tab simply does not populate (no crash; recovers when heap frees
-    // up). Silent, matching how the inventory page's CSamusDoll already degrades under low heap.
+    // tolerates that: it records the subscreen slot as (valid=false, ptr=null). We reuse that
+    // handled path -- under low heap the Log Book case returns null via func+0x108 (li r3,0;
+    // epilogue), so the tab simply does not populate (no crash; recovers when heap frees up).
+    // Silent, matching how the inventory page's CSamusDoll already degrades under low heap.
     //
     // b-trampoline at the Log Book case entry. r0/r12/CR0 are dead here (page dispatch is already
-    // done; r0 is next written at 0x80073894), so the heap check clobbers nothing live.
-    // First instruction at 0x8007387C: lis r4, lbl_803CD2D8@ha  (== lis r4, 0x803D).
+    // done), so the heap check clobbers nothing live. The displaced first instruction (a constant
+    // lis) is replayed from the original DOL. Offsets verified identical across versions.
     //
     // The threshold uses the family's single-lis compare, so it must stay 0x10000-aligned to be
     // exact (@h is high-adjusted; a non-aligned value would round). EnsureWorldPaksReady loads all
     // world paks, so this floor is set generously high; lower it if the log book blanks too often.
-    let free_bytes_addr: u32 = 0x804BFDF4;
+    let free_bytes_addr: u32 = alloc + 0x90;
     let threshold: u32 = 2304 * 1024;
-    let intercept_addr: u32 = 0x8007387C;
-    let return_null_addr: u32 = 0x80073938;
+    let intercept_addr: u32 = func + 0x4c;
+    let return_null_addr: u32 = func + 0x108;
 
-    emitter.emit_and_patch(
-        dol_patcher,
-        intercept_addr,
-        false,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                lis   r12, { free_bytes_addr }@h;
-                lwz   r0,  { free_bytes_addr }@l(r12);
-                lis   r12, { threshold }@h;
-                cmplw r0, r12;
-                bge   ok;
-                b     { return_null_addr };       // OOM: return null subscreen, skip log book
-            ok:
-                lis   r4, 0x803d;                 // trampoline: original (lis r4, lbl_803CD2D8@ha)
-                b     { intercept_addr + 4 };
-            })
-            .encoded_bytes()
-        },
-    )?;
+    let intercept_orig = dol_patcher.read_u32(intercept_addr)?;
+    emitter.emit_and_patch(dol_patcher, intercept_addr, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lis   r12, { free_bytes_addr }@h;
+            lwz   r0,  { free_bytes_addr }@l(r12);
+            lis   r12, { threshold }@h;
+            cmplw r0, r12;
+            bge   ok;
+            b     { return_null_addr };       // OOM: return null subscreen, skip log book
+        ok:
+            .long intercept_orig;             // trampoline: original first instruction
+            b     { intercept_addr + 4 };
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -2098,71 +2140,66 @@ fn patch_world_pak_ready_oom_guard(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let (Some(func_addr), Some(get_largest_free_chunk), Some(game_allocator)) = (
+        symbol_addr_opt!("EnsureWorldPakReady__8CPakFileFv", version),
+        symbol_addr_opt!("GetLargestFreeChunk__14CGameAllocatorCFv", version),
+        symbol_addr_opt!("gGameAllocator", version),
+    ) else {
         return Ok(());
-    }
+    };
 
-    // CPakFile::EnsureWorldPakReady (NTSC 0-00: 0x8036723C) builds a world pak's resource
-    // directory synchronously: it grows an rstl::vector<SResInfo> (and a parallel offset
-    // vector) via reserve (fn_80368AF8). Under OOM that reserve leaves a null backing pointer
-    // while size still increments, so the second element stores to null + 1*0xa -> crash
-    // 0x80367320, DAR=0xa. This is the same site hit by both the map (CAutoMapper
-    // ::OnNewInGameGuiState -> CMain::EnsureWorldPaksReady, 0x8009C354) and the log book
-    // (CLogBookScreen ctor, 0x80247CC4).
+    // CPakFile::EnsureWorldPakReady builds a world pak's resource directory synchronously: it
+    // grows an rstl::vector<SResInfo> (and a parallel offset vector) via reserve. Under OOM that
+    // reserve leaves a null backing pointer while size still increments, so the second element
+    // stores to null + 1*0xa -> crash. This is the same site hit by both the map (CAutoMapper
+    // ::OnNewInGameGuiState -> CMain::EnsureWorldPaksReady) and the log book (CLogBookScreen ctor).
     //
-    // The other guards (map_open, draw_areas, ...) read the x90 *total* free-bytes counter
-    // (0x804BFDF4). That is the wrong signal here: reserve needs one *contiguous* block, and the
-    // pause-menu's alloc/free churn fragments the heap -- total free can rise (passing a total-
-    // free threshold) while the largest contiguous chunk stays too small for the directory. That
-    // is exactly the reported repro: deny map -> open/close pause menu -> total free ticks up ->
-    // map guard now passes -> reserve still can't find a contiguous block -> crash. So this guard
-    // queries CGameAllocator::GetLargestFreeChunk (0x80351148) instead of the total counter.
+    // The other guards (map_open, draw_areas, ...) read the x90 *total* free-bytes counter. That
+    // is the wrong signal here: reserve needs one *contiguous* block, and the pause-menu's
+    // alloc/free churn fragments the heap -- total free can rise (passing a total-free threshold)
+    // while the largest contiguous chunk stays too small for the directory. That is exactly the
+    // reported repro: deny map -> open/close pause menu -> total free ticks up -> map guard now
+    // passes -> reserve still can't find a contiguous block -> crash. So this guard queries
+    // CGameAllocator::GetLargestFreeChunk instead of the total counter.
     //
     // EnsureWorldPakReady is idempotent and deferrable: its entry already early-returns when the
     // pak's needs-build flag bits (offset 0x28) are clear, and it only clears the needs-build bit
-    // at the very end (0x80367404). So when the largest free chunk is too small we just return to
-    // the caller without building -- the bit stays set and the build is retried on the next
+    // at the very end. So when the largest free chunk is too small we just return to the caller
+    // without building -- the bit stays set and the build is retried on the next
     // EnsureWorldPaksReady pass (next map/log-book open), once the heap has a big enough chunk.
     // The map renders that area as not-yet-loaded for one open; no crash, self-correcting.
     //
     // b-trampoline at the function entry (LR preserved in register). We need a mini-frame because
     // calling GetLargestFreeChunk via bl clobbers LR, and the incoming r3 (CPakFile* this) must
-    // survive to the original prologue's `mr r31, r3` at func+0x10. The allocator object base is
-    // 0x804BFDF4 - 0x90 = 0x804BFD64. Threshold compares against a single lis, so keep it
-    // 0x10000-aligned; it represents the largest contiguous block one pak's directory may need.
-    // First instruction of EnsureWorldPakReady: stwu r1, -0x30(r1)
-    let func_addr: u32 = 0x8036723C;
-    let get_largest_free_chunk: u32 = 0x80351148;
+    // survive to the original prologue's `mr r31, r3`. Threshold compares against a single lis, so
+    // keep it 0x10000-aligned; it represents the largest contiguous block one pak's directory may
+    // need. The displaced first instruction (a stwu frame allocation) is replayed from the DOL.
     let threshold: u32 = 448 * 1024;
 
-    emitter.emit_and_patch(
-        dol_patcher,
-        func_addr,
-        false,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                stwu  r1, -0x10(r1);             // mini-frame to survive the bl
-                mflr  r0;
-                stw   r0, 0x14(r1);              // save caller LR (b-trampoline left it in LR)
-                stw   r3, 0x10(r1);              // save incoming CPakFile* this
-                lis   r3, 0x804c;
-                addi  r3, r3, -0x29c;            // r3 = &gGameAllocator (0x804BFD64)
-                bl    { get_largest_free_chunk };// r3 = largest contiguous free bytes
-                lis   r12, { threshold }@h;
-                cmplw r3, r12;                   // unsigned compare vs contiguous floor
-                lwz   r0, 0x14(r1);              // restore caller LR
-                mtlr  r0;
-                lwz   r3, 0x10(r1);              // restore this ptr
-                addi  r1, r1, 0x10;              // pop mini-frame (CR0 from cmplw preserved)
-                blt   oom;
-                stwu  r1, -0x30(r1);             // trampoline: original first instruction
-                b     { func_addr + 4 };
-            oom:
-                blr;                             // defer build; needs-build bit stays set, retried
-            })
-            .encoded_bytes()
-        },
-    )?;
+    let func_orig = dol_patcher.read_u32(func_addr)?;
+    emitter.emit_and_patch(dol_patcher, func_addr, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            stwu  r1, -0x10(r1);             // mini-frame to survive the bl
+            mflr  r0;
+            stw   r0, 0x14(r1);              // save caller LR (b-trampoline left it in LR)
+            stw   r3, 0x10(r1);              // save incoming CPakFile* this
+            lis   r3, { game_allocator }@h;
+            addi  r3, r3, { game_allocator }@l;// r3 = &gGameAllocator
+            bl    { get_largest_free_chunk };// r3 = largest contiguous free bytes
+            lis   r12, { threshold }@h;
+            cmplw r3, r12;                   // unsigned compare vs contiguous floor
+            lwz   r0, 0x14(r1);              // restore caller LR
+            mtlr  r0;
+            lwz   r3, 0x10(r1);              // restore this ptr
+            addi  r1, r1, 0x10;              // pop mini-frame (CR0 from cmplw preserved)
+            blt   oom;
+            .long func_orig;                 // trampoline: original first instruction
+            b     { func_addr + 4 };
+        oom:
+            blr;                             // defer build; needs-build bit stays set, retried
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -2224,41 +2261,40 @@ fn patch_pump_resource_oom_defer(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    let (Some(pump), Some(alloc)) = (
+        symbol_addr_opt!("PumpResource__11CResFactoryFR12SLoadingData", version),
+        symbol_addr_opt!("gGameAllocator", version),
+    ) else {
         return Ok(());
-    }
+    };
 
-    let intercept_addr: u32 = 0x80339A44; // beq 0x80339B18 (the readiness-defer branch)
-    let not_ready_defer: u32 = 0x80339B18; // li r3,0; epilogue (return 0 -> node stays queued)
-    let proceed_addr: u32 = 0x80339A48; // original fall-through: build the resource
-    let free_bytes_addr: u32 = 0x804BFDF4;
+    // Offsets verified identical across all versions that have this symbol.
+    let intercept_addr: u32 = pump + 0x40; // beq <defer> (the readiness-defer branch)
+    let not_ready_defer: u32 = pump + 0x114; // li r3,0; epilogue (return 0 -> node stays queued)
+    let proceed_addr: u32 = pump + 0x44; // original fall-through: build the resource
+    let free_bytes_addr: u32 = alloc + 0x90; // gGameAllocator x90_heapSize2 (free-bytes counter)
     let threshold: u32 = 576 * 1024;
 
-    emitter.emit_and_patch(
-        dol_patcher,
-        intercept_addr,
-        true,
-        |cave_addr| {
-            // Conditional branches reach only +/-32KB; the cave is farther than that from
-            // PumpResource, so all conditionals target local labels and the far jumps use
-            // unconditional b (24-bit range).
-            ppcasm!(cave_addr, {
-                beq   defer;                 // original: resource not ready -> defer (no timeout)
-                cmpwi r31, 0x0;              // r31 = time budget (0 = synchronous Build)
-                beq   proceed;               // sync path: never memory-defer (would spin forever)
-                lis   r12, { free_bytes_addr }@h;
-                lwz   r0,  { free_bytes_addr }@l(r12);
-                lis   r12, { threshold }@h;
-                cmplw r0, r12;
-                blt   defer;                 // low memory: defer
-            proceed:
-                b     { proceed_addr };
-            defer:
-                b     { not_ready_defer };   // return 0 -> node stays queued, retried next pump
-            })
-            .encoded_bytes()
-        },
-    )?;
+    emitter.emit_and_patch(dol_patcher, intercept_addr, true, |cave_addr| {
+        // Conditional branches reach only +/-32KB; the cave is farther than that from
+        // PumpResource, so all conditionals target local labels and the far jumps use
+        // unconditional b (24-bit range).
+        ppcasm!(cave_addr, {
+            beq   defer;                 // original: resource not ready -> defer (no timeout)
+            cmpwi r31, 0x0;              // r31 = time budget (0 = synchronous Build)
+            beq   proceed;               // sync path: never memory-defer (would spin forever)
+            lis   r12, { free_bytes_addr }@h;
+            lwz   r0,  { free_bytes_addr }@l(r12);
+            lis   r12, { threshold }@h;
+            cmplw r0, r12;
+            blt   defer;                 // low memory: defer
+        proceed:
+            b     { proceed_addr };
+        defer:
+            b     { not_ready_defer };   // return 0 -> node stays queued, retried next pump
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -2291,44 +2327,45 @@ fn patch_inflate_buffer_oom_recover(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    // Same unnamed zlib decompress worker as patch_inflate_null_guard: anchor on PumpResource
+    // and decode the bl at PumpResource+0x5c to recover its start. Offsets within the worker
+    // are verified identical across the versions that have the PumpResource symbol.
+    let (Some(pump), Some(inflate_end), Some(free_addr)) = (
+        symbol_addr_opt!("PumpResource__11CResFactoryFR12SLoadingData", version),
+        symbol_addr_opt!("inflateEnd", version),
+        symbol_addr_opt!("Free__7CMemoryFPCv", version),
+    ) else {
         return Ok(());
-    }
+    };
+    let worker: u32 = branch_target(dol_patcher.read_u32(pump + 0x5c)?, pump + 0x5c);
 
-    let intercept_addr: u32 = 0x803395E0; // neg r0, r3  (right after the output-buffer Alloc)
-    let continue_addr: u32 = 0x803395E4; // original next instruction
-    let return_zero: u32 = 0x80339868; // li r3,0; epilogue (return "not done")
-    let inflate_end: u32 = 0x80343B40;
-    let free_addr: u32 = 0x80315930; // Free__7CMemoryFPCv
+    let intercept_addr: u32 = worker + 0x138; // neg r0, r3  (right after the output-buffer Alloc)
+    let continue_addr: u32 = worker + 0x13c; // original next instruction
+    let return_zero: u32 = worker + 0x3c0; // li r3,0; epilogue (return "not done")
 
-    emitter.emit_and_patch(
-        dol_patcher,
-        intercept_addr,
-        false,
-        |cave_addr| {
-            ppcasm!(cave_addr, {
-                cmpwi r3, 0x0;                   // buffer alloc result
-                bne   ok;                        // non-null -> proceed normally
-                // null buffer: tear down the stream so the next pump retries from scratch
-                mr    r3, r23;                   // zlib stream
-                bl    { inflate_end };
-                lbz   r0, 0x24(r30);             // stream "owned" flag
-                cmpwi r0, 0x0;
-                beq   skip_free;
-                lwz   r3, 0x28(r30);             // stream ptr
-                bl    { free_addr };
-            skip_free:
-                li    r0, 0x0;
-                stw   r0, 0x28(r30);             // clear stream optional (ptr)
-                stb   r0, 0x24(r30);             //   and owned flag -> next call re-does setup
-                b     { return_zero };           // return 0 (not done); node stays pending
-            ok:
-                neg   r0, r3;                    // displaced original instruction
-                b     { continue_addr };
-            })
-            .encoded_bytes()
-        },
-    )?;
+    emitter.emit_and_patch(dol_patcher, intercept_addr, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            cmpwi r3, 0x0;                   // buffer alloc result
+            bne   ok;                        // non-null -> proceed normally
+            // null buffer: tear down the stream so the next pump retries from scratch
+            mr    r3, r23;                   // zlib stream
+            bl    { inflate_end };
+            lbz   r0, 0x24(r30);             // stream "owned" flag
+            cmpwi r0, 0x0;
+            beq   skip_free;
+            lwz   r3, 0x28(r30);             // stream ptr
+            bl    { free_addr };
+        skip_free:
+            li    r0, 0x0;
+            stw   r0, 0x28(r30);             // clear stream optional (ptr)
+            stb   r0, 0x24(r30);             //   and owned flag -> next call re-does setup
+            b     { return_zero };           // return 0 (not done); node stays pending
+        ok:
+            neg   r0, r3;                    // displaced original instruction
+            b     { continue_addr };
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -2434,103 +2471,112 @@ fn patch_bss_heap_extension(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    if version != Version::NtscU0_00 {
+    // Inject the unused ~80KB BSS gap that sits inside CMetroidAreaCollider's sDupVertexList
+    // static array (its tail is never populated) and ends at sDupEdgeList, into the heap free
+    // pool. We hook the epilogue blr of CGameAllocator::Initialize to construct a standalone
+    // free block chain (head -> tail sentinel) and call AddFreeEntryToFreeList to register it.
+    //
+    // The gap is derived from the boundary symbols so it tracks each version's BSS layout. The
+    // array is the same size (0x19000) on every version that names these symbols, with the same
+    // 0x5000 used prefix and no intervening symbols, so the free region is identical in shape.
+    let (Some(vertex_list), Some(edge_list), Some(game_allocator_addr), Some(add_free_entry_addr)) = (
+        symbol_addr_opt!("sDupVertexList__20CMetroidAreaCollider", version),
+        symbol_addr_opt!("sDupEdgeList__20CMetroidAreaCollider", version),
+        symbol_addr_opt!("gGameAllocator", version),
+        symbol_addr_opt!(
+            "AddFreeEntryToFreeList__14CGameAllocatorFPQ214CGameAllocator12SGameMemInfo",
+            version
+        ),
+    ) else {
         return Ok(());
-    }
+    };
+    let Some(init) = symbol_addr_opt!("Initialize__14CGameAllocatorFR10COsContext", version) else {
+        return Ok(());
+    };
 
-    // Inject the 80KB BSS gap at 0x80577BAC-0x8058BBAC into the heap free pool.
-    // This region sits between CMetroidAreaCollider::sDupVertexList and sDupEdgeList
-    // and is never accessed by the game binary. We hook the epilogue blr of
-    // CGameAllocator::Initialize to construct a standalone free block chain
-    // (head -> tail sentinel) and call AddFreeEntryToFreeList to register it.
-    // Both addresses must be 32-byte aligned: SGameMemInfo pointer fields use & ~31 masking.
-    // Raw gap: [0x80577BAC, 0x8058BBAC); snap inward to 32-byte boundaries.
-    let head_addr: u32 = 0x8057_7BC0; // 0x80577BAC rounded up to 32-byte boundary
-    let tail_addr: u32 = 0x8058_BB80; // last 32-byte boundary where tail + 0x20 <= 0x8058BBAC
-    let game_allocator_addr: u32 = 0x804B_FD64;
-    let heap_counter_addr: u32 = 0x804B_FDF4; // gGameAllocator + 0x90 = x90_heapSize2
-    let add_free_entry_addr = symbol_addr!(
-        "AddFreeEntryToFreeList__14CGameAllocatorFPQ214CGameAllocator12SGameMemInfo",
-        version
-    );
-    let init_blr_addr = symbol_addr!("Initialize__14CGameAllocatorFR10COsContext", version) + 0x384;
+    // Both block addresses must be 32-byte aligned: SGameMemInfo pointer fields use & ~31 masking.
+    // Raw gap: [sDupVertexList + 0x5000 (used prefix), sDupEdgeList); snap inward to 32 bytes.
+    let head_addr: u32 = (vertex_list + 0x5000 + 0x1f) & !0x1f; // round gap start up to 32 bytes
+    let tail_addr: u32 = (edge_list - 0x20) & !0x1f; // last 32-byte boundary where tail + 0x20 <= end
+    let free_len: u32 = tail_addr - head_addr - 0x20; // usable bytes in the registered free block
+    let heap_counter_addr: u32 = game_allocator_addr + 0x90; // gGameAllocator + 0x90 = x90_heapSize2
+    let init_blr_addr = init + 0x384;
 
-    let cave_addr =
-        emitter.emit_addressed(dol_patcher, |cave_addr| {
-            ppcasm!(cave_addr, {
-                // CGameAllocator::Initialize already restored its own stack frame
-                // (addi r1,r1,0x80) before the blr we replaced, so r1 is at the
-                // caller's frame. We allocate a mini-frame for our bl below.
-                stwu r1, -0x10(r1);
-                mflr r0;
-                stw  r0, 0x14(r1);
+    let cave_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
+        ppcasm!(cave_addr, {
+            // CGameAllocator::Initialize already restored its own stack frame
+            // (addi r1,r1,0x80) before the blr we replaced, so r1 is at the
+            // caller's frame. We allocate a mini-frame for our bl below.
+            stwu r1, -0x10(r1);
+            mflr r0;
+            stw  r0, 0x14(r1);
 
-                // Build head SGameMemInfo at head_addr
-                lis  r12, { head_addr }@h;
-                addi r12, r12, { head_addr }@l;
-                lis  r0, 0xEFEF;
-                ori  r0, r0, 0xEFEF;
-                stw  r0, 0x00(r12);        // x0_priorGuard = 0xEFEFEFEF
-                lis  r0, 0x0001;
-                ori  r0, r0, 0x3FA0;
-                stw  r0, 0x04(r12);        // x4_len = 0x13FA0 (tail_addr - head_addr - 0x20)
-                li   r0, 0;
-                stw  r0, 0x08(r12);        // x8_fileAndLine = 0
-                stw  r0, 0x0C(r12);        // xc_type = 0
-                stw  r0, 0x10(r12);        // x10_prev = 0 (not allocated, no prior block)
-                // addi with r0 as destination ignores r0's value (PPC r0 special case);
-                // use lis+ori (zero-extend, no r0 exception) with plain upper bits.
-                lis  r0, { (tail_addr >> 16) as i32 };
-                ori  r0, r0, { (tail_addr & 0xFFFF) as i32 };
-                stw  r0, 0x14(r12);        // x14_next = tail_addr
-                li   r0, 0;
-                stw  r0, 0x18(r12);        // x18_nextFree = 0 (set by AddFreeEntryToFreeList)
-                lis  r0, 0xEAEA;
-                ori  r0, r0, 0xEAEA;
-                stw  r0, 0x1C(r12);        // x1c_postGuard = 0xEAEAEAEA
+            // Build head SGameMemInfo at head_addr
+            lis  r12, { head_addr }@h;
+            addi r12, r12, { head_addr }@l;
+            lis  r0, 0xEFEF;
+            ori  r0, r0, 0xEFEF;
+            stw  r0, 0x00(r12);        // x0_priorGuard = 0xEFEFEFEF
+            lis  r0, { (free_len >> 16) as i32 };
+            ori  r0, r0, { (free_len & 0xFFFF) as i32 };
+            stw  r0, 0x04(r12);        // x4_len = free_len (tail_addr - head_addr - 0x20)
+            li   r0, 0;
+            stw  r0, 0x08(r12);        // x8_fileAndLine = 0
+            stw  r0, 0x0C(r12);        // xc_type = 0
+            stw  r0, 0x10(r12);        // x10_prev = 0 (not allocated, no prior block)
+            // addi with r0 as destination ignores r0's value (PPC r0 special case);
+            // use lis+ori (zero-extend, no r0 exception) with plain upper bits.
+            lis  r0, { (tail_addr >> 16) as i32 };
+            ori  r0, r0, { (tail_addr & 0xFFFF) as i32 };
+            stw  r0, 0x14(r12);        // x14_next = tail_addr
+            li   r0, 0;
+            stw  r0, 0x18(r12);        // x18_nextFree = 0 (set by AddFreeEntryToFreeList)
+            lis  r0, 0xEAEA;
+            ori  r0, r0, 0xEAEA;
+            stw  r0, 0x1C(r12);        // x1c_postGuard = 0xEAEAEAEA
 
-                // Build tail sentinel SGameMemInfo at tail_addr (len=0, next=null)
-                lis  r12, { tail_addr }@h;
-                addi r12, r12, { tail_addr }@l;
-                lis  r0, 0xEFEF;
-                ori  r0, r0, 0xEFEF;
-                stw  r0, 0x00(r12);        // x0_priorGuard = 0xEFEFEFEF
-                li   r0, 0;
-                stw  r0, 0x04(r12);        // x4_len = 0 (sentinel: never selected by FindFreeBlock)
-                stw  r0, 0x08(r12);        // x8_fileAndLine = 0
-                stw  r0, 0x0C(r12);        // xc_type = 0
-                lis  r0, { (head_addr >> 16) as i32 };
-                ori  r0, r0, { (head_addr & 0xFFFF) as i32 };
-                stw  r0, 0x10(r12);        // x10_prev = head_addr (bit0=0, not allocated)
-                li   r0, 0;
-                stw  r0, 0x14(r12);        // x14_next = 0 (null; guards forward-coalesce path)
-                stw  r0, 0x18(r12);        // x18_nextFree = 0
-                lis  r0, 0xEAEA;
-                ori  r0, r0, 0xEAEA;
-                stw  r0, 0x1C(r12);        // x1c_postGuard = 0xEAEAEAEA
+            // Build tail sentinel SGameMemInfo at tail_addr (len=0, next=null)
+            lis  r12, { tail_addr }@h;
+            addi r12, r12, { tail_addr }@l;
+            lis  r0, 0xEFEF;
+            ori  r0, r0, 0xEFEF;
+            stw  r0, 0x00(r12);        // x0_priorGuard = 0xEFEFEFEF
+            li   r0, 0;
+            stw  r0, 0x04(r12);        // x4_len = 0 (sentinel: never selected by FindFreeBlock)
+            stw  r0, 0x08(r12);        // x8_fileAndLine = 0
+            stw  r0, 0x0C(r12);        // xc_type = 0
+            lis  r0, { (head_addr >> 16) as i32 };
+            ori  r0, r0, { (head_addr & 0xFFFF) as i32 };
+            stw  r0, 0x10(r12);        // x10_prev = head_addr (bit0=0, not allocated)
+            li   r0, 0;
+            stw  r0, 0x14(r12);        // x14_next = 0 (null; guards forward-coalesce path)
+            stw  r0, 0x18(r12);        // x18_nextFree = 0
+            lis  r0, 0xEAEA;
+            ori  r0, r0, 0xEAEA;
+            stw  r0, 0x1C(r12);        // x1c_postGuard = 0xEAEAEAEA
 
-                // x90_heapSize2 += free_len (keep OOM debug counter accurate)
-                lis  r12, { heap_counter_addr }@h;
-                lwz  r0, { heap_counter_addr }@l(r12);
-                lis  r6, 0x0001;
-                ori  r6, r6, 0x3FA0;       // r6 = 0x13FA0
-                add  r0, r0, r6;
-                stw  r0, { heap_counter_addr }@l(r12);
+            // x90_heapSize2 += free_len (keep OOM debug counter accurate)
+            lis  r12, { heap_counter_addr }@h;
+            lwz  r0, { heap_counter_addr }@l(r12);
+            lis  r6, { (free_len >> 16) as i32 };
+            ori  r6, r6, { (free_len & 0xFFFF) as i32 }; // r6 = free_len
+            add  r0, r0, r6;
+            stw  r0, { heap_counter_addr }@l(r12);
 
-                // AddFreeEntryToFreeList(this=gGameAllocator, info=head)
-                lis  r3, { game_allocator_addr }@h;
-                addi r3, r3, { game_allocator_addr }@l;
-                lis  r4, { head_addr }@h;
-                addi r4, r4, { head_addr }@l;
-                bl   { add_free_entry_addr };
+            // AddFreeEntryToFreeList(this=gGameAllocator, info=head)
+            lis  r3, { game_allocator_addr }@h;
+            addi r3, r3, { game_allocator_addr }@l;
+            lis  r4, { head_addr }@h;
+            addi r4, r4, { head_addr }@l;
+            bl   { add_free_entry_addr };
 
-                lwz  r0, 0x14(r1);
-                mtlr r0;
-                addi r1, r1, 0x10;
-                blr;
-            })
-            .encoded_bytes()
-        })?;
+            lwz  r0, 0x14(r1);
+            mtlr r0;
+            addi r1, r1, 0x10;
+            blr;
+        })
+        .encoded_bytes()
+    })?;
 
     dol_patcher.ppcasm_patch(&ppcasm!(init_blr_addr, {
         b { cave_addr };
