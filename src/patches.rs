@@ -49,7 +49,7 @@ use crate::{
         self, pickup_model_for_pickup, pickup_type_for_pickup, DoorLocation, ObjectsToRemove,
         PickupModel, PickupType, ScriptObjectLocation,
     },
-    room_lookup::{ROOM_BY_MREA, ROOM_BY_NAME},
+    room_lookup::ROOM_BY_NAME,
     starting_items::StartingItems,
     structs::LightLayer,
     txtr_conversions::{
@@ -9193,155 +9193,155 @@ fn patch_purge_debris_extended(
     Ok(())
 }
 
-fn object_is_dead(
-    obj: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
-    all_incoming_connections: &HashMap<
-        u32,
-        HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>,
-    >,
-    dead_connections: &HashSet<(u32, structs::Connection)>,
-) -> bool {
-    // Messages which never have gameplay affect
-    const INERT_MESSAGES: &[structs::ConnectionMsg] = &[
-        structs::ConnectionMsg::NONE,
-        structs::ConnectionMsg::DEACTIVATE,
-        structs::ConnectionMsg::STOP,
-        structs::ConnectionMsg::STOP_AND_RESET,
-        structs::ConnectionMsg::REGISTERED,
-        structs::ConnectionMsg::DELETED,
-        structs::ConnectionMsg::INITIALIZED_IN_AREA,
-        structs::ConnectionMsg::WORLD_INITIALIZED,
-    ];
+// fn object_is_dead(
+//     obj: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
+//     all_incoming_connections: &HashMap<
+//         u32,
+//         HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>,
+//     >,
+//     dead_connections: &HashSet<(u32, structs::Connection)>,
+// ) -> bool {
+//     // Messages which never have gameplay affect
+//     const INERT_MESSAGES: &[structs::ConnectionMsg] = &[
+//         structs::ConnectionMsg::NONE,
+//         structs::ConnectionMsg::DEACTIVATE,
+//         structs::ConnectionMsg::STOP,
+//         structs::ConnectionMsg::STOP_AND_RESET,
+//         structs::ConnectionMsg::REGISTERED,
+//         structs::ConnectionMsg::DELETED,
+//         structs::ConnectionMsg::INITIALIZED_IN_AREA,
+//         structs::ConnectionMsg::WORLD_INITIALIZED,
+//     ];
 
-    // Object types which never have gameplay affect, but may
-    // send messages to object types which do
-    const NO_SIDE_EFFECT_OBJS: &[u8] = &[
-        // structs::Trigger::OBJECT_TYPE, // except for push
-        structs::Timer::OBJECT_TYPE,
-        structs::Counter::OBJECT_TYPE,
-        structs::Generator::OBJECT_TYPE,
-        structs::PickupGenerator::OBJECT_TYPE,
-        structs::RandomRelay::OBJECT_TYPE,
-        structs::Relay::OBJECT_TYPE,
-        structs::Switch::OBJECT_TYPE,
-    ];
+//     // Object types which never have gameplay affect, but may
+//     // send messages to object types which do
+//     const NO_SIDE_EFFECT_OBJS: &[u8] = &[
+//         // structs::Trigger::OBJECT_TYPE, // except for push
+//         structs::Timer::OBJECT_TYPE,
+//         structs::Counter::OBJECT_TYPE,
+//         structs::Generator::OBJECT_TYPE,
+//         structs::PickupGenerator::OBJECT_TYPE,
+//         structs::RandomRelay::OBJECT_TYPE,
+//         structs::Relay::OBJECT_TYPE,
+//         structs::Switch::OBJECT_TYPE,
+//     ];
 
-    // Object types which never have gameplay affect unless
-    // a non-inert message is received
-    const INERT_OBJS: &[u8] = &[
-        structs::Waypoint::OBJECT_TYPE,
-        structs::Counter::OBJECT_TYPE,
-        structs::CameraWaypoint::OBJECT_TYPE,
-        structs::Camera::OBJECT_TYPE,
-        structs::CameraHint::OBJECT_TYPE,
-        structs::RandomRelay::OBJECT_TYPE,
-        structs::Relay::OBJECT_TYPE,
-        structs::CameraFilterKeyframe::OBJECT_TYPE,
-        structs::CameraBlurKeyframe::OBJECT_TYPE,
-        structs::NewCameraShaker::OBJECT_TYPE,
-        structs::CameraShaker::OBJECT_TYPE,
-        structs::ActorKeyFrame::OBJECT_TYPE,
-        structs::CoverPoint::OBJECT_TYPE,
-        structs::PathCamera::OBJECT_TYPE,
-        structs::ActorRotate::OBJECT_TYPE,
-        structs::PlayerHint::OBJECT_TYPE,
-        structs::PickupGenerator::OBJECT_TYPE,
-        structs::AIJumpPoint::OBJECT_TYPE,
-        structs::WorldTransporter::OBJECT_TYPE,
-        structs::CameraPitchVolume::OBJECT_TYPE,
-        structs::SpindleCamera::OBJECT_TYPE,
-        structs::RumbleEffect::OBJECT_TYPE,
-        structs::StreamedAudio::OBJECT_TYPE,
-    ];
+//     // Object types which never have gameplay affect unless
+//     // a non-inert message is received
+//     const INERT_OBJS: &[u8] = &[
+//         structs::Waypoint::OBJECT_TYPE,
+//         structs::Counter::OBJECT_TYPE,
+//         structs::CameraWaypoint::OBJECT_TYPE,
+//         structs::Camera::OBJECT_TYPE,
+//         structs::CameraHint::OBJECT_TYPE,
+//         structs::RandomRelay::OBJECT_TYPE,
+//         structs::Relay::OBJECT_TYPE,
+//         structs::CameraFilterKeyframe::OBJECT_TYPE,
+//         structs::CameraBlurKeyframe::OBJECT_TYPE,
+//         structs::NewCameraShaker::OBJECT_TYPE,
+//         structs::CameraShaker::OBJECT_TYPE,
+//         structs::ActorKeyFrame::OBJECT_TYPE,
+//         structs::CoverPoint::OBJECT_TYPE,
+//         structs::PathCamera::OBJECT_TYPE,
+//         structs::ActorRotate::OBJECT_TYPE,
+//         structs::PlayerHint::OBJECT_TYPE,
+//         structs::PickupGenerator::OBJECT_TYPE,
+//         structs::AIJumpPoint::OBJECT_TYPE,
+//         structs::WorldTransporter::OBJECT_TYPE,
+//         structs::CameraPitchVolume::OBJECT_TYPE,
+//         structs::SpindleCamera::OBJECT_TYPE,
+//         structs::RumbleEffect::OBJECT_TYPE,
+//         structs::StreamedAudio::OBJECT_TYPE,
+//     ];
 
-    // Object types which only have gameplay affect
-    // if sent the message "SET_TO_ZERO"
-    const SET_TO_ZERO_OBJS: &[u8] = &[
-        structs::Switch::OBJECT_TYPE,
-        structs::Relay::OBJECT_TYPE,
-        structs::HudMemo::OBJECT_TYPE,
-        structs::Generator::OBJECT_TYPE,
-        structs::RandomRelay::OBJECT_TYPE,
-    ];
+//     // Object types which only have gameplay affect
+//     // if sent the message "SET_TO_ZERO"
+//     const SET_TO_ZERO_OBJS: &[u8] = &[
+//         structs::Switch::OBJECT_TYPE,
+//         structs::Relay::OBJECT_TYPE,
+//         structs::HudMemo::OBJECT_TYPE,
+//         structs::Generator::OBJECT_TYPE,
+//         structs::RandomRelay::OBJECT_TYPE,
+//     ];
 
-    let empty_set = HashSet::new();
-    let obj_id = obj.instance_id & 0x00FFFFFF;
-    let object_type = obj.property_data.object_type();
+//     let empty_set = HashSet::new();
+//     let obj_id = obj.instance_id & 0x00FFFFFF;
+//     let object_type = obj.property_data.object_type();
 
-    let incoming_connections = all_incoming_connections.get(&obj_id).unwrap_or(&empty_set);
-    let incoming_messages: Vec<_> = incoming_connections.iter().map(|(_, m, _)| *m).collect();
+//     let incoming_connections = all_incoming_connections.get(&obj_id).unwrap_or(&empty_set);
+//     let incoming_messages: Vec<_> = incoming_connections.iter().map(|(_, m, _)| *m).collect();
 
-    // let any_incoming_messages = incoming_connections.len() > 0;
-    let any_outgoing_messages = obj
-        .connections
-        .iter()
-        .any(|conn| !dead_connections.contains(&(obj_id, conn.clone().into_owned())));
+//     // let any_incoming_messages = incoming_connections.len() > 0;
+//     let any_outgoing_messages = obj
+//         .connections
+//         .iter()
+//         .any(|conn| !dead_connections.contains(&(obj_id, conn.clone().into_owned())));
 
-    // Check for unused objects with no side effects
-    if NO_SIDE_EFFECT_OBJS.contains(&object_type) && !any_outgoing_messages {
-        return true; // This object does not have any side effects and doesn't send any messages so it cannot cause other objects to have side-effects
-    }
+//     // Check for unused objects with no side effects
+//     if NO_SIDE_EFFECT_OBJS.contains(&object_type) && !any_outgoing_messages {
+//         return true; // This object does not have any side effects and doesn't send any messages so it cannot cause other objects to have side-effects
+//     }
 
-    // Check for unused inert objects
-    if INERT_OBJS.contains(&object_type)
-        && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m))
-    {
-        return true; // This object does not create side effects inherently, and will not ever because it does not receive any messages that would make it do so
-    }
+//     // Check for unused inert objects
+//     if INERT_OBJS.contains(&object_type)
+//         && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m))
+//     {
+//         return true; // This object does not create side effects inherently, and will not ever because it does not receive any messages that would make it do so
+//     }
 
-    // Check for unused inert objects that only respond to SET_TO_ZERO
-    if SET_TO_ZERO_OBJS.contains(&object_type)
-        && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO)
-    {
-        return true; // This object only "does it's thing" when it receives SET_TO_ZERO and there are no objects which send it
-    }
+//     // Check for unused inert objects that only respond to SET_TO_ZERO
+//     if SET_TO_ZERO_OBJS.contains(&object_type)
+//         && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO)
+//     {
+//         return true; // This object only "does it's thing" when it receives SET_TO_ZERO and there are no objects which send it
+//     }
 
-    // Check for unused spawn points
-    if let Some(spawn_point) = obj.property_data.as_spawn_point() {
-        if spawn_point.default_spawn == 0
-            && !incoming_messages.iter().any(|m| {
-                [
-                    structs::ConnectionMsg::SET_TO_ZERO,
-                    structs::ConnectionMsg::RESET,
-                ]
-                .contains(m)
-            })
-        {
-            return true; // This object is a spawn point which is not the default spawn and is neither reset nor SET_TO_ZERO
-        }
-    }
+//     // Check for unused spawn points
+//     if let Some(spawn_point) = obj.property_data.as_spawn_point() {
+//         if spawn_point.default_spawn == 0
+//             && !incoming_messages.iter().any(|m| {
+//                 [
+//                     structs::ConnectionMsg::SET_TO_ZERO,
+//                     structs::ConnectionMsg::RESET,
+//                 ]
+//                 .contains(m)
+//             })
+//         {
+//             return true; // This object is a spawn point which is not the default spawn and is neither reset nor SET_TO_ZERO
+//         }
+//     }
 
-    // Check for unused timers
-    if let Some(timer) = obj.property_data.as_timer() {
-        if timer.start_immediately == 0
-            && !incoming_messages.iter().any(|m| {
-                [
-                    structs::ConnectionMsg::START,
-                    structs::ConnectionMsg::RESET_AND_START,
-                ]
-                .contains(m)
-            })
-        {
-            return true; // This object is a timer which does not auto-start and nothing starts it
-        }
-    }
+//     // Check for unused timers
+//     if let Some(timer) = obj.property_data.as_timer() {
+//         if timer.start_immediately == 0
+//             && !incoming_messages.iter().any(|m| {
+//                 [
+//                     structs::ConnectionMsg::START,
+//                     structs::ConnectionMsg::RESET_AND_START,
+//                 ]
+//                 .contains(m)
+//             })
+//         {
+//             return true; // This object is a timer which does not auto-start and nothing starts it
+//         }
+//     }
 
-    // Check for inactive objects that never activate
-    if obj.property_data.supports_active()
-        && !obj.property_data.get_active()
-        && !incoming_messages.iter().any(|m| {
-            [
-                structs::ConnectionMsg::ACTIVATE,
-                structs::ConnectionMsg::TOGGLE_ACTIVE,
-            ]
-            .contains(m)
-        })
-    {
-        return true;
-    }
+//     // Check for inactive objects that never activate
+//     if obj.property_data.supports_active()
+//         && !obj.property_data.get_active()
+//         && !incoming_messages.iter().any(|m| {
+//             [
+//                 structs::ConnectionMsg::ACTIVATE,
+//                 structs::ConnectionMsg::TOGGLE_ACTIVE,
+//             ]
+//             .contains(m)
+//         })
+//     {
+//         return true;
+//     }
 
-    false
-}
+//     false
+// }
 
 fn patch_optimize_memory(
     _ps: &mut PatcherState,
@@ -9361,127 +9361,126 @@ fn patch_optimize_memory(
         }
     }
 
-    let mrea_id = area.mlvl_area.mrea.to_u32();
-    let scly = area.mrea().scly_section();
+    // let mrea_id = area.mlvl_area.mrea.to_u32();
+    // let scly = area.mrea().scly_section();
 
-    let mut objs = HashSet::new();
-    let mut incoming_connections = HashMap::new();
-    for layer in scly.layers.iter() {
-        for obj in layer.objects.iter() {
-            let obj_id = obj.instance_id & 0x00FFFFFF;
-            objs.insert(obj_id);
-        }
-    }
+    // let mut objs = HashSet::new();
+    // let mut incoming_connections = HashMap::new();
+    // for layer in scly.layers.iter() {
+    //     for obj in layer.objects.iter() {
+    //         let obj_id = obj.instance_id & 0x00FFFFFF;
+    //         objs.insert(obj_id);
+    //     }
+    // }
 
-    for layer in scly.layers.iter() {
-        for obj in layer.objects.iter() {
-            let obj_id = obj.instance_id & 0x00FFFFFF;
-            for conn in obj.connections.iter() {
-                let target_id = conn.target_object_id & 0x00FFFFFF;
-                if objs.contains(&target_id) {
-                    incoming_connections
-                        .entry(target_id)
-                        .or_insert_with(HashSet::new)
-                        .insert((obj_id, conn.message, conn.state));
-                }
-            }
-        }
-    }
+    // for layer in scly.layers.iter() {
+    //     for obj in layer.objects.iter() {
+    //         let obj_id = obj.instance_id & 0x00FFFFFF;
+    //         for conn in obj.connections.iter() {
+    //             let target_id = conn.target_object_id & 0x00FFFFFF;
+    //             if objs.contains(&target_id) {
+    //                 incoming_connections
+    //                     .entry(target_id)
+    //                     .or_insert_with(HashSet::new)
+    //                     .insert((obj_id, conn.message, conn.state));
+    //             }
+    //         }
+    //     }
+    // }
 
-    let mut dead_objs = HashSet::<u32>::new();
-    let mut dead_connections = HashSet::<(u32, structs::Connection)>::new();
-    let add_connections = HashSet::<(u32, structs::Connection)>::new();
-    let mut counts = (0, 0, 0, 0);
+    // let mut dead_objs = HashSet::<u32>::new();
+    // let mut dead_connections = HashSet::<(u32, structs::Connection)>::new();
+    // let add_connections = HashSet::<(u32, structs::Connection)>::new();
+    // let mut counts = (0, 0, 0, 0);
 
-    loop {
-        /* Collect dead objects */
+    // loop {
+    //     /* Collect dead objects */
 
-        for layer in scly.layers.iter() {
-            for obj in layer.objects.iter() {
-                let obj_id = obj.instance_id & 0x00FFFFFF;
-                if !dead_objs.contains(&obj_id)
-                    && object_is_dead(&obj, &incoming_connections, &dead_connections)
-                {
-                    dead_objs.insert(obj_id);
-                }
-            }
-        }
+    //     for layer in scly.layers.iter() {
+    //         for obj in layer.objects.iter() {
+    //             let obj_id = obj.instance_id & 0x00FFFFFF;
+    //             if !dead_objs.contains(&obj_id)
+    //                 && object_is_dead(&obj, &incoming_connections, &dead_connections)
+    //             {
+    //                 dead_objs.insert(obj_id);
+    //             }
+    //         }
+    //     }
 
-        /* Collect Dead Connections */
+    //     /* Collect Dead Connections */
 
-        for layer in scly.layers.iter() {
-            for obj in layer.objects.iter() {
-                let obj_id = obj.instance_id & 0x00FFFFFF;
-                for conn in obj.connections.iter() {
-                    let target_id = conn.target_object_id & 0x00FFFFFF;
-                    let value = (obj_id, conn.clone().into_owned());
-                    if dead_objs.contains(&target_id) || !objs.contains(&target_id) {
-                        dead_connections.insert(value);
-                    }
-                }
-            }
-        }
+    //     for layer in scly.layers.iter() {
+    //         for obj in layer.objects.iter() {
+    //             let obj_id = obj.instance_id & 0x00FFFFFF;
+    //             for conn in obj.connections.iter() {
+    //                 let target_id = conn.target_object_id & 0x00FFFFFF;
+    //                 let value = (obj_id, conn.clone().into_owned());
+    //                 if dead_objs.contains(&target_id) || !objs.contains(&target_id) {
+    //                     dead_connections.insert(value);
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        /* Cleanup lists */
+    //     /* Cleanup lists */
 
-        for (sender_id, conn) in &add_connections {
-            let target_id = conn.target_object_id & 0x00FFFFFF;
-            incoming_connections
-                .entry(target_id)
-                .or_insert_with(HashSet::new)
-                .insert((*sender_id, conn.message, conn.state));
-        }
+    //     for (sender_id, conn) in &add_connections {
+    //         let target_id = conn.target_object_id & 0x00FFFFFF;
+    //         incoming_connections
+    //             .entry(target_id)
+    //             .or_insert_with(HashSet::new)
+    //             .insert((*sender_id, conn.message, conn.state));
+    //     }
 
-        for (target_id, messages) in incoming_connections.iter_mut() {
-            messages.retain(|(sender_id, message, state)| {
-                !dead_objs.contains(sender_id)
-                    && !dead_objs.contains(target_id)
-                    && !dead_connections.iter().any(|(dead_sender_id, dead_conn)| {
-                        sender_id == dead_sender_id
-                            && dead_conn.target_object_id & 0x00FFFFFF == *target_id
-                            && dead_conn.state == *state
-                            && dead_conn.message == *message
-                    })
-            });
-        }
+    //     for (target_id, messages) in incoming_connections.iter_mut() {
+    //         messages.retain(|(sender_id, message, state)| {
+    //             !dead_objs.contains(sender_id)
+    //                 && !dead_objs.contains(target_id)
+    //                 && !dead_connections.iter().any(|(dead_sender_id, dead_conn)| {
+    //                     sender_id == dead_sender_id
+    //                         && dead_conn.target_object_id & 0x00FFFFFF == *target_id
+    //                         && dead_conn.state == *state
+    //                         && dead_conn.message == *message
+    //                 })
+    //         });
+    //     }
 
-        /* Check for break condition */
+    //     /* Check for break condition */
 
-        let new_counts = (
-            incoming_connections.values().map(HashSet::len).sum(),
-            dead_objs.len(),
-            dead_connections.len(),
-            add_connections.len(),
-        );
-        if new_counts == counts {
-            break;
-        }
-        counts = new_counts;
-    }
+    //     let new_counts = (
+    //         incoming_connections.values().map(HashSet::len).sum(),
+    //         dead_objs.len(),
+    //         dead_connections.len(),
+    //         add_connections.len(),
+    //     );
+    //     if new_counts == counts {
+    //         break;
+    //     }
+    //     counts = new_counts;
+    // }
 
     /* Collect dead dependencies */
-    // TODO: unused SCAN/STRG
 
-    let scly = area.mrea().scly_section_mut();
+    // let scly = area.mrea().scly_section_mut();
 
-    for layer in scly.layers.as_mut_vec() {
-        /* Purge dead objects */
-        layer
-            .objects
-            .as_mut_vec()
-            .retain(|obj| !dead_objs.contains(&(obj.instance_id & 0x00FFFFFF)));
+    // for layer in scly.layers.as_mut_vec() {
+    //     /* Purge dead objects */
+    //     layer
+    //         .objects
+    //         .as_mut_vec()
+    //         .retain(|obj| !dead_objs.contains(&(obj.instance_id & 0x00FFFFFF)));
 
-        /* Purge dead connections */
-        for obj in layer.objects.as_mut_vec() {
-            let obj_id = obj.instance_id & 0x00FFFFFF;
-            obj.connections
-                .as_mut_vec()
-                .retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
-        }
-    }
+    //     /* Purge dead connections */
+    //     for obj in layer.objects.as_mut_vec() {
+    //         let obj_id = obj.instance_id & 0x00FFFFFF;
+    //         obj.connections
+    //             .as_mut_vec()
+    //             .retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
+    //     }
+    // }
 
     /* Prune dead pickup model dependencies */
-    let dead_dep_len = {
+    let _dead_dep_len = {
         /* AGSC (audio groups), STRG/SCAN (scan text), and FRME (UI frames) are excluded
          * because they may be shared with non-pickup room objects. */
         let pickup_dep_filter = |fourcc: &FourCC| {
@@ -9562,7 +9561,7 @@ fn patch_optimize_memory(
 
     /* TODO: Purge dead memory relay connections */
 
-    let dead_memory_relay_conn_len = {
+    let _dead_memory_relay_conn_len = {
         let mut all_ids: HashSet<u32> = HashSet::new();
         {
             let scly = area.mrea().scly_section();
@@ -9593,14 +9592,14 @@ fn patch_optimize_memory(
         before - relay_conns.len()
     };
 
-    println!(
-        "OPTIMIZE | {:<27} | dead_obj {:>3} | dead_conn {:>3} | dead_mem_relay_conn {:>3} | dead_dep {:>3}",
-        ROOM_BY_MREA.get(&mrea_id).unwrap().room_name,
-        dead_objs.len(),
-        dead_connections.len(),
-        dead_memory_relay_conn_len,
-        dead_dep_len,
-    );
+    // println!(
+    //     "OPTIMIZE | {:<27} | dead_obj {:>3} | dead_conn {:>3} | dead_mem_relay_conn {:>3} | dead_dep {:>3}",
+    //     ROOM_BY_MREA.get(&mrea_id).unwrap().room_name,
+    //     dead_objs.len(),
+    //     dead_connections.len(),
+    //     dead_memory_relay_conn_len,
+    //     dead_dep_len,
+    // );
 
     Ok(())
 }

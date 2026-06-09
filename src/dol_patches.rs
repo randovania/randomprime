@@ -30,10 +30,8 @@ macro_rules! symbol_addr {
     }};
 }
 
-// Non-panicking symbol lookup: yields Option<u32>, None when the symbol is absent for
-// the given version. Heap/memory-optimization patches use this to gracefully no-op on
-// versions whose symbol tables don't yet name the function they hook, instead of
-// panicking. As symbols get added for more versions, those patches light up automatically.
+// Non-panicking symbol lookup: None when the symbol is absent for the given version, so
+// memory-optimization patches no-op on versions that don't yet name the function they hook.
 macro_rules! symbol_addr_opt {
     ($sym:tt, $version:expr) => {{
         let s = mp1_symbol!($sym);
@@ -49,9 +47,8 @@ macro_rules! symbol_addr_opt {
     }};
 }
 
-// Dummy base address used to compile overflow stubs before their heap address is known.
-// Must be above all DOL addresses (0x80xxxxxx) so external branch detection works:
-// any branch whose target < STUB_COMPILE_BASE is an external DOL reference.
+// Dummy base for compiling overflow stubs before their heap address is known. Must be above
+// all DOL addresses (0x80xxxxxx) so any branch target < STUB_COMPILE_BASE reads as external.
 const STUB_COMPILE_BASE: u32 = 0x81000000;
 
 pub struct HeapOverflowStub {
@@ -179,9 +176,8 @@ impl TextEmitter {
         Ok(addr)
     }
 
-    // Tries to allocate from caves first. On overflow, builds a position-independent
-    // stub and defers the DOL patch to the REL loader via serialize_overflow().
-    // Only use for stubs that are pure code with no embedded data words.
+    // Allocates from caves first; on overflow, builds a position-independent stub and defers
+    // the DOL patch to the REL loader via serialize_overflow(). Pure-code stubs only (no data).
     pub fn emit_and_patch<F>(
         &mut self,
         dol_patcher: &mut DolPatcher<'_>,
@@ -220,8 +216,7 @@ impl TextEmitter {
         Ok(())
     }
 
-    // Serializes overflow stubs to the cave_overflow.bin format.
-    // Returns an empty Vec when there are no overflow stubs.
+    // Serializes overflow stubs to cave_overflow.bin format (empty Vec if none).
     pub fn serialize_overflow(&self) -> Vec<u8> {
         if self.overflow_stubs.is_empty() {
             return Vec::new();
@@ -244,12 +239,11 @@ impl TextEmitter {
     }
 }
 
-// Replaces external b/bl instructions in a stub with position-independent equivalents.
-// External = branch target is below stub_base (i.e., into the DOL at 0x80xxxxxx)
-// Internal branches (within the stub) are left unchanged
+// Rewrites external b/bl (target outside [stub_base, stub_base+size), i.e. into the DOL) as
+// position-independent ctr-indirect branches; internal branches are left unchanged.
 //   b  target -> lis r12, target@h; ori r12, r12, target@l; mtctr r12; bctr
 //   bl target -> lis r0,  target@h; ori r0,  r0,  target@l; mtctr r0;  bctrl
-// Only call this for pure-code stubs without embedded data words.
+// Pure-code stubs only (no embedded data words).
 fn make_pic(stub_bytes: &[u8], stub_base: u32) -> Vec<u8> {
     fn enc_lis(rd: u32, imm: u16) -> u32 {
         (15u32 << 26) | (rd << 21) | u32::from(imm)
@@ -269,7 +263,7 @@ fn make_pic(stub_bytes: &[u8], stub_base: u32) -> Vec<u8> {
     let mut i = 0usize;
     while i < stub_bytes.len() {
         let instr = u32::from_be_bytes(stub_bytes[i..i + 4].try_into().unwrap());
-        // opcode 18 (0b010010) with AA=0: b or bl with relative addressing
+        // opcode 18, AA=0: relative b/bl
         if (instr & 0xFC00_0002) == 0x4800_0000 {
             let li_raw = (instr >> 2) & 0x00FF_FFFF;
             let li: i32 = if li_raw >= 0x80_0000 {
@@ -304,9 +298,8 @@ fn make_pic(stub_bytes: &[u8], stub_base: u32) -> Vec<u8> {
     out
 }
 
-// Decodes the absolute target of a PPC I-form branch (b/bl, AA=0) located at `pc`.
-// Used to recover a call target from an original instruction when the callee's mangled
-// name differs across versions (so a symbol lookup is not portable).
+// Decodes the absolute target of a PPC I-form branch (b/bl, AA=0) at `pc`. Used to recover a
+// call target when the callee's mangled name differs across versions (symbol lookup not portable).
 fn branch_target(instr: u32, pc: u32) -> u32 {
     let li_raw = instr & 0x03FF_FFFC;
     let li: i32 = if li_raw & 0x0200_0000 != 0 {
@@ -623,8 +616,8 @@ fn patch_spring_ball(
     let get_energy_drain_sym =
         symbol_addr!("GetEnergyDrainIntensity__18CPlayerEnergyDrainCFv", version);
 
-    // All three spring-ball parts are one contiguous allocation (conditional branches
-    // between them use the +-32 KB BC form and require contiguity).
+    // All three spring-ball parts are one contiguous allocation (the +-32 KB BC branches
+    // between them require contiguity).
     let compute_spring_ball_movement = emitter.emit_addressed(dol_patcher, |base| {
         let data_addr = base + 0x1b4;
         let sb_start = ppcasm!(base, {
@@ -904,8 +897,8 @@ fn patch_custom_items(
         version
     );
 
-    // ci_* stubs are overflow-eligible: their only data words are .long 0 (opcode 0,
-    // not matched by make_pic's b/bl check) and external branches target DOL addresses
+    // ci_* stubs are overflow-eligible: their only data words are .long 0 (opcode 0, not
+    // matched by make_pic's b/bl check) and external branches target DOL addresses.
     emitter.emit_and_patch(dol_patcher, init_power_up_sym + 0x1c, false, |addr| {
         ppcasm!(addr, {
             mr           r29, r4;
@@ -1393,26 +1386,11 @@ fn patch_restore_ntsc_00(
     Ok(())
 }
 
-// Make CMemory::Alloc return null on allocation failure instead of calling rs_debugger_printf,
-// which unconditionally crashes via ErrorHandler/OSFatal. Without this patch, any failed
-// heap allocation (e.g. during CSamusDoll construction) freezes the game before Alloc even
-// returns. With this patch, Alloc returns null and the caller can handle it gracefully.
-//
-// Implementation: CMemory::Alloc contains a conditional branch at +0x64:
-//   mr. r31, r3                    ; r31 = alloc result; set CR0
-//   bne .epilogue                  ; if non-null, skip error
-//   ... setup args ...
-//   bl rs_debugger_printf          ; CRASH: calls ErrorHandler(0xff,...,0xd1dd0d1e)
-// .epilogue:
-//   lbz r3, 0x8(r1)
-//   bl OSRestoreInterrupts
-//   mr r3, r31                     ; return result (null if alloc failed)
-//   ...
-//   blr
-//
-// We replace the bne with an unconditional b, always jumping to the epilogue.
-// OSRestoreInterrupts still executes, and null is returned to the caller.
-// Works together with patch_build_async_null_guard which handles the null return.
+// Make CMemory::Alloc return null on failure instead of calling rs_debugger_printf (which
+// crashes via ErrorHandler/OSFatal, freezing the game before Alloc returns). The conditional
+// branch at Alloc+0x64 (`bne .epilogue` if non-null, else fall into the printf) becomes an
+// unconditional b to the epilogue, which still runs OSRestoreInterrupts and returns r31 (null).
+// Callers handle the null via patch_build_async_null_guard and friends.
 fn patch_alloc_null_on_failure(
     dol_patcher: &mut DolPatcher<'_>,
     version: Version,
@@ -1429,38 +1407,17 @@ fn patch_alloc_null_on_failure(
         version
     );
 
-    // Replace bne .epilogue with b .epilogue at Alloc+0x64.
     dol_patcher.ppcasm_patch(&ppcasm!(alloc_addr + 0x64, {
-        b {alloc_addr + 0x7C};
+        b {alloc_addr + 0x7C}; // bne .epilogue -> b .epilogue
     }))?;
 
     Ok(())
 }
 
-// Eliminate the 1-2 second freeze (and controller-rumble buzz) that occurs when CGameAllocator
-// fails to find a free block. The freeze comes from two sources in CGameAllocator::Alloc:
-//
-//   1. OOM callback (x58_oomCallback): CStateManager registers SwapOutAllPossibleMemory as this
-//      callback. That function calls CARAMManager::WaitForAllDMAsToComplete(), which spins on
-//      ARAM DMA hardware with interrupts disabled -- approximately 1 second.
-//   2. DumpAllocations: Called unconditionally after the callback path. It iterates every heap
-//      block and calls CStopwatch::Wait(0.005f) every 4 blocks -- roughly 0.5 seconds total.
-//
-// In CGameAllocator::Alloc at +0x284 there is a branch:
-//   cmplwi r12, 0x0       ; is OOM callback registered?
-//   beq  skip_callback    ; if not, jump to DumpAllocations path
-//   ... setup + bctrl     ; call OOM callback (SwapOutAllPossibleMemory)
-//   ... retry alloc ...
-//   bl DumpAllocations    ; at +0x31C; iterates blocks with 5ms waits
-//   li r3, 0              ; at +0x320; return null
-//
-// We replace the beq with an unconditional b that jumps directly to "li r3, 0", skipping both
-// the OOM callback invocation and DumpAllocations entirely. Allocation simply returns null
-// immediately, which is then handled gracefully by patch_alloc_null_on_failure and
-// patch_build_async_null_guard.
-//
-// The offset +0x284 and jump distance +0xA0 are identical across all five supported versions
-// (verified by binary pattern search against all production ISOs).
+// Eliminate the 1-2s freeze (and rumble buzz) when CGameAllocator::Alloc can't find a block. Two
+// costs follow `beq skip_callback` at +0x284: the OOM callback (~1s ARAM-DMA spin with interrupts
+// off) and DumpAllocations (~0.5s of throttled block iteration). Replacing the beq with `b +0xA0`
+// jumps to the `li r3,0` null return, skipping both. Offsets identical across versions.
 fn patch_alloc_oom_fast_fail(
     dol_patcher: &mut DolPatcher<'_>,
     version: Version,
@@ -1477,19 +1434,16 @@ fn patch_alloc_oom_fast_fail(
         version
     );
 
-    // Replace beq (skip to DumpAllocations path) with b (skip to li r3,0 / null return).
     dol_patcher.ppcasm_patch(&ppcasm!(alloc_addr + 0x284, {
-        b {alloc_addr + 0x284 + 0xA0};
+        b {alloc_addr + 0x284 + 0xA0}; // beq skip_callback -> b (li r3,0 null return)
     }))?;
 
     Ok(())
 }
 
-// Null-guard CResFactory::BuildAsync so that a failed heap allocation does not crash the game.
-// When the allocator returns null (e.g. severe fragmentation during CSamusDoll construction),
-// BuildAsync returns early leaving *ppObj == null. CSamusDoll::IsLoaded() then returns false,
-// and CSamusDoll::Draw() already guards on IsLoaded() and skips rendering gracefully.
-// Requires patch_alloc_null_on_failure to be applied first so that Alloc actually returns null.
+// Null-guard CResFactory::BuildAsync: on a null alloc (e.g. fragmentation during CSamusDoll
+// construction) return early leaving *ppObj == null, so IsLoaded() is false and Draw() (already
+// IsLoaded-guarded) skips rendering. Requires patch_alloc_null_on_failure first.
 fn patch_build_async_null_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1509,30 +1463,24 @@ fn patch_build_async_null_guard(
     let load_resource_async_addr =
         symbol_addr!("LoadResourceAsync__10CResLoaderFRC10SObjectTagPc", version);
 
-    // BuildAsync frame layout (size 0x70):
-    //   0x54(r1): stmw r25 - saves r25..r31
-    //   0x74(r1): saved LR (caller's return address)
-    // The epilogue at +0xC8 restores all of this and returns.
-
+    // Frame 0x70: 0x74(r1) = saved LR; epilogue at +0xC8 restores and returns.
     let cave_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
         ppcasm!(cave_addr, {
             cmpwi r29, 0x0;                                // null alloc result?
             bne do_load;
-            b {build_async_addr + 0xC8};                   // early return via BuildAsync epilogue
+            b {build_async_addr + 0xC8};                   // early return via epilogue
         do_load:
-            mr r4, r26;                                    // original instr: mr r4, r26
-            addi r3, r25, 0x4;                             // original instr: addi r3, r25, 0x4
-            mr r5, r29;                                    // original instr: mr r5, r29
+            mr r4, r26;                                    // displaced originals:
+            addi r3, r25, 0x4;
+            mr r5, r29;
             b {load_resource_async_addr};                  // tail call; LR = return addr of bl cave
         })
         .encoded_bytes()
     })?;
 
-    // Patch 4 instructions in BuildAsync at offset +0x6C:
-    //   Original: mr r4,r26 | addi r3,r25,4 | mr r5,r29 | bl LoadResourceAsync
-    //   Patched:  bl cave   | b +0x7C        | nop        | nop
-    // After LoadResourceAsync returns to (bl cave)+4 = +0x70, the b +0x7C skips the now-dead
-    // instructions and resumes at the mr r30,r3 that consumes the return value.
+    // BuildAsync+0x6C: [mr r4,r26 | addi r3,r25,4 | mr r5,r29 | bl LoadResourceAsync] becomes
+    // [bl cave | b +0x7C | nop | nop]. LoadResourceAsync returns to +0x70; the b +0x7C skips the
+    // dead instrs to the mr r30,r3 that consumes the return value.
     dol_patcher.ppcasm_patch(&ppcasm!(build_async_addr + 0x6C, {
         bl {cave_addr};
         b {build_async_addr + 0x7C};
@@ -1543,30 +1491,17 @@ fn patch_build_async_null_guard(
     Ok(())
 }
 
-// Intercept OOM during resource decompression so the game retries instead of crashing.
-// Only applied for NTSC 0-00; other versions lack symbol table entries for the unnamed
-// functions and have not been verified.
-//
-// fn_803394A8 inflates PAK-compressed resources. On OOM, the inflate output buffer
-// (SLD_inner[0x20]) is null. The inflate loop at 0x803396A8 loads that null pointer
-// and passes it as z_stream.next_out, crashing inside inflate().
-//
-// The stub intercepts the load. On null (OOM):
-//   1. Call inflateEnd to free the ~10KB zlib internal state.
-//   2. Clear SLD_inner's z_stream reference (small 56-byte struct is accepted as a leak).
-//   3. Jump to fn_803394A8's failure epilogue (0x80339868), which restores registers
-//      from the stack frame and returns 0 to PumpResource.
-// PumpResource returns 0; AsyncIdle retries next frame. If memory later frees up,
-// the retry succeeds. The 56-byte z_stream leak is bounded to one per OOM event.
+// Retry instead of crash when the inflate output buffer (SLD_inner[0x20]) is null on OOM (the loop
+// would pass it as z_stream.next_out and crash). The stub intercepts the load and, on null, calls
+// inflateEnd, clears the z_stream reference (56-byte struct leaked, one per OOM), and returns 0 via
+// the failure epilogue; AsyncIdle retries next frame. Gated to PumpResource + inflateEnd.
 fn patch_inflate_null_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    // The zlib decompress worker (prime: fn_803394A8) is an unnamed function, so anchor on
-    // PumpResource (its sole caller) and decode the bl at PumpResource+0x5c to recover its
-    // start. Offsets within the worker are verified identical across the versions that have
-    // the PumpResource symbol.
+    // The zlib decompress worker is unnamed; recover its start by decoding the bl at
+    // PumpResource+0x5c (its sole caller). Worker offsets verified identical across versions.
     let (Some(pump), Some(inflate_end_addr)) = (
         symbol_addr_opt!("PumpResource__11CResFactoryFR12SLoadingData", version),
         symbol_addr_opt!("inflateEnd", version),
@@ -1580,12 +1515,9 @@ fn patch_inflate_null_guard(
     let inflate_oom_site: u32 = worker + 0x200; // lwz r3, 0x20(r30) -- OOM intercept site
     let inflate_fail_addr: u32 = worker + 0x3c0; // worker failure epilogue: li r3,0; restore; blr
 
-    // r30 = SLD_inner, r23 = z_stream ptr (both set up by fn_803394A8 before the loop)
-    // Non-OOM (r3 != 0): return normally via blr; caller continues with valid inflate buf.
-    // OOM (r3 == 0): inflateEnd frees internal zlib state, clear SLD_inner z_stream
-    //   reference, set oom_flag so patch_build_retry_guard can detect the OOM cause,
-    //   then jump to failure epilogue. Next retry re-allocates z_stream + buf fresh.
-    // r12 is volatile (may be clobbered by inflateEnd), so reload fresh with lis before use.
+    // r30 = SLD_inner, r23 = z_stream ptr (set up before the loop). Non-null: return r3 via blr.
+    // Null (OOM): inflateEnd, clear the z_stream reference, set oom_flag, jump to the epilogue;
+    // the next retry re-allocates z_stream + buf fresh. r12 is reloaded fresh (inflateEnd clobbers).
     let stub_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
         ppcasm!(cave_addr, {
             lwz r3, 0x20(r30);              // original instruction: load inflate buf ptr
@@ -1613,20 +1545,10 @@ fn patch_inflate_null_guard(
     Ok(())
 }
 
-// Null-guard the medium-pool expansion inside CGameAllocator::Alloc so that a failed inner
-// allocator call does not crash the game.
-//
-// When CGameAllocator::Alloc cannot satisfy a request from the existing medium pool, it calls
-// itself recursively (via vtable) to allocate a new 0x21000-byte expansion block, then passes
-// the result to CMediumAllocPool::AddPuddle. patch_alloc_null_on_failure causes that inner call
-// to return null. Without this guard, the null is forwarded to AddPuddle, which computes
-// (0 + capacity*32 = 0x20000) as the bookkeeping pointer and crashes writing to address 0x20000.
-//
-// The fix: if the inner bctrl returns null, skip AddPuddle and fall through to the pool-retry
-// path at 0x80351FAC, which attempts CMediumAllocPool::Alloc once more (still fails, r23 = 0)
-// and then reaches the normal OOM-handling path at 0x80351FE0 that returns null to the caller.
-//
-// Anchored on CGameAllocator::Alloc; applies on every version whose symbol table names it.
+// Null-guard the medium-pool expansion in CGameAllocator::Alloc. To grow the pool, Alloc recurses
+// for a block and passes it to CMediumAllocPool::AddPuddle; with patch_alloc_null_on_failure that
+// can be null, and AddPuddle would deref it (0 + capacity*32) and crash. On null we skip AddPuddle
+// and fall through to the pool-retry path, which fails again and returns null. Gated by symbol.
 fn patch_add_puddle_null_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1639,44 +1561,35 @@ fn patch_add_puddle_null_guard(
         return Ok(());
     };
 
-    // The medium-pool expansion sequence sits at Alloc+0x1c4 (offset verified identical on
-    // all six versions): mr r0,r3 | lwz r3,0x74(r31) | mr r5,r0 | li r4,0x1000 | li r6,0x1 |
-    // bl AddPuddle. We intercept the `mr r0,r3`.
-    let intercept_addr: u32 = alloc + 0x1c4; // mr r0, r3 -- first instr after bctrl in CGameAllocator::Alloc
-                                             // AddPuddle is tail-called via the original `bl` at intercept+0x14. Its mangled name
-                                             // differs between versions (extra param on 1.02/PAL), so decode the branch target
-                                             // rather than looking the symbol up.
+    // Expansion sequence at Alloc+0x1c4 (offset identical across versions): the 5 instrs setting
+    // up AddPuddle, then `bl AddPuddle`. AddPuddle's mangled name differs by version (extra param
+    // on 1.02/PAL), so decode the branch target instead of looking the symbol up.
+    let intercept_addr: u32 = alloc + 0x1c4;
     let add_puddle_addr: u32 = branch_target(
         dol_patcher.read_u32(intercept_addr + 0x14)?,
         intercept_addr + 0x14,
-    ); // CMediumAllocPool::AddPuddle
+    );
     let retry_addr: u32 = intercept_addr + 0x18; // CMediumAllocPool::Alloc retry after AddPuddle
 
-    // After bctrl: r3 = inner alloc result (null on OOM), r31 = this (CGameAllocator*).
-    // Non-null path: replay original instrs, tail-call AddPuddle (returns to LR=intercept+4).
-    //   The nop at intercept+4 is a b {retry_addr} that continues execution normally.
-    // Null path: blr back to intercept+4 (= b {retry_addr}), skip AddPuddle entirely.
-    //   Pool retry fails (pool not expanded), r23 = 0, falls into OOM handling at 0x80351FE0.
+    // r3 = inner alloc result (null on OOM). Non-null: replay the 5 setup instrs and tail-call
+    // AddPuddle. Null: blr, skipping AddPuddle. Both return to LR=intercept+4 (a b {retry_addr}).
     let stub_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
         ppcasm!(cave_addr, {
             cmpwi r3, 0x0;
             beq null_path;
-            mr r0, r3;             // original instruction
-            lwz r3, 0x74(r31);    // original instruction
-            mr r5, r0;             // original instruction
-            li r4, 0x1000;         // original instruction
-            li r6, 0x1;            // original instruction
-            b {add_puddle_addr};   // tail call; AddPuddle blr returns to LR=intercept+4
+            mr r0, r3;             // displaced originals:
+            lwz r3, 0x74(r31);
+            mr r5, r0;
+            li r4, 0x1000;
+            li r6, 0x1;
+            b {add_puddle_addr};   // tail call
         null_path:
-            blr;                   // return to intercept+4 = b {retry_addr}
+            blr;
         })
         .encoded_bytes()
     })?;
 
-    // Replace 6 instructions starting at intercept_addr:
-    //   Original: mr r0,r3 | lwz r3,0x74(r31) | mr r5,r0 | li r4,0x1000 | li r6,0x1 | bl AddPuddle
-    //   Patched:  bl stub  | b {retry_addr}   | nop      | nop          | nop       | nop
-    // AddPuddle and the null path both return to LR=intercept+4, which is the b {retry_addr}.
+    // intercept_addr: 6 instrs (5 setup + bl AddPuddle) become [bl stub | b retry | nop x4].
     dol_patcher.ppcasm_patch(&ppcasm!(intercept_addr, {
         bl { stub_addr };
         b { retry_addr };
@@ -1689,14 +1602,10 @@ fn patch_add_puddle_null_guard(
     Ok(())
 }
 
-// Null-guard CTexture::InitBitmapBuffers so that a failed bitmap buffer allocation does not crash.
-// When the heap returns null (OOM during beam-switch or large texture load), skips PostConstruct
-// and CountMemory and jumps to the function epilogue, leaving CARAMToken in its default-
-// constructed state (state field = 6). LoadToARAM checks state==6 and returns 0 early, so no
-// downstream crash occurs.
-// Requires patch_alloc_null_on_failure to be applied first so that Alloc actually returns null.
-//
-// Anchored on CTexture::InitBitmapBuffers; applies on every version that names it.
+// Null-guard CTexture::InitBitmapBuffers: on a null bitmap-buffer alloc (OOM during beam-switch
+// or large texture load) skip PostConstruct + CountMemory and jump to the epilogue, leaving
+// CARAMToken default-constructed (state=6); LoadToARAM returns 0 early for state==6, so nothing
+// downstream crashes. Requires patch_alloc_null_on_failure. Gated to versions that name it.
 fn patch_init_bitmap_buffers_null_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1707,24 +1616,19 @@ fn patch_init_bitmap_buffers_null_guard(
         return Ok(());
     };
 
-    // Offsets verified identical across all versions that have this symbol.
-    let intercept_addr: u32 = func + 0x164; // first instruction after bl Alloc in InitBitmapBuffers
-    let epilogue_addr: u32 = func + 0x180; // InitBitmapBuffers epilogue (lwz r0, 0x24(r1))
-
-    // After bl Alloc returns: r3 = alloc result, r31 = this (CTexture*).
-    // Non-OOM path: replay original lwz r5,0xc(r31) and return to normal flow.
-    // OOM path (r3==0): zero x0c_bmpDataSize, skip PostConstruct+CountMemory, branch to epilogue.
-    //   CARAMToken at this+0x44 stays default-constructed (state=6); LoadToARAM returns 0 safely.
+    // Offsets identical across versions that name this. r3 = alloc result, r31 = this.
+    let intercept_addr: u32 = func + 0x164; // first instr after bl Alloc
+    let epilogue_addr: u32 = func + 0x180;
     emitter.emit_and_patch(dol_patcher, intercept_addr, true, |cave_addr| {
         ppcasm!(cave_addr, {
             cmpwi r3, 0x0;
             beq oom;
-            lwz r5, 0xc(r31);  // original instruction: load bmpDataSize into r5
-            blr;               // return; continues with mr r4,r3 then bl PostConstruct
+            lwz r5, 0xc(r31);  // displaced original; resume normal flow
+            blr;
         oom:
             li r0, 0;
-            stw r0, 0xc(r31); // zero x0c_bmpDataSize (no buffer was allocated)
-            b {epilogue_addr}; // skip PostConstruct + CountMemory
+            stw r0, 0xc(r31); // zero x0c_bmpDataSize (no buffer allocated)
+            b {epilogue_addr};
         })
         .encoded_bytes()
     })?;
@@ -1732,29 +1636,10 @@ fn patch_init_bitmap_buffers_null_guard(
     Ok(())
 }
 
-// Completes patch_init_bitmap_buffers_null_guard. That guard makes InitBitmapBuffers leave the
-// CARAMToken default-constructed (state=6, null MRAM buffer) on OOM, relying on LoadToARAM
-// returning 0 for state==6 downstream. But the CTexture stream constructor reads the texel data
-// into that buffer immediately after InitBitmapBuffers returns -- long before any LoadToARAM --
-// so a null buffer makes the read loop memcpy into address 0 and crash. This is the crash seen
-// during low-heap beam switches (async texture build via CResFactory::PumpResource).
-//
-// __ct__8CTextureFR12CInputStream... (NTSC 0-00) fetches the buffer at 0x8030FD80:
-//   0x8030FD80  bl GetMRAMSafe
-//   0x8030FD84  mr r28, r3          ; r28 = MRAM buffer (null on OOM)
-//   0x8030FD88  li r26, 0           ; read-loop setup; loop copies texels into buf+off
-//   0x8030FDB0  bl Get              ; <- memcpy into null buffer (crash site)
-//   ...         MangleMipmap loop   ; also dereferences the buffer
-//   0x8030FE08  bl InitTextureObjects
-//
-// Replace `mr r28, r3` with a stub that replays it, then if the buffer is null skips both the
-// read loop and the mangle loop straight to InitTextureObjects. InitTextureObjects only does
-// CPU-side GXInitTexObj setup (it never dereferences the texel buffer), so it is safe with a
-// null pointer; the texture renders blank/garbage at worst but the CPU never faults, matching
-// the state=6 safety net the companion guard already depends on.
-//
-// Requires patch_init_bitmap_buffers_null_guard (and patch_alloc_null_on_failure) to be applied.
-// Anchored on the CTexture stream constructor; applies on every version that names it.
+// Completes patch_init_bitmap_buffers_null_guard. With the null MRAM buffer that guard leaves, the
+// CTexture ctor's read loop (which runs before any LoadToARAM) memcpys into address 0 and crashes.
+// The stub replays the displaced `mr r28, r3` and, on null, skips the read + MangleMipmap loops to
+// InitTextureObjects (CPU-side setup, never touches the buffer); texture renders blank. Gated by symbol.
 fn patch_texture_ctor_null_read_guard(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1767,18 +1652,17 @@ fn patch_texture_ctor_null_read_guard(
         return Ok(());
     };
 
-    // Offsets verified identical across all versions that have this symbol.
+    // Offsets identical across versions that name this.
     let intercept_addr: u32 = func + 0x2c0; // mr r28, r3 -- buffer from GetMRAMSafe
-    let init_tex_objects_addr: u32 = func + 0x344; // skip target: mr r3,r29; bl InitTextureObjects
-
+    let init_tex_objects_addr: u32 = func + 0x344;
     emitter.emit_and_patch(dol_patcher, intercept_addr, true, |cave_addr| {
         ppcasm!(cave_addr, {
-            mr    r28, r3;                   // original instruction: r28 = MRAM buffer
+            mr    r28, r3;                   // displaced original: r28 = MRAM buffer
             cmpwi r28, 0x0;
             bne   ok;
-            b     {init_tex_objects_addr};   // null buffer: skip read + mangle loops
+            b     {init_tex_objects_addr};   // null: skip read + mangle loops
         ok:
-            blr;                             // valid buffer: resume normal read loop
+            blr;
         })
         .encoded_bytes()
     })?;
@@ -1786,31 +1670,15 @@ fn patch_texture_ctor_null_read_guard(
     Ok(())
 }
 
-// Reduce peak heap during a beam switch by freeing the outgoing beam's assets earlier.
+// Reduce peak heap during a beam switch by freeing the outgoing beam earlier. The gun morph holds
+// both beams at once (new loaded in ChangeWeapon, old freed only at ProcessGunMorph kGS_OutWipeDone);
+// an area transition in that window can drive free heap to zero and crash a later scratch alloc
+// (threshold guards don't help -- the drop is the post-switch area load, not the switch).
 //
-// The beam-switch (gun morph) holds BOTH the old and new beam in memory simultaneously. The new
-// beam is loaded at the start of the morph (ChangeWeapon), and the old beam is not freed until the
-// very end (ProcessGunMorph kGS_OutWipeDone). If an area transition loads new assets during that
-// window, free heap can hit zero and a later unchecked scratch allocation (e.g. the in-game
-// automap sort vector in CMapWorld::DrawAreas) crashes. Threshold guards do not help: the drop is
-// driven by the post-switch area load, not by the switch itself.
-//
-// This shrinks the overlap window. ProcessGunMorph performs the beam swap in the kGS_InWipeDone
-// case (NTSC 0-00: 0x8003AF54-0x8003AFC8), after which the morph spends the entire wipe-in phase
-// (kGS_OutWipe) drawing only the NEW beam (x72c_currentBeam); the outgoing beam (x730) is held but
-// never rendered until kGS_OutWipeDone unloads it. Verified: x730 has exactly three accesses in the
-// function -- written at the swap (0x8003AF6C), read at the OutWipeDone guard (0x8003B080), and
-// nulled at OutWipeDone (0x8003B0B0) -- so nothing reads the outgoing beam between the swap and its
-// original unload. We replicate the OutWipeDone unload immediately after the swap. The original
-// OutWipeDone code then re-checks x730, finds it null, and skips (no double free).
-//
-// The swap case ends at 0x8003AFC8 with `b 0x8003B02C` (break to the morph-Update switch). We
-// replace that branch with `bl stub`; the stub does the unload and falls through to 0x8003B02C.
-// Register state at the swap tail (verified against the 0-00 disassembly): r28 = this (CPlayerGun),
-// r29 = CStateManager* (mgr, set once in the prologue and never reused before here). This mirrors
-// the original OutWipeDone unload exactly, which also calls Unload via vtable[0x3c] with mr r4,r29.
-//
-// Anchored on CPlayerGun::ProcessGunMorph; applies on every version that names it.
+// After the swap (kGS_InWipeDone) only the new beam (x72c) is drawn; the outgoing beam (x730) is held
+// but never read until OutWipeDone (verified). So we replicate the OutWipeDone unload right after the
+// swap by replacing the swap case's closing `b` with `bl stub`; OutWipeDone then finds x730 null and
+// skips (no double free). Gated by symbol.
 fn patch_beam_switch_early_unload(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1821,30 +1689,28 @@ fn patch_beam_switch_early_unload(
         return Ok(());
     };
 
-    // Offsets verified identical across all versions that have this symbol.
-    let swap_break_addr: u32 = func + 0x138; // `b func+0x19c` at the tail of the kGS_InWipeDone swap
-    let break_target: u32 = func + 0x19c; // original branch target (start of the morph-Update switch)
-
+    // Offsets identical across versions that name this. r28 = this, r29 = mgr.
+    let swap_break_addr: u32 = func + 0x138; // closing `b` of the kGS_InWipeDone swap
+    let break_target: u32 = func + 0x19c;
     emitter.emit_and_patch(dol_patcher, swap_break_addr, true, |cave_addr| {
         ppcasm!(cave_addr, {
-            lwz   r3, 0x730(r28);    // outgoingBeam (old)
+            lwz   r3, 0x730(r28);    // outgoingBeam
             cmplwi r3, 0x0;
-            beq   done;              // no outgoing beam: nothing to free
-            lwz   r0, 0x72c(r28);    // currentBeam (new)
+            beq   done;              // nothing to free
+            lwz   r0, 0x72c(r28);    // currentBeam
             cmplw r3, r0;
-            beq   done;              // outgoing == current: do not unload the live beam
-            // outgoingBeam->Unload(mgr) via CGunWeapon vtable[0x3c]. r1 is the live
-            // ProcessGunMorph frame; Unload builds its own frame. We exit via `b`, not blr,
-            // so the LR clobbered by bctrl is irrelevant (mirrors the OutWipeDone code).
-            lwz   r12, 0x0(r3);      // vtable
-            mr    r4, r29;           // mgr
-            lwz   r12, 0x3c(r12);    // Unload = vtable[0x3c]
+            beq   done;              // don't unload the live beam
+            // outgoingBeam->Unload(mgr) via vtable[0x3c]. Exit via `b` not blr, so the
+            // bctrl-clobbered LR is irrelevant (mirrors the OutWipeDone code).
+            lwz   r12, 0x0(r3);
+            mr    r4, r29;
+            lwz   r12, 0x3c(r12);
             mtctr r12;
             bctrl;
             li    r0, 0x0;
-            stw   r0, 0x730(r28);    // outgoingBeam = NULL (OutWipeDone will now skip)
+            stw   r0, 0x730(r28);    // outgoingBeam = NULL (OutWipeDone now skips)
         done:
-            b     { break_target };  // resume at the morph-Update switch
+            b     { break_target };
         })
         .encoded_bytes()
     })?;
@@ -1871,22 +1737,12 @@ fn patch_morph_transition_oom_guard(
         return Ok(());
     };
 
-    // Intercept CanEnterMorphBallState and CanLeaveMorphBallState instead of
-    // TransitionToMorphBallState/TransitionFromMorphBallState to avoid patching
-    // inside the crash chain (CAnimData->memcpy, multiple null-deref sites we
-    // can't fully audit). When these "can enter?" functions return false, the
-    // caller already plays SFXsam_b_malfxn_00 via its pre-existing sound path,
-    // and the stfs writes to player offsets 0x574/0x578 (before the transition
-    // call) never happen, so no partial morph state is left.
-    //
-    // Both functions start with stwu (stack frame allocation). We overwrite the
-    // first instruction with a b-trampoline (not bl, so LR is unchanged): the
-    // OOM path does li r3,0; blr to return false directly to the caller.
+    // Guard CanEnter/CanLeaveMorphBallState, not the Transition functions, to stay out of the crash
+    // chain; on false the caller already plays the malfunction SFX and skips the partial-morph writes.
+    // b-trampoline the first instr (LR unchanged), OOM path returns false; displaced stwu replayed.
     let free_bytes_addr: u32 = alloc + 0x90; // gGameAllocator x90_heapSize2 (free-bytes counter)
     let threshold: u32 = 704 * 1024;
 
-    // Both functions start with a stwu frame allocation; we replay that displaced first
-    // instruction (read from the original DOL, so the version-specific frame size is exact).
     let can_enter_orig = dol_patcher.read_u32(can_enter_addr)?;
     emitter.emit_and_patch(dol_patcher, can_enter_addr, false, |cave_addr| {
         ppcasm!(cave_addr, {
@@ -1939,26 +1795,11 @@ fn patch_draw_areas_oom_guard(
         return Ok(());
     };
 
-    // DrawAreas__9CMapWorldCF... renders the automap every frame.
-    // It builds a local (stack) vector<CMapObjectSortInfo> via an inlined push_back loop,
-    // then sorts and draws it. The push_back grows the vector through a reserve() at
-    // 0x800A2154; under OOM that reserve leaves the backing pointer null while capacity is
-    // already bumped, so the next element stores to null + size*0x14 (the crash at
-    // 0x800A0020, DAR=0x14: CMapObjectSortInfo is 0x14 bytes).
-    //
-    // A per-store guard is insufficient: the loop still increments size, and the later
-    // sort/draw pass dereferences the same null buffer. The only clean point is the whole
-    // function, which returns void and whose caller reads no result -- so under low heap we
-    // skip the entire automap draw for this frame. It is per-frame and stack-only (nothing
-    // cached), so it self-corrects the moment heap recovers, with no broken-cache risk.
-    //
-    // b-trampoline (not bl, so the caller's return address stays in LR): the OOM path blr's
-    // straight back to the caller before the stack frame is even set up. The reserve is tiny
-    // (initial 4 * 0x14 = 0x50 bytes), so it only fails at near-zero heap; a small floor
-    // blanks the map only in the genuinely dangerous window. Silent (no SFX): this runs every
-    // frame.
-    //
-    // First instruction of DrawAreas is a stwu frame allocation, replayed below.
+    // DrawAreas renders the automap every frame via a local vector whose reserve(), under OOM,
+    // leaves a null backing pointer while size is bumped -> next store crashes. A per-store guard
+    // won't do (the sort/draw pass derefs the same buffer), so under low heap we skip the whole
+    // function: it returns void, is per-frame and stack-only, so it self-corrects when heap recovers.
+    // b-trampoline (LR untouched), silent; reserve is tiny so the floor only blanks near zero heap.
     let free_bytes_addr: u32 = alloc + 0x90; // gGameAllocator x90_heapSize2 (free-bytes counter)
     let threshold: u32 = 256 * 1024;
 
@@ -1997,34 +1838,15 @@ fn patch_change_weapon_oom_guard(
         return Ok(());
     };
 
-    // ChangeWeapon__10CPlayerGunFRC12CPlayerStateR13CStateManager:
-    //   +0x74: cmplw r3, r0   (r3=loadingBeam, r0=currentBeam)
-    //   +0x78: beq +0xa4      (skip Load if same beam)
-    //   +0x7c..+0xa0: loadingBeam->Load + auxWeapon->Load
-    //   +0xa4: EnableFx / ResetBeamParams / StartWipe
-    //   +0xf4: function epilogue (lwz r0,0x24(r1); restore r29-r31; mtlr; addi r1; blr)
-    // Offsets verified identical across all versions that have this symbol.
-    //
-    // Replace the beq with bl to a stub that:
-    //   1. Honours the original beq (same beam -> +0xa4 for wipe animation)
-    //   2. Checks heap free bytes; if sufficient, falls through to Load block
-    //   3. If OOM: jumps to function EPILOGUE (+0xf4), skipping wipe animation
-    //      entirely so the morphing flag is never set and the player can still fire.
-    //      Jumping to the epilogue is safe: ChangeWeapon's prologue frame is intact.
-    //
-    // CR0[EQ] is preserved by bl, r0/r12 are safe to clobber (both overwritten at +0x7c).
+    // ChangeWeapon+0x78 is `beq +0xa4` (skip beam Load when loading==current). Replace it with a
+    // stub that honours the original beq, then on OOM jumps to the epilogue (+0xf4), skipping the
+    // wipe so the morphing flag is never set and the player can still fire. Offsets identical across
+    // versions. CR0[EQ] survives bl; r0/r12 are dead (overwritten at +0x7c).
     let intercept_addr: u32 = change_weapon + 0x78;
-    // Same-beam path: honour original beq, land at EnableFx/ResetBeamParams/StartWipe.
-    let skip_target: u32 = change_weapon + 0xa4;
-    // OOM path: jump past StartWipe directly to the function epilogue.
-    // This prevents ResetBeamParams from setting the morphing flag, so the player
-    // keeps the old beam and can fire without the morph state machine stalling.
+    let skip_target: u32 = change_weapon + 0xa4; // same-beam: original beq target (wipe)
     let epilogue_addr: u32 = change_weapon + 0xf4;
-    // gGameAllocator x90_heapSize2 (free-bytes counter).
-    let free_bytes_addr: u32 = alloc + 0x90;
+    let free_bytes_addr: u32 = alloc + 0x90; // gGameAllocator x90_heapSize2 (free-bytes counter)
     let threshold: u32 = 320 * 1024;
-    // SfxStart__11CSfxManagerFUsssbsbi: static, r3=CSfxHandle* out, r4=id, r5=vol,
-    // r6=pan, r7=useAcoustics, r8=priority, r9=looped, r10=areaId.
 
     let stub_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
         ppcasm!(cave_addr, {
@@ -2032,35 +1854,30 @@ fn patch_change_weapon_oom_guard(
             b    { skip_target };                     // beams same: honour original beq
         no_orig_skip:
             lis  r12, { free_bytes_addr }@h;
-            lwz  r0,  { free_bytes_addr }@l(r12);    // r0 = heap free bytes
-            lis  r12, { threshold }@h;                // r12 = threshold
-            cmplw r0, r12;                            // unsigned compare
+            lwz  r0,  { free_bytes_addr }@l(r12);
+            lis  r12, { threshold }@h;
+            cmplw r0, r12;
             bge  no_oom;                              // enough memory: allow Load
-            // OOM path: HandleBeamChange (from ProcessInput) set x2f8_stateFlags |= 0x8
-            // (morphing). ProcessInput exits early when x2f8 >= 4, so x2f4 is never
-            // updated from the fire button -> player cannot fire. SetupBeam processing
-            // would normally clear the morphing flag, but it only runs after a successful
-            // morph, which never happens when we cancel early.
-            // Restore x2f8 = 1 (beam mode) so ProcessInput reads fire input normally.
+            // OOM: HandleBeamChange already set x2f8 |= 0x8 (morphing), which makes ProcessInput
+            // exit early and the player can't fire. The flag is normally cleared after a successful
+            // morph, which never happens here, so restore x2f8 = 1 (beam mode) ourselves.
             li   r0, 0x1;
-            stw  r0, 0x2f8(r29);                     // x2f8_stateFlags = 1 (beam mode)
-            // Play malfunction SFX to signal blocked beam switch.
-            // Push a mini-frame for the CSfxHandle output buffer (SfxStart writes to r3).
-            // The epilogue at epilogue_addr uses the stack-saved LR from ChangeWeapon's
-            // frame (0x24(r1)), not the LR register, so bl SfxStart clobbering LR is safe.
-            // Pop the mini-frame before the epilogue jump so ChangeWeapon's frame is on top.
-            stwu r1, -0x20(r1);                      // push 32-byte mini-frame
-            addi r3, r1, 0x10;                       // r3 = CSfxHandle output buffer
+            stw  r0, 0x2f8(r29);
+            // Play malfunction SFX. Push a mini-frame for the CSfxHandle out-param (SfxStart writes
+            // r3); the target epilogue restores LR from the saved frame, so clobbering LR here is
+            // fine. Pop before the jump so ChangeWeapon's frame is back on top.
+            stwu r1, -0x20(r1);
+            addi r3, r1, 0x10;                       // CSfxHandle out buffer
             li   r4, 0x6f5;                          // SFXsam_b_malfxn_00
-            li   r5, 0x7f;                           // vol 127
-            li   r6, 0x40;                           // pan center
-            li   r7, 0x1;                            // useAcoustics = true
-            li   r8, 0x40;                           // priority (medium)
+            li   r5, 0x7f;                           // vol
+            li   r6, 0x40;                           // pan
+            li   r7, 0x1;                            // useAcoustics
+            li   r8, 0x40;                           // priority
             li   r9, 0x0;                            // not looped
-            li   r10, -1;                            // areaId = -1 (all areas)
+            li   r10, -1;                            // areaId (all)
             bl   { sfx_start_addr };
-            addi r1, r1, 0x20;                       // pop mini-frame
-            b    { epilogue_addr };                   // cancel beam switch, return to caller
+            addi r1, r1, 0x20;
+            b    { epilogue_addr };                   // cancel beam switch
         no_oom:
             blr;                                      // fall through to Load block
         })
@@ -2089,28 +1906,12 @@ fn patch_logbook_oom_guard(
         return Ok(());
     };
 
-    // CPauseScreen::BuildPauseSubScreen is the pause-screen page factory. ESubScreen 0 = Log
-    // Book, 1 = Options, 2 = Inventory. The Log Book case (func+0x4c) news a CLogBookScreen whose
-    // constructor calls CMain::EnsureWorldPaksReady, forcing every world pak's resource directory
-    // to be built synchronously. Under OOM that build's rstl::vector<SResInfo> reserve leaves a
-    // null backing pointer while size still increments, so the second element stores to
-    // null + 1*0xa -> crash. Same alloc-then-store-without-null-check pattern as the automap.
-    //
-    // The pak build is core loading machinery; skipping it would break the log book, so instead we
-    // deny navigating to the page when heap is low (fallback approach, like the map_open guard).
-    // BuildPauseSubScreen already returns null on operator-new failure, and StartTransition
-    // tolerates that: it records the subscreen slot as (valid=false, ptr=null). We reuse that
-    // handled path -- under low heap the Log Book case returns null via func+0x108 (li r3,0;
-    // epilogue), so the tab simply does not populate (no crash; recovers when heap frees up).
-    // Silent, matching how the inventory page's CSamusDoll already degrades under low heap.
-    //
-    // b-trampoline at the Log Book case entry. r0/r12/CR0 are dead here (page dispatch is already
-    // done), so the heap check clobbers nothing live. The displaced first instruction (a constant
-    // lis) is replayed from the original DOL. Offsets verified identical across versions.
-    //
-    // The threshold uses the family's single-lis compare, so it must stay 0x10000-aligned to be
-    // exact (@h is high-adjusted; a non-aligned value would round). EnsureWorldPaksReady loads all
-    // world paks, so this floor is set generously high; lower it if the log book blanks too often.
+    // BuildPauseSubScreen's Log Book case (func+0x4c) news a CLogBookScreen whose ctor synchronously
+    // builds every world pak directory; under OOM that reserve crashes (same pattern as the automap).
+    // Rather than touch core loading, deny the page when heap is low: BuildPauseSubScreen already
+    // returns null on alloc failure and StartTransition tolerates it, so we return null via func+0x108
+    // and the tab just doesn't populate (recovers later). b-trampoline (r0/r12/CR0 dead post-dispatch);
+    // displaced lis replayed; keep threshold 0x10000-aligned, set high since all paks load.
     let free_bytes_addr: u32 = alloc + 0x90;
     let threshold: u32 = 2304 * 1024;
     let intercept_addr: u32 = func + 0x4c;
@@ -2148,32 +1949,15 @@ fn patch_world_pak_ready_oom_guard(
         return Ok(());
     };
 
-    // CPakFile::EnsureWorldPakReady builds a world pak's resource directory synchronously: it
-    // grows an rstl::vector<SResInfo> (and a parallel offset vector) via reserve. Under OOM that
-    // reserve leaves a null backing pointer while size still increments, so the second element
-    // stores to null + 1*0xa -> crash. This is the same site hit by both the map (CAutoMapper
-    // ::OnNewInGameGuiState -> CMain::EnsureWorldPaksReady) and the log book (CLogBookScreen ctor).
-    //
-    // The other guards (map_open, draw_areas, ...) read the x90 *total* free-bytes counter. That
-    // is the wrong signal here: reserve needs one *contiguous* block, and the pause-menu's
-    // alloc/free churn fragments the heap -- total free can rise (passing a total-free threshold)
-    // while the largest contiguous chunk stays too small for the directory. That is exactly the
-    // reported repro: deny map -> open/close pause menu -> total free ticks up -> map guard now
-    // passes -> reserve still can't find a contiguous block -> crash. So this guard queries
-    // CGameAllocator::GetLargestFreeChunk instead of the total counter.
-    //
-    // EnsureWorldPakReady is idempotent and deferrable: its entry already early-returns when the
-    // pak's needs-build flag bits (offset 0x28) are clear, and it only clears the needs-build bit
-    // at the very end. So when the largest free chunk is too small we just return to the caller
-    // without building -- the bit stays set and the build is retried on the next
-    // EnsureWorldPaksReady pass (next map/log-book open), once the heap has a big enough chunk.
-    // The map renders that area as not-yet-loaded for one open; no crash, self-correcting.
-    //
-    // b-trampoline at the function entry (LR preserved in register). We need a mini-frame because
-    // calling GetLargestFreeChunk via bl clobbers LR, and the incoming r3 (CPakFile* this) must
-    // survive to the original prologue's `mr r31, r3`. Threshold compares against a single lis, so
-    // keep it 0x10000-aligned; it represents the largest contiguous block one pak's directory may
-    // need. The displaced first instruction (a stwu frame allocation) is replayed from the DOL.
+    // EnsureWorldPakReady builds a pak's resource directory via a reserve that, under OOM, leaves a
+    // null backing pointer while size increments -> crash (same site as the map and log book). Unlike
+    // the other guards it reads GetLargestFreeChunk, not the x90 total: reserve needs one contiguous
+    // block, and pause-menu churn fragments the heap, so total free can pass a threshold while no
+    // chunk fits (repro: deny map -> toggle pause -> total ticks up -> map guard passes -> crash).
+    // The build is idempotent/deferrable (needs-build bit cleared only at the end), so on a too-small
+    // chunk we return without building; the next pass retries once the heap has room.
+    // b-trampoline with a mini-frame (the bl clobbers LR, incoming r3 must survive); keep threshold
+    // 0x10000-aligned; displaced stwu replayed.
     let threshold: u32 = 448 * 1024;
 
     let func_orig = dol_patcher.read_u32(func_addr)?;
@@ -2204,58 +1988,24 @@ fn patch_world_pak_ready_oom_guard(
     Ok(())
 }
 
-// Defer (instead of broken-build) async resource construction when heap is too low.
+// Defer (rather than broken-build) async resource construction when heap is too low -- the
+// root-cause fix for low-memory beam-switch failures. The null-guards above stop a mid-build alloc
+// failure from crashing, but the resource finishes degraded and PumpResource caches it as "loaded";
+// nothing re-pumps it, so a beam built in a transient low-heap window stays broken and the morph
+// hangs even back in a memory-rich area (broken cache, not capacity). PumpResource already defers a
+// not-ready resource (returns 0, node stays queued); we extend that to a ready resource when free
+// heap is below threshold, so the heavy build waits for memory and caches cleanly.
 //
-// This is the root-cause fix for the low-memory beam-switch failures. The null-guards above
-// (patch_init_bitmap_buffers_null_guard, patch_texture_ctor_null_read_guard, ...) keep the game
-// from crashing when an allocation fails mid-build, but they do so by letting the resource finish
-// constructing in a blank/degraded state -- and CResFactory::PumpResource then caches that broken
-// result as "loaded". Nothing ever re-pumps a resource the pool believes is loaded, so a beam (or
-// its dependency) built during a transient low-memory window stays permanently broken; the morph
-// hangs at kGS_InWipeDone even after the player returns to a memory-rich area (observed stuck with
-// ~960KB free, far more than a beam needs -- proof the issue is broken-caching, not capacity).
+// Time-bounded: the loader drops a build's read data after ~5s and orphans the CObjectReference
+// forever, so a continuous low-heap stall past DEFER_TIMEOUT_TICKS (4.0s) forces the build through
+// (worst case degraded, not wedged). The stall is timed via OSGetTime in one global scratch slot;
+// the floor is global so every pump defers-all or proceeds-all, and the first proceed (or forced
+// build) clears the timer -- it only accumulates across continuous low heap.
 //
-// PumpResource (0x80339A04) already has a deferral path: after the per-resource readiness check
-//   0x80339A30: bctrl                 ; ready? (vtable[0x10] on the loading data)
-//   0x80339A40: rlwinm. r0, r3, ...    ; test the returned bool
-//   0x80339A44: beq 0x80339B18         ; not ready -> return 0 (node stays queued, retried next pump)
-// Returning 0 leaves the node on the loading list (verified against AsyncIdle 0x80339C74-0x80339C94,
-// which advances to node->next WITHOUT removing it on a 0 return). We extend that same defer: if the
-// resource IS ready to build but free heap is below threshold, defer anyway so the heavy build (and
-// its allocations) waits until memory recovers -- at which point it builds cleanly and is cached
-// correctly.
-//
-// TIME BOUND: the deferral cannot be open-ended. The streaming loader keeps a build's already-read
-// data resident only for ~5 seconds; if we hold the build pending past that window the loader
-// reclaims the data and the resource's CObjectReference is orphaned (x10_object=null, loading=1)
-// FOREVER -- the morph then hangs even after the player reaches a memory-rich area (the user can
-// reproduce this by lingering >5s in low memory mid-morph). So we cap the memory-defer at
-// DEFER_TIMEOUT_TICKS (4.0s, safely under the loader's ~5s drop): once a low-heap stall has lasted
-// that long we force the build through even at low heap. Worst case the build degrades (blank/
-// partial, caught by the null-guards) instead of wedging permanently -- a recoverable broken-cache,
-// which the user accepted over an eternal hang. In normal play heap recovers in well under 4s, so
-// the timeout never fires and builds still wait for a clean heap. We time the stall with OSGetTime's
-// low word stored in a single global scratch slot: the heap floor is a global free-bytes threshold,
-// so at any pump either ALL builds defer or ALL proceed -- the first proceed clears the timer, so it
-// only accumulates across CONTINUOUS low heap, exactly the wedge condition. A forced build clears
-// the timer too, throttling forced builds to one per timeout window (no OOM stampede).
-//
-// We MUST NOT defer on the synchronous CResFactory::Build path (0x8033A11C), which loops
-// `bl PumpResource` until it returns nonzero -- deferring there would spin forever under sustained
-// low memory. The two callers are distinguishable by the time-budget argument r5 (saved to r31 at
-// the prologue, 0x80339A14): Build passes r5=0 (0x8033A124), AsyncIdle passes r5=remaining-time
-// (0x80339C7C, nonzero). So we only memory-defer when r31 != 0 (async). The sync path still relies
-// on the null-guards as its safety net.
-//
-// Replace the beq at 0x80339A44 with `bl stub`. CR0 (from the rlwinm. at 0x80339A40) is preserved
-// by bl. Scratch r0/r8/r9/r11/r12 are dead at both the proceed target (0x80339A48 reloads r3 then
-// overwrites the scratch regs) and the defer target (0x80339B18). The stub calls OSGetTime, which
-// clobbers volatiles and CR but preserves the nonvolatiles r29/r30/r31 PumpResource depends on;
-// CR is re-derived downstream before use. LR is saved to 0x64(r1) at entry and the epilogue restores
-// from there, so clobbering the LR register (trampoline bl and the OSGetTime bl) is safe; the stub
-// exits via `b`, not blr.
-//
-// Only applied for NTSC 0-00; PumpResource has no symbol-table entry for other versions.
+// Must NOT defer on the synchronous Build path (spins until nonzero); it's distinguished by the
+// time-budget arg saved to r31 (Build = 0, AsyncIdle != 0), so only defer when r31 != 0. Replace
+// the readiness beq with `bl stub`: CR0/scratch/nonvolatiles all survive, LR is frame-saved (stub
+// exits via `b`). Gated to PumpResource.
 fn patch_pump_resource_oom_defer(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -2276,9 +2026,7 @@ fn patch_pump_resource_oom_defer(
     let threshold: u32 = 576 * 1024;
 
     emitter.emit_and_patch(dol_patcher, intercept_addr, true, |cave_addr| {
-        // Conditional branches reach only +/-32KB; the cave is farther than that from
-        // PumpResource, so all conditionals target local labels and the far jumps use
-        // unconditional b (24-bit range).
+        // Cave is >32KB from PumpResource, so conditionals target local labels and far jumps use b.
         ppcasm!(cave_addr, {
             beq   defer;                 // original: resource not ready -> defer (no timeout)
             cmpwi r31, 0x0;              // r31 = time budget (0 = synchronous Build)
@@ -2299,37 +2047,23 @@ fn patch_pump_resource_oom_defer(
     Ok(())
 }
 
-// Recover the resource decompressor from a failed output-buffer allocation instead of wedging.
+// Recover the resource decompressor from a failed output-buffer alloc instead of wedging. The worker
+// sets up a zlib stream once then allocates the output buffer; under fragmentation the total-free
+// defer guard can pass yet this contiguous alloc returns null. The original code then loops on a null
+// buffer (non-crashing only thanks to patch_inflate_null_guard) producing 0 bytes, and every later
+// call resumes the already-set-up stream into the same null buffer forever -- the beam-morph wedge.
 //
-// CResFactory's decompress worker fn_803394A8 (NTSC 0-00) sets up a zlib stream once (stored at
-// [r30+0x28]) then allocates the decompress output buffer at 0x803395DC. Under heap FRAGMENTATION the
-// total-free defer guard can pass (>448KB total) yet this single contiguous ~tens-of-KB buffer alloc
-// still returns null. The original code then proceeds into the inflate loop with a null output buffer
-// (kept from crashing only by patch_inflate_null_guard) which produces 0 bytes and returns "not done";
-// every later call sees the stream already set up ([r30+0x28]!=0) and resumes into the same null buffer
-// FOREVER -- a permanent wedge (CObjectReference x3_loading stuck at 1, x10_object never set; the
-// confirmed beam-morph hang at high free heap).
-//
-// Fix: b-trampoline the `neg r0, r3` at 0x803395E0 (right after the buffer Alloc). If the buffer is
-// non-null, run the original instruction and continue. If null, tear the stream back down exactly like
-// the function's own completion cleanup does (inflateEnd at 0x80343B40, then Free the stream at
-// [r30+0x28] when owned per [r30+0x24]), clear the stream optional, and return 0 (not done) via
-// 0x80339868. The next pump then re-runs the full setup and re-allocates the buffer, so the decompress
-// recovers once a contiguous block is available. This only fires on a genuine alloc failure, so it
-// never over-defers normal loading (unlike a preemptive contiguous-chunk gate, which deadlocks boot).
-//
-// r23 = the zlib stream and r30 = the SLoadingData are nonvolatile and survive the inflateEnd/Free
-// calls; the stub runs in fn_803394A8's existing frame (callees save LR in the r1+4 linkage slot) and
-// exits via b, so the clobbered LR register is irrelevant. CR0 (clobbered by our cmpwi) is re-derived
-// downstream before any conditional uses it.
+// b-trampoline the `neg r0, r3` after the Alloc: non-null runs the original; null tears the stream
+// down like the worker's own cleanup (inflateEnd, then Free when owned), clears it, and returns 0 via
+// the failure epilogue, so the next pump re-allocates and recovers. Fires only on real alloc failure,
+// so it never over-defers. r23/r30 survive the calls; stub runs in the worker's frame and exits via b.
 fn patch_inflate_buffer_oom_recover(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    // Same unnamed zlib decompress worker as patch_inflate_null_guard: anchor on PumpResource
-    // and decode the bl at PumpResource+0x5c to recover its start. Offsets within the worker
-    // are verified identical across the versions that have the PumpResource symbol.
+    // Same unnamed worker as patch_inflate_null_guard: recover its start via the bl at
+    // PumpResource+0x5c. Worker offsets verified identical across versions.
     let (Some(pump), Some(inflate_end), Some(free_addr)) = (
         symbol_addr_opt!("PumpResource__11CResFactoryFR12SLoadingData", version),
         symbol_addr_opt!("inflateEnd", version),
@@ -2471,14 +2205,11 @@ fn patch_bss_heap_extension(
     emitter: &mut TextEmitter,
     version: Version,
 ) -> Result<(), String> {
-    // Inject the unused ~80KB BSS gap that sits inside CMetroidAreaCollider's sDupVertexList
-    // static array (its tail is never populated) and ends at sDupEdgeList, into the heap free
-    // pool. We hook the epilogue blr of CGameAllocator::Initialize to construct a standalone
-    // free block chain (head -> tail sentinel) and call AddFreeEntryToFreeList to register it.
-    //
-    // The gap is derived from the boundary symbols so it tracks each version's BSS layout. The
-    // array is the same size (0x19000) on every version that names these symbols, with the same
-    // 0x5000 used prefix and no intervening symbols, so the free region is identical in shape.
+    // Inject the unused ~80KB BSS gap in CMetroidAreaCollider's sDupVertexList array (tail never
+    // populated, ends at sDupEdgeList) into the heap free pool: hook CGameAllocator::Initialize's
+    // epilogue blr to build a standalone free-block chain (head -> tail sentinel) and register it
+    // via AddFreeEntryToFreeList. The gap is derived from the boundary symbols, and the array shape
+    // (0x19000 size, 0x5000 used prefix, no intervening symbols) is identical across versions.
     let (Some(vertex_list), Some(edge_list), Some(game_allocator_addr), Some(add_free_entry_addr)) = (
         symbol_addr_opt!("sDupVertexList__20CMetroidAreaCollider", version),
         symbol_addr_opt!("sDupEdgeList__20CMetroidAreaCollider", version),
@@ -2494,19 +2225,17 @@ fn patch_bss_heap_extension(
         return Ok(());
     };
 
-    // Both block addresses must be 32-byte aligned: SGameMemInfo pointer fields use & ~31 masking.
-    // Raw gap: [sDupVertexList + 0x5000 (used prefix), sDupEdgeList); snap inward to 32 bytes.
-    let head_addr: u32 = (vertex_list + 0x5000 + 0x1f) & !0x1f; // round gap start up to 32 bytes
-    let tail_addr: u32 = (edge_list - 0x20) & !0x1f; // last 32-byte boundary where tail + 0x20 <= end
+    // Both blocks must be 32-byte aligned (SGameMemInfo pointer fields use & ~31 masking). Raw gap
+    // [vertex_list + 0x5000, edge_list) snapped inward to 32 bytes.
+    let head_addr: u32 = (vertex_list + 0x5000 + 0x1f) & !0x1f;
+    let tail_addr: u32 = (edge_list - 0x20) & !0x1f;
     let free_len: u32 = tail_addr - head_addr - 0x20; // usable bytes in the registered free block
     let heap_counter_addr: u32 = game_allocator_addr + 0x90; // gGameAllocator + 0x90 = x90_heapSize2
     let init_blr_addr = init + 0x384;
 
     let cave_addr = emitter.emit_addressed(dol_patcher, |cave_addr| {
         ppcasm!(cave_addr, {
-            // CGameAllocator::Initialize already restored its own stack frame
-            // (addi r1,r1,0x80) before the blr we replaced, so r1 is at the
-            // caller's frame. We allocate a mini-frame for our bl below.
+            // Initialize already tore down its own frame before the replaced blr; mini-frame for our bl.
             stwu r1, -0x10(r1);
             mflr r0;
             stw  r0, 0x14(r1);
@@ -2524,8 +2253,7 @@ fn patch_bss_heap_extension(
             stw  r0, 0x08(r12);        // x8_fileAndLine = 0
             stw  r0, 0x0C(r12);        // xc_type = 0
             stw  r0, 0x10(r12);        // x10_prev = 0 (not allocated, no prior block)
-            // addi with r0 as destination ignores r0's value (PPC r0 special case);
-            // use lis+ori (zero-extend, no r0 exception) with plain upper bits.
+            // Use lis+ori, not addi: r0 as addi destination is the PPC zero special case.
             lis  r0, { (tail_addr >> 16) as i32 };
             ori  r0, r0, { (tail_addr & 0xFFFF) as i32 };
             stw  r0, 0x14(r12);        // x14_next = tail_addr
@@ -2591,9 +2319,9 @@ fn patch_heap_optimization(
     version: Version,
     #[allow(unused_variables)] config: &PatchConfig,
 ) -> Result<(), String> {
-    // if !config.qol_game_breaking {
-    //     return Ok(());
-    // }
+    if !config.qol_game_breaking {
+        return Ok(());
+    }
 
     /* Patch heap allocator to tolerate failed allocations (return nullptr instead of panic) */
     patch_alloc_null_on_failure(dol_patcher, version)?;
