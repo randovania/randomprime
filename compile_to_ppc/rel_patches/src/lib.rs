@@ -92,6 +92,35 @@ unsafe extern "C" fn apply_cave_overflow() {
         meta += size;
         buf_off += size;
 
+        // Rewrite make_pic's stub-local lis/addi|ori relocations to the stub's heap address.
+        if meta + 4 > data.len() {
+            break;
+        }
+        let reloc_count = read_u32_be(data, meta) as usize;
+        meta += 4;
+        for _ in 0..reloc_count {
+            if meta + 16 > data.len() {
+                break;
+            }
+            let lis_pos = read_u32_be(data, meta);
+            let lo_pos = read_u32_be(data, meta + 4);
+            let data_off = read_u32_be(data, meta + 8);
+            let is_addi = read_u32_be(data, meta + 12) != 0;
+            meta += 16;
+
+            let target = heap_addr.wrapping_add(data_off);
+            let (hi, lo) = if is_addi {
+                // addi sign-extends its imm; bias the high half when bit 15 is set.
+                ((target.wrapping_add(0x8000) >> 16) & 0xFFFF, target & 0xFFFF)
+            } else {
+                ((target >> 16) & 0xFFFF, target & 0xFFFF)
+            };
+            let lis_ptr = (heap_addr + lis_pos) as *mut u32;
+            let lo_ptr = (heap_addr + lo_pos) as *mut u32;
+            core::ptr::write(lis_ptr, (core::ptr::read(lis_ptr) & 0xFFFF_0000) | hi);
+            core::ptr::write(lo_ptr, (core::ptr::read(lo_ptr) & 0xFFFF_0000) | lo);
+        }
+
         let rel = (heap_addr as i64 - site as i64) as u64;
         let lk: u32 = if is_bl { 1 } else { 0 };
         let branch = (0x4800_0000u32 | lk) | (rel & 0x03FF_FFFC) as u32;
