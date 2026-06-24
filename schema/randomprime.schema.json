@@ -259,6 +259,11 @@
                     "type": "boolean",
                     "default": true
                 },
+                "osDiagnostics": {
+                    "description": "If true, enables in-game OSReport debug logging hooks (visible via Dolphin's OSReport log channel). Intended for development and bug diagnosis; has a small code/performance cost and should be left off for normal play.",
+                    "type": "boolean",
+                    "default": false
+                },
                 "visibleBoundingBox": {
                     "description": "If true, the corners of aether boxes are outlined to be visible in-game.",
                     "type": "boolean",

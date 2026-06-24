@@ -3008,6 +3008,65 @@ fn patch_game_start(
     Ok(())
 }
 
+// OSReport debug-logging hooks, gated behind the `osDiagnostics` preference (default off). Add new
+// diagnostic hooks here. See CLAUDE.md "Runtime Diagnostics for DOL Patches (OSReport)".
+fn patch_os_diagnostics(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    if !config.os_diagnostics {
+        return Ok(());
+    }
+    patch_diag_resource_miss(dol_patcher, emitter, version)?;
+    Ok(())
+}
+
+// Log every asset id that CResLoader::FindResourceForLoad fails to find. A dangling id (e.g. a
+// logbook scan with no resource in any loaded pak) returns null here, which LoadResourceAsync then
+// derefs and crashes; this prints the id on the not-found path so it's the last line before the
+// crash. NTSC 0-00 only.
+fn patch_diag_resource_miss(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+    let (Some(find), Some(osreport)) = (
+        symbol_addr_opt!("FindResourceForLoad__10CResLoaderFUi", version),
+        symbol_addr_opt!("OSReport", version),
+    ) else {
+        return Ok(());
+    };
+    // Not-found path: `li r3, 0` falling into the epilogue. The id is in r29 (saved at prologue) and
+    // survives OSReport (which clobbers only r0, r3-r12, LR, CTR).
+    let li_r3_0 = find + 0xe0;
+    let epilogue = find + 0xe4;
+
+    let mut fmt_bytes = b"randomprime: resource not found id=%08x\n\0".to_vec();
+    while fmt_bytes.len() % 4 != 0 {
+        fmt_bytes.push(0);
+    }
+    let fmt_addr = emitter.emit_addressed(dol_patcher, move |_| fmt_bytes.clone())?;
+
+    emitter.emit_and_patch(dol_patcher, li_r3_0, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lis  r3, { (fmt_addr >> 16) as i32 };
+            ori  r3, r3, { (fmt_addr & 0xffff) as i32 };
+            mr   r4, r29;            // missing asset id
+            bl   { osreport };
+            li   r3, 0;              // displaced instruction (return nullptr)
+            b    { epilogue };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
 pub fn patch_dol(
     file: &mut structs::FstEntryFile,
     #[allow(unused_variables)] spawn_room: SpawnRoomData,
@@ -3031,6 +3090,9 @@ pub fn patch_dol(
 
     patch_meta(&mut dol_patcher, &mut emitter, version, config)?;
     patch_heap_optimization(&mut dol_patcher, &mut emitter, version, config)?;
+
+
+    patch_os_diagnostics(&mut dol_patcher, &mut emitter, version, config)?;
 
     patch_game_options(&mut dol_patcher, version, config)?;
     patch_cosmetic(&mut dol_patcher, &mut emitter, version, config)?;

@@ -1483,6 +1483,7 @@ pub struct PatchConfig {
     pub warp_to_start_delay_s: f32,
 
     pub automatic_crash_screen: bool,
+    pub os_diagnostics: bool,
     pub etank_capacity: u32,
     pub shuffle_pickup_position: bool,
     pub shuffle_pickup_pos_all_rooms: bool,
@@ -1567,6 +1568,7 @@ struct Preferences {
     map_default_state: Option<String>,
     artifact_hint_behavior: Option<String>,
     automatic_crash_screen: Option<bool>,
+    os_diagnostics: Option<bool>,
     visible_bounding_box: Option<bool>,
     door_destination_scans: Option<bool>,
     no_hud: Option<bool>,
@@ -2755,6 +2757,7 @@ impl PatchConfigPrivate {
                 .game_config
                 .hall_of_the_elders_bomb_slot_covers,
             automatic_crash_screen: self.preferences.automatic_crash_screen.unwrap_or(true),
+            os_diagnostics: self.preferences.os_diagnostics.unwrap_or(false),
             visible_bounding_box: self.preferences.visible_bounding_box.unwrap_or(false),
             door_destination_scans: self
                 .preferences
