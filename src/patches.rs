@@ -9395,7 +9395,6 @@ fn patch_optimize_memory(
 
     // loop {
     //     /* Collect dead objects */
-
     //     for layer in scly.layers.iter() {
     //         for obj in layer.objects.iter() {
     //             let obj_id = obj.instance_id & 0x00FFFFFF;
@@ -9408,7 +9407,6 @@ fn patch_optimize_memory(
     //     }
 
     //     /* Collect Dead Connections */
-
     //     for layer in scly.layers.iter() {
     //         for obj in layer.objects.iter() {
     //             let obj_id = obj.instance_id & 0x00FFFFFF;
@@ -9423,7 +9421,6 @@ fn patch_optimize_memory(
     //     }
 
     //     /* Cleanup lists */
-
     //     for (sender_id, conn) in &add_connections {
     //         let target_id = conn.target_object_id & 0x00FFFFFF;
     //         incoming_connections
@@ -9446,7 +9443,6 @@ fn patch_optimize_memory(
     //     }
 
     //     /* Check for break condition */
-
     //     let new_counts = (
     //         incoming_connections.values().map(HashSet::len).sum(),
     //         dead_objs.len(),

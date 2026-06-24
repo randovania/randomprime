@@ -2190,11 +2190,20 @@ fn patch_meta(
         ))?;
     }
 
+    // The hint-state array is repurposed as save-slot scratch (see the save UUID feature), so neuter
+    // UpdateHintState to a blr so the game never reads it. A caller-supplied replacement takes
+    // precedence (Randovania's remote-execution hook does not touch the hint-state vector at
+    // CGameState+0x1f8). Only suppresses in-game HUD-memo hint popups; artifact totem scans are a
+    // separate logbook path and are unaffected.
     if let Some(bytes) = &config.update_hint_state_replacement {
         dol_patcher.patch(
             symbol_addr!("UpdateHintState__13CStateManagerFf", version),
             Cow::from(bytes.clone()),
         )?;
+    } else if let Some(addr) = symbol_addr_opt!("UpdateHintState__13CStateManagerFf", version) {
+        dol_patcher.ppcasm_patch(&ppcasm!(addr, {
+            blr;
+        }))?;
     }
 
     Ok(())
@@ -2322,6 +2331,11 @@ fn patch_heap_optimization(
     if !config.qol_game_breaking {
         return Ok(());
     }
+
+    // Shared flag the logbook guard sets so the world-pak-ready guard force-builds rather than defers.
+    // Reserved here so both guards see the same address.
+    let logbook_build_flag =
+        emitter.emit_addressed(dol_patcher, |_| 0u32.to_be_bytes().to_vec())?;
 
     /* Patch heap allocator to tolerate failed allocations (return nullptr instead of panic) */
     patch_alloc_null_on_failure(dol_patcher, version)?;
@@ -3008,6 +3022,346 @@ fn patch_game_start(
     Ok(())
 }
 
+// Save-slot UUID/saveName feature.
+//
+// The hint system is dead weight in the randomizer (UpdateHintState is neutered, see patch_meta), so
+// each serialized hint entry's time field is patcher-controlled scratch inside every save slot. We
+// claim entries [0..4) for the 16-byte UUID and [4..20) for the saveName. PutTo writes them
+// (patch_save_uuid_stamp), StartGame gates loads on the UUID (patch_save_uuid_block), and the
+// file-select renders the saveName (patch_save_name).
+
+// 31 code units + null terminator fit in SAVE_NAME_WORDS (each word = 2 big-endian UTF-16 units).
+const SAVE_NAME_MAX_CHARS: usize = 31;
+const SAVE_NAME_WORDS: usize = 16;
+
+// File-select rows. Each row's name is reassembled into its OWN scratch slot because wstring_l /
+// SetText store the pointer rather than copying, so a shared buffer would alias across rows.
+const SAVE_NAME_ROWS: usize = 3;
+
+// Encode a saveName for the hint-state time fields: null-terminated, zero-padded big-endian UTF-16
+// (two units per word). Non-BMP code points become '?'.
+fn build_save_name_words(save_name: &str) -> Vec<u8> {
+    let mut units: Vec<u16> = save_name
+        .chars()
+        .take(SAVE_NAME_MAX_CHARS)
+        .map(|ch| {
+            let cp = ch as u32;
+            if cp <= 0xffff {
+                cp as u16
+            } else {
+                b'?' as u16
+            }
+        })
+        .collect();
+    units.push(0); // null terminator
+    units.resize(SAVE_NAME_WORDS * 2, 0); // zero-pad (and bound) to 32 code units
+    let mut bytes = Vec::with_capacity(SAVE_NAME_WORDS * 4);
+    for unit in units {
+        bytes.extend_from_slice(&unit.to_be_bytes());
+    }
+    bytes
+}
+
+// Must-fit cave data for the save-uuid/name feature. emit_addressed has no overflow path (panics if
+// no cave fits), so these are reserved early to guarantee a slot; the feature's trampolines emit
+// later and overflow to the heap safely. See patch_dol.
+struct SaveUuidData {
+    table_addr: u32,   // words copied into the hint-state time fields
+    stamp_count: i32,  // word count (4 for UUID-only, 20 with a saveName)
+    scratch_addr: u32, // per-row name-reassembly buffers
+}
+
+// Reserve the feature's must-fit cave data. A UUID is always written (defaulting to all-zero) so the
+// load gate always has a value to compare; the saveName follows. None only on unsupported versions.
+fn reserve_save_uuid_data(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<Option<SaveUuidData>, String> {
+    // NTSC 0-00 only; the hint/slot offsets are version-specific.
+    if version != Version::NtscU0_00 {
+        return Ok(None);
+    }
+    let uuid = config.uuid.unwrap_or([0u8; 16]);
+
+    let mut table: Vec<u8> = Vec::new();
+    for i in 0..4 {
+        let w = u32::from_be_bytes([
+            uuid[i * 4],
+            uuid[i * 4 + 1],
+            uuid[i * 4 + 2],
+            uuid[i * 4 + 3],
+        ]);
+        table.extend_from_slice(&w.to_be_bytes());
+    }
+    if let Some(name) = config.save_name.as_ref() {
+        table.extend_from_slice(&build_save_name_words(name));
+    }
+    let stamp_count = (table.len() / 4) as i32;
+
+    let table_addr = emitter.emit_addressed(dol_patcher, move |_| table.clone())?;
+    let scratch_addr = emitter.emit_addressed(dol_patcher, move |_| {
+        vec![0u8; SAVE_NAME_WORDS * 4 * SAVE_NAME_ROWS]
+    })?;
+
+    Ok(Some(SaveUuidData {
+        table_addr,
+        stamp_count,
+        scratch_addr,
+    }))
+}
+
+// Stamp the UUID and (optional) saveName into the hint-state time fields on every CGameState::PutTo,
+// so they round-trip into each save slot. CGameState (NTSC 0-00): hint-state rstl::vector at +0x1f8
+// with count at +0x1fc and data at +0x204; each SHintState is 0xc bytes (x0_state u32, x4_time f32).
+// We re-stamp every save because the load path zeroes Zero-state hint times in memory.
+fn patch_save_uuid_stamp(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    data: &Option<SaveUuidData>,
+) -> Result<(), String> {
+    let Some(data) = data else {
+        return Ok(());
+    };
+    let Some(putto) = symbol_addr_opt!("PutTo__10CGameStateCFR13COutputStream", version) else {
+        return Ok(());
+    };
+
+    let table_addr = data.table_addr;
+    let count = data.stamp_count;
+
+    let putto_orig = dol_patcher.read_u32(putto)?;
+    emitter.emit_and_patch(dol_patcher, putto, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lwz   r6, 0x1fc(r3);     // hint-state count
+            cmpwi r6, { count };
+            blt   skip;              // not enough entries
+            lwz   r5, 0x204(r3);     // hint-state data ptr
+            mr    r8, r5;
+            lis   r9, { (table_addr >> 16) as i32 };
+            ori   r9, r9, { (table_addr & 0xffff) as i32 };
+            li    r7, 0;             // x0_state = Zero
+            li    r6, { count };
+        stamp_loop:
+            stw   r7, 0x0(r8);
+            lwz   r0, 0x0(r9);
+            stw   r0, 0x4(r8);       // x4_time = table word
+            addi  r9, r9, 4;
+            addi  r8, r8, 0xc;
+            addi  r6, r6, -1;
+            cmpwi r6, 0;
+            bne   stamp_loop;
+        skip:
+            .long putto_orig;        // displaced prologue
+            b     { putto + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
+// Block loading a save whose stamped UUID does not match this instance's.
+//
+// We hook StartGame's bl BuildNewFileSlot (NTSC 0-00 @ StartGame+0x40): for an existing save, compare
+// the slot's stamped UUID and on mismatch skip the load, play a denied sfx, and branch to the
+// epilogue (the enter-game store never runs, screen stays open). New files and matching saves load
+// normally. EraseGame is untouched, so a foreign save stays deletable.
+//
+// SGameFileSlot* = *(driver + 0xec + 8*idx); driver = *(this + 0x6c); raw save buffer at +0x4. The
+// hint block is at a fixed bit offset B = 2756 (verified at runtime via OSReport). Each entry is
+// 2 state + 32 time bits, so time[i] is at bit B + 2 + 34*i -> (byteOff, shift): (344,6) (349,0)
+// (353,2) (357,4); extract as (be32(buf+byteOff) << shift) | (byte(buf+byteOff+4) >> (8-shift)).
+fn patch_save_uuid_block(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    // NTSC 0-00 only; the offsets are version-specific.
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+    // Always installed: with no configured UUID it still rejects foreign (non-zero) saves and accepts
+    // default/all-zero ones.
+    let uuid = config.uuid.unwrap_or([0u8; 16]);
+    let (Some(start_game), Some(sfx_start), Some(build_slot)) = (
+        symbol_addr_opt!("StartGame__15CSaveGameScreenFi", version),
+        symbol_addr_opt!("SfxStart__11CSfxManagerFUsssbsbi", version),
+        symbol_addr_opt!("BuildNewFileSlot__17CMemoryCardDriverFi", version),
+    ) else {
+        return Ok(());
+    };
+    let hook = start_game + 0x40; // bl BuildNewFileSlot (the load)
+    let continue_addr = start_game + 0x44; // normal flow (sets enter-game)
+    let epilogue = start_game + 0x60; // epilogue (enter-game store skipped)
+
+    let word = |i: usize| {
+        u32::from_be_bytes([
+            uuid[i * 4],
+            uuid[i * 4 + 1],
+            uuid[i * 4 + 2],
+            uuid[i * 4 + 3],
+        ])
+    };
+    let (w0, w1, w2, w3) = (word(0), word(1), word(2), word(3));
+
+    emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            cmpwi r31, 0;             // r31 = (GetGameFileStateInfo(idx) == null)
+            bne   do_load;            // new file -> allow
+            lwz   r11, 0x6c(r29);     // driver
+            slwi  r12, r30, 3;        // idx * 8
+            add   r12, r11, r12;
+            lwz   r9, 0xec(r12);      // SGameFileSlot*
+            addi  r9, r9, 0x4;        // raw save buffer
+            // time[0] @ byte 344, shift 6
+            lwz   r3, 344(r9);
+            lbz   r4, 348(r9);
+            slwi  r3, r3, 6;
+            srwi  r4, r4, 2;
+            or    r3, r3, r4;
+            lis   r4, { (w0 >> 16) as i32 };
+            ori   r4, r4, { (w0 & 0xffff) as i32 };
+            cmpw  r3, r4;
+            bne   mismatch;
+            // time[1] @ byte 349, shift 0
+            lwz   r3, 349(r9);
+            lis   r4, { (w1 >> 16) as i32 };
+            ori   r4, r4, { (w1 & 0xffff) as i32 };
+            cmpw  r3, r4;
+            bne   mismatch;
+            // time[2] @ byte 353, shift 2
+            lwz   r3, 353(r9);
+            lbz   r4, 357(r9);
+            slwi  r3, r3, 2;
+            srwi  r4, r4, 6;
+            or    r3, r3, r4;
+            lis   r4, { (w2 >> 16) as i32 };
+            ori   r4, r4, { (w2 & 0xffff) as i32 };
+            cmpw  r3, r4;
+            bne   mismatch;
+            // time[3] @ byte 357, shift 4
+            lwz   r3, 357(r9);
+            lbz   r4, 361(r9);
+            slwi  r3, r3, 4;
+            srwi  r4, r4, 4;
+            or    r3, r3, r4;
+            lis   r4, { (w3 >> 16) as i32 };
+            ori   r4, r4, { (w3 & 0xffff) as i32 };
+            cmpw  r3, r4;
+            bne   mismatch;
+        do_load:
+            // match or new file: run the original BuildNewFileSlot(driver, idx) and continue.
+            lwz   r3, 0x6c(r29);
+            mr    r4, r30;
+            bl    { build_slot };
+            b     { continue_addr };
+        mismatch:
+            // foreign save: play denied sfx, stay on menu. SfxStart returns CSfxHandle by value in r3.
+            addi  r3, r1, 0x8;        // CSfxHandle scratch (frame has 0x8..0x14 free)
+            li    r4, 1094;           // SFXfnt_back
+            li    r5, 0x7f;
+            li    r6, 0x40;
+            li    r7, 0;
+            li    r8, 0x7f;           // priority
+            li    r9, 0;
+            li    r10, -1;            // kInvalidAreaId
+            bl    { sfx_start };
+            b     { epilogue };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
+// On each file-select row, show the saveName stamped into that slot's save instead of the world name.
+//
+// SetupFrameContents resolves the world name into r25 then builds an rstl::wstring. We hook the
+// `cmplwi r25, 0` just before that build (SetupFrameContents+0x200). The row's GameFileStateInfo* is
+// in r26; the raw save buffer is r26 - 0x3ac. We reassemble the 16 name words (same bit-packing as
+// patch_save_uuid_block) into scratch and point r25 at it; if no name is stored (first unit zero),
+// r25 keeps the world name. Only affects the file-select row.
+fn patch_save_name(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    data: &Option<SaveUuidData>,
+) -> Result<(), String> {
+    // Active whenever this build participates in the feature, so a build that omits saveName still
+    // renders names other instances stamped.
+    let Some(data) = data else {
+        return Ok(());
+    };
+    let Some(setup) = symbol_addr_opt!("SetupFrameContents__19SNewFileSelectFrameFv", version)
+    else {
+        return Ok(());
+    };
+    let hook = setup + 0x200; // `cmplwi r25, 0` before the wstring build
+    let return_addr = setup + 0x204;
+
+    let scratch_addr = data.scratch_addr;
+
+    // The trampoline computes the per-row stride with `slwi r5, r30, 6`, so it must stay 64.
+    const _: () = assert!(SAVE_NAME_WORDS * 4 == 64);
+
+    emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            // r30 = row index; bound it so it can't write past the SAVE_NAME_ROWS scratch. r25-r31
+            // belong to SetupFrameContents and must be preserved (we only read r30).
+            cmplwi r30, { SAVE_NAME_ROWS as i32 };
+            bge   keep_world;
+            slwi  r5, r30, 6;            // r30 * row_stride
+            lis   r6, { (scratch_addr >> 16) as i32 };
+            ori   r6, r6, { (scratch_addr & 0xffff) as i32 };
+            add   r6, r6, r5;             // r6 = this row's scratch (advances below)
+            addi  r9, r26, { -0x3aci32 }; // raw save buffer
+            li    r8, 361;            // byte offset of name word 0
+            li    r7, 6;              // bit shift of name word 0
+            li    r5, { SAVE_NAME_WORDS as i32 };
+            li    r12, 8;
+        name_loop:
+            add   r3, r9, r8;
+            lwz   r4, 0x0(r3);
+            lbz   r10, 0x4(r3);
+            slw   r4, r4, r7;
+            subf  r11, r7, r12;       // 8 - shift
+            srw   r10, r10, r11;      // shift == 0 -> byte >> 8 == 0
+            or    r4, r4, r10;
+            stw   r4, 0x0(r6);
+            addi  r6, r6, 4;
+            addi  r8, r8, 4;          // advance 34 bits = +4 bytes, +2 shift
+            addi  r7, r7, 2;
+            cmpwi r7, 8;
+            blt   no_carry;
+            addi  r7, r7, -8;
+            addi  r8, r8, 1;
+        no_carry:
+            addi  r5, r5, -1;
+            cmpwi r5, 0;
+            bne   name_loop;
+            // recompute scratch base (r6 was advanced) for the empty check
+            slwi  r5, r30, 6;
+            lis   r6, { (scratch_addr >> 16) as i32 };
+            ori   r6, r6, { (scratch_addr & 0xffff) as i32 };
+            add   r6, r6, r5;
+            lwz   r0, 0x0(r6);
+            cmpwi r0, 0;
+            beq   keep_world;         // no stored name -> keep world name
+            mr    r25, r6;
+        keep_world:
+            cmplwi r25, 0;            // displaced original
+            b     { return_addr };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
 // OSReport debug-logging hooks, gated behind the `osDiagnostics` preference (default off). Add new
 // diagnostic hooks here. See CLAUDE.md "Runtime Diagnostics for DOL Patches (OSReport)".
 fn patch_os_diagnostics(
@@ -3091,6 +3445,8 @@ pub fn patch_dol(
     patch_meta(&mut dol_patcher, &mut emitter, version, config)?;
     patch_heap_optimization(&mut dol_patcher, &mut emitter, version, config)?;
 
+    // Reserve must-fit cave data early (emit_addressed has no overflow path); trampolines emit last.
+    let save_uuid_data = reserve_save_uuid_data(&mut dol_patcher, &mut emitter, version, config)?;
 
     patch_os_diagnostics(&mut dol_patcher, &mut emitter, version, config)?;
 
@@ -3105,6 +3461,11 @@ pub fn patch_dol(
     if config.warp_to_start {
         patch_warp_to_start(&mut dol_patcher, &mut emitter, version)?;
     }
+
+    // Emitted last for readability; these emit_and_patch stubs are overflow-safe (see make_pic).
+    patch_save_uuid_stamp(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
+    patch_save_uuid_block(&mut dol_patcher, &mut emitter, version, config)?;
+    patch_save_name(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
 
     let overflow_bytes = emitter.serialize_overflow();
     *file = structs::FstEntryFile::ExternalFile(Box::new(dol_patcher));

@@ -1530,6 +1530,7 @@ pub struct PatchConfig {
     pub game_banner: GameBanner,
     pub comment: String,
     pub main_menu_message: String,
+    pub save_name: Option<String>,
 
     #[serde(skip_serializing)] // skipped for competitive integrity reasons
     pub credits_string: Option<String>,
@@ -1635,6 +1636,7 @@ struct GameConfig {
     game_banner: Option<GameBanner>,
     comment: Option<String>,
     main_menu_message: Option<String>,
+    save_name: Option<String>,
 
     credits_string: Option<String>,
     results_string: Option<String>,
@@ -2845,6 +2847,7 @@ impl PatchConfigPrivate {
             game_banner: self.game_config.game_banner.clone().unwrap_or_default(),
             comment: self.game_config.comment.clone().unwrap_or_default(),
             main_menu_message,
+            save_name: self.game_config.save_name.clone(),
 
             credits_string,
             results_string,
