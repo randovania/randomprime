@@ -100,6 +100,7 @@
 0x8001fc5c DoPopupAdvance__19SNewFileSelectFrameFPC14CGuiTableGroup
 0x8001ff24 DeactivateExistingGamePopup__19SNewFileSelectFrameFv
 0x80020228 ActivateNewGamePopup__19SNewFileSelectFrameFv
+0x80020b90 SetupFrameContents__19SNewFileSelectFrameFv
 0x8002124c sub_800205b4
 0x800214a4 GetUserFileSelection__19SNewFileSelectFrameCFv
 0x80021600 FinishedLoading__19SNewFileSelectFrame
@@ -1091,6 +1092,7 @@
 0x801c67b8 CurrentWorldState__10CGameStateFv
 0x801c67e4 StateForWorld__10CGameStateFUi
 0x801c69c0 sub_801d4404
+0x801c6d04 PutTo__10CGameStateCFR13COutputStream
 0x801c7180 InitializeMemoryStates__10CGameStateFv
 0x801c7970 SetDesiredAreaAssetId__11CWorldStateFUi
 0x801c79cc PutTo__11CWorldStateFR16CMemoryStreamOut
@@ -1371,6 +1373,7 @@
 0x8023bf64 DoPut__13SGameFileSlotFv
 0x8023c0bc DoPut__11SSaveHeaderFv
 0x8023c184 LoadSaveHeader
+0x8023c590 BuildNewFileSlot__17CMemoryCardDriverFi
 0x8023ccb0 NoCardFound__17CMemoryCardDriverFv
 0x8023ce20 StartCardProbe__17CMemoryCardDriverFv
 0x8023cea4 WriteBackupBuf__17CMemoryCardDriverFv
@@ -1379,6 +1382,7 @@
 0x8023da8c SetUIColors__15CSaveGameScreenFv
 0x8023dad8 DoSelectionChange__15CSaveGameScreenFP14CGuiTableGroup
 0x8023db2c DoAdvance__15CSaveGameScreenFP14CGuiTableGroup
+0x8023de3c StartGame__15CSaveGameScreenFi
 0x8023deb8 SaveNESState__15CSaveGameScreenFv
 0x8023df04 EraseGame__15CSaveGameScreenFi
 0x8023df68 sub_8024ffdc
@@ -1420,6 +1424,7 @@
 0x80256248 ActivateContinueDelayHintTimer__12CHintOptionsFPCc
 0x8025634c ActivateImmediateHintTimer__12CHintOptionsFPCc
 0x802565f8 InitializeMemoryState__12CHintOptionsFv
+0x80256718 PutTo__16CGameHintManagerFR16CMemoryStreamOut
 0x802567a0 sub_80268558
 0x802569dc CanContinue__Q212CHintOptions10SHintStateFv
 0x80256e64 __ct__Q213CGameHintInfo13SHintLocationFR12CInputStream
@@ -2720,8 +2725,8 @@
 0x8036dbb4 __OSLockSramEx
 0x8036df18 __OSUnlockSram
 0x8036df3c __OSUnlockSramEx
-0x8036df60 THPSimpleGetCurrentFrame
 0x8036df60 __OSSyncSram
+0x8036df60 THPSimpleGetCurrentFrame
 0x8036e338 OSGetWirelessID
 0x8036e3bc OSSetWirelessID
 0x8036e468 SystemCallVector
@@ -3436,8 +3441,8 @@
 0x803b4298 F33
 0x803b440c F35
 0x803b4568 F37
-0x803b4664 F39
 0x803b4664 _F39
+0x803b4664 F39
 0x803b46e4 ReadProc
 0x803b4744 GBAReadAsync
 0x803b47b0 GBARead

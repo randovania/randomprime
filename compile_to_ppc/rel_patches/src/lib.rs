@@ -17,8 +17,6 @@ use primeapi::{
     GameVersion,
 };
 
-// --- Cave overflow stub loader ---
-
 // Flush dcache to RAM then invalidate icache so freshly-written heap code executes correctly.
 // Uses hardcoded DOL addresses for the versions where they are known.
 // Required for correctness on real hardware; Dolphin handles this transparently.
