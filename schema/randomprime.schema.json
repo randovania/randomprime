@@ -948,9 +948,9 @@
                     "default": "randomprime"
                 },
                 "saveName": {
-                    "description": "Text to replace the world name shown for a save slot on the file-select screen. Save names persist on the memory card. Longer strings are accepted but truncated to 31 characters when stamped into the save slot.",
+                    "description": "Text to replace the world name shown for a save slot on the file-select screen. Save names persist on the memory card. Longer strings are accepted but truncated to 17 characters when stamped into the save slot.",
                     "type": "string",
-                    "maxLength": 31
+                    "maxLength": 17
                 },
                 "creditsString": {
                     "description": "Defaults to an auto-generated spoiler of all local pickups.",

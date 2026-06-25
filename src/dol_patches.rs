@@ -3168,32 +3168,28 @@ fn patch_game_start(
 //
 // The hint system is dead weight in the randomizer (UpdateHintState is neutered, see patch_meta), so
 // each serialized hint entry's time field is patcher-controlled scratch inside every save slot. We
-// claim entries [0..4) for the 16-byte UUID and [4..20) for the saveName. PutTo writes them
+// claim entries [0..4) for the 16-byte UUID and [4..13) for the saveName. PutTo writes them
 // (patch_save_uuid_stamp), StartGame gates loads on the UUID (patch_save_uuid_block), and the
 // file-select renders the saveName (patch_save_name).
 
-// 31 code units + null terminator fit in SAVE_NAME_WORDS (each word = 2 big-endian UTF-16 units).
-const SAVE_NAME_MAX_CHARS: usize = 31;
-const SAVE_NAME_WORDS: usize = 16;
+// ASCII-only; 17 chars + null = 18 UTF-16 units = 9 words (each word = 2 big-endian UTF-16 units = 4 bytes).
+const SAVE_NAME_WORDS: usize = 9;
+// Scratch stride per row must be a power of 2 and >= SAVE_NAME_WORDS*4 for the slwi shift-6 row offset.
+// 9*4=36 rounds up to 64 (2^6); the 28 bytes of padding per row are zeroed and never accessed.
+const SAVE_NAME_SCRATCH_STRIDE: usize = 64;
 
 // File-select rows. Each row's name is reassembled into its OWN scratch slot because wstring_l /
 // SetText store the pointer rather than copying, so a shared buffer would alias across rows.
 const SAVE_NAME_ROWS: usize = 3;
 
 // Encode a saveName for the hint-state time fields: null-terminated, zero-padded big-endian UTF-16
-// (two units per word). Non-BMP code points become '?'.
+// (two units per word). Non-ASCII characters become '?'.
 fn build_save_name_words(save_name: &str) -> Vec<u8> {
+    const MAX_CHARS: usize = 17; // 17 ASCII chars + null = 18 units = SAVE_NAME_WORDS * 2
     let mut units: Vec<u16> = save_name
         .chars()
-        .take(SAVE_NAME_MAX_CHARS)
-        .map(|ch| {
-            let cp = ch as u32;
-            if cp <= 0xffff {
-                cp as u16
-            } else {
-                b'?' as u16
-            }
-        })
+        .take(MAX_CHARS)
+        .map(|ch| if ch.is_ascii() { ch as u16 } else { b'?' as u16 })
         .collect();
     units.push(0); // null terminator
     units.resize(SAVE_NAME_WORDS * 2, 0); // zero-pad (and bound) to 32 code units
@@ -3341,7 +3337,7 @@ fn reserve_save_uuid_data(
 
     let table_addr = emitter.emit_addressed(dol_patcher, move |_| table.clone())?;
     let scratch_addr = emitter.emit_addressed(dol_patcher, move |_| {
-        vec![0u8; SAVE_NAME_WORDS * 4 * SAVE_NAME_ROWS]
+        vec![0u8; SAVE_NAME_SCRATCH_STRIDE * SAVE_NAME_ROWS]
     })?;
 
     Ok(Some(SaveUuidData {
@@ -3559,8 +3555,8 @@ fn patch_save_name(
     // Byte/shift of the first saveName word: entries [0..4) are the UUID, so the name starts at entry 4.
     let (name_byte0, name_shift0) = hint_time_byte_shift(bit_off, 4);
 
-    // The trampoline computes the per-row stride with `slwi r5, r30, 6`, so it must stay 64.
-    const _: () = assert!(SAVE_NAME_WORDS * 4 == 64);
+    // The trampoline uses `slwi r5, r30, 6` (stride = SAVE_NAME_SCRATCH_STRIDE = 64) per row.
+    const _: () = assert!(SAVE_NAME_WORDS * 4 <= SAVE_NAME_SCRATCH_STRIDE && SAVE_NAME_SCRATCH_STRIDE == 64);
 
     emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
         // $name = SetupFrameContents' world-name pointer register, $fileinfo = its GameFileStateInfo
