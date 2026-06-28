@@ -121,6 +121,16 @@ pub fn patch_edit_objects(
             })
         };
 
+        if let Some(value) = config.active {
+            if !obj.property_data.supports_active() {
+                panic!(
+                    "object 0x{:X} does not support property \"active\"",
+                    obj.instance_id
+                );
+            }
+            obj.property_data.set_active(value);
+        }
+
         if let Some(value) = config.position {
             set_position(obj, value, false);
         }

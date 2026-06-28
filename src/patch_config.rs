@@ -521,6 +521,7 @@ pub struct StreamedAudioConfig {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EditObjConfig {
     pub layer: Option<u32>,
+    pub active: Option<bool>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
     pub scale: Option<[f32; 3]>,
@@ -2151,6 +2152,7 @@ impl PatchConfigPrivate {
                             Some(self_config) => {
                                 // merge
                                 merge_optional!(layer, self_config, other_config, room_name);
+                                merge_optional!(active, self_config, other_config, room_name);
                                 merge_optional!(position, self_config, other_config, room_name);
                                 merge_optional!(rotation, self_config, other_config, room_name);
                                 merge_optional!(scale, self_config, other_config, room_name);

@@ -4205,30 +4205,6 @@ fn add_player_freeze_assets<'r>(
     Ok(())
 }
 
-// Add fallback assets used when serving a placeholder on OOM (steps 4-7 of plan.md strategy 1).
-// 3801DE98.CMDL - a simple invisible box with one dependency: black.TXTR
-fn add_oom_fallback_assets<'r>(
-    file: &mut structs::FstEntryFile<'r>,
-    resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
-) -> Result<(), String> {
-    let pak = match file {
-        structs::FstEntryFile::Pak(pak) => pak,
-        _ => unreachable!(),
-    };
-
-    const ASSETS: &[ResourceInfo] = &[
-        resource_info!("black.TXTR"),
-        resource_info!("3801DE98.CMDL"),
-    ];
-
-    let mut cursor = pak.resources.cursor();
-    while cursor.cursor_advancer().peek().is_some() {}
-    for asset in ASSETS.iter() {
-        cursor.insert_after(iter::once(resources[&(*asset).into()].clone()));
-    }
-    Ok(())
-}
-
 fn add_map_pickup_icon_txtr(file: &mut structs::FstEntryFile) -> Result<(), String> {
     let pak = match file {
         structs::FstEntryFile::Pak(pak) => pak,
@@ -9555,38 +9531,36 @@ fn patch_optimize_memory(
         dead_dep_len
     };
 
-    /* TODO: Purge dead memory relay connections */
+    // let _dead_memory_relay_conn_len = {
+    //     let mut all_ids: HashSet<u32> = HashSet::new();
+    //     {
+    //         let scly = area.mrea().scly_section();
+    //         for layer in scly.layers.iter() {
+    //             let layer_ids: HashSet<_> = layer
+    //                 .objects
+    //                 .iter()
+    //                 .map(|obj| obj.instance_id & 0x00FFFFFF)
+    //                 .collect();
+    //             all_ids.extend(layer_ids);
+    //         }
+    //     }
+    //     let area_index = area.mrea_index as u32;
+    //     let relay_conns = area.memory_relay_conns.as_mut_vec();
+    //     let before = relay_conns.len();
+    //     relay_conns.retain(|conn| {
+    //         let sender_area = (conn.sender_id >> 16) & 0x3FF;
+    //         let target_area = (conn.target_id >> 16) & 0x3FF;
 
-    let _dead_memory_relay_conn_len = {
-        let mut all_ids: HashSet<u32> = HashSet::new();
-        {
-            let scly = area.mrea().scly_section();
-            for layer in scly.layers.iter() {
-                let layer_ids: HashSet<_> = layer
-                    .objects
-                    .iter()
-                    .map(|obj| obj.instance_id & 0x00FFFFFF)
-                    .collect();
-                all_ids.extend(layer_ids);
-            }
-        }
-        let area_index = area.mrea_index as u32;
-        let relay_conns = area.memory_relay_conns.as_mut_vec();
-        let before = relay_conns.len();
-        relay_conns.retain(|conn| {
-            let sender_area = (conn.sender_id >> 16) & 0x3FF;
-            let target_area = (conn.target_id >> 16) & 0x3FF;
-
-            if sender_area == area_index && !all_ids.contains(&(conn.sender_id & 0x00FFFFFF)) {
-                return false;
-            }
-            if target_area == area_index && !all_ids.contains(&(conn.target_id & 0x00FFFFFF)) {
-                return false;
-            }
-            true
-        });
-        before - relay_conns.len()
-    };
+    //         if sender_area == area_index && !all_ids.contains(&(conn.sender_id & 0x00FFFFFF)) {
+    //             return false;
+    //         }
+    //         if target_area == area_index && !all_ids.contains(&(conn.target_id & 0x00FFFFFF)) {
+    //             return false;
+    //         }
+    //         true
+    //     });
+    //     before - relay_conns.len()
+    // };
 
     // println!(
     //     "OPTIMIZE | {:<27} | dead_obj {:>3} | dead_conn {:>3} | dead_mem_relay_conn {:>3} | dead_dep {:>3}",
@@ -15184,12 +15158,6 @@ fn build_and_run_patches<'r>(
     // Add the freeze effect assets required by CPlayer::Freeze()
     patcher.add_file_patch(b"GGuiSys.pak", |file| {
         add_player_freeze_assets(file, game_resources)
-    });
-
-    // Add fallback assets for OOM recovery (3801DE98.CMDL + its dep black.TXTR).
-    // SamGunFx.pak is always loaded via AddPaksAndFactories at game startup.
-    patcher.add_file_patch(b"SamGunFx.pak", |file| {
-        add_oom_fallback_assets(file, game_resources)
     });
 
     // Add the pickup icon

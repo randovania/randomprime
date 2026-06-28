@@ -3189,7 +3189,13 @@ fn build_save_name_words(save_name: &str) -> Vec<u8> {
     let mut units: Vec<u16> = save_name
         .chars()
         .take(MAX_CHARS)
-        .map(|ch| if ch.is_ascii() { ch as u16 } else { b'?' as u16 })
+        .map(|ch| {
+            if ch.is_ascii() {
+                ch as u16
+            } else {
+                b'?' as u16
+            }
+        })
         .collect();
     units.push(0); // null terminator
     units.resize(SAVE_NAME_WORDS * 2, 0); // zero-pad (and bound) to 32 code units
@@ -3208,15 +3214,15 @@ fn build_save_name_words(save_name: &str) -> Vec<u8> {
 // runtime via OSReport (see CLAUDE.md), hence Option: None means the deny/name patches that read the
 // save buffer are withheld until the value is measured, while the (memory-only) stamp still installs.
 struct SaveUuidLayout {
-    hint_count_off: i32,       // CGameState -> hint vector count   (stamp)
-    hint_data_off: i32,        // CGameState -> hint vector data    (stamp)
-    start_hook_off: u32,       // StartGame: the `bl BuildNewFileSlot` load (block hook)
-    start_epilogue_off: u32,   // StartGame: epilogue (the enter-game store is skipped on deny)
-    driver_off: i32,           // CSaveGameScreen -> CMemoryCardDriver (block)
-    slot_table_off: i32,       // driver -> SGameFileSlot table         (block)
-    slot_buf_off: i32,         // SGameFileSlot -> raw save buffer       (block)
-    name_buf_off: i32, // SetupFrameContents: GameFileStateInfo reg -> raw save buffer (name)
-    setup_hook_off: u32, // SetupFrameContents hook (`cmplwi <name>, 0`)
+    hint_count_off: i32,     // CGameState -> hint vector count   (stamp)
+    hint_data_off: i32,      // CGameState -> hint vector data    (stamp)
+    start_hook_off: u32,     // StartGame: the `bl BuildNewFileSlot` load (block hook)
+    start_epilogue_off: u32, // StartGame: epilogue (the enter-game store is skipped on deny)
+    driver_off: i32,         // CSaveGameScreen -> CMemoryCardDriver (block)
+    slot_table_off: i32,     // driver -> SGameFileSlot table         (block)
+    slot_buf_off: i32,       // SGameFileSlot -> raw save buffer       (block)
+    name_buf_off: i32,       // SetupFrameContents: GameFileStateInfo reg -> raw save buffer (name)
+    setup_hook_off: u32,     // SetupFrameContents hook (`cmplwi <name>, 0`)
     // SetupFrameContents register allocation: false = NTSC/PAL (name ptr r25, GameFileStateInfo r26);
     // true = NTSC-J, which saves one fewer non-volatile so both shift up by one (r26 / r27). The row
     // index is r30 in every build. See patch_save_name.
@@ -3556,7 +3562,8 @@ fn patch_save_name(
     let (name_byte0, name_shift0) = hint_time_byte_shift(bit_off, 4);
 
     // The trampoline uses `slwi r5, r30, 6` (stride = SAVE_NAME_SCRATCH_STRIDE = 64) per row.
-    const _: () = assert!(SAVE_NAME_WORDS * 4 <= SAVE_NAME_SCRATCH_STRIDE && SAVE_NAME_SCRATCH_STRIDE == 64);
+    const _: () =
+        assert!(SAVE_NAME_WORDS * 4 <= SAVE_NAME_SCRATCH_STRIDE && SAVE_NAME_SCRATCH_STRIDE == 64);
 
     emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
         // $name = SetupFrameContents' world-name pointer register, $fileinfo = its GameFileStateInfo

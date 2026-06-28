@@ -3614,6 +3614,10 @@
                                     "minimum": 0,
                                     "maximum": 63
                                 },
+                                "active": {
+                                    "description": "Default active state of the object.",
+                                    "type": "boolean"
+                                },
                                 "position": {
                                     "description": "Position of the object.",
                                     "$ref": "#/$defs/vector3"
