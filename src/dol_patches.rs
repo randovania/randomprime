@@ -2251,7 +2251,7 @@ fn patch_meta(
 ) -> Result<(), String> {
     patch_rel_loader(dol_patcher, emitter, version)?;
 
-    if let Some(uuid) = config.uuid {
+    {
         let build_info_address: u32 = match version {
             Version::NtscU0_00 => 0x803cc588,
             Version::NtscU0_01 => 0x803cc768,
@@ -2262,7 +2262,7 @@ fn patch_meta(
             _ => panic!("This version of the game does not support etching a UUID into the dol"),
         };
         let build_info_address = build_info_address + "!#$Met".len() as u32;
-        dol_patcher.patch(build_info_address, uuid.to_vec().into())?;
+        dol_patcher.patch(build_info_address, config.uuid.to_vec().into())?;
     }
 
     if version == Version::Pal || version == Version::NtscJ {
@@ -3161,37 +3161,104 @@ fn patch_game_start(
     Ok(())
 }
 
-// Save-slot UUID/saveName feature.
+// ============================================================================
+//  RANDOMPRIME SAVE-SLOT PERSISTENT DATA - SCHEMA (single source of truth)
+// ============================================================================
+// randomprime stores its own data in the TAIL of every CGameState save buffer,
+// past the game's own serialized content. The constants below are authoritative:
+// the Rust block builder (build_save_schema_block) and the PPC trampolines
+// (stamp / block / name) both derive every offset from them, so the two sides
+// cannot drift, and the compile-time asserts fail the build if the block stops
+// fitting. See doc/dol-patching.md.
 //
-// UUID (16 bytes) and saveName (36 bytes) are stored at fixed offsets in the save buffer tail
-// (bytes 888..939 of the 940-byte save buffer; all supported versions share this size). PutTo
-// entry writes them directly to CMemoryStreamOut::mOutPtr (patch_save_uuid_stamp), StartGame
-// gates loads on the UUID (patch_save_uuid_block), and the file-select renders the saveName
-// (patch_save_name). Fixed offsets make the feature independent of CPlayerState's serialized
-// width (itemMaxCapacity), so instances with different configs can still read each other's names.
+//   off  size  field      notes
+//   0    4     magic      SAVE_SCHEMA_MAGIC ("RPSV"); absent => not our save
+//   4    4     version    SAVE_SCHEMA_VERSION (current = 1)
+//   8    16    uuid       instance id; all-zero default
+//   24   36    save_name  big-endian UTF-16, null-terminated (<= 17 chars)
+//   60   36    reserved   zeroed; future fields append here (bump version)
+//
+// The block occupies SAVE_SCHEMA_OFFSET..SAVE_BUFFER_SIZE_MIN of the buffer.
+// Reads are instance-agnostic (fixed offsets, independent of CPlayerState's
+// serialized width / itemMaxCapacity), so instances with different configs read
+// each other's data. PutTo entry stamps the block (patch_save_uuid_stamp),
+// StartGame gates loads on magic+uuid (patch_save_uuid_block), and the
+// file-select renders save_name (patch_save_name).
 
-// ASCII-only; 17 chars + null = 18 UTF-16 units = 9 words (each word = 2 big-endian UTF-16 units = 4 bytes).
+// Smallest save buffer across supported versions (NTSC-U / K = 0x3ac = 940). PAL
+// (0xa7f = 2687) and NTSC-J (0x888 = 2184) over-allocate, but the pre-world-state
+// serialized layout is byte-identical across versions and world-state content is
+// language-independent, so max content is ~793 bytes everywhere and a uniform
+// tail offset is safe for all. The runtime guard (patch_save_schema_guard) is the
+// empirical backstop.
+const SAVE_BUFFER_SIZE_MIN: i32 = 0x3ac; // 940
+
+const SAVE_SCHEMA_SIZE: i32 = 96; // total reserved tail block
+const SAVE_SCHEMA_OFFSET: i32 = SAVE_BUFFER_SIZE_MIN - SAVE_SCHEMA_SIZE; // 844
+
+const SAVE_SCHEMA_MAGIC: u32 = 0x5250_5356; // "RPSV"
+const SAVE_SCHEMA_VERSION: u32 = 1;
+
+// Field offsets within the block.
+const SAVE_F_MAGIC: usize = 0;
+const SAVE_F_VERSION: usize = 4;
+const SAVE_F_UUID: usize = 8;
+const SAVE_F_NAME: usize = 24;
+
+// Absolute buffer offsets (block start + field), used by the trampolines.
+const SAVE_OFF_MAGIC: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_MAGIC as i32;
+const SAVE_OFF_UUID: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_UUID as i32;
+const SAVE_OFF_NAME: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_NAME as i32;
+
+const UUID_BYTES: usize = 16;
+
+// ASCII-only; 17 chars + null = 18 UTF-16 units = 9 words (2 big-endian units per word).
 const SAVE_NAME_WORDS: usize = 9;
-// Scratch stride per row must be a power of 2 and >= SAVE_NAME_WORDS*4 for the slwi shift-6 row offset.
-// 9*4=36 rounds up to 64 (2^6); the 28 bytes of padding per row are zeroed and never accessed.
+const SAVE_NAME_MAX_CHARS: usize = 17;
+
+// Scratch stride per file-select row; must be a power of 2 and >= SAVE_NAME_WORDS*4 for the
+// slwi shift-6 row offset. 9*4=36 rounds up to 64 (2^6); the padding per row is never accessed.
 const SAVE_NAME_SCRATCH_STRIDE: usize = 64;
-
-// Fixed byte offsets into the 940-byte save buffer tail, beyond max serialized content (~793 bytes).
-const SAVE_UUID_FIXED_BYTE_OFF: i32 = 888; // UUID:  bytes 888..903 (16 bytes)
-const SAVE_NAME_FIXED_BYTE_OFF: i32 = 904; // name:  bytes 904..939 (36 bytes)
-const MOUTPTR_OFF: i32 = 0x7c; // sizeof(COutputStream) = offset of CMemoryStreamOut::mOutPtr
-
 // File-select rows. Each row's name is reassembled into its OWN scratch slot because wstring_l /
 // SetText store the pointer rather than copying, so a shared buffer would alias across rows.
 const SAVE_NAME_ROWS: usize = 3;
 
-// Encode a saveName for the hint-state time fields: null-terminated, zero-padded big-endian UTF-16
-// (two units per word). Non-ASCII characters become '?'.
+const MOUTPTR_OFF: i32 = 0x7c; // sizeof(COutputStream) = offset of CMemoryStreamOut::mOutPtr
+const MNUMWRITES_OFF: i32 = 0x10; // COutputStream::mNumWrites (bytes flushed); used by the guard
+
+// ---- Front "dead" region (scaffolded for future use; NOT used yet) ----
+// CGameState's first serialized member is a 128-byte array (count hard-fixed to 128 at
+// CGameState+0x0, inline data at +0x4) written 8 bits/byte = buffer bytes 0..128. It is
+// ctor-zeroed and never read for gameplay, so it is reliably always-zero reserved space.
+// A future patch may store data here without any engine change; documented so the address is
+// known. See doc/dol-patching.md.
+#[allow(dead_code)]
+const SAVE_FRONT_OFFSET: i32 = 0;
+#[allow(dead_code)]
+const SAVE_FRONT_SIZE: i32 = 128;
+
+const _: () = assert!(
+    SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE <= SAVE_BUFFER_SIZE_MIN,
+    "save schema block overflows the smallest save buffer"
+);
+const _: () = assert!(
+    SAVE_F_NAME + SAVE_NAME_WORDS * 4 <= SAVE_SCHEMA_SIZE as usize,
+    "save_name field overflows the schema block"
+);
+const _: () = assert!(
+    SAVE_F_UUID + UUID_BYTES <= SAVE_F_NAME,
+    "uuid field overlaps save_name"
+);
+const _: () = assert!((SAVE_NAME_MAX_CHARS + 1) <= SAVE_NAME_WORDS * 2);
+const _: () =
+    assert!(SAVE_NAME_WORDS * 4 <= SAVE_NAME_SCRATCH_STRIDE && SAVE_NAME_SCRATCH_STRIDE == 64);
+
+// Encode a saveName: null-terminated, zero-padded big-endian UTF-16 (two units per word).
+// Non-ASCII characters become '?'.
 fn build_save_name_words(save_name: &str) -> Vec<u8> {
-    const MAX_CHARS: usize = 17; // 17 ASCII chars + null = 18 units = SAVE_NAME_WORDS * 2
     let mut units: Vec<u16> = save_name
         .chars()
-        .take(MAX_CHARS)
+        .take(SAVE_NAME_MAX_CHARS)
         .map(|ch| {
             if ch.is_ascii() {
                 ch as u16
@@ -3278,13 +3345,28 @@ fn save_uuid_layout(version: Version) -> Option<SaveUuidLayout> {
 // no cave fits), so these are reserved early to guarantee a slot; the feature's trampolines emit
 // later and overflow to the heap safely. See patch_dol.
 struct SaveUuidData {
-    table_addr: u32,   // 13 words: 4 UUID + 9 name (zeros for absent fields)
-    has_uuid: bool,    // whether to install the load-gate (Patch B)
-    scratch_addr: u32, // per-row name-reassembly buffers (Patch C)
+    block_addr: u32, // the SAVE_SCHEMA_SIZE-byte schema block (magic+version+uuid+name+reserved)
+    scratch_addr: u32, // per-row name-reassembly buffers (patch_save_name)
 }
 
-// Reserve the feature's must-fit cave data. Table is always 13 words (UUID then name, zeros for
-// absent fields). None only when the version is unsupported or both features are disabled.
+// Build the SAVE_SCHEMA_SIZE-byte schema block exactly as it lives in the save buffer tail. This is
+// the Rust side of the single source of truth; the trampolines read the same offsets.
+fn build_save_schema_block(config: &PatchConfig) -> Vec<u8> {
+    let mut block = vec![0u8; SAVE_SCHEMA_SIZE as usize];
+    block[SAVE_F_MAGIC..][..4].copy_from_slice(&SAVE_SCHEMA_MAGIC.to_be_bytes());
+    block[SAVE_F_VERSION..][..4].copy_from_slice(&SAVE_SCHEMA_VERSION.to_be_bytes());
+    block[SAVE_F_UUID..][..UUID_BYTES].copy_from_slice(&config.uuid);
+    let name_bytes = config
+        .save_name
+        .as_deref()
+        .map(build_save_name_words)
+        .unwrap_or_else(|| vec![0u8; SAVE_NAME_WORDS * 4]);
+    block[SAVE_F_NAME..][..name_bytes.len()].copy_from_slice(&name_bytes);
+    block
+}
+
+// Reserve the feature's must-fit cave data. UUID is always present (defaulting to zeros), so the
+// feature installs for every supported version; None only when the version is unsupported.
 fn reserve_save_uuid_data(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3294,45 +3376,22 @@ fn reserve_save_uuid_data(
     if save_uuid_layout(version).is_none() {
         return Ok(None);
     }
-    if config.uuid.is_none() && config.save_name.is_none() {
-        return Ok(None);
-    }
 
-    let uuid = config.uuid.unwrap_or([0u8; 16]);
-    let has_uuid = config.uuid.is_some();
-
-    let mut table: Vec<u8> = Vec::new();
-    for i in 0..4 {
-        let w = u32::from_be_bytes([
-            uuid[i * 4],
-            uuid[i * 4 + 1],
-            uuid[i * 4 + 2],
-            uuid[i * 4 + 3],
-        ]);
-        table.extend_from_slice(&w.to_be_bytes());
-    }
-    let name_bytes = config
-        .save_name
-        .as_ref()
-        .map(|n| build_save_name_words(n))
-        .unwrap_or_else(|| vec![0u8; SAVE_NAME_WORDS * 4]);
-    table.extend_from_slice(&name_bytes);
-
-    let table_addr = emitter.emit_addressed(dol_patcher, move |_| table.clone())?;
+    let block = build_save_schema_block(config);
+    let block_addr = emitter.emit_addressed(dol_patcher, move |_| block.clone())?;
     let scratch_addr = emitter.emit_addressed(dol_patcher, move |_| {
         vec![0u8; SAVE_NAME_SCRATCH_STRIDE * SAVE_NAME_ROWS]
     })?;
 
     Ok(Some(SaveUuidData {
-        table_addr,
-        has_uuid,
+        block_addr,
         scratch_addr,
     }))
 }
 
-// Stamp the UUID (16 bytes) and saveName (36 bytes) into the save buffer tail on every
-// CGameState::PutTo. Hooks PutTo entry to write 13 words (4 UUID + 9 name, zeros for absent
-// fields) from the cave table directly to CMemoryStreamOut::mOutPtr + 888.
+// Stamp the schema block into the save buffer tail on every CGameState::PutTo. Hooks PutTo entry to
+// copy the whole SAVE_SCHEMA_SIZE-byte block from the cave directly to
+// CMemoryStreamOut::mOutPtr + SAVE_SCHEMA_OFFSET, before the engine serializes its own content.
 fn patch_save_uuid_stamp(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3349,17 +3408,17 @@ fn patch_save_uuid_stamp(
         return Ok(());
     };
 
-    let table_addr = data.table_addr;
+    let block_addr = data.block_addr;
 
     let putto_orig = dol_patcher.read_u32(putto)?;
     emitter.emit_and_patch(dol_patcher, putto, false, |cave_addr| {
         // r3 = CGameState* (this), r4 = CMemoryStreamOut*; use r6/r9/r12 as scratch.
         ppcasm!(cave_addr, {
             lwz   r12, { MOUTPTR_OFF }(r4); // mOutPtr = raw save buffer base
-            addi  r12, r12, { SAVE_UUID_FIXED_BYTE_OFF }; // write base (bytes 888..939)
-            lis   r9, { (table_addr >> 16) as i32 };
-            ori   r9, r9, { (table_addr & 0xffff) as i32 };
-            li    r6, { (4 + SAVE_NAME_WORDS) as i32 }; // 13 words total
+            addi  r12, r12, { SAVE_SCHEMA_OFFSET }; // schema block base
+            lis   r9, { (block_addr >> 16) as i32 };
+            ori   r9, r9, { (block_addr & 0xffff) as i32 };
+            li    r6, { SAVE_SCHEMA_SIZE / 4 }; // word count
         stamp_loop:
             lwz   r0, 0x0(r9);
             stw   r0, 0x0(r12);
@@ -3379,10 +3438,11 @@ fn patch_save_uuid_stamp(
 
 // Block loading a save whose stamped UUID does not match this instance's.
 //
-// We hook StartGame's bl BuildNewFileSlot (the load): for an existing save, compare the 4 UUID
-// words at save_buf+888 against the cave table and on mismatch skip the load, play a denied sfx,
-// and branch to the epilogue (the enter-game store never runs, screen stays open). New files and
-// matching saves load normally. EraseGame is untouched, so a foreign save stays deletable.
+// We hook StartGame's bl BuildNewFileSlot (the load): for an existing save, first check our magic
+// at save_buf+SAVE_OFF_MAGIC (absent => not our save => allow), then compare the 4 UUID words and
+// on mismatch skip the load, play a denied sfx, and branch to the epilogue (the enter-game store
+// never runs, screen stays open). New files, non-randomprime saves, and matching saves load
+// normally. EraseGame is untouched, so a foreign save stays deletable.
 fn patch_save_uuid_block(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3392,9 +3452,6 @@ fn patch_save_uuid_block(
     let Some(data) = data else {
         return Ok(());
     };
-    if !data.has_uuid {
-        return Ok(());
-    }
     let Some(layout) = save_uuid_layout(version) else {
         return Ok(());
     };
@@ -3409,7 +3466,7 @@ fn patch_save_uuid_block(
     let continue_addr = hook + 4; // normal flow (sets enter-game)
     let epilogue = start_game + layout.start_epilogue_off; // epilogue (enter-game store skipped)
 
-    let table_addr = data.table_addr; // first four words are the UUID
+    let block_addr = data.block_addr; // magic at +SAVE_F_MAGIC, uuid at +SAVE_F_UUID
     let driver_off = layout.driver_off;
     let slot_table_off = layout.slot_table_off;
     let slot_buf_off = layout.slot_buf_off;
@@ -3423,21 +3480,26 @@ fn patch_save_uuid_block(
             add   r12, r11, r12;
             lwz   r9, { slot_table_off }(r12); // SGameFileSlot*
             addi  r9, r9, { slot_buf_off }; // raw save buffer base
-            lis   r10, { (table_addr >> 16) as i32 };
-            ori   r10, r10, { (table_addr & 0xffff) as i32 };
-            // compare 4 UUID words at save_buf+888 with table[0..16]
-            lwz   r5, { SAVE_UUID_FIXED_BYTE_OFF }(r9);
-            lwz   r6, { SAVE_UUID_FIXED_BYTE_OFF + 4 }(r9);
-            lwz   r7, { SAVE_UUID_FIXED_BYTE_OFF + 8 }(r9);
-            lwz   r8, { SAVE_UUID_FIXED_BYTE_OFF + 12 }(r9);
-            lwz   r11, 0x0(r10);
-            lwz   r12, 0x4(r10);
+            lis   r10, { (block_addr >> 16) as i32 };
+            ori   r10, r10, { (block_addr & 0xffff) as i32 };
+            // magic absent => not our save => allow load
+            lwz   r5, { SAVE_OFF_MAGIC }(r9);
+            lwz   r11, { SAVE_F_MAGIC as i32 }(r10);
+            cmplw r5, r11;
+            bne   do_load;
+            // compare 4 UUID words at save_buf+SAVE_OFF_UUID with block uuid
+            lwz   r5, { SAVE_OFF_UUID }(r9);
+            lwz   r6, { SAVE_OFF_UUID + 4 }(r9);
+            lwz   r7, { SAVE_OFF_UUID + 8 }(r9);
+            lwz   r8, { SAVE_OFF_UUID + 12 }(r9);
+            lwz   r11, { SAVE_F_UUID as i32 }(r10);
+            lwz   r12, { SAVE_F_UUID as i32 + 4 }(r10);
             cmplw r5, r11;
             bne   mismatch;
             cmplw r6, r12;
             bne   mismatch;
-            lwz   r11, 0x8(r10);
-            lwz   r12, 0xc(r10);
+            lwz   r11, { SAVE_F_UUID as i32 + 8 }(r10);
+            lwz   r12, { SAVE_F_UUID as i32 + 12 }(r10);
             cmplw r7, r11;
             bne   mismatch;
             cmplw r8, r12;
@@ -3500,13 +3562,10 @@ fn patch_save_name(
     let return_addr = hook + 4;
 
     let scratch_addr = data.scratch_addr;
-    // Combined offset from fileInfo reg to the first name word in the save buffer.
-    let name_off = layout.name_buf_off + SAVE_NAME_FIXED_BYTE_OFF;
+    // Combined offsets from the fileInfo reg to the schema fields in the save buffer.
+    let magic_off = layout.name_buf_off + SAVE_OFF_MAGIC;
+    let name_off = layout.name_buf_off + SAVE_OFF_NAME;
     let regs_shifted = layout.setup_regs_shifted;
-
-    // The trampoline uses `slwi r5, r30, 6` (stride = SAVE_NAME_SCRATCH_STRIDE = 64) per row.
-    const _: () =
-        assert!(SAVE_NAME_WORDS * 4 <= SAVE_NAME_SCRATCH_STRIDE && SAVE_NAME_SCRATCH_STRIDE == 64);
 
     emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
         // $name = SetupFrameContents' world-name pointer register, $fileinfo = its GameFileStateInfo
@@ -3517,11 +3576,18 @@ fn patch_save_name(
                     // r30 = row index; bound it so it can't write past the SAVE_NAME_ROWS scratch.
                     cmplwi r30, { SAVE_NAME_ROWS as i32 };
                     bge   keep_world;
+                    // magic absent => not our save => keep the world name
+                    addi  r9, $fileinfo, { magic_off };  // r9 = save_buf + SAVE_OFF_MAGIC
+                    lwz   r0, 0x0(r9);
+                    lis   r5, { (SAVE_SCHEMA_MAGIC >> 16) as i32 };
+                    ori   r5, r5, { (SAVE_SCHEMA_MAGIC & 0xffff) as i32 };
+                    cmplw r0, r5;
+                    bne   keep_world;
                     slwi  r5, r30, 6;             // r30 * row_stride (= 64)
                     lis   r6, { (scratch_addr >> 16) as i32 };
                     ori   r6, r6, { (scratch_addr & 0xffff) as i32 };
                     add   r6, r6, r5;             // r6 = this row's scratch base (preserved for name ptr)
-                    addi  r9, $fileinfo, { name_off }; // r9 = save_buf + SAVE_NAME_FIXED_BYTE_OFF
+                    addi  r9, $fileinfo, { name_off }; // r9 = save_buf + SAVE_OFF_NAME
                     li    r5, { SAVE_NAME_WORDS as i32 };
                     mr    r12, r6;                // r12 = advancing scratch write ptr
                 name_loop:
@@ -3553,8 +3619,8 @@ fn patch_save_name(
     Ok(())
 }
 
-// OSReport debug-logging hooks, gated behind the `osDiagnostics` preference (default off). Add new
-// diagnostic hooks here. See CLAUDE.md "Runtime Diagnostics for DOL Patches (OSReport)".
+// OSReport debug-logging hooks, gated behind the `osDiagnostics` preference. Add new
+// diagnostic hooks here.
 fn patch_os_diagnostics(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3565,6 +3631,55 @@ fn patch_os_diagnostics(
         return Ok(());
     }
     patch_diag_resource_miss(dol_patcher, emitter, version)?;
+    patch_save_schema_guard(dol_patcher, emitter, version)?;
+    Ok(())
+}
+
+// Runtime half of "panic when the schema overflows": at CGameState::PutTo exit, compare the bytes
+// the engine serialized (CMemoryStreamOut::mNumWrites) against SAVE_SCHEMA_OFFSET. If serialization
+// ever reached our tail block, OSReport a loud line so a playtest surfaces the collision (the stamp
+// hooks PutTo *entry* and can't see the final size, hence the exit hook).
+fn patch_save_schema_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+    let (Some(putto), Some(osreport)) = (
+        symbol_addr_opt!("PutTo__10CGameStateCFR13COutputStream", version),
+        symbol_addr_opt!("OSReport", version),
+    ) else {
+        return Ok(());
+    };
+    // PutTo epilogue: `lmw r24, 0x30(r1)` restoring the non-volatiles. r31 = CMemoryStreamOut* is
+    // still live here (restored to the same value by the displaced lmw). PutTo + 0x1b8 (NTSC 0-00).
+    let epilogue = putto + 0x1b8;
+    let epilogue_orig = dol_patcher.read_u32(epilogue)?;
+
+    let mut fmt_bytes = b"randomprime: SAVE SCHEMA OVERFLOW wrote=%08x limit=%08x\n\0".to_vec();
+    while fmt_bytes.len() % 4 != 0 {
+        fmt_bytes.push(0);
+    }
+    let fmt_addr = emitter.emit_addressed(dol_patcher, move |_| fmt_bytes.clone())?;
+
+    emitter.emit_and_patch(dol_patcher, epilogue, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lwz   r4, { MNUMWRITES_OFF }(r31); // bytes serialized
+            cmpwi r4, { SAVE_SCHEMA_OFFSET };
+            blt   ok;                          // no collision
+            lis   r3, { (fmt_addr >> 16) as i32 };
+            ori   r3, r3, { (fmt_addr & 0xffff) as i32 };
+            li    r5, { SAVE_SCHEMA_OFFSET };
+            bl    { osreport };                // clobbers r0,r3-r12,LR,CTR; r31 + stack-saved LR survive
+        ok:
+            .long epilogue_orig;               // displaced `lmw r24, 0x30(r1)`
+            b     { epilogue + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
     Ok(())
 }
 

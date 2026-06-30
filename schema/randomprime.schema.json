@@ -44,7 +44,7 @@
             "default": null
         },
         "uuid": {
-            "description": "Specify a UUID to \"etch\" into the ISO. It gets placed somewhere around the build version #",
+            "description": "16-byte instance identifier etched into the ISO (near the build version #) and stamped into every save slot. Optional; defaults to all zeros. Save slots created under one UUID cannot be loaded by an instance running a different UUID.",
             "type": "array",
             "minItems": 16,
             "maxItems": 16,
