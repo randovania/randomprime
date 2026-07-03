@@ -28,13 +28,9 @@ The six GameCube builds (NTSC-U 0-00/0-01/0-02, Korean, PAL, NTSC-J) have differ
 
 ## Save-slot persistence
 
-Randomprime stores its own data in each memory-card save slot. The game serializes `CGameState` into a fixed-size per-slot buffer. Critically, this buffer is at least 940 bytes but only uses a maximum of 793 bytes across all game versions. Randomprime appends it's data in the **tail** of that buffer, past the game's save data.
+Randomprime stores its own data in each memory-card save slot. The game serializes `CGameState` into a fixed-size per-slot buffer (at least 940 bytes, depending on version). Randomprime stores its data in the **front** of the buffer: `CGameState`'s first serialized member is a hard-coded 128-byte array, written as the first 128 bytes of every save regardless of content. `PutTo` writes it and the load ctor reads it back; nothing else touches it, so it's safe to overwrite with our schema. The stamp hook writes into the live `CGameState` object at `PutTo` entry, and the object's own serialization loop writes those bytes to buffer offset 0 moments later.
 
-The block layout is defined in `dol_patches.rs` (the `SAVE_SCHEMA_*` constants). Because the offsets are fixed from the end of the buffer, instances with different game configuration can still read each other's randomprime save data. All randomprime custom save blocks start with "RPSV" and a layout version number. Custom patches should early-exit if a save slot is missing this magic header or the version is unexpected.
-
-### Other unused bytes
-
-`CGameState`'s first serialized save slot member is a hard-coded 128-byte array. It is constructor-zeroed and, to my best knowledge, never read for gameplay.
+The block layout is defined in `dol_patches.rs` (the `SAVE_SCHEMA_*` constants). Because the offsets are fixed, instances with different game configuration can still read each other's randomprime save data. All randomprime custom save blocks start with "RPSV" and a layout version number. Custom patches should early-exit if a save slot is missing this magic header or the version is unexpected.
 
 ## References
 

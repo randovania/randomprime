@@ -3164,37 +3164,44 @@ fn patch_game_start(
 // ============================================================================
 //  RANDOMPRIME SAVE-SLOT PERSISTENT DATA - SCHEMA (single source of truth)
 // ============================================================================
-// randomprime stores its own data in the TAIL of every CGameState save buffer,
-// past the game's own serialized content. The constants below are authoritative:
-// the Rust block builder (build_save_schema_block) and the PPC trampolines
-// (stamp / block / name) both derive every offset from them, so the two sides
-// cannot drift, and the compile-time asserts fail the build if the block stops
-// fitting. See doc/dol-patching.md.
+// randomprime stores its own data in CGameState's dead FRONT region. Its first serialized member
+// is a hard-coded 128-byte array (count at CGameState+0x0, inline data at +0x4), written as the
+// first 128 bytes of every save regardless of content. PutTo writes it and the load ctor reads it
+// back; nothing else touches it (verified against the NTSC 0-00 disassembly and metaforce), so we
+// overwrite it with our schema. (A tail placement was tried first but rich saves can serialize
+// almost to the buffer end and clobber it - see patch_save_overflow_guard.)
+//
+// The constants below are the single source of truth: build_save_schema_block and the PPC
+// trampolines (stamp / block / name) all derive their offsets from them, and the compile-time
+// asserts fail the build if the block stops fitting. See doc/dol-patching.md.
 //
 //   off  size  field      notes
 //   0    4     magic      SAVE_SCHEMA_MAGIC ("RPSV"); absent => not our save
 //   4    4     version    SAVE_SCHEMA_VERSION (current = 1)
 //   8    16    uuid       instance id; all-zero default
 //   24   36    save_name  big-endian UTF-16, null-terminated (<= 17 chars)
-//   60   36    reserved   zeroed; future fields append here (bump version)
+//   60   68    (unused)   free front-region tail; future fields grow the block here (bump version)
 //
-// The block occupies SAVE_SCHEMA_OFFSET..SAVE_BUFFER_SIZE_MIN of the buffer.
-// Reads are instance-agnostic (fixed offsets, independent of CPlayerState's
-// serialized width / itemMaxCapacity), so instances with different configs read
-// each other's data. PutTo entry stamps the block (patch_save_uuid_stamp),
-// StartGame gates loads on magic+uuid (patch_save_uuid_block), and the
-// file-select renders save_name (patch_save_name).
+// Reads use fixed offsets independent of CPlayerState width / itemMaxCapacity, so instances with
+// different configs read each other's data. PutTo entry stamps the block (patch_save_uuid_stamp),
+// StartGame gates loads on magic+uuid (patch_save_uuid_block), and the file-select renders
+// save_name (patch_save_name).
 
-// Smallest save buffer across supported versions (NTSC-U / K = 0x3ac = 940). PAL
-// (0xa7f = 2687) and NTSC-J (0x888 = 2184) over-allocate, but the pre-world-state
-// serialized layout is byte-identical across versions and world-state content is
-// language-independent, so max content is ~793 bytes everywhere and a uniform
-// tail offset is safe for all. The runtime guard (patch_save_schema_guard) is the
-// empirical backstop.
+// Smallest save buffer across versions (NTSC-U / K = 0x3ac = 940; PAL and NTSC-J over-allocate).
+// Hard cap the runtime overflow guard (patch_save_overflow_guard) checks total content against.
 const SAVE_BUFFER_SIZE_MIN: i32 = 0x3ac; // 940
 
-const SAVE_SCHEMA_SIZE: i32 = 96; // total reserved tail block
-const SAVE_SCHEMA_OFFSET: i32 = SAVE_BUFFER_SIZE_MIN - SAVE_SCHEMA_SIZE; // 844
+// CGameState's dead front region. Referenced only from SAVE_FRONT_UNUSED / the asserts below
+#[allow(dead_code)]
+const SAVE_FRONT_SIZE: i32 = 128;
+// CGameState member holding the front region's inline bytes.
+const SAVE_FRONT_DATA_MEMBER_OFF: i32 = 0x4;
+
+const SAVE_SCHEMA_SIZE: i32 = 60; // magic + version + uuid + save_name
+const SAVE_SCHEMA_OFFSET: i32 = 0; // == buffer offset; front starts at 0
+
+#[allow(dead_code)]
+const SAVE_FRONT_UNUSED: i32 = SAVE_FRONT_SIZE - (SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE); // 68
 
 const SAVE_SCHEMA_MAGIC: u32 = 0x5250_5356; // "RPSV"
 const SAVE_SCHEMA_VERSION: u32 = 1;
@@ -3223,23 +3230,11 @@ const SAVE_NAME_SCRATCH_STRIDE: usize = 64;
 // SetText store the pointer rather than copying, so a shared buffer would alias across rows.
 const SAVE_NAME_ROWS: usize = 3;
 
-const MOUTPTR_OFF: i32 = 0x7c; // sizeof(COutputStream) = offset of CMemoryStreamOut::mOutPtr
-const MNUMWRITES_OFF: i32 = 0x10; // COutputStream::mNumWrites (bytes flushed); used by the guard
-
-// ---- Front "dead" region (scaffolded for future use; NOT used yet) ----
-// CGameState's first serialized member is a 128-byte array (count hard-fixed to 128 at
-// CGameState+0x0, inline data at +0x4) written 8 bits/byte = buffer bytes 0..128. It is
-// ctor-zeroed and never read for gameplay, so it is reliably always-zero reserved space.
-// A future patch may store data here without any engine change; documented so the address is
-// known. See doc/dol-patching.md.
-#[allow(dead_code)]
-const SAVE_FRONT_OFFSET: i32 = 0;
-#[allow(dead_code)]
-const SAVE_FRONT_SIZE: i32 = 128;
+const MNUMWRITES_OFF: i32 = 0x10; // COutputStream::mNumWrites (bytes flushed)
 
 const _: () = assert!(
-    SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE <= SAVE_BUFFER_SIZE_MIN,
-    "save schema block overflows the smallest save buffer"
+    SAVE_FRONT_UNUSED >= 0,
+    "save schema block overflows CGameState's dead front region"
 );
 const _: () = assert!(
     SAVE_F_NAME + SAVE_NAME_WORDS * 4 <= SAVE_SCHEMA_SIZE as usize,
@@ -3349,8 +3344,7 @@ struct SaveUuidData {
     scratch_addr: u32, // per-row name-reassembly buffers (patch_save_name)
 }
 
-// Build the SAVE_SCHEMA_SIZE-byte schema block exactly as it lives in the save buffer tail. This is
-// the Rust side of the single source of truth; the trampolines read the same offsets.
+// Build the SAVE_SCHEMA_SIZE-byte schema block exactly as it lives in the front region.
 fn build_save_schema_block(config: &PatchConfig) -> Vec<u8> {
     let mut block = vec![0u8; SAVE_SCHEMA_SIZE as usize];
     block[SAVE_F_MAGIC..][..4].copy_from_slice(&SAVE_SCHEMA_MAGIC.to_be_bytes());
@@ -3389,9 +3383,9 @@ fn reserve_save_uuid_data(
     }))
 }
 
-// Stamp the schema block into the save buffer tail on every CGameState::PutTo. Hooks PutTo entry to
-// copy the whole SAVE_SCHEMA_SIZE-byte block from the cave directly to
-// CMemoryStreamOut::mOutPtr + SAVE_SCHEMA_OFFSET, before the engine serializes its own content.
+// Stamp the schema block into CGameState's front-region member on PutTo entry, into the LIVE
+// object (not the output buffer). PutTo's own unmodified serialization loop then writes those
+// bytes to buffer offset 0 moments later.
 fn patch_save_uuid_stamp(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3412,10 +3406,9 @@ fn patch_save_uuid_stamp(
 
     let putto_orig = dol_patcher.read_u32(putto)?;
     emitter.emit_and_patch(dol_patcher, putto, false, |cave_addr| {
-        // r3 = CGameState* (this), r4 = CMemoryStreamOut*; use r6/r9/r12 as scratch.
+        // r3 = CGameState* (this); use r6/r9/r12 as scratch.
         ppcasm!(cave_addr, {
-            lwz   r12, { MOUTPTR_OFF }(r4); // mOutPtr = raw save buffer base
-            addi  r12, r12, { SAVE_SCHEMA_OFFSET }; // schema block base
+            addi  r12, r3, { SAVE_FRONT_DATA_MEMBER_OFF + SAVE_SCHEMA_OFFSET }; // front-region base
             lis   r9, { (block_addr >> 16) as i32 };
             ori   r9, r9, { (block_addr & 0xffff) as i32 };
             li    r6, { SAVE_SCHEMA_SIZE / 4 }; // word count
@@ -3533,8 +3526,8 @@ fn patch_save_uuid_block(
 //
 // SetupFrameContents resolves the world name into a `name` register then builds an rstl::wstring. We
 // hook the `cmplwi <name>, 0` just before that build. The row's GameFileStateInfo* is in a `fileInfo`
-// register; the name lives at fileInfo + name_buf_off + SAVE_NAME_FIXED_BYTE_OFF (a fixed offset into
-// the save buffer tail). We copy the 9 name words into per-row scratch and point `name` at it; if the
+// register; the name lives at fileInfo + name_buf_off + SAVE_OFF_NAME (a fixed offset into the save
+// buffer's front region). We copy the 9 name words into per-row scratch and point `name` at it; if the
 // first word is zero (no stored name), `name` keeps the world name. The row index is r30 in every
 // build; name/fileInfo are r25/r26 on NTSC+PAL and r26/r27 on NTSC-J (setup_regs_shifted).
 // allow(dead_code): ppcasm's generated per-label struct trips the dead_code lint when the ppcasm! is
@@ -3620,7 +3613,7 @@ fn patch_save_name(
 }
 
 // OSReport debug-logging hooks, gated behind the `osDiagnostics` preference. Add new
-// diagnostic hooks here.
+// diagnostic-only hooks here; safety-relevant guards go in patch_dol (see patch_save_overflow_guard).
 fn patch_os_diagnostics(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3631,18 +3624,269 @@ fn patch_os_diagnostics(
         return Ok(());
     }
     patch_diag_resource_miss(dol_patcher, emitter, version)?;
-    patch_save_schema_guard(dol_patcher, emitter, version)?;
+    patch_diag_save_world_budget(dol_patcher, emitter, version)?;
     Ok(())
 }
 
-// Runtime half of "panic when the schema overflows": at CGameState::PutTo exit, compare the bytes
-// the engine serialized (CMemoryStreamOut::mNumWrites) against SAVE_SCHEMA_OFFSET. If serialization
-// ever reached our tail block, OSReport a loud line so a playtest surfaces the collision (the stamp
-// hooks PutTo *entry* and can't see the final size, hence the exit hook).
-fn patch_save_schema_guard(
+// Hard-coded MLVL asset ids (src/elevators.rs) for all 8 worlds CGameState::PutTo's per-world loop
+// visits, in the same order the loop visits them (Area::EWorldIndex).
+const WORLD_MLVL_END_CINEMA: u32 = 0x13D79165;
+const WORLD_MLVL_FRIGATE: u32 = 0x158efe17;
+const WORLD_MLVL_TALON: u32 = 0x39f2de28;
+const WORLD_MLVL_MAGMOOR: u32 = 0x3ef8237c;
+const WORLD_MLVL_CHOZO: u32 = 0x83f6ff6f;
+const WORLD_MLVL_PHENDRANA: u32 = 0xa8be6291;
+const WORLD_MLVL_MINES: u32 = 0xb1ac4d65;
+const WORLD_MLVL_CRATER: u32 = 0xc13b09d1;
+
+// Per-world save-size breakdown. Reports one actionable number per world, layer_bytes (the
+// CWorldLayerState flag size, which scales with a config's own level edits), plus a global `free`
+// (bytes left in the buffer). The other per-world fields are sized by fixed level geometry, so
+// they aren't surfaced.
+fn patch_diag_save_world_budget(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
+) -> Result<(), String> {
+    if version != Version::NtscU0_00 {
+        return Ok(());
+    }
+    let Some(putto) = symbol_addr_opt!("PutTo__10CGameStateCFR13COutputStream", version) else {
+        return Ok(());
+    };
+    // Written by patch_diag_save_world_layer_bytes and read by patch_diag_save_world_row for the
+    // same world, strictly sequentially, so it's always set before read and needs no reset.
+    let layer_bytes_addr =
+        emitter.emit_addressed(dol_patcher, move |_| 0u32.to_be_bytes().to_vec())?;
+
+    patch_diag_save_world_baseline(dol_patcher, emitter, version, putto)?;
+    patch_diag_save_world_layer_bytes(dol_patcher, emitter, version, layer_bytes_addr)?;
+    patch_diag_save_world_row(dol_patcher, emitter, version, putto, layer_bytes_addr)?;
+    Ok(())
+}
+
+// OSReports free space before any world is written. Hooks the per-world loop's initial branch to
+// its condition check (PutTo + 0x11c, NTSC 0-00), which runs once per PutTo. Since the hooked
+// instruction is a PC-relative branch (not replayable from the cave), the trampoline ends with a
+// fresh branch to the loop's re-entry point instead of a displaced-instruction replay.
+fn patch_diag_save_world_baseline(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    putto: u32,
+) -> Result<(), String> {
+    let Some(osreport) = symbol_addr_opt!("OSReport", version) else {
+        return Ok(());
+    };
+    let hook = putto + 0x11c;
+    let loop_cond = putto + 0x1a0;
+    // Confirm we're hooking the unconditional branch we expect (opcode 18) before discarding it.
+    let hook_orig = dol_patcher.read_u32(hook)?;
+    if hook_orig & 0xfc00_0000 != 0x4800_0000 {
+        return Err(format!(
+            "patch_diag_save_world_baseline: expected an unconditional branch at PutTo+0x11c, found {hook_orig:#010x}"
+        ));
+    }
+
+    emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            b    skip;
+            fmt: .asciiz b"randomprime: SAVE_SIZE_BASE free=%d\n";
+        skip:
+            lwz   r4, { MNUMWRITES_OFF }(r31); // bytes written before any world
+            li    r5, { SAVE_BUFFER_SIZE_MIN };
+            subf  r4, r4, r5;                  // free = limit - used
+            lis   r3, fmt@h;
+            addi  r3, r3, fmt@l;
+            bl    { osreport };                // clobbers r0,r3-r12,LR,CTR
+            b     { loop_cond };               // re-enter the loop where the displaced branch did
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
+// Isolates one world's layer-flag cost by hooking CWorldState::PutTo's call to CWorldLayerState's
+// PutTo (CWorldState::PutTo + 0x80, NTSC 0-00) and storing mNumWrites' delta across it, so
+// `layer_bytes` excludes the fixed relay/area/door cost. Same PC-relative-branch handling as
+// patch_diag_save_world_baseline; the original arg loads run before the hook, so r3/r4/r5 are live.
+fn patch_diag_save_world_layer_bytes(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    layer_bytes_addr: u32,
+) -> Result<(), String> {
+    let (Some(worldstate_putto), Some(layerstate_putto)) = (
+        symbol_addr_opt!("PutTo__11CWorldStateFR16CMemoryStreamOut", version),
+        symbol_addr_opt!("PutTo__16CWorldLayerStateFR16CMemoryStreamOut", version),
+    ) else {
+        return Ok(());
+    };
+    let hook = worldstate_putto + 0x80;
+    // Sanity-check we're replacing a `bl` (opcode 18, LK=1) before discarding its encoding.
+    let hook_orig = dol_patcher.read_u32(hook)?;
+    if hook_orig & 0xfc00_0003 != 0x4800_0001 {
+        return Err(format!(
+            "patch_diag_save_world_layer_bytes: expected `bl` at CWorldState::PutTo+0x80, found {hook_orig:#010x}"
+        ));
+    }
+
+    emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            // r3/r4/r5 are already PutTo__16CWorldLayerStateFR16CMemoryStreamOut's correct args
+            // here (loaded by the untouched instructions immediately before this hook). r30 =
+            // COutputStream*, per CWorldState::PutTo's own register allocation (mr r30,r4 at entry).
+            lis   r9, { (layer_bytes_addr >> 16) as i32 };
+            ori   r9, r9, { (layer_bytes_addr & 0xffff) as i32 };
+            lwz   r8, { MNUMWRITES_OFF }(r30); // before
+            stw   r8, 0x0(r9);                 // stash (overwritten with the real delta below)
+            bl    { layerstate_putto };        // the real call; clobbers r0,r3-r12,LR,CTR
+            lwz   r8, { MNUMWRITES_OFF }(r30); // after
+            lis   r9, { (layer_bytes_addr >> 16) as i32 };
+            ori   r9, r9, { (layer_bytes_addr & 0xffff) as i32 };
+            lwz   r0, 0x0(r9);                 // before, reloaded (r9/r0 were clobbered by the call)
+            subf  r0, r0, r8;                  // layer_bytes = after - before
+            stw   r0, 0x0(r9);
+            b     { hook + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
+// OSReports each world's name, layer_bytes, and free after its CWorldState::PutTo call (PutTo +
+// 0x190, NTSC 0-00). r25 holds the world's MLVL id (non-volatile, survives the call) and r31 is
+// the live CMemoryStreamOut*.
+fn patch_diag_save_world_row(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    putto: u32,
+    layer_bytes_addr: u32,
+) -> Result<(), String> {
+    let Some(osreport) = symbol_addr_opt!("OSReport", version) else {
+        return Ok(());
+    };
+    let hook = putto + 0x190;
+    let hook_orig = dol_patcher.read_u32(hook)?;
+
+    emitter.emit_and_patch(dol_patcher, hook, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            b       skip;
+            n_end_cinema: .asciiz b"End Cinema";
+            n_frigate:    .asciiz b"Frigate";
+            n_talon:      .asciiz b"Tallon";
+            n_magmoor:    .asciiz b"Magmoor";
+            n_chozo:      .asciiz b"Chozo";
+            n_phendrana:  .asciiz b"Phendrana";
+            n_mines:      .asciiz b"Mines";
+            n_crater:     .asciiz b"Crater";
+            fmt: .asciiz b"randomprime: SAVE_SIZE_WORLD %s - layer_bytes=%d, free=%d\n";
+        skip:
+            lis   r6, { (WORLD_MLVL_END_CINEMA >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_END_CINEMA & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   c_frigate;
+            lis   r7, n_end_cinema@h;
+            addi  r7, r7, n_end_cinema@l;
+            b     report;
+        c_frigate:
+            lis   r6, { (WORLD_MLVL_FRIGATE >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_FRIGATE & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   c_talon;
+            lis   r7, n_frigate@h;
+            addi  r7, r7, n_frigate@l;
+            b     report;
+        c_talon:
+            lis   r6, { (WORLD_MLVL_TALON >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_TALON & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   c_magmoor;
+            lis   r7, n_talon@h;
+            addi  r7, r7, n_talon@l;
+            b     report;
+        c_magmoor:
+            lis   r6, { (WORLD_MLVL_MAGMOOR >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_MAGMOOR & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   c_chozo;
+            lis   r7, n_magmoor@h;
+            addi  r7, r7, n_magmoor@l;
+            b     report;
+        c_chozo:
+            lis   r6, { (WORLD_MLVL_CHOZO >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_CHOZO & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   c_phendrana;
+            lis   r7, n_chozo@h;
+            addi  r7, r7, n_chozo@l;
+            b     report;
+        c_phendrana:
+            lis   r6, { (WORLD_MLVL_PHENDRANA >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_PHENDRANA & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   c_mines;
+            lis   r7, n_phendrana@h;
+            addi  r7, r7, n_phendrana@l;
+            b     report;
+        c_mines:
+            lis   r6, { (WORLD_MLVL_MINES >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_MINES & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   c_crater;
+            lis   r7, n_mines@h;
+            addi  r7, r7, n_mines@l;
+            b     report;
+        c_crater:
+            lis   r6, { (WORLD_MLVL_CRATER >> 16) as i32 };
+            ori   r6, r6, { (WORLD_MLVL_CRATER & 0xffff) as i32 };
+            cmplw r25, r6;
+            bne   done;
+            lis   r7, n_crater@h;
+            addi  r7, r7, n_crater@l;
+        report:
+            lis   r9, { (layer_bytes_addr >> 16) as i32 };
+            ori   r9, r9, { (layer_bytes_addr & 0xffff) as i32 };
+            lwz   r5, 0x0(r9);                 // layer_bytes (set moments ago for this world)
+            lwz   r8, { MNUMWRITES_OFF }(r31); // used = cumulative bytes so far
+            li    r6, { SAVE_BUFFER_SIZE_MIN };
+            subf  r6, r8, r6;                  // free = limit - used
+            mr    r4, r7;                      // name (%s)
+            lis   r3, fmt@h;
+            addi  r3, r3, fmt@l;
+            bl    { osreport };                // clobbers r0,r3-r12,LR,CTR
+        done:
+            .long hook_orig;                   // displaced original instruction
+            b     { hook + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
+// Detect (but not prevent) a save whose content overflows the engine's fixed buffer
+// (SAVE_BUFFER_SIZE_MIN). This is a pre-existing engine limit, independent of our schema. Runs
+// unconditionally, not gated on `osDiagnostics`: a silent overflow corrupts the save and surfaces
+// later as a confusing crash on some subsequent load, so we panic at the moment it happens instead.
+//
+// Hooks PutTo's epilogue (the entry hook can't see the final size) to compare mNumWrites against
+// the cap, OSReport the sizes, then fault on a recognizable sentinel address so the crash-screen
+// handler reports it like any other crash.
+//
+// `verbose` (config.os_diagnostics) additionally OSReports SAVE_SIZE_TOTAL on every save, folded
+// into this hook because emit_and_patch installs only one trampoline per site.
+//
+// NTSC 0-00 only: the epilogue offset was hand-verified against that build; other builds need the
+// same verification first.
+fn patch_save_overflow_guard(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    verbose: bool,
 ) -> Result<(), String> {
     if version != Version::NtscU0_00 {
         return Ok(());
@@ -3658,26 +3902,58 @@ fn patch_save_schema_guard(
     let epilogue = putto + 0x1b8;
     let epilogue_orig = dol_patcher.read_u32(epilogue)?;
 
-    let mut fmt_bytes = b"randomprime: SAVE SCHEMA OVERFLOW wrote=%08x limit=%08x\n\0".to_vec();
-    while fmt_bytes.len() % 4 != 0 {
-        fmt_bytes.push(0);
-    }
-    let fmt_addr = emitter.emit_addressed(dol_patcher, move |_| fmt_bytes.clone())?;
-
+    // Format strings are embedded inline in the stub (jumped over) rather than in a separate
+    // must-fit cave, so the whole unconditional guard stays overflow-safe as one unit. `verbose`
+    // picks which ppcasm! block to emit at patch time.
     emitter.emit_and_patch(dol_patcher, epilogue, false, |cave_addr| {
-        ppcasm!(cave_addr, {
-            lwz   r4, { MNUMWRITES_OFF }(r31); // bytes serialized
-            cmpwi r4, { SAVE_SCHEMA_OFFSET };
-            blt   ok;                          // no collision
-            lis   r3, { (fmt_addr >> 16) as i32 };
-            ori   r3, r3, { (fmt_addr & 0xffff) as i32 };
-            li    r5, { SAVE_SCHEMA_OFFSET };
-            bl    { osreport };                // clobbers r0,r3-r12,LR,CTR; r31 + stack-saved LR survive
-        ok:
-            .long epilogue_orig;               // displaced `lmw r24, 0x30(r1)`
-            b     { epilogue + 4 };
-        })
-        .encoded_bytes()
+        if verbose {
+            ppcasm!(cave_addr, {
+                b     skip;
+                fmt_total:    .asciiz b"randomprime: SAVE_SIZE_TOTAL free=%d\n";
+                fmt_overflow: .asciiz b"randomprime: SAVE BUFFER OVERFLOW wrote=%08x limit=%08x\n";
+            skip:
+                lwz   r4, { MNUMWRITES_OFF }(r31); // used
+                li    r0, { SAVE_BUFFER_SIZE_MIN };
+                subf  r4, r4, r0;                   // r4 := free = limit - used
+                lis   r3, fmt_total@h;
+                addi  r3, r3, fmt_total@l;
+                bl    { osreport };                 // clobbers r0,r3-r12,LR,CTR
+                lwz   r4, { MNUMWRITES_OFF }(r31);  // reload (clobbered above)
+                cmpwi r4, { SAVE_BUFFER_SIZE_MIN };
+                ble   ok;                           // fits (== exactly full is legal)
+                lis   r3, fmt_overflow@h;
+                addi  r3, r3, fmt_overflow@l;
+                li    r5, { SAVE_BUFFER_SIZE_MIN };
+                bl    { osreport };
+                lis   r3, 0xDEAD;                   // recognizable DAR sentinel: self-identifies in
+                ori   r3, r3, 0x0BAD;               // the crash-screen dump as our deliberate panic
+                lwz   r0, 0x0(r3);                  // deliberate DSI: SAVE BUFFER OVERFLOW panic
+            ok:
+                .long epilogue_orig;                // displaced `lmw r24, 0x30(r1)`
+                b     { epilogue + 4 };
+            })
+            .encoded_bytes()
+        } else {
+            ppcasm!(cave_addr, {
+                b     skip;
+                fmt:  .asciiz b"randomprime: SAVE BUFFER OVERFLOW wrote=%08x limit=%08x\n";
+            skip:
+                lwz   r4, { MNUMWRITES_OFF }(r31); // bytes serialized
+                cmpwi r4, { SAVE_BUFFER_SIZE_MIN };
+                ble   ok;                          // fits (== exactly full is legal)
+                lis   r3, fmt@h;
+                addi  r3, r3, fmt@l;
+                li    r5, { SAVE_BUFFER_SIZE_MIN };
+                bl    { osreport };                // clobbers r0,r3-r12,LR,CTR; r31 + stack-saved LR survive
+                lis   r3, 0xDEAD;                  // recognizable DAR sentinel: self-identifies in the
+                ori   r3, r3, 0x0BAD;              // crash-screen register dump as our deliberate panic
+                lwz   r0, 0x0(r3);                 // deliberate DSI: SAVE BUFFER OVERFLOW panic
+            ok:
+                .long epilogue_orig;               // displaced `lmw r24, 0x30(r1)`
+                b     { epilogue + 4 };
+            })
+            .encoded_bytes()
+        }
     })?;
 
     Ok(())
@@ -3772,6 +4048,13 @@ pub fn patch_dol(
     patch_save_uuid_stamp(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
     patch_save_uuid_block(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
     patch_save_name(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
+    // Unconditional: protects save integrity. Only the verbose report is gated on os_diagnostics.
+    patch_save_overflow_guard(
+        &mut dol_patcher,
+        &mut emitter,
+        version,
+        config.os_diagnostics,
+    )?;
 
     let overflow_bytes = emitter.serialize_overflow();
     *file = structs::FstEntryFile::ExternalFile(Box::new(dol_patcher));
