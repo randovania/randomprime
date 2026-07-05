@@ -23,6 +23,8 @@ fn main() {
     helper("skippable_cutscenes.jsonc");
     helper("skippable_cutscenes_competitive.jsonc");
     helper("skippable_cutscenes_pal.jsonc");
-    helper("qol.jsonc");
+    helper("qol-general.jsonc");
+    helper("qol-music.jsonc");
+    helper("qol-tutorial.jsonc");
     helper("game_breaking.jsonc");
 }
