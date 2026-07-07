@@ -6,7 +6,7 @@ The `.dol` is the game's (PowerPC) executable. Randomprime modifies it when crea
 
 ### Direct replacement
 
-The simplest change is writing new instructions directly over existing ones with `dol_patcher.ppcasm_patch` such as "nop"-ing a vanilla instruction to negate its effect. `ppcasm!` is used assemble the instructions from 
+The simplest change is writing new instructions directly over existing ones with `dol_patcher.ppcasm_patch` such as "nop"-ing a vanilla instruction to negate its effect. `ppcasm!` is used assemble the instructions from inline mnemonics.
 
 ### Code cave (hook + trampoline)
 
