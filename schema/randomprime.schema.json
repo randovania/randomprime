@@ -441,7 +441,8 @@
                     "default": true
                 },
                 "startingVisor": {
-                    "description": "Visor which is open when the player spawns viewing, regardless of if they have the corresponding item. Also the visor which the player unmorphs into. Defaults to the first included item specified in startingItems in order of: Combat, Thermal, XRay, and Scan.",
+                    "description": "[Deprecated] The starting visor is derived from startingItems in order of: Combat, Thermal, XRay, and Scan (Combat when none is owned). Visor behavior is inventory-gated: scanning and combat lock-on require the corresponding visor items, the HUD and targeting reticle hide while in an unowned Combat Visor, and acquiring Thermal or XRay while in that state equips it automatically (Scan Visor is only ever entered manually). Morphing switches to the best owned visor (Combat > Thermal > XRay), and both unmorphing and exiting Scan Visor fall back through that order to the HUD-less unowned Combat Visor so the arm cannon stays reachable.",
+                    "deprecated": true,
                     "type": "string",
                     "enum": [
                         "Combat",
@@ -451,7 +452,8 @@
                     ]
                 },
                 "startingBeam": {
-                    "description": "Beam which the player starts the game holding, regardless if they have the corresponding item. Defaults to the first item specified in startingItems in order of: Power, Plasma, Ice, Wave.",
+                    "description": "[Deprecated] The starting beam is derived from startingItems in order of: Power, Plasma, Ice, Wave. Beam use is inventory-gated: the arm cannon can't fire a beam whose item isn't owned, stays holstered while no beam item is owned, and automatically equips the first beam item acquired when the held beam's item isn't owned.",
+                    "deprecated": true,
                     "type": "string",
                     "enum": [
                         "Power",
