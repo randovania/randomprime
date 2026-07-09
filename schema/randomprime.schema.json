@@ -157,7 +157,7 @@
                     "default": false
                 },
                 "suitColors": {
-                    "description": "Change the colors of the in-game suits by rotating their values along the color wheel. (This currently does not apply to Fusion Suit)",
+                    "description": "Change the colors of the in-game suits by rotating their values along the color wheel.",
                     "type": "object",
                     "properties": {
                         "powerDeg": {

@@ -54,7 +54,9 @@ use crate::{
     structs::LightLayer,
     txtr_conversions::{
         cmpr_compress, cmpr_decompress, huerotate_in_place, huerotate_matrix,
-        GRAVITY_SUIT_TEXTURES, PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, VARIA_SUIT_TEXTURES,
+        FUSION_GRAVITY_SUIT_TEXTURES, FUSION_PHAZON_SUIT_TEXTURES, FUSION_POWER_SUIT_TEXTURES,
+        FUSION_VARIA_SUIT_TEXTURES, GRAVITY_SUIT_TEXTURES, PHAZON_SUIT_TEXTURES,
+        POWER_SUIT_TEXTURES, SHIP_TEXTURES, VARIA_SUIT_TEXTURES,
     },
     GcDiscLookupExtensions,
 };
@@ -17700,27 +17702,23 @@ fn build_and_run_patches<'r>(
         );
     }
 
-    if config.suit_colors.is_some() {
-        let suit_colors = config.suit_colors.as_ref().unwrap();
-        let mut suit_textures = Vec::new();
-        let mut angles = Vec::new();
-
-        if suit_colors.power_deg.is_some() {
-            suit_textures.push(POWER_SUIT_TEXTURES);
-            angles.push(suit_colors.power_deg.unwrap());
-        }
-        if suit_colors.varia_deg.is_some() {
-            suit_textures.push(VARIA_SUIT_TEXTURES);
-            angles.push(suit_colors.varia_deg.unwrap());
-        }
-        if suit_colors.gravity_deg.is_some() {
-            suit_textures.push(GRAVITY_SUIT_TEXTURES);
-            angles.push(suit_colors.gravity_deg.unwrap());
-        }
-        if suit_colors.phazon_deg.is_some() {
-            suit_textures.push(PHAZON_SUIT_TEXTURES);
-            angles.push(suit_colors.phazon_deg.unwrap());
-        }
+    if let Some(suit_colors) = config.suit_colors.as_ref() {
+        let ship_angle = [suit_colors.power_deg, suit_colors.varia_deg]
+            .into_iter()
+            .flatten()
+            .find(|deg| deg % 360 != 0);
+        let suit_lists: [(&[ResourceInfo], Option<i16>); 9] = [
+            (POWER_SUIT_TEXTURES, suit_colors.power_deg),
+            (FUSION_POWER_SUIT_TEXTURES, suit_colors.power_deg),
+            (VARIA_SUIT_TEXTURES, suit_colors.varia_deg),
+            (FUSION_VARIA_SUIT_TEXTURES, suit_colors.varia_deg),
+            (GRAVITY_SUIT_TEXTURES, suit_colors.gravity_deg),
+            (FUSION_GRAVITY_SUIT_TEXTURES, suit_colors.gravity_deg),
+            (PHAZON_SUIT_TEXTURES, suit_colors.phazon_deg),
+            (FUSION_PHAZON_SUIT_TEXTURES, suit_colors.phazon_deg),
+            (SHIP_TEXTURES, ship_angle),
+        ];
+        let mut rotated_ids = HashSet::new();
 
         let mut complained: bool = false;
         if !Path::new(&config.cache_dir).is_dir() {
@@ -17735,8 +17733,11 @@ fn build_and_run_patches<'r>(
                 }
             }
         }
-        for i in 0..suit_textures.len() {
-            let angle = angles[i] % 360;
+        for (suit_textures, angle) in suit_lists {
+            let angle = match angle {
+                Some(angle) => angle % 360,
+                None => continue,
+            };
             if angle == 0 {
                 continue;
             }
@@ -17759,7 +17760,10 @@ fn build_and_run_patches<'r>(
             }
 
             let matrix = huerotate_matrix(angle);
-            for texture in suit_textures[i] {
+            for texture in suit_textures {
+                if !rotated_ids.insert(texture.res_id) {
+                    continue;
+                }
                 patcher.add_resource_patch((*texture).into(), move |res| {
                     let res_data;
                     let data;
