@@ -1858,6 +1858,17 @@
         },
         "Phazon Mines": {
             "rooms": {
+                "Save Station Mines A": {
+                    // Automatically unlock Save Station when loading in from behind the bars
+                    "addConnections": [
+                        {
+                            "senderId": 262233,
+                            "state": "ENTERED",
+                            "targetId": 262170,
+                            "message": "SET_TO_ZERO"
+                        }
+                    ]
+                },
                 "Central Dynamo": {
                     // Maze Softlock fix (Additional connections so that the fixed camera is always deactivated for good at the end.)
                     "addConnections": [
