@@ -117,40 +117,6 @@
                         }
                     ]
                 },
-                "Hall of the Elders": {
-                    "addConnections": [
-                        {
-                            "senderId": 3408130, // [Trigger] Trigger-Chozo Ghost
-                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
-                            "state": "ENTERED",
-                            "message": "CLOSE"
-                        },
-                        {
-                            "senderId": 3407887, // [ChozoGhost] ChozoGhost
-                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
-                            "state": "DEAD",
-                            "message": "OPEN"
-                        },
-                        {
-                            "senderId": 3408399, // [Trigger] Trigger - Chozo Ghost No Kaishi
-                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
-                            "state": "ENTERED",
-                            "message": "CLOSE"
-                        },
-                        {
-                            "senderId": 3408401, // [Counter] Counter_Dead Chozo
-                            "targetId": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
-                            "state": "MAX_REACHED",
-                            "message": "OPEN"
-                        }
-                    ],
-                    "switches": [
-                        {
-                            "id": 3489927, // [Switch] OPEN: Hall of the Elders / CLOSED: Ghosts
-                            "open": true
-                        }
-                    ]
-                },
                 "Hive Totem": {
                     "deleteIds": [
                         3211975,
@@ -292,200 +258,10 @@
                 "Ruined Shrine": {
                     "removeConnections": [
                         {
-                            "senderId": 589860, // [Pickup] p_morphball_01
-                            "targetId": 599916, // [SpecialFunction] SpecialFunction Elev_Over_A
-                            "state": "ARRIVED",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 589860, // [Pickup] p_morphball_01
-                            "targetId": 600070, // [SpecialFunction] SpecialFunction 1_Savestation Naka OFF
-                            "state": "ARRIVED",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 589860, // [Pickup] p_morphball_01
-                            "targetId": 600069, // [SpecialFunction] SpecialFunction 1_Savestation Samus ON
-                            "state": "ARRIVED",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 589860, // [Pickup] p_morphball_01
-                            "targetId": 600501, // [SpecialFunction] SpecialFunction Mapstation Increment After Morphball
-                            "state": "ARRIVED",
-                            "message": "INCREMENT"
-                        },
-                        {
                             "senderId": 589944, // [Beetle] GarBeetle
                             "targetId": 600484, // [Timer] Timer - HUD memo
                             "state": "ACTIVE",
                             "message": "RESET_AND_START"
-                        }
-                    ],
-                    "addConnections": [
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 779889, // External: 000BE671
-                            "state": "ZERO",
-                            "message": "OPEN"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77591, // [SpecialFunction] [DEC] Ruins Entrance
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77592, // [SpecialFunction] [INC] Ruins Entrance
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77593, // [SpecialFunction] [DEC] Main Plaza
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77594, // [SpecialFunction] [INC] Main Plaza
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77595, // [SpecialFunction] [DEC] Ruined Shrine Access
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77596, // [SpecialFunction] [INC] Ruined Shrine Access
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77597, // [SpecialFunction] [DEC] Ruined Fountain Access
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77598, // [SpecialFunction] [INC] Ruined Fountain Access
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77599, // [SpecialFunction] [DEC] Nursery Access
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77600, // [SpecialFunction] [INC] Nursery Access
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77601, // [SpecialFunction] [DEC] Eyon Tunnel
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77602, // [SpecialFunction] [INC] Eyon Tunnel
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77603, // [SpecialFunction] [DEC] Ruined Nursery
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77604, // [SpecialFunction] [INC] Ruined Nursery
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77605, // [SpecialFunction] [DEC] North Atrium
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77606, // [SpecialFunction] [INC] North Atrium
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77607, // [SpecialFunction] [DEC] Ruined Gallery
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77608, // [SpecialFunction] [INC] Ruined Gallery
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77609, // [SpecialFunction] [DEC] Totem Access
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77610, // [SpecialFunction] [INC] Totem Access
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77611, // [SpecialFunction] [DEC] Hive Totem
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77612, // [SpecialFunction] [INC] Hive Totem
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77613, // [SpecialFunction] [DEC] Transport Access North
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 600482, // [Relay] Relay
-                            "targetId": 77614, // [SpecialFunction] [INC] Transport Access North
-                            "state": "ZERO",
-                            "message": "INCREMENT"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 789863, // [Timer] 1st Pass Check
-                            "time": 0.001,
-                            "layer": 1,
-                            "active": true,
-                            "startImmediately": true
-                        }
-                    ],
-                    "switches": [
-                        {
-                            "id": 779889
                         }
                     ]
                 },
@@ -828,79 +604,10 @@
                     "deleteIds": [
                         2293856
                     ],
-                    "addConnections": [
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2424927, // [SpecialFunction] Post Ghosts Layer
-                            "state": "MAX_REACHED",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2293856, // External: 00230060
-                            "state": "MAX_REACHED",
-                            "message": "OPEN"
-                        },
-                        {
-                            "senderId": 2425044, // [Relay] Flaahgra Dead Faulty Relay
-                            "targetId": 2425927, // [SpecialFunction] Sunchamber Access 1st Pass
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 2425044, // [Relay] Flaahgra Dead Faulty Relay
-                            "targetId": 2426927, // [SpecialFunction] Sunchamber Access 2nd Pass
-                            "state": "ZERO",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2424945, // [SpecialFunction] Sun Tower 1st Pass
-                            "state": "MAX_REACHED",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2424946, // [SpecialFunction] Sun Tower 2nd Pass
-                            "state": "MAX_REACHED",
-                            "message": "INCREMENT"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2425005, // [SpecialFunction] Sun Tower Access Ghosts Layer
-                            "state": "MAX_REACHED",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 2435191, // [Counter] Counter_Deadghost
-                            "targetId": 2425004, // [SpecialFunction] Sun Tower Access Bombu Layer
-                            "state": "MAX_REACHED",
-                            "message": "INCREMENT"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 2424958, // [Timer] Final Room State
-                            "time": 0.001,
-                            "startImmediately": true,
-                            "layer": 7
-                        }
-                    ],
                     // Dummy IDs for External connection
                     "waypoints": [
                         {
                             "id": 2293856
-                        }
-                    ]
-                },
-                "Sunchamber Lobby": {
-                    "timers": [
-                        {
-                            "id": 2638410, // [Timer] Before Flaahgra Check
-                            "time": 0.001,
-                            "layer": 1,
-                            "active": true,
-                            "startImmediately": true
                         }
                     ]
                 },
@@ -1308,18 +1015,6 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 1966337, // [Timer] 1st Pass Check
-                            "targetId": 1966100, // [Relay] Pirate Battle
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1966108, // [Timer] 2nd Pass Check
-                            "targetId": 1966100, // [Relay] Pirate Battle
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
                             "senderId": 1966385, // [Relay] Relay - Make Puzzle Solved
                             "targetId": 1966826, // [Relay] Counter - dead pirates active panel
                             "state": "ZERO",
@@ -1412,29 +1107,7 @@
                     ],
                     "relays": [
                         {
-                            "id": 1966100, // [Relay] Pirate Battle
-                            "active": false
-                        },
-                        {
-                            "id": 1966110, // [Relay] Pirate Ambiance
-                            "active": false
-                        },
-                        {
                             "id": 1999925 // [Relay] Better Observatory Activation
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 1966337, // [Timer] 1st Pass Check
-                            "time": 0.02,
-                            "layer": 1,
-                            "startImmediately": true
-                        },
-                        {
-                            "id": 1966108, // [Timer] 2nd Pass Check
-                            "time": 0.02,
-                            "layer": 2,
-                            "startImmediately": true
                         }
                     ]
                 },
@@ -1800,18 +1473,6 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 2622609, // [Counter] Counter - Before Thermal Pirates
-                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
-                            "state": "ZERO",
-                            "message": "OPEN"
-                        },
-                        {
-                            "senderId": 2622613, // [Counter] Counter - After Thermal Pirates
-                            "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
-                            "state": "ZERO",
-                            "message": "OPEN"
-                        },
-                        {
                             "senderId": 2622568, // [Relay] Relay Master Layer Switch
                             "targetId": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
                             "state": "ZERO",
@@ -1831,118 +1492,6 @@
                             "active": false,
                             "position": [81.294876, -997.477783, 52.713493],
                             "scale": [20.0, 40.0, 4.0]
-                        }
-                    ],
-                    "switches": [
-                        {
-                            "id": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
-                            "layer": 1
-                        }
-                    ]
-                },
-                "Research Entrance": {
-                    "deleteIds": [
-                        1311600,
-                        1311601,
-                        1311613,
-                        1311614,
-                        1311521,
-                        1311522,
-                        1311599,
-                        1311598
-                    ],
-                    "addConnections": [
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1311451, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1311288, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1310773, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1311061, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1311451, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1311288, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1310773, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1311061, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1310729, // [Timer] 2nd Pass Check
-                            "state": "ZERO",
-                            "message": "STOP"
-                        },
-                        {
-                            "senderId": 1311177, // [Trigger] Trigger
-                            "targetId": 1310730, // [SpecialFunction] [DEC] Specimen Storage
-                            "state": "ENTERED",
-                            "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 1311177, // [Trigger] Trigger
-                            "targetId": 1310731, // [SpecialFunction] [INC] Specimen Storage
-                            "state": "ENTERED",
-                            "message": "INCREMENT"
-                        }
-                    ],
-                    "specialFunctions": [
-                        {
-                            "id": 1310723, // [SpecialFunction] Dud
-                            "type": "CinematicSkip"
-                        }
-                    ],
-                    "distanceFogs": [
-                        {
-                            "id": 1311344, // [DistanceFog] Distance Fog_firstpass
-                            "layer": 7
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 1310728, // [Timer] 1st Pass Check
-                            "time": 0.001,
-                            "layer": 2,
-                            "startImmediately": true
-                        },
-                        {
-                            "id": 1310729, // [Timer] 2nd Pass Check
-                            "time": 0.05,
-                            "layer": 3,
-                            "startImmediately": true
                         }
                     ]
                 },
@@ -2330,13 +1879,6 @@
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         }
-                    ],
-                    "relays": [
-                        {
-                            "id": 1769492, // [Relay] Mines Ambiance
-                            "layer": 2,
-                            "active": false
-                        }
                     ]
                 },
                 "Elevator A": {
@@ -2347,50 +1889,6 @@
                         917607,
                         917583,
                         917595
-                    ]
-                },
-                "Elite Control": {
-                    "deleteIds": [
-                        1051555,
-                        1051495,
-                        1051554,
-                        1051167,
-                        1051165,
-                        1051164,
-                        1051162,
-                        1051496,
-                        1051166,
-                        1051383,
-                        1051384,
-                        1051385,
-                        1051386,
-                        1051382,
-                        1051381
-                    ],
-                    "addConnections": [
-                        {
-                            "senderId": 1050622, // [Trigger] Trigger_Start Breakout
-                            "targetId": 1048708, // [Relay] 1st Pass Mines Ambiance
-                            "state": "ENTERED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1051387, // [Counter] Counter Dead Pirates
-                            "targetId": 1048712, // [Relay] 2nd Pass Mines Ambiance
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        }
-                    ],
-                    "relays": [
-                        {
-                            "id": 1048708, // [Relay] 1st Pass Mines Ambiance
-                            "layer": 1
-                        },
-                        {
-                            "id": 1048712, // [Relay] 2nd Pass Mines Ambiance
-                            "active": false,
-                            "layer": 3
-                        }
                     ]
                 },
                 "Elite Control Access": {
