@@ -1,0 +1,2932 @@
+{
+    "$schema": "../../schema/randomprime.schema.json",
+    "levelData": {
+        "Frigate Orpheon": {
+            "rooms": {
+                "Exterior Docking Hangar": {
+                    "addConnections": [
+                        {
+                            "senderId": 782, // [Trigger] Trigger - Start Closing Cinema
+                            "targetId": 111176, // [Timer] Close Door
+                            "state": "ENTERED",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 111176, // [Timer] Close Door
+                            "targetId": 868, // [Trigger] Trigger_DoorOpen Inside
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 934, // [Relay] Relay - add model and spawn
+                            "active": true
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 111176, // [Timer] Close Door
+                            "time": 0.1,
+                            "active": true,
+                            "startImmediately": true
+                        }
+                    ]
+                }
+            }
+        },
+        "Chozo Ruins": {
+            "rooms": {
+                "Arboretum": {
+                    "triggers": [
+                        {
+                            "id": 1245502, // [Trigger] Vines Trigger
+                            "position": [
+                                306.225616,
+                                -131.869919,
+                                16.818752
+                            ],
+                            "scale": [
+                                10.18103,
+                                10.919998,
+                                5.812
+                            ],
+                            "flags": 2044
+                        },
+                        {
+                            "id": 1245372, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                278.391266,
+                                -103.053986,
+                                18.556475
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                6.0
+                            ]
+                        },
+                        {
+                            "id": 1245734, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                342.820282,
+                                -103.05558,
+                                15.557194
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                8.0
+                            ]
+                        }
+                    ]
+                },
+                "Burn Dome": {
+                    "deleteIds": [
+                        3155763,
+                        3145736,
+                        3145741,
+                        3155765
+                    ]
+                },
+                "Energy Core": {
+                    "addConnections": [
+                        {
+                            "senderId": 2883877, // [SpecialFunction] Sound Trigger Follow Water
+                            "targetId": 2883857, // [Trigger] Trigger - Underwater Sound
+                            "state": "PLAY",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2883877, // [SpecialFunction] Sound Trigger Follow Water
+                            "targetId": 2883635, // [Water] Poison MainWater Morph Source
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2883877, // [SpecialFunction] Sound Trigger Follow Water
+                            "targetId": 2884015, // [Water] Clean MainWater Morph Source
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "specialFunctions": [
+                        {
+                            "id": 2883877, // [SpecialFunction] Sound Trigger Follow Water
+                            "type": "ObjectFollowObject"
+                        }
+                    ]
+                },
+                "Hive Totem": {
+                    "deleteIds": [
+                        3211975,
+                        3211976,
+                        2359420,
+                        2359427
+                    ],
+                    "editObjs": {
+                        // [PointOfInterest] POI_19_Hive Totem Boss.scan
+                        "2359871": {
+                            "position": [
+                                94.592514,
+                                311.199951,
+                                -0.029288
+                            ]
+                        }
+                    },
+                    "specialFunctions": [
+                        {
+                            "id": 2359300, // [SpecialFunction]
+                            "type": "CinematicSkip"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 2367430 // [Relay] End Intro Cinema
+                        }
+                    ]
+                },
+                "Magma Pool": {
+                    "timers": [
+                        {
+                            "id": 1310979, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 1310978, // [Timer] Timer Jingle
+                            "time": 0.001
+                        }
+                    ]
+                },
+                "Main Plaza": {
+                    "removeConnections": [
+                        {
+                            "senderId": 131481, // [Relay] Relay - start of cinema
+                            "targetId": 131105, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 131085, // [Trigger] Trigger - Load Generic Z3
+                            "targetId": 131979, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131078, // [Trigger] Trigger - Load 00s Connect
+                            "targetId": 131979, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131084, // [Trigger] Trigger - Load Generic X4
+                            "targetId": 131979, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131208, // [Trigger] Trigger - Load Generic X2
+                            "targetId": 131979, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131645, // [Trigger] Trigger - Load 1a_morphball
+                            "targetId": 131979, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 132989, // [Timer] Disallow Replay
+                            "targetId": 131092, // [Relay] Allow Replay
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 131092, // [Relay] Allow Replay
+                            "layer": 5,
+                            "active": false
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 132989, // [Timer] Disallow Replay
+                            "time": 1.5,
+                            "layer": 5
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 131078, // [Trigger] Trigger - Load 00s Connect
+                            "position": [
+                                135.338852,
+                                76.633369,
+                                15.859619
+                            ],
+                            "scale": [
+                                34.0,
+                                39.0,
+                                40.0
+                            ]
+                        }
+                    ]
+                },
+                "Ruined Fountain": {
+                    // Fix Jank SpiderBallWaypoints
+                    "editObjs": {
+                        "524348":{
+                            "position": [233.722382, -54.112278, 32.689095]
+                        },
+                        "524378":{
+                            "position": [234.53627, -52.153915, 32.689095]
+                        },
+                        "524379":{
+                            "position": [235.663055, -51.395695, 32.689095]
+                        },
+                        "524380":{
+                            "position": [236.473007, -50.495583, 32.689095]
+                        },
+                        "524300":{
+                            "position": [236.726593, -48.492104, 32.689095]
+                        }
+                    }
+                },
+                "Ruined Shrine": {
+                    "removeConnections": [
+                        {
+                            "senderId": 589944, // [Beetle] GarBeetle
+                            "targetId": 600484, // [Timer] Timer - HUD memo
+                            "state": "ACTIVE",
+                            "message": "RESET_AND_START"
+                        }
+                    ]
+                },
+                "Sun Tower": {
+                    "deleteIds": [
+                        2293906,
+                        2293930,
+                        2293904,
+                        2293933
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900573, // [Relay] Box 1 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900575, // [Relay] Box 2 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900546, // [Dock] Dock
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900573, // [Relay] Box 1 Destroyed
+                            "targetId": 1900573, // [Relay] Box 1 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900573, // [Relay] Box 1 Destroyed
+                            "targetId": 2293906, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900575, // [Relay] Box 2 Destroyed
+                            "targetId": 1900575, // [Relay] Box 2 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900575, // [Relay] Box 2 Destroyed
+                            "targetId": 2293930, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900582, // [Relay] Box 3 Destroyed
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900582, // [Relay] Box 3 Destroyed
+                            "targetId": 2293904, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900583, // [Relay] Box 4 Destroyed
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900583, // [Relay] Box 4 Destroyed
+                            "targetId": 2293933, // [Platform] Platform Small Crate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900891, // [Trigger] Trigger - Change Scripting
+                            "targetId": 2900573, // [Timer] Reload Room
+                            "state": "ENTERED",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 2900573, // [Timer] Reload Room
+                            "targetId": 1900546, // [Dock] Dock
+                            "state": "ZERO",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 1900891, // [Trigger] Trigger - Change Scripting
+                            "targetId": 1900546, // [Dock] Dock
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 1900573, // [Relay] Box 1 Destroyed
+                            "layer": 2,
+                            "active": false
+                        },
+                        {
+                            "id": 1900575, // [Relay] Box 2 Destroyed
+                            "layer": 2,
+                            "active": false
+                        },
+                        {
+                            "id": 1900582, // [Relay] Box 3 Destroyed
+                            "layer": 2,
+                            "active": false
+                        },
+                        {
+                            "id": 1900583, // [Relay] Box 4 Destroyed
+                            "layer": 2,
+                            "active": false
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 2900573, // [Timer] Reload Room
+                            "time": 0.1
+                        }
+                    ],
+                    // Dummy IDs for externals
+                    "waypoints": [
+                        {
+                            "id": 2293906
+                        },
+                        {
+                            "id": 2293930
+                        },
+                        {
+                            "id": 2293904
+                        },
+                        {
+                            "id": 2293933
+                        }
+                    ]
+                },
+                "Sun Tower Access": {
+                    "addConnections": [
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293766, // [Door] Flaahgra Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "OPEN",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "OPEN",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "state": "MAX_REACHED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293798, // [Trigger] Trigger - to Flaagrah
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293772, // [Door] Sun Tower Door
+                            "targetId": 2293809, // [Trigger] Trigger - to Tunnel
+                            "state": "MAX_REACHED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "targetId": 2293762, // [Dock] Dock - to Connect Tunnel
+                            "state": "ENTERED",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "targetId": 2293761, // [Dock] Dock - to Flaagrah
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "targetId": 2293761, // [Dock] Dock - to Flaagrah
+                            "state": "ENTERED",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "targetId": 2293762, // [Dock] Dock - to Connect Tunnel
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2293906, // [Platform] Box 1
+                            "targetId": 1900573, // [Relay] Box 1 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293906, // [Platform] Box 1
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293906, // [Platform] Box 1
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293930, // [Platform] Box 2
+                            "targetId": 1900575, // [Relay] Box 2 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293930, // [Platform] Box 2
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293930, // [Platform] Box 2
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293904, // [Platform] Box 3
+                            "targetId": 1900582, // [Relay] Box 3 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293904, // [Platform] Box 3
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2293933, // [Platform] Box 4
+                            "targetId": 1900583, // [Relay] Box 4 Destroyed
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "position": [284.127441, 263.15799, 80.98233],
+                            "scale": [20.0, 1.0, 12.0],
+                            "active": false
+                        },
+                        {
+                            "id": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "position": [284.127441, 252.29686, 80.98233],
+                            "scale": [20.0, 1.0, 12.0],
+                            "active": false
+                        }
+                    ]
+                },
+                "Sunchamber": {
+                    "deleteIds": [
+                        2293856
+                    ],
+                    // Dummy IDs for External connection
+                    "waypoints": [
+                        {
+                            "id": 2293856
+                        }
+                    ]
+                },
+                "Training Chamber": {
+                    "triggers": [
+                        {
+                            "id": 786526, // [Trigger] Trigger_DoorOpen
+                            "scale": [10.0, 20.0, 8.0]
+                        }
+                    ]
+                },
+                "Transport to Magmoor Caverns North": {
+                    // make cutscene samus actually face where player ends up at
+                    "editObjs": {
+                        "1572919":{"rotation": [0, 0, -180]},
+                        "1572886":{"rotation": [0, 0, -180]},
+                        "1572942":{"position": [179.690704, 345.424805, 6.687231]},
+                        "1572910":{"position": [179.58049, 335.199585, 9.096786]},
+                        "1572911":{"position": [183.96344, 336.66745, 9.598896]},
+                        "1572912":{"position": [187.545197, 340.207611, 9.86292]},
+                        "1572895":{"position": [179.766296, 344.599121, 8.810493]},
+                        "1572893":{"position": [181.67688, 339.75473, 8.594822]},
+                        "1572918":{"position": [182.075089, 340.505463, 5.9399]},
+                        "1572894":{"position": [184.302887, 343.750854, 7.964807]},
+                        "1572887":{"position": [187.664658, 337.602142, 11.874155]},
+                        "1572888":{"position": [184.63945, 334.809814, 8.853821]},
+                        "1572889":{"position": [179.867706, 332.885712, 8.124104]},
+                        "1572920":{"position": [179.741943, 344.743195, 7.638664]},
+                        "1572921":{"position": [179.741943, 344.743195, -1.03509]}
+                    }
+                }
+            }
+        },
+        "Phendrana Drifts": {
+            "rooms": {
+                "Chamber Access": {
+                    "triggers": [
+                        {
+                            "id": 3145739, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [
+                                272.64975,
+                                -1212.179688,
+                                23.720261
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                11.0
+                            ]
+                        }
+                    ]
+                },
+                "Chapel of the Elders": {
+                    "addConnections": [
+                        {
+                            "senderId": 917519, // [Trigger] Sheegoth Trigger
+                            "targetId": 917521, // [Relay] Sheegoth Mover Relay
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 917519, // [Trigger] Sheegoth Trigger
+                            "targetId": 917521, // [Relay] Sheegoth Mover Relay
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 917520, // [IceSheegoth] Mama
+                            "targetId": 917516, // [Timer] Sheegoth Move Delay
+                            "state": "DEATH_RATTLE",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 917516, // [Timer] Sheegoth Move Delay
+                            "targetId": 917521, // [Relay] Sheegoth Mover Relay
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 917521, // [Relay] Sheegoth Mover Relay
+                            "targetId": 917522, // [SpecialFunction] Sheegoth Mover
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 917522, // [SpecialFunction] Sheegoth Mover
+                            "targetId": 917520, // [IceSheegoth] Mama
+                            "state": "PLAY",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 917522, // [SpecialFunction] Sheegoth Mover
+                            "targetId": 917517, // [Waypoint] Sheegoth Reposition
+                            "state": "PLAY",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 917520, // [IceSheegoth] Mama
+                            "targetId": 917522, // [SpecialFunction] Sheegoth Mover
+                            "state": "DEAD",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "specialFunctions": [
+                        {
+                            "id": 917522, // [SpecialFunction] Sheegoth Mover
+                            "type": "ObjectFollowObject",
+                            "active": false
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 917516, // [Timer] Sheegoth Move Delay
+                            "time": 2.984
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 917542, // [Trigger] Trigger Lower Pickup
+                            "position": [
+                                -401.693207,
+                                -172.594421,
+                                46.544167
+                            ]
+                        },
+                        {
+                            "id": 917519, // [Trigger] Sheegoth Trigger
+                            "position": [
+                                -403.054199,
+                                -172.594421,
+                                35.896568
+                            ],
+                            "scale": [
+                                15.0,
+                                15.0,
+                                10.0
+                            ],
+                            "flags": 2
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 917521, // [Relay] Sheegoth Mover Relay
+                            "active": false
+                        }
+                    ],
+                    "waypoints": [
+                        {
+                            "id": 917517, // [Waypoint] Sheegoth Reposition
+                            "position": [
+                                -389.461609,
+                                -172.501587,
+                                32.737988
+                            ]
+                        }
+                    ]
+                },
+                "Chapel Tunnel": {
+                    "deleteIds": [
+                        721086,
+                        721087
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 720982, // [Actor] Actor - Moveable Block Section
+                            "targetId": 720904, // [SpecialFunction] Right Row Destroyed
+                            "state": "INACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 720985, // [Actor] Actor - Movable Block section
+                            "targetId": 720903, // [SpecialFunction] Left Row Destroyed
+                            "state": "INACTIVE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 720906, // [Timer] Delete Right Blocks
+                            "targetId": 720982, // [Actor] Actor - Moveable Block Section
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720906, // [Timer] Delete Right Blocks
+                            "targetId": 720974, // [Actor] Actor - Immobile Block Section
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720906, // [Timer] Delete Right Blocks
+                            "targetId": 720990, // [DamageableTrigger] DamageableTrigger
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720906, // [Timer] Delete Right Blocks
+                            "targetId": 720988, // [DamageableTrigger] DamageableTrigger
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720905, // [Timer] Delete Left Blocks
+                            "targetId": 720985, // [Actor] Actor - Movable Block section
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720905, // [Timer] Delete Left Blocks
+                            "targetId": 720957, // [Actor] Actor - Immobile Block section
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720905, // [Timer] Delete Left Blocks
+                            "targetId": 720991, // [DamageableTrigger] DamageableTrigger
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 720905, // [Timer] Delete Left Blocks
+                            "targetId": 720989, // [DamageableTrigger] DamageableTrigger
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 720906, // [Timer] Delete Right Blocks
+                            "time": 0.001,
+                            "layer": 1,
+                            "startImmediately": true
+                        },
+                        {
+                            "id": 720905, // [Timer] Delete Left Blocks
+                            "time": 0.001,
+                            "layer": 2,
+                            "startImmediately": true
+                        }
+                    ]
+                },
+                "Chozo Ice Temple": {
+                    // Invisible cutscene black bars fix
+                    "cameraFilterKeyframes": [
+                        {
+                            "id": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
+                            "color": [0, 0, 0, 1],
+                            "filterIndex": 1,
+                            "filterType": "Multiply",
+                            "filterShape": "CinemaBars"
+                        },
+                        {
+                            "id": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "color": [0, 0, 0, 1],
+                            "filterIndex": 1,
+                            "filterType": "Multiply",
+                            "filterShape": "CinemaBars"
+                        }
+                    ]
+                },
+                "Control Tower": {
+                    "editObjs": {
+                        // CameraFilterKeyframes
+                        "2556550": {
+                            "layer": 0
+                        },
+                        "2556628": {
+                            "layer": 0
+                        },
+                        "2557033": {
+                            "layer": 0
+                        }
+                    },
+                    "deleteIds": [
+                        2557275, // [Trigger] Trigger - Fallen Tower - outside_hole_fixed_deactivate
+                        2556985,
+                        2556990,
+                        2556986
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 3555917, // [Trigger] Activate Reposition
+                            "targetId": 3556929, // [SpawnPoint] Softlock Prevention
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 3555917, // [Trigger] Activate Reposition
+                            "targetId": 3556929, // [SpawnPoint] Softlock Prevention
+                            "state": "EXITED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2556612, // [Camera] camera1
+                            "targetId": 3556929, // [SpawnPoint] Softlock Prevention
+                            "state": "ACTIVE",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 3555917, // [Trigger] Activate Reposition
+                            "position": [
+                                -8.342122,
+                                -802.716248,
+                                181.3246
+                            ],
+                            "scale": [
+                                20.0,
+                                9.0,
+                                30.0
+                            ]
+                        },
+                        {
+                            "id": 2556922, // [Trigger] Trigger - Fallen Tower - outside_hole_fixed_inc
+                            "position": [
+                                -6.468899,
+                                -814.076294,
+                                159.2771
+                            ],
+                            "scale": [
+                                8.451,
+                                9.234985,
+                                7.127991
+                            ]
+                        }
+                    ],
+                    "spawnPoints": [
+                        {
+                            "id": 3556929, // [SpawnPoint] Softlock Prevention
+                            "active": false,
+                            "position": [
+                                -6.084717,
+                                -800.221863,
+                                163.43956
+                            ],
+                            "rotation": [
+                                0.0,
+                                0.0,
+                                -180.0
+                            ]
+                        }
+                    ]
+                },
+                "Frozen Pike": {
+                    "triggers": [
+                        {
+                            "id": 2228515, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                179.948746,
+                                -959.346985,
+                                82.717468
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                9.0
+                            ],
+                            "active": false
+                        }
+                    ]
+                },
+                "Gravity Chamber": {
+                    "triggers": [
+                        {
+                            "id": 3473432, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                334.078766,
+                                -1189.679688,
+                                18.720263
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                9.0
+                            ]
+                        }
+                    ]
+                },
+                "Ice Ruins West": {
+                    "timers": [
+                        {
+                            "id": 600310, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 600309, // [Timer] Timer Jingle
+                            "time": 0.001
+                        }
+                    ]
+                },
+                "Observatory": {
+                    "removeConnections": [
+                        {
+                            "senderId": 1966385, // [Relay] Relay - Make Puzzle Solved
+                            "targetId": 1966522, // [Relay] Relay - [IN] Activate Holograms
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1966522, // [Relay] Relay - [IN] Activate Holograms
+                            "targetId": 1966504, // [Effect] Effect - Sun Glow
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 1966385, // [Relay] Relay - Make Puzzle Solved
+                            "targetId": 1966826, // [Relay] Counter - dead pirates active panel
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1966385, // [Relay] Relay - Make Puzzle Solved
+                            "targetId": 1999925, // [Relay] Better Observatory Activation
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966463, // [Actor] Actor
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966480, // [Actor] Actor-trajectorylines
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1966522, // [Relay] Relay - [IN] Activate Holograms
+                            "targetId": 1966504, // [Effect] Effect - Sun Glow
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966504, // [Effect] Effect - Sun Glow
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966491, // [PointOfInterest] POI_11_Ice Ob Planet Tallon 4.scan
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966498, // [PointOfInterest] POI_11_Ice Ob Planet 3.scan
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966499, // [PointOfInterest] POI_11_Ice Ob Planet 4.scan
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966500, // [PointOfInterest] POI_11_Ice Ob Planet 5.scan
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966484, // [PointOfInterest] POI_11_Ice Ob Planet Zebes.scan
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966536, // [PointOfInterest] POI_11_Ice Ob Side Holo 2.scan
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1999925, // [Relay] Better Observatory Activation
+                            "targetId": 1966530, // [PointOfInterest] POI_11_Ice Ob Side Holo 1.scan
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1966174, // [Counter] Counter - All Arms Activated
+                            "targetId": 1996355, // [SpecialFunction] Observatory Activated
+                            "state": "MAX_REACHED",
+                            "message": "INCREMENT"
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 1999925 // [Relay] Better Observatory Activation
+                        }
+                    ]
+                },
+                "Phendrana Canyon": {
+                    "removeConnections": [
+                        {
+                            "senderId": 1049595, // [Relay] Relay
+                            "targetId": 1049594, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 1049595, // [Relay] Relay
+                            "targetId": 1049594, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "spawnPoints": [
+                        {
+                            "id": 1049594, // Spawn point
+                            "position": [-254.896194, -311.675629, 0.888505],
+                            "rotation": [0.0, 0.0, 150.413391]
+                        }
+                    ]
+                },
+                "Phendrana Shorelines": {
+                    "deleteIds": [
+                        131796, // [Effect] Effect_steam
+                        131799, // [Effect] Effect_drops
+                        131798, // [Effect] Effect_drops
+                        131802, // [Effect] Effect_drops
+                        131803, // [Timer] Timer_dropmis
+                        131801 // [Timer] Timer_effectshutoof
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 131895, // [Relay] Relay_starteffects
+                            "targetId": 131894, // [Platform] Platform_IceBlock
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 131895, // [Relay] Relay_starteffects
+                            "targetId": 131894, // [Platform] Platform_IceBlock
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131895, // [Relay] Relay_starteffects
+                            "targetId": 131349, // [Generator] Generator
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 131406, // [Relay] Relay-start of cinema
+                            "targetId": 131080, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 131552, // [Trigger] Trigger - To 00k_Ice_connect
+                            "targetId": 131080, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131553, // [Trigger] Trigger - To generic_z4
+                            "targetId": 131080, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131553, // [Trigger] Trigger - To generic_z4
+                            "targetId": 131080, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131554, // [Trigger] Trigger - To Generic_z5
+                            "targetId": 131080, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131555, // [Trigger] Trigger - To generic_z7
+                            "targetId": 131080, // [SpawnPoint] Spawn point
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 131095, // [Timer] Deactivate Ridley
+                            "targetId": 131747, // [Platform] Platform
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 131095, // [Timer] Deactivate Ridley
+                            "time": 0.001,
+                            "active": true,
+                            "startImmediately": true
+                        }
+                    ]
+                },
+                "Quarantine Cave": {
+                    "addConnections": [
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555500, // [SpecialFunction] [DEC] Alcove
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555501, // [SpecialFunction] [INC] Alcove
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555502, // [SpecialFunction] [DEC] Arbor Chamber
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555503, // [SpecialFunction] [INC] Arbor Chamber
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555504, // [SpecialFunction] [DEC] Canyon Cavern
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555505, // [SpecialFunction] [INC] Canyon Cavern
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555506, // [SpecialFunction] [DEC] Frigate Access Tunnel
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555507, // [SpecialFunction] [INC] Frigate Access Tunnel
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555508, // [SpecialFunction] [DEC] Frigate Crash Site
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555509, // [SpecialFunction] [INC] Frigate Crash Site
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555510, // [SpecialFunction] [DEC] Gully
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555511, // [SpecialFunction] [INC] Gully
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555512, // [SpecialFunction] [DEC] Overgrown Cavern
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555513, // [SpecialFunction] [INC] Overgrown Cavern
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555514, // [SpecialFunction] [DEC] Root Cave
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555515, // [SpecialFunction] [INC] Root Cave
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555516, // [SpecialFunction] [DEC] Root Tunnel
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555517, // [SpecialFunction] [INC] Root Tunnel
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555518, // [SpecialFunction] [DEC] Tallon Canyon
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555519, // [SpecialFunction] [INC] Tallon Canyon
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555520, // [SpecialFunction] [DEC] Temple Hall
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555521, // [SpecialFunction] [INC] Temple Hall
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555522, // [SpecialFunction] [DEC] Temple Lobby
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555523, // [SpecialFunction] [INC] Temple Lobby
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555524, // [SpecialFunction] [DEC] Temple Security Station
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555525, // [SpecialFunction] [INC] Temple Security Station
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555526, // [SpecialFunction] [DEC] Transport Tunnel A
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555527, // [SpecialFunction] [INC] Transport Tunnel A
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555528, // [SpecialFunction] [DEC] Transport Tunnel B
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555529, // [SpecialFunction] [INC] Transport Tunnel B
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555530, // [SpecialFunction] [DEC] Transport Tunnel C
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555531, // [SpecialFunction] [INC] Transport Tunnel C
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555532, // [SpecialFunction] [DEC] Waterfall Cavern
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1573400, // [Relay] Relay-start of cinema
+                            "targetId": 5555533, // [SpecialFunction] [INC] Waterfall Cavern
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        }
+                    ]
+                },
+                "Research Core": {
+                    "removeConnections": [
+                        {
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621724, // [Pickup] P_Thermal_01
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 2622472, // [Camera] Cinematic Camera 1
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622473, // [Camera] Cinematic Camera 2
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622474, // [Camera] Cinematic Camera 3 
+                            "targetId": 2621463, // [CameraWaypoint] Item Target
+                            "state": "CAMERA_TARGET",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2622540, // [Camera] Unpowered Door Cinematic Camera
+                            "targetId": 2622450, // [SpawnPoint] Post-Pickup Spawn
+                            "state": "ACTIVE",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2622568, // [Relay] Relay Master Layer Switch
+                            "targetId": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        }
+                    ],
+                    "cameraWaypoints": [
+                        {
+                            "id": 2621463, // [CameraWaypoint] Item Target
+                            "layer": 1,
+                            "position": [52.230732, -997.426697, 54.213894]
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 2622140, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [81.294876, -997.477783, 52.713493],
+                            "scale": [20.0, 40.0, 4.0]
+                        }
+                    ]
+                },
+                "Ruined Courtyard": {
+                    "timers": [
+                        {
+                            "id": 983121, // [Timer] Timer - Water Going Down Time
+                            "time": 15.0
+                        }
+                    ]
+                },
+                "Security Cave": {
+                    "timers": [
+                        {
+                            "id": 3604515, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 3604514, // [Timer] Timer Jingle
+                            "time": 0.001
+                        }
+                    ]
+                },
+                "Specimen Storage": {
+                    "deleteIds": [
+                        1179719 // [SpecialFunction] SpecialFunction-increment
+                    ]
+                }
+            }
+        },
+        "Tallon Overworld": {
+            "rooms": {
+                "Artifact Temple": {
+                    "addConnections": [
+                        {
+                            "senderId": 1048578, // [SpawnPoint] Spawn point - NON-Teleporter Spawn
+                            "targetId": 2048598, // [Relay] Play Teleporter Sounds
+                            "state": "INACTIVE",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2048598, // [Relay] Play Teleporter Sounds
+                            "targetId": 1048599, // [Relay] Stop Teleporter Sounds
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2048598, // [Relay] Play Teleporter Sounds
+                            "targetId": 1049412, // [Sound] Sound - LightShaft
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 2048598, // [Relay] Play Teleporter Sounds
+                            "targetId": 1049958, // [Sound] Sound - TeleportCircle
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1048599, // [Relay] Stop Teleporter Sounds
+                            "targetId": 2048598, // [Relay] Play Teleporter Sounds
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1048599, // [Relay] Stop Teleporter Sounds
+                            "targetId": 1049412, // [Sound] Sound - LightShaft
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 1048599, // [Relay] Stop Teleporter Sounds
+                            "targetId": 1049958, // [Sound] Sound - TeleportCircle
+                            "state": "ZERO",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 1049299, // [Trigger] Trigger - Start Arriving Sequence
+                            "targetId": 1049412, // [Sound] Sound - LightShaft
+                            "state": "ENTERED",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1049299, // [Trigger] Trigger - Start Arriving Sequence
+                            "targetId": 1049958, // [Sound] Sound - TeleportCircle
+                            "state": "ENTERED",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1049980, // [Timer] Timer Frame Delay
+                            "targetId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1048863, // [Counter] Counter - Monoliths left to Activate
+                            "targetId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "targetId": 1049034, // [Relay] !Relay Start of Ridley Intro Cinematic
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049034, // [Relay] !Relay Start of Ridley Intro Cinematic
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049400, // [HUDMemo] HUDMemo Pickup
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049107, // [Relay] !Relay End of Ridley Intro Cinematic
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049784, // [Relay] Relay - TurnOffTotemSFX
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049032, // [Actor] Actor_tot_leg
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049031, // [Actor] Actor_tot_bot
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049040, // [Platform] Platform_tot_mid
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049041, // [Platform] Platform_tot_top
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1049029, // [Platform] Platform_totemoff
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048944, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048945, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048946, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048947, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048948, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048949, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048950, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048951, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048952, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048953, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048954, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048955, // [Actor] Actor Chozo Hologram
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048604, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048699, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048680, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048661, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048642, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048623, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048794, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048775, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048756, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048737, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048718, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048813, // [Actor] Actor Blue Lines
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048833, // [Ridley] Ridley
+                            "state": "ZERO",
+                            "message": "RESET"
+                        },
+                        {
+                            "senderId": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "targetId": 1048834, // [Relay] Relay - Ridley activate
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "spawnPoints": [
+                        {
+                            "id": 1049962, // [SpawnPoint] Spawn point
+                            "position": [
+                                -367.80719,
+                                24.507858,
+                                -38.956364
+                            ],
+                            "rotation": [
+                                0,
+                                0,
+                                8.070473
+                            ],
+                            "defaultSpawn": false
+                        }
+                    ],
+                    "relays": [
+                        {
+                            "id": 2048598, // [Relay] Play Teleporter Sounds
+                            "active": false
+                        },
+                        {
+                            "id": 1048599, // [Relay] Stop Teleporter Sounds
+                            "active": false
+                        },
+                        {
+                            "id": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "active": false
+                        }
+                    ]
+                },
+                "Frigate Crash Site": {
+                    "deleteIds": [
+                        524576,
+                        524614,
+                        524652,
+                        524653,
+                        524577,
+                        524615
+                    ],
+                    "triggers": [
+                        {
+                            "id": 524318, // [Trigger] Trigger_DoorOpen (Overgrown Cavern)
+                            "position": [
+                                -238.743713,
+                                466.984558,
+                                -41.392731
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                8.0
+                            ]
+                        },
+                        {
+                            "id": 524684, // [Trigger] Trigger_DoorOpen (Waterfall Cavern)
+                            "position": [
+                                -105.137741,
+                                554.561218,
+                                -4.001228
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                11.0
+                            ]
+                        }
+                    ]
+                },
+                "Great Tree Hall": {
+                    "deleteIds": [
+                        2359647,
+                        2359658,
+                        2359669,
+                        2359680,
+                        2359691,
+                        2359702,
+                        2359648,
+                        2359659,
+                        2359670,
+                        2359681,
+                        2359692,
+                        2359703
+                    ]
+                },
+                "Gully": {
+                    "deleteIds": [
+                        65624,
+                        65586,
+                        65623,
+                        65585
+                    ]
+                },
+                "Landing Site": {
+                    "addConnections": [
+                        {
+                            "senderId": 610, // [Relay] Relay-end of cinema
+                            "targetId": 635, // [MemoryRelay] Memory Relay - Activate Ship Idle Sound
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 467, // [Trigger] Trigger Save Station In
+                            "targetId": 635, // [MemoryRelay] Memory Relay - Activate Ship Idle Sound
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 221, // [Trigger] Trigger Start Overworld Cinematic
+                            "targetId": 111111, // [Timer] Ship Sounds Activator
+                            "state": "ENTERED",
+                            "message": "STOP"
+                        },
+                        {
+                            "senderId": 111111, // [Timer] Ship Sounds Activator
+                            "targetId": 635, // [MemoryRelay] Memory Relay - Activate Ship Idle Sound
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 111111, // [Timer] Ship Sounds Activator
+                            "time": 0.02,
+                            "startImmediately": true
+                        }
+                    ]
+                },
+                "Life Grove": {
+                    "deleteIds": [
+                        2752911,
+                        2752912
+                    ]
+                },
+                "Life Grove Tunnel": {
+                    "deleteIds": [
+                        2555998,
+                        2556038,
+                        2556090,
+                        2555999,
+                        2556039,
+                        2556091
+                    ]
+                },
+                "Main Ventilation Shaft Section B": {
+                    "deleteIds": [
+                        1376292,
+                        1376293
+                    ]
+                },
+                "Main Ventilation Shaft Section C": {
+                    "deleteIds": [
+                        1114223,
+                        1114222,
+                        1114224
+                    ]
+                },
+                "Root Cave": {
+                    "triggers": [
+                        {
+                            "id": 983113, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                -659.227417,
+                                310.424774,
+                                -42.451237
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                10.0
+                            ]
+                        },
+                        {
+                            "id": 983267, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                -694.973267,
+                                339.468536,
+                                37.531601
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                8.0
+                            ]
+                        }
+                    ]
+                },
+                "Root Tunnel": {
+                    "deleteIds": [
+                        655532,
+                        655570,
+                        655608,
+                        655646,
+                        655684,
+                        655533,
+                        655571,
+                        655609,
+                        655647,
+                        655685
+                    ]
+                },
+                "Tallon Canyon": {
+                    "deleteIds": [
+                        393485,
+                        393531,
+                        393486,
+                        393532
+                    ],
+                    "triggers": [
+                        {
+                            "id": 393401, // [Trigger] Trigger_DoorOpen (Canyon Cavern)
+                            "position": [
+                                -469.325409,
+                                331.966278,
+                                -21.892815
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                8.0
+                            ]
+                        },
+                        {
+                            "id": 393407, // [Trigger] Trigger_DoorOpen (Transport Tunnel A)
+                            "position": [
+                                -528.989136,
+                                403.330994,
+                                -21.473698
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                11.0
+                            ]
+                        }
+                    ]
+                },
+                "Transport Tunnel A": {
+                    "deleteIds": [
+                        590068,
+                        590030,
+                        589992,
+                        589954,
+                        590069,
+                        590031,
+                        589993,
+                        589955
+                    ]
+                },
+                "Transport Tunnel B": {
+                    "deleteIds": [
+                        1245318,
+                        1245356,
+                        1245394,
+                        1245432,
+                        1245319,
+                        1245357,
+                        1245395,
+                        1245433
+                    ]
+                },
+                "Transport Tunnel D": {
+                    "deleteIds": [
+                        2490400,
+                        2490455,
+                        2490647,
+                        2490687,
+                        2490401,
+                        2490456,
+                        2490648,
+                        2490688
+                    ]
+                }
+            }
+        },
+        "Phazon Mines": {
+            "rooms": {
+                "Save Station Mines A": {
+                    // Automatically unlock Save Station when loading in from behind the bars
+                    "addConnections": [
+                        {
+                            "senderId": 262233,
+                            "state": "ENTERED",
+                            "targetId": 262170,
+                            "message": "SET_TO_ZERO"
+                        }
+                    ]
+                },
+                "Central Dynamo": {
+                    // Maze Softlock fix (Additional connections so that the fixed camera is always deactivated for good at the end.)
+                    "addConnections": [
+                        {
+                            "senderId": 1770856, // [Relay] Relay End Cinematic
+                            "targetId": 1769493, // [CameraHint] Camera Hint_electric1
+                            "state": "ZERO",
+                            "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 1770856, // [Relay] Relay End Cinematic
+                            "targetId": 1770869, // [PlayerHint] Player Hint_no_FP_under_grate
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1770320, // [Relay] Relay Start Cinematic
+                            "targetId": 1770226, // [Actor] Actor Entry Door
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        }
+                    ]
+                },
+                "Elevator A": {
+                    "deleteIds": [
+                        917596,
+                        917584,
+                        917608,
+                        917607,
+                        917583,
+                        917595
+                    ]
+                },
+                "Elite Control Access": {
+                    "deleteIds": [
+                        983177,
+                        983176
+                    ]
+                },
+                "Elite Quarters": {
+                    "removeConnections": [
+                        {
+                            "senderId": 1704898, // [Camera] camera 6-last panning shot
+                            "targetId": 1704775, // [Relay] Relay Post Pickup
+                            "state": "INACTIVE",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 1704597, // [Relay] Relay-start of cinema
+                            "targetId": 1705171, // [PlayerHint] Player Hint Combat Visor
+                            "state": "ZERO",
+                            "message": "INCREMENT"
+                        }
+                    ]
+                },
+                "Main Quarry": {
+                    "deleteIds": [
+                        131788,
+                        131789,
+                        131793
+                    ]
+                },
+                "Map Station Mines": {
+                    "deleteIds": [
+                        1507557,
+                        1507558,
+                        1507559,
+                        1507560
+                    ]
+                },
+                "Metroid Quarantine A": {
+                    "deleteIds": [
+                        2097712,
+                        2097743,
+                        2098132,
+                        2098138,
+                        2097711,
+                        2097742,
+                        2098131,
+                        2098137,
+                        2098931,
+                        2098930,
+                        2099052,
+                        2099051,
+                        2098933,
+                        2098934,
+                        2099054,
+                        2098835,
+                        2099053,
+                        2098834,
+                        2098837,
+                        2099055
+                    ]
+                },
+                "Metroid Quarantine B": {
+                    "deleteIds": [
+                        2031962,
+                        2031961
+                    ],
+                    "triggers": [
+                        {
+                            "id": 2031951, // [Trigger] New Save Station Load Trigger
+                            "active": true,
+                            "position": [
+                                -73.027214,
+                                -101.445007,
+                                -151.436066
+                            ],
+                            "scale": [
+                                40.0,
+                                80.0,
+                                10.0
+                            ]
+                        },
+                        {
+                            "id": 2032463, // [Trigger] New Elite Quarters Access Load Trigger
+                            "active": true,
+                            "position": [
+                                -78.581497,
+                                -94.687851,
+                                -138.01181
+                            ],
+                            "scale": [
+                                40.0,
+                                90.0,
+                                10.0
+                            ]
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 2031951, // [Trigger] New Save Station Load Trigger
+                            "targetId": 2032446, // [Dock] Dock to 00_mines_savestation_d
+                            "state": "ENTERED",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 2031951, // [Trigger] New Save Station Load Trigger
+                            "targetId": 2031618, // [Dock] Dock to 00o_mines_connect
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2031951, // [Trigger] New Save Station Load Trigger
+                            "targetId": 2031617, // [Dock] Dock to 00n_mines_connect
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2032463, // [Trigger] New Elite Quarters Access Load Trigger
+                            "targetId": 2032446, // [Dock] Dock to 00_mines_savestation_d
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2032463, // [Trigger] New Elite Quarters Access Load Trigger
+                            "targetId": 2031618, // [Dock] Dock to 00o_mines_connect
+                            "state": "ENTERED",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 2032463, // [Trigger] New Elite Quarters Access Load Trigger
+                            "targetId": 2031617, // [Dock] Dock to 00n_mines_connect
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ]
+                },
+                "Mine Security Station": {
+                    "removeConnections": [
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460060, // [Counter] Counter - dead Shadow Pirates - kill before upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459223, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 459224, // [SpacePirate] SpacePirate-MELEE
+                            "targetId": 460062, // [Counter] Counter - dead Shadow Pirates - kill upstairs
+                            "state": "DEATH_RATTLE",
+                            "message": "INCREMENT"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 459954, // [Trigger] Trigger -activate trooper
+                            "position": [
+                                -15.26812,
+                                20.186085,
+                                15.073245
+                            ],
+                            "scale": [
+                                16.041,
+                                4.464,
+                                11.5
+                            ]
+                        }
+                    ]
+                },
+                "Omega Research": {
+                    "deleteIds": [
+                        1311270,
+                        1311252,
+                        1311271,
+                        1311253,
+                        1312012,
+                        1312014,
+                        1312267,
+                        1312266,
+                        1312264,
+                        1312265,
+                        1312013,
+                        1312015,
+                        1312268
+                    ]
+                },
+                "Quarry Access": {
+                    "deleteIds": [
+                        65627,
+                        65657,
+                        65631,
+                        65661,
+                        65656,
+                        65626
+                    ]
+                },
+                "Security Access A": {
+                    "deleteIds": [
+                        327942,
+                        327912,
+                        327947,
+                        327917,
+                        327913,
+                        327943
+                    ]
+                },
+                "Ventilation Shaft": {
+                    // Better Load Trigger Positions
+                    "addConnections": [
+                        {
+                            "senderId": 1179905, // [Trigger] Load Elite Control
+                            "targetId": 1179650, // [Dock] Dock - 05_mines_forcefields
+                            "state": "ENTERED",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 1179905, // [Trigger] Load Elite Control
+                            "targetId": 1179649, // [Dock] Dock - 06_mines_elitebustout
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1179906, // [Trigger] Load Omega Research
+                            "targetId": 1179649, // [Dock] Dock - 06_mines_elitebustout
+                            "state": "ENTERED",
+                            "message": "SET_TO_MAX"
+                        },
+                        {
+                            "senderId": 1179906, // [Trigger] Load Omega Research
+                            "targetId": 1179650, // [Dock] Dock - 05_mines_forcefields
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 1179905, // [Trigger] Load Elite Control
+                            "active": true,
+                            "position": [
+                                25.16172,
+                                69.354729,
+                                -47.47015
+                            ],
+                            "scale": [
+                                5.0,
+                                5.0,
+                                20.0
+                            ]
+                        },
+                        {
+                            "id": 1179906, // [Trigger] Load Omega Research
+                            "active": true,
+                            "position": [
+                                42.751381,
+                                62.091549,
+                                -49.858238
+                            ],
+                            "scale": [
+                                20.0,
+                                18.0,
+                                15.0
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "Magmoor Caverns": {
+            "rooms": {
+                "Fiery Shores": {
+                    // Remove DebrisExtended to save memory
+                    "deleteIds": [
+                        917866,
+                        917867,
+                        917871,
+                        917876,
+                        917877,
+                        917878,
+                        917879,
+                        917880,
+                        917881,
+                        917883,
+                        917884,
+                        917870,
+                        917869,
+                        917868,
+                        917872,
+                        917873,
+                        917613,
+                        917614,
+                        917615,
+                        917618,
+                        917619,
+                        917620,
+                        917621,
+                        918141,
+                        918146,
+                        918149,
+                        918148,
+                        918147,
+                        918145,
+                        918144,
+                        918143,
+                        917617,
+                        917616
+                    ],
+                    "timers": [
+                        {
+                            "id": 918089, // [Timer] Timer HUD
+                            "time": 0.025
+                        },
+                        {
+                            "id": 918088, // [Timer] Timer Jingle
+                            "time": 0.001
+                        }
+                    ]
+                },
+                "Geothermal Core": {
+                    "deleteIds": [
+                        1310784 // [Trigger] Trigger - exitPlat
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 1311191, // [Camera] Cinematic Camera
+                            "targetId": 1310791, // [Timer] Platform Activate Delay
+                            "state": "ACTIVE",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 1310791, // [Timer] Platform Activate Delay
+                            "targetId": 1310782, // [Actor] Actor - exitPlat
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 1310791, // [Timer] Platform Activate Delay
+                            "time": 5.5
+                        }
+                    ]
+                },
+                "Lava Lake": {
+                    "addConnections": [
+                        {
+                            "senderId": 272887, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 272966, // [SpawnPoint] Spawn point
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272887, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 272748, // [PlayerActor] PlayerActor_B_rready
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 272548, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272564, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272549, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272556, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272535, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272258, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272257, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272259, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 272193, // [Puffer] 07/06/02 Alpha Puffer MMT
+                            "targetId": 272221, // [PickupGenerator] Pickup Generator
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 262226, // [DamageableTrigger] West Bomb Block
+                            "targetId": 262188, // [SpecialFunction] West Bomb Block Destroyed
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 262204, // [DamageableTrigger] East Bomb Block
+                            "targetId": 262189, // [SpecialFunction] East Bomb Block Destroyed
+                            "state": "DEAD",
+                            "message": "INCREMENT"
+                        },
+                        {
+                            "senderId": 262158, // [Timer] Delete West
+                            "targetId": 262225, // [Actor] Breakable Block
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 262158, // [Timer] Delete West
+                            "targetId": 262226, // [DamageableTrigger] West Bomb Block
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 262159, // [Timer] Delete East
+                            "targetId": 262203, // [Actor] Breakable Block
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 262159, // [Timer] Delete East
+                            "targetId": 262204, // [DamageableTrigger] East Bomb Block
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "timers": [
+                        {
+                            "id": 262158, // [Timer] Delete West
+                            "time": 0.001,
+                            "layer": 5,
+                            "startImmediately": true
+                        },
+                        {
+                            "id": 262159, // [Timer] Delete East
+                            "time": 0.001,
+                            "layer": 6,
+                            "startImmediately": true
+                        }
+                    ]
+                },
+                "Magmoor Workstation": {
+                    "triggers": [
+                        {
+                            "id": 1508012, // [Trigger] Trigger_DoorOpen
+                            "position": [
+                                437.994446,
+                                -1042.127319,
+                                48.506001
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                8.5
+                            ],
+                            "active": false
+                        }
+                    ]
+                },
+                "Monitor Station": {
+                    // Remove debris extended to save memory
+                    "deleteIds": [
+                        590198,
+                        590199,
+                        590203,
+                        590208,
+                        590209,
+                        590210,
+                        590211,
+                        590212,
+                        590213,
+                        590214,
+                        590215,
+                        590216,
+                        590202,
+                        590201,
+                        590200,
+                        590204,
+                        590205,
+                        589937,
+                        589938,
+                        589939,
+                        589987,
+                        589988,
+                        589989,
+                        589997,
+                        589998,
+                        589999,
+                        590004,
+                        590005,
+                        590006,
+                        590139,
+                        590475,
+                        590476,
+                        590477,
+                        590478,
+                        590494,
+                        590495,
+                        590496,
+                        590497,
+                        590513,
+                        590514,
+                        590515,
+                        590516,
+                        590532,
+                        590533,
+                        590534,
+                        590535,
+                        590144,
+                        590147,
+                        590146,
+                        590145,
+                        590143,
+                        590142,
+                        590141
+                    ]
+                },
+                "Transport Tunnel C": {
+                    "removeConnections": [
+                        {
+                            "senderId": 1638410, // [Door] Door_Area
+                            "targetId": 1638402, // [Dock] Dock to 10_over1alavaarea
+                            "state": "CLOSED",
+                            "message": "INCREMENT"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 1638410, // [Door] Door_Area
+                            "targetId": 1638402, // [Dock] Dock to 10_over1alavaarea
+                            "state": "CLOSED",
+                            "message": "DECREMENT"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 1638562, // [Trigger] Trigger to 10_over1alavaarea
+                            "position": [
+                                367.652466,
+                                -980.958923,
+                                48.479752
+                            ],
+                            "scale": [
+                                8.0,
+                                1.0,
+                                8.0
+                            ]
+                        },
+                        {
+                            "id": 1638561, // [Trigger] Trigger to 00_lava_elev_ice_d
+                            "position": [
+                                367.652466,
+                                -976.237122,
+                                48.460541
+                            ],
+                            "scale": [
+                                8.0,
+                                1.0,
+                                8.0
+                            ]
+                        }
+                    ]
+                },
+                "Twin Fires Tunnel": {
+                    // chonker
+                    "triggers": [
+                        {
+                            "id": 1114156, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [
+                                359.223602,
+                                -573.8396,
+                                35.357414
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                16.0
+                            ]
+                        },
+                        {
+                            "id": 1114162, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [
+                                309.048279,
+                                -638.155884,
+                                38.124199
+                            ],
+                            "scale": [
+                                10.0,
+                                20.0,
+                                16.0
+                            ]
+                        }
+                    ]
+                },
+                "Warrior Shrine": {
+                    "deleteIds": [
+                        720937,
+                        720938,
+                        720939,
+                        720940,
+                        720941,
+                        720942,
+                        720943,
+                        720944,
+                        720945
+                    ],
+                    "triggers": [
+                        {
+                            "id": 720905, // [Trigger] Trigger_DoorOpen
+                            "active": false,
+                            "position": [
+                                274.873657,
+                                -289.401978,
+                                59.116589
+                            ],
+                            "scale": [
+                                20.0,
+                                10.0,
+                                10.0
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "Impact Crater": {
+            "rooms": {
+                "Crater Entry Point": {
+                    "deleteIds": [
+                        173,
+                        172,
+                        171
+                    ]
+                },
+                "Subchamber Four": {
+                    // Destroy Energy Orbs when Exo dipping Cutscene Starts
+                    "addConnections": [
+                        {
+                            "senderId": 589858, // [Relay] Relay
+                            "targetId": 689826, // [Trigger] Destroy Energy Balls
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 589858, // [Relay] Relay
+                            "targetId": 589938, // [PickupGenerator] PickupGenerator
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 689826,
+                            "active": false,
+                            "position": [
+                                7.918359,
+                                -227.698868,
+                                -122.937988
+                            ],
+                            "scale": [
+                                116.270996,
+                                51.949005,
+                                49.259003
+                            ],
+                            "damageType": "Missile",
+                            "damageAmount": 30.0,
+                            "flags": 2
+                        }
+                    ]
+                },
+                "Subchamber Three": {
+                    // Destroy Energy Orbs when Exo dipping Cutscene Starts
+                    "addConnections": [
+                        {
+                            "senderId": 524325, // [Relay] Relay
+                            "targetId": 624291, // [Trigger] Destroy Energy Balls
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 524325, // [Relay] Relay
+                            "targetId": 524421, // [PickupGenerator] PickupGenerator
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 624291,
+                            "active": false,
+                            "position": [
+                                -22.108036,
+                                -255.562607,
+                                -74.912018
+                            ],
+                            "scale": [
+                                66.162003,
+                                155.578003,
+                                51.860001
+                            ],
+                            "damageType": "Missile",
+                            "damageAmount": 30.0,
+                            "flags": 2
+                        }
+                    ]
+                },
+                "Subchamber Two": {
+                    // Destroy Energy Orbs when Exo dipping Cutscene Starts
+                    "addConnections": [
+                        {
+                            "senderId": 458812, // [Relay] Relay
+                            "targetId": 558758, // [Trigger] Destroy Energy Balls
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 458812, // [Relay] Relay
+                            "targetId": 458909, // [PickupGenerator] PickupGenerator
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 558758,
+                            "active": false,
+                            "position": [
+                                -22.069084,
+                                -327.599915,
+                                -27.776508
+                            ],
+                            "scale": [
+                                66.162003,
+                                155.578003,
+                                51.860001
+                            ],
+                            "damageType": "Missile",
+                            "damageAmount": 30.0,
+                            "flags": 2
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
