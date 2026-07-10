@@ -1,0 +1,189 @@
+{
+    "$schema": "../../schema/randomprime.schema.json",
+    "levelData": {
+        "Frigate Orpheon": {
+            "rooms": {
+                "Biotech Research Area 1": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        917554
+                    ]
+                },
+                "Biotech Research Area 2": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        458789
+                    ]
+                },
+                "Connection Elevator to Deck Alpha": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        328032,
+                        328033,
+                        328034,
+                        328038,
+                        328058
+                    ]
+                },
+                "Connection Elevator to Deck Beta": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        655456,
+                        655448
+                    ]
+                },
+                "Deck Beta Conduit Hall": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        786539,
+                        786568
+                    ]
+                },
+                "Deck Beta Security Hall": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        1048710
+                    ]
+                },
+                "Emergency Evacuation Area": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        262413,
+                        262275
+                    ]
+                },
+                "Exterior Docking Hangar": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        933, // Trigger - Add Samus to cut scene
+                        669,
+                        1089,
+                        676,
+                        685,
+                        671,
+                        675,
+                        696,
+                        672,
+                        693,
+                        691,
+                        1096,
+                        1098
+                    ]
+                },
+                "Map Facility": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        524466
+                    ]
+                },
+                "Reactor Core": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        1638690,
+                        1638605
+                    ]
+                },
+                "Reactor Core Entrance": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        1769827,
+                        1769828
+                    ]
+                }
+            }
+        },
+        "Chozo Ruins": {
+            "rooms": {
+                "Dynamo": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        2949319,
+                        2949320
+                    ]
+                },
+                "Furnace": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        3211975,
+                        3211976,
+                        3212047,
+                        3212054,
+                        3212053,
+                        3212056,
+                        3212058,
+                        3212055,
+                        3212057,
+                        3212044,
+                        3212045,
+                        3212052,
+                        3212051
+                    ]
+                },
+                "Ruined Shrine": {
+                    "deleteIds": [
+                        600280, // [SpecialFunction] SpecialFunction - check for Boost
+                        600281, // [Timer] Timer - check for boost
+                        600484, // [Timer] Timer - HUD memo
+                        600283, // [Timer] Timer - hud memo delay
+                        600285, // [Timer] Timer - hud memo delay pt 2
+                        600483, // [HUDMemo] HUDMemo - 07_reactor dash.STRG
+                        600282, // [HUDMemo] HUDMemo - need boost to use ramp
+                        600284, // [HUDMemo] HUDMemo - need boost to use ramp 2
+                        600279 // [Trigger] Trigger - boost hint
+                    ]
+                },
+                "Sun Tower": {
+                    "deleteIds": [
+                        1900904,
+                        1900905
+                    ]
+                }
+            }
+        },
+        "Phendrana Drifts": {
+            "rooms": {
+                "Frozen Pike": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        2228678,
+                        2228682
+                    ]
+                },
+                "Phendrana Canyon": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        1049573,
+                        1049574
+                    ]
+                },
+                "Research Core": {
+                    "deleteIds": [
+                        2622697, // [Trigger] ControllerAction Activation Trigger
+                        2622698, // [Timer] HUDMemo 1 Activation Timer
+                        2622701, // [Timer] HUDMemo 2 Activation Timer
+                        2622696, // [ControllerAction] ControllerAction - Switch to thermal
+                        2622699, // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 1.STRG
+                        2622700 // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 2.STRG
+                    ]
+                },
+                "Ruined Courtyard": {
+                    // Disable tutorial hudmemos
+                    "deleteIds": [
+                        983794,
+                        983795
+                    ]
+                }
+            }
+        },
+        "Tallon Overworld": {
+            "rooms": {
+                "Cargo Freight Lift to Deck Gamma": {
+                    "deleteIds": [
+                        1769724,
+                        1769739
+                    ]
+                }
+            }
+        }
+    }
+}

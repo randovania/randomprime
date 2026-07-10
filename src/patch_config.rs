@@ -2327,7 +2327,11 @@ impl PatchConfigPrivate {
             .qol_general
             .unwrap_or(!force_vanilla_layout)
         {
-            merge_json(&mut result, QOL)?;
+            // QOL is split across three files purely for readability; they are
+            // functionally equivalent to the single file they replaced.
+            merge_json(&mut result, QOL_GENERAL)?;
+            merge_json(&mut result, QOL_MUSIC)?;
+            merge_json(&mut result, QOL_TUTORIAL)?;
         }
 
         result.parse_inner(version)
