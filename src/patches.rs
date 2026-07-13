@@ -5034,9 +5034,11 @@ fn update_pickup(
         rotation: pickup_model_data.rotation,
         hitbox: original_pickup.hitbox,
         scan_offset: scan_offset.into(),
-        fade_in_timer: original_pickup.fade_in_timer,
+        // completion-percent (qolGeneral) counts a collection only when lifeTime (disappear_timer)
+        // is 0 - the static-pickup discriminator vs. runtime enemy/crate drops (always nonzero).
+        fade_in_timer: 0.0,
         spawn_delay: original_pickup.spawn_delay,
-        disappear_timer: original_pickup.disappear_timer,
+        disappear_timer: 0.0,
         active: original_pickup.active,
         drop_rate: original_pickup.drop_rate,
 

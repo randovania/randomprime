@@ -1486,6 +1486,7 @@ pub struct PatchConfig {
     pub automatic_crash_screen: bool,
     pub os_diagnostics: bool,
     pub etank_capacity: u32,
+    pub completion_percent_max: u32,
     pub shuffle_pickup_position: bool,
     pub shuffle_pickup_pos_all_rooms: bool,
     pub remove_vanilla_blast_shields: bool,
@@ -1616,6 +1617,7 @@ struct GameConfig {
     door_open_mode: Option<DoorOpenMode>,
 
     etank_capacity: Option<u32>,
+    completion_percent_max: Option<u32>,
     item_max_capacity: Option<HashMap<String, u32>>,
     missile_costs: Option<HashMap<String, u32>>,
 
@@ -2481,6 +2483,13 @@ impl PatchConfigPrivate {
             .preferences
             .qol_general
             .unwrap_or(!force_vanilla_layout);
+
+        // Must be >= 1 (the DOL patches divide by it) and <= 0x7fff to fit the P1 patch's single
+        // `li` immediate over the retail 8-byte GetTotalPickupCount function.
+        let completion_percent_max = self.game_config.completion_percent_max.unwrap_or(100);
+        if !(1..=0x7fff).contains(&completion_percent_max) {
+            panic!("completionPercentMax must be between 1 and 32767");
+        }
         let qol_cutscenes = match self
             .preferences
             .qol_cutscenes
@@ -2847,6 +2856,7 @@ impl PatchConfigPrivate {
             starting_beam,
 
             etank_capacity: self.game_config.etank_capacity.unwrap_or(100),
+            completion_percent_max,
             item_max_capacity,
             missile_costs,
 
