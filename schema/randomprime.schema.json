@@ -1414,6 +1414,22 @@
             "required": [],
             "additionalProperties": false
         },
+        "layerFiles": {
+            "description": "A list of additional JSON files whose `levelData` is merged into this config. Only `levelData` may appear in a layer file; any other top-level key is an error. Paths are used as-is; relative paths resolve against the process working directory.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "default": null
+        },
+        "layerDirs": {
+            "description": "A list of directories to enumerate for layer files. Each directory is scanned non-recursively for files ending in `.json` or `.jsonc` (case-insensitive).",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "default": null
+        },
         "levelData": {
             "type": "object",
             "properties": {

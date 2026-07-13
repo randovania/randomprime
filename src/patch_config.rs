@@ -3,6 +3,7 @@ use std::{
     fmt,
     fs::{self, File, OpenOptions},
     io::Read,
+    path::PathBuf,
     str::FromStr,
 };
 
@@ -123,14 +124,14 @@ pub struct ScanConfig {
     pub text: String,
 }
 
-#[derive(Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DoorDestination {
     pub room_name: String,
     pub dock_num: u32,
 }
 
-#[derive(Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DoorConfig {
     #[serde(alias = "type")]
@@ -547,7 +548,7 @@ pub struct EditObjConfig {
 // OrthoRevExp = 14,
 // OrthoRevExp2 = 15,
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FogConfig {
     pub id: Option<u32>,
@@ -1199,7 +1200,6 @@ pub struct RoomConfig {
     pub set_memory_relays: Option<Vec<u32>>,
     pub ball_triggers: Option<Vec<BallTriggerConfig>>,
     pub path_cameras: Option<Vec<PathCameraConfig>>,
-    // Don't forget to update merge_json when adding here
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -1664,6 +1664,9 @@ struct PatchConfigPrivate {
     seed: Option<u64>,
     uuid: Option<[u8; 16]>,
 
+    layer_files: Option<Vec<String>>,
+    layer_dirs: Option<Vec<String>>,
+
     #[serde(default)]
     preferences: Preferences,
 
@@ -1695,27 +1698,14 @@ fn extend_option_vec<T>(dest: &mut Option<Vec<T>>, src: Option<Vec<T>>) {
     }
 }
 
-macro_rules! extend_option_vec {
-    ($label:ident, $self:expr, $other:expr) => {
-        extend_option_vec(&mut $self.$label, $other.$label.clone());
-    };
-}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LayerFileConfig {
+    #[serde(alias = "$schema")]
+    _schema: Option<String>,
 
-macro_rules! merge_optional {
-    ($label:ident, $self:expr, $other:expr, $room_name:expr) => {
-        if let Some(other_value) = $other.$label {
-            match $self.$label {
-                Some(self_value) => {
-                    if self_value != other_value {
-                        panic!("Conflict in {}'s editObjs", $room_name);
-                    }
-                }
-                None => {
-                    $self.$label = Some(other_value);
-                }
-            }
-        }
-    };
+    #[serde(default)]
+    level_data: HashMap<String, LevelConfig>,
 }
 
 impl PatchConfig {
@@ -1970,280 +1960,535 @@ impl PatchConfig {
     }
 }
 
-fn merge_json(config: &mut PatchConfigPrivate, text: &'static str) -> Result<(), String> {
-    let data = serde_json::from_str(text);
-    let data: PatchConfigPrivate = data.map_err(|e| format!("JSON parse failed: {}", e))?;
-    config.merge(data);
+fn merge_json(dest: &mut HashMap<String, LevelConfig>, text: &str) -> Result<(), String> {
+    let data: LayerFileConfig =
+        serde_json::from_str(text).map_err(|e| format!("JSON parse failed: {}", e))?;
+    merge_level_data(dest, &data.level_data)
+}
+
+fn apply_layer_file(
+    level_data: &mut HashMap<String, LevelConfig>,
+    path: &str,
+) -> Result<(), String> {
+    let text = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read layer file '{}': {}", path, e))?;
+    let stripped = strip_jsonc_comments(&text, true);
+    let layer: LayerFileConfig = serde_json::from_str(&stripped)
+        .map_err(|e| format!("Failed to parse layer file '{}': {}", path, e))?;
+    merge_level_data(level_data, &layer.level_data)
+        .map_err(|e| format!("Failed to merge layer file '{}': {}", path, e))
+}
+
+fn apply_layer_dir(level_data: &mut HashMap<String, LevelConfig>, dir: &str) -> Result<(), String> {
+    let entries = fs::read_dir(dir)
+        .map_err(|e| format!("Failed to read layer directory '{}': {}", dir, e))?;
+
+    let mut paths: Vec<PathBuf> = Vec::new();
+    for entry in entries {
+        let entry =
+            entry.map_err(|e| format!("Failed to read layer directory '{}': {}", dir, e))?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        let is_layer = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| {
+                let ext = ext.to_lowercase();
+                ext == "json" || ext == "jsonc"
+            })
+            .unwrap_or(false);
+        if is_layer {
+            paths.push(path);
+        }
+    }
+
+    paths.sort();
+
+    for path in paths {
+        apply_layer_file(level_data, &path.to_string_lossy())?;
+    }
+
+    Ok(())
+}
+
+// returns all non-vanilla game layers which the given level data modifies
+fn layers(level_data: &HashMap<String, LevelConfig>) -> HashMap<u32, HashSet<u32>> {
+    let mut layers = HashMap::new();
+
+    for world in World::iter() {
+        let world_key = world.to_json_key();
+        let level_config = &level_data.get(world_key);
+        if level_config.is_none() {
+            continue;
+        }
+        let rooms = &level_config.unwrap().rooms;
+
+        for room_config in rooms.values() {
+            if room_config.special_functions.is_none() {
+                continue;
+            }
+
+            let special_functions = room_config.special_functions.as_ref().unwrap();
+            for special_function in special_functions {
+                if special_function.type_ != SpecialFunctionType::ScriptLayerController
+                    || special_function.layer_change_room_id.is_none()
+                    || special_function.layer_change_layer_id.is_none()
+                {
+                    continue; // not a layer change special function
+                }
+
+                let layer = special_function.layer_change_layer_id.unwrap();
+                let internal_id = special_function.layer_change_room_id.unwrap();
+
+                let room_lookup = ROOM_BY_INTERNAL_ID[&internal_id];
+
+                if layer < room_lookup.layer_count {
+                    continue; // This is modifying a vanilla layer, so skip
+                }
+
+                layers
+                    .entry(room_lookup.mrea_id)
+                    .or_insert_with(HashSet::new);
+
+                let room = layers.get_mut(&room_lookup.mrea_id).unwrap();
+                room.insert(layer);
+            }
+        }
+    }
+
+    layers
+}
+
+// Sets `dest` to `src` if absent, otherwise errors when they disagree.
+fn merge_scalar<T>(
+    dest: &mut Option<T>,
+    src: &Option<T>,
+    field: &str,
+    context: &str,
+) -> Result<(), String>
+where
+    T: PartialEq + Clone,
+{
+    if let Some(src_value) = src {
+        match dest {
+            Some(dest_value) => {
+                if dest_value != src_value {
+                    return Err(format!("Conflicting '{}' value in {}", field, context));
+                }
+            }
+            None => {
+                *dest = Some(src_value.clone());
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// Per-key insert-if-absent, erroring when a shared key holds differing values.
+fn merge_map<K, V>(
+    dest: &mut HashMap<K, V>,
+    src: &HashMap<K, V>,
+    field: &str,
+    context: &str,
+) -> Result<(), String>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+    V: PartialEq + Clone,
+{
+    for (key, src_value) in src {
+        match dest.get(key) {
+            Some(dest_value) => {
+                if dest_value != src_value {
+                    return Err(format!(
+                        "Conflicting '{}' entry {:?} in {}",
+                        field, key, context
+                    ));
+                }
+            }
+            None => {
+                dest.insert(key.clone(), src_value.clone());
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn merge_option_map<K, V>(
+    dest: &mut Option<HashMap<K, V>>,
+    src: &Option<HashMap<K, V>>,
+    field: &str,
+    context: &str,
+) -> Result<(), String>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+    V: PartialEq + Clone,
+{
+    if let Some(src_map) = src {
+        merge_map(
+            dest.get_or_insert_with(HashMap::new),
+            src_map,
+            field,
+            context,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn merge_edit_objs(
+    dest: &mut Option<HashMap<u32, EditObjConfig>>,
+    src: &Option<HashMap<u32, EditObjConfig>>,
+    context: &str,
+) -> Result<(), String> {
+    let Some(src_map) = src else {
+        return Ok(());
+    };
+
+    let dest_map = dest.get_or_insert_with(HashMap::new);
+    for (id, src_config) in src_map {
+        let Some(dest_config) = dest_map.get_mut(id) else {
+            dest_map.insert(*id, src_config.clone());
+            continue;
+        };
+
+        let ctx = format!("{} editObjs 0x{:X}", context, id);
+        merge_scalar(&mut dest_config.layer, &src_config.layer, "layer", &ctx)?;
+        merge_scalar(
+            &mut dest_config.position,
+            &src_config.position,
+            "position",
+            &ctx,
+        )?;
+        merge_scalar(
+            &mut dest_config.rotation,
+            &src_config.rotation,
+            "rotation",
+            &ctx,
+        )?;
+        merge_scalar(&mut dest_config.scale, &src_config.scale, "scale", &ctx)?;
+        merge_scalar(&mut dest_config.size, &src_config.size, "size", &ctx)?;
+        merge_scalar(&mut dest_config.speed, &src_config.speed, "speed", &ctx)?;
+        merge_scalar(&mut dest_config.damage, &src_config.damage, "damage", &ctx)?;
+        merge_scalar(
+            &mut dest_config.detection_range,
+            &src_config.detection_range,
+            "detectionRange",
+            &ctx,
+        )?;
+        merge_scalar(
+            &mut dest_config.attack_range,
+            &src_config.attack_range,
+            "attackRange",
+            &ctx,
+        )?;
+        merge_scalar(&mut dest_config.health, &src_config.health, "health", &ctx)?;
+
+        if let Some(src_vuln) = &src_config.vulnerability {
+            match &dest_config.vulnerability {
+                Some(dest_vuln) => {
+                    if DoorType::from_string(src_vuln.to_string())
+                        != DoorType::from_string(dest_vuln.to_string())
+                    {
+                        return Err(format!("Conflicting 'vulnerability' in {}", ctx));
+                    }
+                }
+                None => {
+                    dest_config.vulnerability = Some(src_vuln.clone());
+                }
+            }
+        }
+
+        if let Some(src_vulns) = &src_config.vulnerabilities {
+            let dest_vulns = dest_config.vulnerabilities.get_or_insert_with(HashMap::new);
+            for (idx, src_vuln) in src_vulns {
+                match dest_vulns.get(idx) {
+                    Some(dest_vuln) => {
+                        if DoorType::from_string(src_vuln.to_string())
+                            != DoorType::from_string(dest_vuln.to_string())
+                        {
+                            return Err(format!(
+                                "Conflicting 'vulnerabilities' entry {} in {}",
+                                idx, ctx
+                            ));
+                        }
+                    }
+                    None => {
+                        dest_vulns.insert(*idx, src_vuln.clone());
+                    }
+                }
+            }
+        }
+
+        if let Some(src_healths) = &src_config.healths {
+            let dest_healths = dest_config.healths.get_or_insert_with(HashMap::new);
+            for (idx, src_health) in src_healths {
+                match dest_healths.get(idx) {
+                    Some(dest_health) => {
+                        if dest_health != src_health {
+                            return Err(format!("Conflicting 'healths' entry {} in {}", idx, ctx));
+                        }
+                    }
+                    None => {
+                        dest_healths.insert(*idx, *src_health);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// Extends the "stuff" added/edited in a single room
+fn merge_room_config(dest: &mut RoomConfig, src: &RoomConfig, context: &str) -> Result<(), String> {
+    let RoomConfig {
+        superheated,
+        remove_water,
+        submerge,
+        map_default_state,
+        liquids,
+        pickups,
+        extra_scans,
+        doors,
+        spawn_position_override,
+        bounding_box_offset,
+        bounding_box_scale,
+        platforms,
+        camera_hints,
+        blocks,
+        lock_on_points,
+        fog,
+        ambient_lighting_scale,
+        enviornmental_effect,
+        initial_enviornmental_effect,
+        initial_thermal_heat_level,
+        xray_fog_distance,
+        escape_sequences,
+        repositions,
+        hudmemos,
+        layers,
+        layer_objs,
+        delete_ids,
+        audio_override,
+        add_connections,
+        remove_connections,
+        relays,
+        cutscene_skip_fns,
+        timers,
+        actor_keyframes,
+        spawn_points,
+        triggers,
+        special_functions,
+        actor_rotates,
+        streamed_audios,
+        edit_objs,
+        waypoints,
+        counters,
+        switches,
+        player_hints,
+        distance_fogs,
+        bomb_slots,
+        controller_actions,
+        player_actors,
+        world_light_faders,
+        cameras,
+        camera_waypoints,
+        camera_filter_keyframes,
+        new_camera_hints,
+        camera_hint_triggers,
+        set_memory_relays,
+        ball_triggers,
+        path_cameras,
+    } = src;
+
+    // Scalar fields: set-if-absent, error on conflict.
+    merge_scalar(&mut dest.superheated, superheated, "superheated", context)?;
+    merge_scalar(&mut dest.remove_water, remove_water, "removeWater", context)?;
+    merge_scalar(&mut dest.submerge, submerge, "submerge", context)?;
+    merge_scalar(
+        &mut dest.map_default_state,
+        map_default_state,
+        "mapDefaultState",
+        context,
+    )?;
+    merge_scalar(
+        &mut dest.spawn_position_override,
+        spawn_position_override,
+        "spawnPositionOverride",
+        context,
+    )?;
+    merge_scalar(
+        &mut dest.bounding_box_offset,
+        bounding_box_offset,
+        "boundingBoxOffset",
+        context,
+    )?;
+    merge_scalar(
+        &mut dest.bounding_box_scale,
+        bounding_box_scale,
+        "boundingBoxScale",
+        context,
+    )?;
+    merge_scalar(&mut dest.fog, fog, "fog", context)?;
+    merge_scalar(
+        &mut dest.ambient_lighting_scale,
+        ambient_lighting_scale,
+        "ambientLightingScale",
+        context,
+    )?;
+    merge_scalar(
+        &mut dest.enviornmental_effect,
+        enviornmental_effect,
+        "enviornmentalEffect",
+        context,
+    )?;
+    merge_scalar(
+        &mut dest.initial_enviornmental_effect,
+        initial_enviornmental_effect,
+        "initialEnviornmentalEffect",
+        context,
+    )?;
+    merge_scalar(
+        &mut dest.initial_thermal_heat_level,
+        initial_thermal_heat_level,
+        "initialThermalHeatLevel",
+        context,
+    )?;
+    merge_scalar(
+        &mut dest.xray_fog_distance,
+        xray_fog_distance,
+        "xrayFogDistance",
+        context,
+    )?;
+
+    // Vec fields: append.
+    extend_option_vec(&mut dest.liquids, liquids.clone());
+    extend_option_vec(&mut dest.pickups, pickups.clone());
+    extend_option_vec(&mut dest.extra_scans, extra_scans.clone());
+    extend_option_vec(&mut dest.platforms, platforms.clone());
+    extend_option_vec(&mut dest.camera_hints, camera_hints.clone());
+    extend_option_vec(&mut dest.blocks, blocks.clone());
+    extend_option_vec(&mut dest.lock_on_points, lock_on_points.clone());
+    extend_option_vec(&mut dest.escape_sequences, escape_sequences.clone());
+    extend_option_vec(&mut dest.repositions, repositions.clone());
+    extend_option_vec(&mut dest.hudmemos, hudmemos.clone());
+    extend_option_vec(&mut dest.delete_ids, delete_ids.clone());
+    extend_option_vec(&mut dest.set_memory_relays, set_memory_relays.clone());
+    extend_option_vec(&mut dest.add_connections, add_connections.clone());
+    extend_option_vec(&mut dest.remove_connections, remove_connections.clone());
+    extend_option_vec(&mut dest.relays, relays.clone());
+    extend_option_vec(&mut dest.cutscene_skip_fns, cutscene_skip_fns.clone());
+    extend_option_vec(&mut dest.timers, timers.clone());
+    extend_option_vec(&mut dest.actor_keyframes, actor_keyframes.clone());
+    extend_option_vec(&mut dest.spawn_points, spawn_points.clone());
+    extend_option_vec(&mut dest.triggers, triggers.clone());
+    extend_option_vec(&mut dest.special_functions, special_functions.clone());
+    extend_option_vec(&mut dest.actor_rotates, actor_rotates.clone());
+    extend_option_vec(&mut dest.streamed_audios, streamed_audios.clone());
+    extend_option_vec(&mut dest.waypoints, waypoints.clone());
+    extend_option_vec(&mut dest.counters, counters.clone());
+    extend_option_vec(&mut dest.switches, switches.clone());
+    extend_option_vec(&mut dest.player_hints, player_hints.clone());
+    extend_option_vec(&mut dest.distance_fogs, distance_fogs.clone());
+    extend_option_vec(&mut dest.bomb_slots, bomb_slots.clone());
+    extend_option_vec(&mut dest.controller_actions, controller_actions.clone());
+    extend_option_vec(&mut dest.player_actors, player_actors.clone());
+    extend_option_vec(&mut dest.world_light_faders, world_light_faders.clone());
+    extend_option_vec(&mut dest.cameras, cameras.clone());
+    extend_option_vec(&mut dest.camera_waypoints, camera_waypoints.clone());
+    extend_option_vec(
+        &mut dest.camera_filter_keyframes,
+        camera_filter_keyframes.clone(),
+    );
+    extend_option_vec(&mut dest.new_camera_hints, new_camera_hints.clone());
+    extend_option_vec(&mut dest.camera_hint_triggers, camera_hint_triggers.clone());
+    extend_option_vec(&mut dest.ball_triggers, ball_triggers.clone());
+    extend_option_vec(&mut dest.path_cameras, path_cameras.clone());
+
+    // Map fields: per-key set-if-absent, error on conflict.
+    merge_option_map(&mut dest.doors, doors, "doors", context)?;
+    merge_option_map(&mut dest.layers, layers, "layers", context)?;
+    merge_option_map(&mut dest.layer_objs, layer_objs, "layerObjs", context)?;
+    merge_option_map(
+        &mut dest.audio_override,
+        audio_override,
+        "audioOverride",
+        context,
+    )?;
+
+    merge_edit_objs(&mut dest.edit_objs, edit_objs, context)?;
+
+    Ok(())
+}
+
+fn merge_level_config(
+    dest: &mut LevelConfig,
+    src: &LevelConfig,
+    world_key: &str,
+) -> Result<(), String> {
+    let LevelConfig { transports, rooms } = src;
+
+    merge_map(&mut dest.transports, transports, "transports", world_key)?;
+
+    for (room_name, src_room) in rooms {
+        let context = format!("{} - {}", world_key, room_name);
+        let dest_room = dest.rooms.entry(room_name.clone()).or_default();
+        merge_room_config(dest_room, src_room, &context)?;
+    }
+
+    Ok(())
+}
+
+fn merge_level_data(
+    dest: &mut HashMap<String, LevelConfig>,
+    src: &HashMap<String, LevelConfig>,
+) -> Result<(), String> {
+    /* Only known world keys are mergeable; reject anything else up front */
+    for world_key in src.keys() {
+        if World::iter().all(|world| world.to_json_key() != world_key) {
+            return Err(format!("Unknown world key '{}'", world_key));
+        }
+    }
+
+    /* First check if there are any conflicts when adding new layers */
+    let dest_layers = layers(dest);
+    let src_layers = layers(src);
+
+    for (mrea_id, src_room_layers) in &src_layers {
+        let Some(dest_room_layers) = dest_layers.get(mrea_id) else {
+            continue; // this room isn't modified by the current configuration
+        };
+
+        if !dest_room_layers.is_disjoint(src_room_layers) {
+            let subset: HashSet<_> = dest_room_layers
+                .intersection(src_room_layers)
+                .cloned()
+                .collect();
+            return Err(format!("Room 0x{:X} contains conflicting usage of new layers. The following layer IDs must not be used to resolve this conflict: {:?}", mrea_id, subset));
+        }
+    }
+
+    /* Merge one room at a time */
+    for world in World::iter() {
+        let world_key = world.to_json_key();
+
+        let Some(src_level) = src.get(world_key) else {
+            continue;
+        };
+
+        let dest_level = dest.entry(world_key.to_string()).or_default();
+        merge_level_config(dest_level, src_level, world_key)?;
+    }
 
     Ok(())
 }
 
 impl PatchConfigPrivate {
-    // returns all non-vanilla game layers which this config modifies
-    fn layers(&self) -> HashMap<u32, HashSet<u32>> {
-        let mut layers = HashMap::new();
-
-        for world in World::iter() {
-            let world_key = world.to_json_key();
-            let level_config = &self.level_data.get(world_key);
-            if level_config.is_none() {
-                continue;
-            }
-            let rooms = &level_config.unwrap().rooms;
-
-            for room_config in rooms.values() {
-                if room_config.special_functions.is_none() {
-                    continue;
-                }
-
-                let special_functions = room_config.special_functions.as_ref().unwrap();
-                for special_function in special_functions {
-                    if special_function.type_ != SpecialFunctionType::ScriptLayerController
-                        || special_function.layer_change_room_id.is_none()
-                        || special_function.layer_change_layer_id.is_none()
-                    {
-                        continue; // not a layer change special function
-                    }
-
-                    let layer = special_function.layer_change_layer_id.unwrap();
-                    let internal_id = special_function.layer_change_room_id.unwrap();
-
-                    let room_lookup = ROOM_BY_INTERNAL_ID[&internal_id];
-
-                    if layer < room_lookup.layer_count {
-                        continue; // This is modifying a vanilla layer, so skip
-                    }
-
-                    layers
-                        .entry(room_lookup.mrea_id)
-                        .or_insert_with(HashSet::new);
-
-                    let room = layers.get_mut(&room_lookup.mrea_id).unwrap();
-                    room.insert(layer);
-                }
-            }
-        }
-
-        layers
-    }
-
-    /* Extends the "stuff" added/edited in each room */
-    pub fn merge(&mut self, other: Self) {
-        /* First check if there for any conflicts when adding new layers */
-        let self_layers = self.layers();
-        let other_layers = other.layers();
-
-        for (mrea_id, other_room_layers) in other_layers {
-            if !self_layers.contains_key(&mrea_id) {
-                continue; // this room isn't modified by the current configuration
-            }
-
-            let self_room_layers = self_layers.get(&mrea_id).unwrap();
-
-            if !self_room_layers.is_disjoint(&other_room_layers) {
-                let subset: HashSet<_> = self_room_layers
-                    .intersection(&other_room_layers)
-                    .cloned()
-                    .collect();
-                panic!("Room 0x{:X} contains conflicting usage of new layers. The following layer IDs must not be used to resolve this conflict: {:?}", mrea_id, subset);
-            }
-        }
-
-        /* Merge one room at a time */
-        for world in World::iter() {
-            let world_key = world.to_json_key();
-
-            if !other.level_data.contains_key(world_key) {
-                continue;
-            }
-
-            if !self.level_data.contains_key(world_key) {
-                self.level_data
-                    .insert(world_key.to_string(), LevelConfig::default());
-            }
-
-            let self_rooms = &mut self.level_data.get_mut(world_key).unwrap().rooms;
-            let other_rooms = &other.level_data.get(world_key).unwrap().rooms;
-
-            for (room_name, other_room_config) in other_rooms {
-                if !self_rooms.contains_key(room_name) {
-                    self_rooms.insert(room_name.to_string(), RoomConfig::default());
-                }
-
-                let self_room_config = self_rooms.get_mut(room_name).unwrap();
-
-                extend_option_vec!(liquids, self_room_config, other_room_config);
-                extend_option_vec!(pickups, self_room_config, other_room_config);
-                extend_option_vec!(extra_scans, self_room_config, other_room_config);
-                extend_option_vec!(platforms, self_room_config, other_room_config);
-                extend_option_vec!(camera_hints, self_room_config, other_room_config);
-                extend_option_vec!(blocks, self_room_config, other_room_config);
-                extend_option_vec!(lock_on_points, self_room_config, other_room_config);
-                extend_option_vec!(escape_sequences, self_room_config, other_room_config);
-                extend_option_vec!(repositions, self_room_config, other_room_config);
-                extend_option_vec!(hudmemos, self_room_config, other_room_config);
-                extend_option_vec!(delete_ids, self_room_config, other_room_config);
-                extend_option_vec!(set_memory_relays, self_room_config, other_room_config);
-                extend_option_vec!(add_connections, self_room_config, other_room_config);
-                extend_option_vec!(remove_connections, self_room_config, other_room_config);
-                extend_option_vec!(relays, self_room_config, other_room_config);
-                extend_option_vec!(cutscene_skip_fns, self_room_config, other_room_config);
-                extend_option_vec!(timers, self_room_config, other_room_config);
-                extend_option_vec!(actor_keyframes, self_room_config, other_room_config);
-                extend_option_vec!(spawn_points, self_room_config, other_room_config);
-                extend_option_vec!(triggers, self_room_config, other_room_config);
-                extend_option_vec!(special_functions, self_room_config, other_room_config);
-                extend_option_vec!(actor_rotates, self_room_config, other_room_config);
-                extend_option_vec!(streamed_audios, self_room_config, other_room_config);
-                extend_option_vec!(waypoints, self_room_config, other_room_config);
-                extend_option_vec!(counters, self_room_config, other_room_config);
-                extend_option_vec!(switches, self_room_config, other_room_config);
-                extend_option_vec!(player_hints, self_room_config, other_room_config);
-                extend_option_vec!(distance_fogs, self_room_config, other_room_config);
-                extend_option_vec!(bomb_slots, self_room_config, other_room_config);
-                extend_option_vec!(controller_actions, self_room_config, other_room_config);
-                extend_option_vec!(player_actors, self_room_config, other_room_config);
-                extend_option_vec!(world_light_faders, self_room_config, other_room_config);
-                extend_option_vec!(cameras, self_room_config, other_room_config);
-                extend_option_vec!(camera_waypoints, self_room_config, other_room_config);
-                extend_option_vec!(camera_filter_keyframes, self_room_config, other_room_config);
-                extend_option_vec!(new_camera_hints, self_room_config, other_room_config);
-                extend_option_vec!(camera_hint_triggers, self_room_config, other_room_config);
-                extend_option_vec!(ball_triggers, self_room_config, other_room_config);
-                extend_option_vec!(path_cameras, self_room_config, other_room_config);
-
-                if let Some(other_layers) = &other_room_config.layers {
-                    if self_room_config.layers.is_none() {
-                        self_room_config.layers = Some(HashMap::new());
-                    }
-
-                    let self_layers = self_room_config.layers.as_mut().unwrap();
-                    for (layer, other_state) in other_layers {
-                        match self_layers.get_mut(layer) {
-                            Some(self_state) => {
-                                if self_state != other_state {
-                                    panic!(
-                                        "Conflicting enable/disable state for Layer {} in {} - {}",
-                                        layer, world_key, room_name
-                                    );
-                                }
-                            }
-                            None => {
-                                self_layers.insert(*layer, *other_state);
-                            }
-                        }
-                    }
-                }
-
-                if let Some(other_edit_objs) = &other_room_config.edit_objs {
-                    if self_room_config.edit_objs.is_none() {
-                        self_room_config.edit_objs = Some(HashMap::new());
-                    }
-
-                    let self_edit_objs = self_room_config.edit_objs.as_mut().unwrap();
-
-                    for (id, other_config) in other_edit_objs {
-                        match self_edit_objs.get_mut(id) {
-                            Some(self_config) => {
-                                // merge
-                                merge_optional!(layer, self_config, other_config, room_name);
-                                merge_optional!(position, self_config, other_config, room_name);
-                                merge_optional!(rotation, self_config, other_config, room_name);
-                                merge_optional!(scale, self_config, other_config, room_name);
-                                merge_optional!(size, self_config, other_config, room_name);
-                                merge_optional!(speed, self_config, other_config, room_name);
-                                merge_optional!(damage, self_config, other_config, room_name);
-                                merge_optional!(
-                                    detection_range,
-                                    self_config,
-                                    other_config,
-                                    room_name
-                                );
-                                merge_optional!(attack_range, self_config, other_config, room_name);
-                                merge_optional!(health, self_config, other_config, room_name);
-
-                                if let Some(other_vuln) = &other_config.vulnerability {
-                                    match &self_config.vulnerability {
-                                        Some(self_vuln) => {
-                                            if DoorType::from_string(other_vuln.to_string())
-                                                != DoorType::from_string(self_vuln.to_string())
-                                            {
-                                                panic!("Conflict in {}'s editObjs", room_name);
-                                            }
-                                        }
-                                        None => {
-                                            self_config.vulnerability =
-                                                Some(other_vuln.to_string());
-                                        }
-                                    }
-                                }
-
-                                if let Some(other_vulns) = &other_config.vulnerabilities {
-                                    match self_config.vulnerabilities.as_mut() {
-                                        Some(self_vulns) => {
-                                            for (idx, other_vuln) in other_vulns {
-                                                match self_vulns.get_mut(idx) {
-                                                    Some(self_vuln) => {
-                                                        if DoorType::from_string(
-                                                            other_vuln.to_string(),
-                                                        ) != DoorType::from_string(
-                                                            self_vuln.to_string(),
-                                                        ) {
-                                                            panic!(
-                                                                "Conflict in {}'s editObjs",
-                                                                room_name
-                                                            );
-                                                        }
-                                                    }
-                                                    None => {
-                                                        self_vulns
-                                                            .insert(*idx, other_vuln.to_string());
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        None => {
-                                            self_config.vulnerabilities = Some(other_vulns.clone());
-                                        }
-                                    }
-                                }
-
-                                if let Some(other_healths) = &other_config.healths {
-                                    match self_config.healths.as_mut() {
-                                        Some(self_healths) => {
-                                            for (idx, other_health) in other_healths {
-                                                match self_healths.get_mut(idx) {
-                                                    Some(self_health) => {
-                                                        if self_health != other_health {
-                                                            panic!(
-                                                                "Conflict in {}'s editObjs",
-                                                                room_name
-                                                            );
-                                                        }
-                                                    }
-                                                    None => {
-                                                        self_healths.insert(*idx, *other_health);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        None => {
-                                            self_config.healths = Some(other_healths.clone());
-                                        }
-                                    }
-                                }
-                            }
-                            None => {
-                                // copy
-                                self_edit_objs.insert(*id, other_config.clone());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // parse and then handle configuration macros (e.g. a bool loading in several pages of JSON changes)
     fn parse(&self) -> Result<PatchConfig, String> {
         // Parse version
@@ -2278,6 +2523,19 @@ impl PatchConfigPrivate {
 
         let mut result = self.clone();
 
+        // Merge user-provided layers first, then the internal QoL/cutscene layers.
+        if let Some(layer_files) = &self.layer_files {
+            for path in layer_files {
+                apply_layer_file(&mut result.level_data, path)?;
+            }
+        }
+
+        if let Some(layer_dirs) = &self.layer_dirs {
+            for dir in layer_dirs {
+                apply_layer_dir(&mut result.level_data, dir)?;
+            }
+        }
+
         let mode = result
             .preferences
             .qol_cutscenes
@@ -2287,7 +2545,7 @@ impl PatchConfigPrivate {
         let mode = mode.trim();
 
         if ["skippable", "skippablecompetitive"].contains(&mode) {
-            merge_json(&mut result, SKIPPABLE_CUTSCENES)?;
+            merge_json(&mut result.level_data, SKIPPABLE_CUTSCENES)?;
 
             if [
                 Version::NtscJ,
@@ -2298,11 +2556,11 @@ impl PatchConfigPrivate {
             ]
             .contains(&version)
             {
-                merge_json(&mut result, SKIPPABLE_CUTSCENES_PAL)?;
+                merge_json(&mut result.level_data, SKIPPABLE_CUTSCENES_PAL)?;
             }
 
             if mode == "skippablecompetitive" {
-                merge_json(&mut result, SKIPPABLE_CUTSCENES_COMPETITIVE)?;
+                merge_json(&mut result.level_data, SKIPPABLE_CUTSCENES_COMPETITIVE)?;
             }
         }
 
@@ -2311,7 +2569,7 @@ impl PatchConfigPrivate {
             .qol_game_breaking
             .unwrap_or(!force_vanilla_layout)
         {
-            merge_json(&mut result, GAME_BREAKING)?;
+            merge_json(&mut result.level_data, GAME_BREAKING)?;
         }
 
         if self
@@ -2321,9 +2579,9 @@ impl PatchConfigPrivate {
         {
             // QOL is split across three files purely for readability; they are
             // functionally equivalent to the single file they replaced.
-            merge_json(&mut result, QOL_GENERAL)?;
-            merge_json(&mut result, QOL_MUSIC)?;
-            merge_json(&mut result, QOL_TUTORIAL)?;
+            merge_json(&mut result.level_data, QOL_GENERAL)?;
+            merge_json(&mut result.level_data, QOL_MUSIC)?;
+            merge_json(&mut result.level_data, QOL_TUTORIAL)?;
         }
 
         result.parse_inner(version)
