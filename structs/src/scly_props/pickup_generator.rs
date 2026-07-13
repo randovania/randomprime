@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PickupGenerator<'r> {
     #[auto_struct(expect = 4)]
     prop_count: u32,

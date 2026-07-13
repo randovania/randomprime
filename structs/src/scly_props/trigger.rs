@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::{scly_props::structs::DamageInfo, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Trigger<'r> {
     #[auto_struct(expect = 9)]
     prop_count: u32,
@@ -21,9 +21,10 @@ pub struct Trigger<'r> {
     pub deactivate_on_exit: u8,
 }
 
-use crate::{impl_position, impl_scale};
+use crate::{impl_active, impl_position, impl_scale};
 impl SclyPropertyData for Trigger<'_> {
     const OBJECT_TYPE: u8 = 0x04;
+    impl_active!();
     impl_position!();
     impl_scale!();
 

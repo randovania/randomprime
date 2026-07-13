@@ -1,21 +1,29 @@
-pub const REL_LOADER_100: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_1.00.bin"));
-pub const REL_LOADER_101: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_1.01.bin"));
-pub const REL_LOADER_102: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_1.02.bin"));
-pub const REL_LOADER_PAL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_pal.bin"));
-pub const REL_LOADER_KOR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_kor.bin"));
-pub const REL_LOADER_JPN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_jpn.bin"));
-pub const REL_LOADER_100_MAP: &str =
-    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_1.00.bin.map"));
-pub const REL_LOADER_101_MAP: &str =
-    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_1.01.bin.map"));
-pub const REL_LOADER_102_MAP: &str =
-    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_1.02.bin.map"));
-pub const REL_LOADER_PAL_MAP: &str =
-    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_pal.bin.map"));
-pub const REL_LOADER_KOR_MAP: &str =
-    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_kor.bin.map"));
-pub const REL_LOADER_JPN_MAP: &str =
-    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_jpn.bin.map"));
+include!(concat!(env!("OUT_DIR"), "/rel_loader_cave_base_addrs.rs"));
+
+pub const REL_LOADER_100_CAVE: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_1.00.cave.bin"));
+pub const REL_LOADER_100_CAVE_MAP: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_1.00.cave.bin.map"));
+pub const REL_LOADER_101_CAVE: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_1.01.cave.bin"));
+pub const REL_LOADER_101_CAVE_MAP: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_1.01.cave.bin.map"));
+pub const REL_LOADER_102_CAVE: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_1.02.cave.bin"));
+pub const REL_LOADER_102_CAVE_MAP: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_1.02.cave.bin.map"));
+pub const REL_LOADER_PAL_CAVE: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_pal.cave.bin"));
+pub const REL_LOADER_PAL_CAVE_MAP: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_pal.cave.bin.map"));
+pub const REL_LOADER_KOR_CAVE: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_kor.cave.bin"));
+pub const REL_LOADER_KOR_CAVE_MAP: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_kor.cave.bin.map"));
+pub const REL_LOADER_JPN_CAVE: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/rel_loader_jpn.cave.bin"));
+pub const REL_LOADER_JPN_CAVE_MAP: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/rel_loader_jpn.cave.bin.map"));
 pub const PATCHES_100_REL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/patches_1.00.rel"));
 pub const PATCHES_101_REL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/patches_1.01.rel"));
 pub const PATCHES_102_REL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/patches_1.02.rel"));

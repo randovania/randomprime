@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::U3, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BallTrigger<'r> {
     #[auto_struct(expect = 9)]
     prop_count: u32,
@@ -20,10 +20,11 @@ pub struct BallTrigger<'r> {
     pub stop_player: u8,
 }
 
-use crate::{impl_position, impl_scale};
+use crate::{impl_active, impl_position, impl_scale};
 impl SclyPropertyData for BallTrigger<'_> {
     const OBJECT_TYPE: u8 = 0x48;
 
+    impl_active!();
     impl_position!();
     impl_scale!();
 }

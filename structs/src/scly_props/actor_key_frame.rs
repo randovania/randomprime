@@ -4,7 +4,7 @@ use reader_writer::CStr;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ActorKeyFrame<'r> {
     #[auto_struct(expect = 7)]
     pub prop_count: u32,
@@ -18,6 +18,8 @@ pub struct ActorKeyFrame<'r> {
     pub total_playback: f32,
 }
 
+use crate::impl_active;
 impl SclyPropertyData for ActorKeyFrame<'_> {
     const OBJECT_TYPE: u8 = 0x1D;
+    impl_active!();
 }

@@ -37,6 +37,45 @@ fn write_if_changed(path: &Path, bytes: &[u8]) {
     }
 }
 
+struct RelLoaderVersionInfo {
+    version: &'static str,
+    cave_base_addr: u32,
+    cave_base_const_name: &'static str,
+}
+
+const REL_LOADER_VERSION_INFO: &[RelLoaderVersionInfo] = &[
+    RelLoaderVersionInfo {
+        version: "1.00",
+        cave_base_addr: 0x8000C9BC,
+        cave_base_const_name: "REL_LOADER_100_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "1.01",
+        cave_base_addr: 0x8000CA38,
+        cave_base_const_name: "REL_LOADER_101_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "1.02",
+        cave_base_addr: 0x8000CC78,
+        cave_base_const_name: "REL_LOADER_102_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "pal",
+        cave_base_addr: 0x8000CF34,
+        cave_base_const_name: "REL_LOADER_PAL_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "kor",
+        cave_base_addr: 0x8000CA30,
+        cave_base_const_name: "REL_LOADER_KOR_CAVE_BASE",
+    },
+    RelLoaderVersionInfo {
+        version: "jpn",
+        cave_base_addr: 0x8000D224,
+        cave_base_const_name: "REL_LOADER_JPN_CAVE_BASE",
+    },
+];
+
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir);
@@ -60,34 +99,48 @@ fn main() {
     invoke_cargo(&ppc_manifest, "rel_loader");
     invoke_cargo(&ppc_manifest, "rel_patches");
 
-    for version in &["1.00", "1.01", "1.02", "pal", "kor", "jpn"] {
-        let sym_table_path = symbol_table_dir.join(format!("{}.txt", version));
-        let mut symbol_table = read_symbol_table(&sym_table_path).unwrap();
-        let os_arena_hi = symbol_table.get("OSArenaHi").unwrap();
-
-        let bin_path = out_dir.join(format!("rel_loader_{}.bin", version));
-        let bin_tmp = out_dir.join(format!("rel_loader_{}.bin.tmp", version));
-        let symbols_map = link_obj_files_to_bin(
-            [target_dir.join("librel_loader.a")].iter(),
-            *os_arena_hi,
-            &symbol_table,
-            &bin_tmp,
+    let mut cave_base_addrs_bytes = Vec::new();
+    for info in REL_LOADER_VERSION_INFO {
+        writeln!(
+            cave_base_addrs_bytes,
+            "pub const {}: u32 = 0x{:08X};",
+            info.cave_base_const_name, info.cave_base_addr
         )
         .unwrap();
-        write_if_changed(&bin_path, &fs::read(&bin_tmp).unwrap());
-        fs::remove_file(&bin_tmp).unwrap();
+    }
+    write_if_changed(
+        &out_dir.join("rel_loader_cave_base_addrs.rs"),
+        &cave_base_addrs_bytes,
+    );
+
+    for info in REL_LOADER_VERSION_INFO {
+        let version = info.version;
+        let sym_table_path = symbol_table_dir.join(format!("{}.txt", version));
+        let mut symbol_table = read_symbol_table(&sym_table_path).unwrap();
+
+        let cave_bin_path = out_dir.join(format!("rel_loader_{}.cave.bin", version));
+        let cave_bin_tmp = out_dir.join(format!("rel_loader_{}.cave.bin.tmp", version));
+        let cave_symbols_map = link_obj_files_to_bin(
+            [target_dir.join("librel_loader.a")].iter(),
+            info.cave_base_addr,
+            &symbol_table,
+            &cave_bin_tmp,
+        )
+        .unwrap();
+        write_if_changed(&cave_bin_path, &fs::read(&cave_bin_tmp).unwrap());
+        fs::remove_file(&cave_bin_tmp).unwrap();
 
         // Sort so identical inputs always produce identical bytes (the linker returns the
         // symbols in a HashMap, whose iteration order is otherwise nondeterministic).
-        let mut sorted_symbols = symbols_map.clone();
+        let mut sorted_symbols = cave_symbols_map.clone();
         sorted_symbols.sort();
         let mut map_bytes = Vec::new();
         for (sym_name, addr) in &sorted_symbols {
             writeln!(map_bytes, "0x{:08x} {}", addr, sym_name).unwrap();
         }
-        write_if_changed(&bin_path.with_extension("bin.map"), &map_bytes);
+        write_if_changed(&cave_bin_path.with_extension("bin.map"), &map_bytes);
 
-        for (sym_name, addr) in symbols_map {
+        for (sym_name, addr) in cave_symbols_map {
             symbol_table.entry(sym_name).or_insert(addr);
         }
 

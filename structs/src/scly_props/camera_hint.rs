@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CameraHint<'r> {
     #[auto_struct(expect = 23)]
     prop_count: u32,
@@ -37,9 +37,10 @@ pub struct CameraHint<'r> {
     pub control_interp_dur: f32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for CameraHint<'_> {
     const OBJECT_TYPE: u8 = 0x10;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

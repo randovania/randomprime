@@ -44,7 +44,7 @@
             "default": null
         },
         "uuid": {
-            "description": "Specify a UUID to \"etch\" into the ISO. It gets placed somewhere around the build version #",
+            "description": "16-byte instance identifier etched into the ISO (near the build version #) and stamped into every save slot. Optional; defaults to all zeros. Save slots created under one UUID cannot be loaded by an instance running a different UUID.",
             "type": "array",
             "minItems": 16,
             "maxItems": 16,
@@ -258,6 +258,11 @@
                     "description": "If true, the debug crash screen is displayed immediately instead of requiring a controller input from the Player 2 controller port.",
                     "type": "boolean",
                     "default": true
+                },
+                "osDiagnostics": {
+                    "description": "If true, enables in-game OSReport debug logging hooks (visible via Dolphin's OSReport log channel). Intended for development and bug diagnosis; has a small code/performance cost and should be left off for normal play.",
+                    "type": "boolean",
+                    "default": false
                 },
                 "visibleBoundingBox": {
                     "description": "If true, the corners of aether boxes are outlined to be visible in-game.",
@@ -941,6 +946,11 @@
                     "description": "Message text displayed inthe bottom-right of the file select menu.",
                     "type": "string",
                     "default": "randomprime"
+                },
+                "saveName": {
+                    "description": "Text to replace the world name shown for a save slot on the file-select screen. Save names persist on the memory card. Longer strings are accepted but truncated to 17 characters when stamped into the save slot.",
+                    "type": "string",
+                    "maxLength": 17
                 },
                 "creditsString": {
                     "description": "Defaults to an auto-generated spoiler of all local pickups.",
@@ -3603,6 +3613,10 @@
                                     "type": "integer",
                                     "minimum": 0,
                                     "maximum": 63
+                                },
+                                "active": {
+                                    "description": "Default active state of the object.",
+                                    "type": "boolean"
                                 },
                                 "position": {
                                     "description": "Position of the object.",

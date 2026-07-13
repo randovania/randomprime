@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::{scly_props::structs::ScannableParameters, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PointOfInterest<'r> {
     #[auto_struct(expect = 6)]
     prop_count: u32,
@@ -18,9 +18,10 @@ pub struct PointOfInterest<'r> {
     pub point_size: f32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for PointOfInterest<'_> {
     const OBJECT_TYPE: u8 = 0x42;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

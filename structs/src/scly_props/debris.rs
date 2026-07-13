@@ -1,10 +1,12 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use crate::{impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData};
+use crate::{
+    impl_active, impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Debris<'r> {
     #[auto_struct(expect = 18)]
     pub prop_count: u32,
@@ -21,12 +23,13 @@ pub struct Debris<'r> {
     pub actor_params: ActorParameters,
     pub dont_cares2: GenericArray<u32, U4>,
     pub dont_care2: u8,
-    pub dont_care3: u8,
+    pub active: u8,
 }
 
 impl SclyPropertyData for Debris<'_> {
     const OBJECT_TYPE: u8 = 0x1B;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
     impl_scale!();

@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PlayerActor<'r> {
     #[auto_struct(expect = 19)]
     prop_count: u32,
@@ -40,7 +40,7 @@ pub struct PlayerActor<'r> {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PlayerActorParams {
     #[auto_struct(derive = 5 + unknown5.is_some() as u32)]
     prop_count: u32,
@@ -54,9 +54,10 @@ pub struct PlayerActorParams {
     pub unknown5: Option<u8>,
 }
 
-use crate::{impl_position, impl_rotation, impl_scale};
+use crate::{impl_active, impl_position, impl_rotation, impl_scale};
 impl SclyPropertyData for PlayerActor<'_> {
     const OBJECT_TYPE: u8 = 0x4c;
+    impl_active!();
     impl_position!();
     impl_rotation!();
     impl_scale!();

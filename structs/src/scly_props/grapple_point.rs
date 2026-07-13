@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GrappleParams {
     #[auto_struct(expect = 12)]
     prop_count: u32,
@@ -25,7 +25,7 @@ pub struct GrappleParams {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GrapplePoint<'r> {
     #[auto_struct(expect = 5)]
     prop_count: u32,
@@ -40,9 +40,10 @@ pub struct GrapplePoint<'r> {
     pub grapple_params: GrappleParams,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for GrapplePoint<'_> {
     const OBJECT_TYPE: u8 = 0x30;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Dock<'r> {
     #[auto_struct(expect = 7)]
     prop_count: u32,
@@ -19,10 +19,11 @@ pub struct Dock<'r> {
     pub load_connected: u8,
 }
 
-use crate::{impl_position, impl_scale};
+use crate::{impl_active, impl_position, impl_scale};
 impl SclyPropertyData for Dock<'_> {
     const OBJECT_TYPE: u8 = 0x0B;
 
+    impl_active!();
     impl_position!();
     impl_scale!();
 }

@@ -3664,6 +3664,7 @@
 0x801d471c ImportPersistentOptions__10CGameStateFRC14CSystemOptions
 0x801d486c WriteSystemOptions__10CGameStateFR13COutputStream
 0x801d4890 ReadSystemOptions__10CGameStateFR12CInputStream
+0x801d48d8 PutTo__10CGameStateCFR13COutputStream
 0x801d48d8 PutTo__10CGameStateFR16CMemoryStreamOut
 0x801d4aa4 LoadGameFileState__10CGameStateFPCv
 0x801d4c90 InitializeMemoryWorlds__10CGameStateFv
@@ -6284,6 +6285,7 @@
 0x8030ec24 MangleMipmap__8CTextureFi
 0x8030f044 GetConstBitMapData__8CTextureCFi
 0x8030f36c UnLock__8CTextureFv
+0x8030f3c0 InitBitmapBuffers__8CTextureF12ETexelFormatssi
 0x8030f554 TexelFormatBitsPerPixel__8CTextureF12ETexelFormat
 0x8030f59c IsARAMTransferInProgress__8CTextureCFv
 0x8030f5d0 LoadToARAM__8CTextureCFv
@@ -7271,6 +7273,7 @@
 0x80367b60 __dt__15CGenDescriptionFv
 0x80367d94 __ct__15CGenDescriptionFv
 0x80367f5c element_from_desc__FP15CGenDescriptioni
+0x80367f64 EnsureWorldPakReady__8CPakFileFv
 0x80368350 GetDepList__8CPakFileCFv
 0x8036836c GetResIdByName__8CPakFileCFPCc
 0x803686ec GetResInfo__8CPakFileCFUi
@@ -7645,6 +7648,7 @@
 0x8037e030 PSMTXTrans
 0x8037e064 PSMTXScale
 0x8037e08c PSMTXScaleApply
+0x8037e0e4 C_MTXLookAt
 0x8037e270 PSMTXMultVec
 0x8037e2c4 PSMTXMultVecSR
 0x8037e318 C_MTXFrustum
@@ -8519,6 +8523,7 @@
 0x803f7fd8 XYNTSC
 0x803f81d0 D54
 0x8045b208 g_StateManager
+0x804c0de4 gGameAllocator
 0x805a7c60 sAspectRatio__14CCameraManager
 0x805a7e80 sBeamChargeUpSound
 0x805a8090 gHackAssetId

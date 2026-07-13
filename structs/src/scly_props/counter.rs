@@ -4,7 +4,7 @@ use reader_writer::CStr;
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Counter<'r> {
     #[auto_struct(expect = 5)]
     pub prop_count: u32,

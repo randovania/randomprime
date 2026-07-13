@@ -34,6 +34,10 @@ impl<'r> Reader<'r> {
         Reader(data)
     }
 
+    pub fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+
     pub fn dummy() -> Reader<'r> {
         Reader(&[])
     }

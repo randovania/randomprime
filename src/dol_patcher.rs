@@ -76,6 +76,16 @@ impl<'a> BinaryPatcher<'a> {
     fn len(&self) -> usize {
         self.data.len()
     }
+
+    // Reads an original (pre-patch) big-endian word at a byte offset into the segment.
+    fn orig_u32(&self, off: usize) -> u32 {
+        u32::from_be_bytes([
+            self.data[off],
+            self.data[off + 1],
+            self.data[off + 2],
+            self.data[off + 3],
+        ])
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -300,6 +310,20 @@ impl<'a> DolPatcher<'a> {
 
         patcher.patch((start - *addr) as usize, data)?;
         Ok(self)
+    }
+
+    // Reads the original (pre-patch) big-endian word at a virtual address. Used by
+    // trampoline patches to replay a displaced instruction without hardcoding its
+    // version-specific encoding (e.g. a stack-frame size that varies between versions).
+    pub fn read_u32(&self, addr: u32) -> Result<u32, String> {
+        for seg in self.text_segments.iter().chain(&self.data_segments) {
+            if let DolSegment::Patched(base, patcher) = seg {
+                if addr >= *base && addr + 4 <= *base + patcher.len() as u32 {
+                    return Ok(patcher.orig_u32((addr - *base) as usize));
+                }
+            }
+        }
+        Err(format!("Failed to find segment to read at {:x}", addr))
     }
 
     pub fn ppcasm_patch<A, L>(&mut self, asm: &ppcasm::AsmBlock<A, L>) -> Result<&mut Self, String>

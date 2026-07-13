@@ -127,6 +127,48 @@ pub mod scly_props {
     pub mod ridley_v2;
     pub mod thardus;
 
+    // everything else
+    pub mod ai_keyframe;
+    pub mod area_attributes;
+    pub mod camera_shaker;
+    pub mod color_modulate;
+    pub mod debug_camera_waypoint;
+    pub mod dock_area_change;
+    pub mod door_area;
+    pub mod electro_magnetic_pulse;
+    pub mod env_fx_density_controller;
+    pub mod fish_cloud_modifier;
+    pub mod fog_volume;
+    pub mod generator;
+    pub mod ice_zoomer;
+    pub mod maze_node;
+    pub mod metaree_alpha;
+    pub mod metroid_alpha;
+    pub mod metroid_prime_relay;
+    pub mod midi;
+    pub mod oculus;
+    pub mod player_state_change;
+    pub mod radial_damage;
+    pub mod random_relay;
+    pub mod repulsor;
+    pub mod ridley;
+    pub mod ripple;
+    pub mod room_acoustics;
+    pub mod rumble_effect;
+    pub mod save_station;
+    pub mod script_beam;
+    pub mod shadow_projector;
+    pub mod spider_ball_attraction_surface;
+    pub mod spindle_camera;
+    pub mod steam;
+    pub mod targeting_point;
+    pub mod team_ai_mgr;
+    pub mod thermal_heat_fader;
+    pub mod visor_flare;
+    pub mod visor_goo;
+    pub mod wall_crawler_swarm;
+    pub mod world_teleporter;
+
     pub mod structs;
 
     // "Generic" edit update
@@ -134,24 +176,33 @@ pub mod scly_props {
     // bosses
     pub use self::beetle::*;
     pub use self::{
-        actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ambient_ai::*,
-        atomic_alpha::*, atomic_beta::*, babygoth::*, ball_trigger::*, bloodflower::*, burrower::*,
-        camera::*, camera_blur_keyframe::*, camera_filter_keyframe::*, camera_hint::*,
-        camera_hint_trigger::*, camera_pitch_volume::*, camera_waypoint::*, chozo_ghost::*,
+        actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ai_keyframe::*,
+        ambient_ai::*, area_attributes::*, atomic_alpha::*, atomic_beta::*, babygoth::*,
+        ball_trigger::*, bloodflower::*, burrower::*, camera::*, camera_blur_keyframe::*,
+        camera_filter_keyframe::*, camera_hint::*, camera_hint_trigger::*, camera_pitch_volume::*,
+        camera_shaker::*, camera_waypoint::*, chozo_ghost::*, color_modulate::*,
         controller_action::*, counter::*, cover_point::*, damageable_trigger::*, debris::*,
-        debris_extended::*, distance_fog::*, dock::*, door::*, drone::*, effect::*,
-        elite_pirate::*, energy_ball::*, eyeball::*, fire_flea::*, fish_cloud::*, flaahgra::*,
-        flaahgra_tentacle::*, flicker_bat::*, flying_pirate::*, geemer::*, grapple_point::*,
-        gun_turret::*, hud_memo::*, ice_sheegoth::*, jelly_zap::*, magdolite::*, memory_relay::*,
-        metaree::*, metroid::*, metroid_beta::*, metroidprimestage1::*, metroidprimestage2::*,
-        new_camera_shaker::*, new_intro_boss::*, omega_pirate::*, parasite::*, path_camera::*,
-        phazon_healing_nodule::*, phazon_pool::*, pickup::*, pickup_generator::*, platorm::*,
-        player_actor::*, player_hint::*, point_of_interest::*, puddle_spore::*,
-        puddle_toad_gamma::*, puffer::*, relay::*, ridley_v1::*, ridley_v2::*, ripper::*,
-        seedling::*, snake_weed_swarm::*, sound::*, space_pirate::*, spank_weed::*, spawn_point::*,
-        special_function::*, spider_ball_waypoint::*, streamed_audio::*, switch::*, thardus::*,
-        thardus_rock_projectile::*, timer::*, trigger::*, tryclops::*, war_wasp::*, water::*,
-        waypoint::*, world_light_fader::*, world_transporter::*,
+        debris_extended::*, debug_camera_waypoint::*, distance_fog::*, dock::*,
+        dock_area_change::*, door::*, door_area::*, drone::*, effect::*, electro_magnetic_pulse::*,
+        elite_pirate::*, energy_ball::*, env_fx_density_controller::*, eyeball::*, fire_flea::*,
+        fish_cloud::*, fish_cloud_modifier::*, flaahgra::*, flaahgra_tentacle::*, flicker_bat::*,
+        flying_pirate::*, fog_volume::*, geemer::*, generator::*, grapple_point::*, gun_turret::*,
+        hud_memo::*, ice_sheegoth::*, ice_zoomer::*, jelly_zap::*, magdolite::*, maze_node::*,
+        memory_relay::*, metaree::*, metaree_alpha::*, metroid::*, metroid_alpha::*,
+        metroid_beta::*, metroid_prime_relay::*, metroidprimestage1::*, metroidprimestage2::*,
+        midi::*, new_camera_shaker::*, new_intro_boss::*, oculus::*, omega_pirate::*, parasite::*,
+        path_camera::*, phazon_healing_nodule::*, phazon_pool::*, pickup::*, pickup_generator::*,
+        platorm::*, player_actor::*, player_hint::*, player_state_change::*, point_of_interest::*,
+        puddle_spore::*, puddle_toad_gamma::*, puffer::*, radial_damage::*, random_relay::*,
+        relay::*, repulsor::*, ridley::*, ridley_v1::*, ridley_v2::*, ripper::*, ripple::*,
+        room_acoustics::*, rumble_effect::*, save_station::*, script_beam::*, seedling::*,
+        shadow_projector::*, snake_weed_swarm::*, sound::*, space_pirate::*, spank_weed::*,
+        spawn_point::*, special_function::*, spider_ball_attraction_surface::*,
+        spider_ball_waypoint::*, spindle_camera::*, steam::*, streamed_audio::*, switch::*,
+        targeting_point::*, team_ai_mgr::*, thardus::*, thardus_rock_projectile::*,
+        thermal_heat_fader::*, timer::*, trigger::*, tryclops::*, visor_flare::*, visor_goo::*,
+        wall_crawler_swarm::*, war_wasp::*, water::*, waypoint::*, world_light_fader::*,
+        world_teleporter::*, world_transporter::*,
     };
 }
 
@@ -182,24 +233,32 @@ pub use scly_props::ai_jump_point::*;
 // bosses
 pub use scly_props::beetle::*;
 pub use scly_props::{
-    actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ambient_ai::*,
-    atomic_alpha::*, atomic_beta::*, babygoth::*, ball_trigger::*, bloodflower::*, burrower::*,
-    camera::*, camera_blur_keyframe::*, camera_filter_keyframe::*, camera_hint::*,
-    camera_hint_trigger::*, camera_pitch_volume::*, camera_waypoint::*, chozo_ghost::*,
-    controller_action::*, counter::*, cover_point::*, damageable_trigger::*, debris::*,
-    debris_extended::*, distance_fog::*, dock::*, door::*, drone::*, effect::*, elite_pirate::*,
-    energy_ball::*, eyeball::*, fire_flea::*, fish_cloud::*, flaahgra::*, flaahgra_tentacle::*,
-    flicker_bat::*, flying_pirate::*, geemer::*, grapple_point::*, gun_turret::*, hud_memo::*,
-    ice_sheegoth::*, jelly_zap::*, magdolite::*, memory_relay::*, metaree::*, metroid::*,
-    metroid_beta::*, metroidprimestage1::*, metroidprimestage2::*, new_camera_shaker::*,
-    new_intro_boss::*, omega_pirate::*, parasite::*, path_camera::*, phazon_healing_nodule::*,
-    phazon_pool::*, pickup::*, pickup_generator::*, platorm::*, player_actor::*, player_hint::*,
-    point_of_interest::*, puddle_spore::*, puddle_toad_gamma::*, puffer::*, relay::*, ridley_v1::*,
-    ridley_v2::*, ripper::*, seedling::*, snake_weed_swarm::*, sound::*, space_pirate::*,
-    spank_weed::*, spawn_point::*, special_function::*, spider_ball_waypoint::*, streamed_audio::*,
-    structs as scly_structs, switch::*, thardus::*, thardus_rock_projectile::*, timer::*,
-    trigger::*, tryclops::*, war_wasp::*, water::*, waypoint::*, world_light_fader::*,
-    world_transporter::*,
+    actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ai_keyframe::*,
+    ambient_ai::*, area_attributes::*, atomic_alpha::*, atomic_beta::*, babygoth::*,
+    ball_trigger::*, bloodflower::*, burrower::*, camera::*, camera_blur_keyframe::*,
+    camera_filter_keyframe::*, camera_hint::*, camera_hint_trigger::*, camera_pitch_volume::*,
+    camera_shaker::*, camera_waypoint::*, chozo_ghost::*, color_modulate::*, controller_action::*,
+    counter::*, cover_point::*, damageable_trigger::*, debris::*, debris_extended::*,
+    debug_camera_waypoint::*, distance_fog::*, dock::*, dock_area_change::*, door::*, door_area::*,
+    drone::*, effect::*, electro_magnetic_pulse::*, elite_pirate::*, energy_ball::*,
+    env_fx_density_controller::*, eyeball::*, fire_flea::*, fish_cloud::*, fish_cloud_modifier::*,
+    flaahgra::*, flaahgra_tentacle::*, flicker_bat::*, flying_pirate::*, fog_volume::*, geemer::*,
+    generator::*, grapple_point::*, gun_turret::*, hud_memo::*, ice_sheegoth::*, ice_zoomer::*,
+    jelly_zap::*, magdolite::*, maze_node::*, memory_relay::*, metaree::*, metaree_alpha::*,
+    metroid::*, metroid_alpha::*, metroid_beta::*, metroid_prime_relay::*, metroidprimestage1::*,
+    metroidprimestage2::*, midi::*, new_camera_shaker::*, new_intro_boss::*, oculus::*,
+    omega_pirate::*, parasite::*, path_camera::*, phazon_healing_nodule::*, phazon_pool::*,
+    pickup::*, pickup_generator::*, platorm::*, player_actor::*, player_hint::*,
+    player_state_change::*, point_of_interest::*, puddle_spore::*, puddle_toad_gamma::*, puffer::*,
+    radial_damage::*, random_relay::*, relay::*, repulsor::*, ridley::*, ridley_v1::*,
+    ridley_v2::*, ripper::*, ripple::*, room_acoustics::*, rumble_effect::*, save_station::*,
+    script_beam::*, seedling::*, shadow_projector::*, snake_weed_swarm::*, sound::*,
+    space_pirate::*, spank_weed::*, spawn_point::*, special_function::*,
+    spider_ball_attraction_surface::*, spider_ball_waypoint::*, spindle_camera::*, steam::*,
+    streamed_audio::*, structs as scly_structs, switch::*, targeting_point::*, team_ai_mgr::*,
+    thardus::*, thardus_rock_projectile::*, thermal_heat_fader::*, timer::*, trigger::*,
+    tryclops::*, visor_flare::*, visor_goo::*, wall_crawler_swarm::*, war_wasp::*, water::*,
+    waypoint::*, world_light_fader::*, world_teleporter::*, world_transporter::*,
 };
 pub use strg::*;
 pub use thp::*;

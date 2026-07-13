@@ -2,14 +2,29 @@ use std::{borrow::Cow, fmt, io};
 
 use auto_struct_macros::auto_struct;
 use reader_writer::{
-    generic_array::GenericArray, typenum::*, FourCC, LCow, LazyArray, Readable, Reader, RoArray,
-    Writable,
+    generic_array::GenericArray, typenum::*, CStr, FourCC, LCow, LazyArray, Readable, Reader,
+    RoArray, Writable,
 };
 
 use crate::{
     scly_props,
     scly_structs::{DamageInfo, DamageVulnerability, HealthInfo, PatternedInfo},
 };
+
+#[macro_export]
+macro_rules! impl_active {
+    () => {
+        const SUPPORTS_ACTIVE: bool = true;
+
+        fn impl_get_active(&self) -> u8 {
+            self.active
+        }
+
+        fn impl_set_active(&mut self, x: u8) {
+            self.active = x;
+        }
+    };
+}
 
 #[macro_export]
 macro_rules! impl_position {
@@ -68,6 +83,16 @@ macro_rules! impl_patterned_info {
         fn impl_set_patterned_infos(&mut self, x: Vec<PatternedInfo>) {
             self.patterned_info = x[0].clone();
         }
+
+        const SUPPORTS_ACTIVE: bool = true;
+
+        fn impl_get_active(&self) -> u8 {
+            self.patterned_info.active
+        }
+
+        fn impl_set_active(&mut self, x: u8) {
+            self.patterned_info.active = x;
+        }
     };
 }
 
@@ -82,6 +107,16 @@ macro_rules! impl_patterned_info_with_auxillary {
 
         fn impl_set_patterned_infos(&mut self, x: Vec<PatternedInfo>) {
             self.patterned_info = x[0].clone();
+        }
+
+        const SUPPORTS_ACTIVE: bool = true;
+
+        fn impl_get_active(&self) -> u8 {
+            self.patterned_info.active
+        }
+
+        fn impl_set_active(&mut self, x: u8) {
+            self.patterned_info.active = x;
         }
 
         const SUPPORTS_DAMAGE_INFOS: bool = true;
@@ -190,15 +225,15 @@ pub struct SclyObject<'r> {
 }
 
 impl SclyObject<'_> {
-    pub fn get_layer_idx(self) -> usize {
+    pub fn get_layer_idx(&self) -> usize {
         ((self.instance_id >> 26) & 0x3F) as usize
     }
 
-    pub fn get_area_idx(self) -> usize {
+    pub fn get_area_idx(&self) -> usize {
         ((self.instance_id >> 16) & 0xFF) as usize
     }
 
-    pub fn get_object_idx(self) -> usize {
+    pub fn get_object_idx(&self) -> usize {
         (self.instance_id & 0xFFFF) as usize
     }
 }
@@ -217,6 +252,22 @@ macro_rules! build_scly_property {
             $($name(Box<scly_props::$name<'r >> ),)*
         }
 
+        impl<'r> PartialEq for SclyProperty<'r> {
+            fn eq(&self, other: &Self) -> bool {
+                if self.object_type() != other.object_type() {
+                    return false;
+                }
+
+                match (self, other) {
+                    (SclyProperty::Unknown { data: a, .. }, SclyProperty::Unknown { data: b, .. }) => a.as_slice() == b.as_slice(),
+                    $(
+                        (SclyProperty::$name(ref a), SclyProperty::$name(ref b)) => a == b,
+                    )*
+                    _ => false,
+                }
+            }
+        }
+
         impl<'r> SclyProperty<'r>
         {
             pub fn object_type(&self) -> u8
@@ -225,6 +276,75 @@ macro_rules! build_scly_property {
                     SclyProperty::Unknown { object_type, .. } => object_type,
                     $(SclyProperty::$name(_) =>
                       <scly_props::$name as SclyPropertyData>::OBJECT_TYPE,)*
+                }
+            }
+
+            /* Name */
+
+            pub fn get_name(&self) -> CStr
+            {
+                let mut temp = self.clone();
+                temp.guess_kind();
+                match temp {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support name (get)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            let prop = self.$accessor();
+                            prop.unwrap().name.clone()
+                        },
+                    )*
+                }
+            }
+
+            pub fn set_name(&mut self, name: CStr<'r>)
+            {
+                self.guess_kind();
+                match *self {
+                    SclyProperty::Unknown { object_type, .. } => { println!("0x{:X} doesn't support name (set)", object_type) },
+                    $(
+                        SclyProperty::$name(_) => {
+                            self.$accessor_mut().unwrap().name = name;
+                        },
+                    )*
+                }
+            }
+
+            /* Active */
+
+            pub fn supports_active(&self) -> bool {
+                let object_type = self.object_type();
+                #[allow(unreachable_patterns)] // ridley throws a warning because we have both PAL and NTSC ridley definitions
+                match object_type {
+                    $(<scly_props::$name as SclyPropertyData>::OBJECT_TYPE => <scly_props::$name as SclyPropertyData>::SUPPORTS_ACTIVE,)*
+                    _ => false,
+                }
+            }
+
+            pub fn get_active(&self) -> bool
+            {
+                let mut temp = self.clone();
+                temp.guess_kind();
+                match temp {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support active (get)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            let prop = self.$accessor();
+                            prop.unwrap().impl_get_active() != 0
+                        },
+                    )*
+                }
+            }
+
+            pub fn set_active(&mut self, active: bool)
+            {
+                self.guess_kind();
+                match *self {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support active (set)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            self.$accessor_mut().unwrap().impl_set_active(active as u8);
+                        },
+                    )*
                 }
             }
 
@@ -996,10 +1116,187 @@ build_scly_property!(
     is_war_wasp,
     as_war_wasp,
     as_war_wasp_mut,
+    DoorArea,
+    is_door_area,
+    as_door_area,
+    as_door_area_mut,
+    Generator,
+    is_generator,
+    as_generator,
+    as_generator_mut,
+    RandomRelay,
+    is_random_relay,
+    as_random_relay,
+    as_random_relay_mut,
+    CameraShaker,
+    is_camera_shaker,
+    as_camera_shaker,
+    as_camera_shaker_mut,
+    DebugCameraWaypoint,
+    is_debug_camera_waypoint,
+    as_debug_camera_waypoint,
+    as_debug_camera_waypoint_mut,
+    SpiderBallAttractionSurface,
+    is_spider_ball_attraction_surface,
+    as_spider_ball_attraction_surface,
+    as_spider_ball_attraction_surface_mut,
+    MetareeAlpha,
+    is_metaree_alpha,
+    as_metaree_alpha,
+    as_metaree_alpha_mut,
+    DockAreaChange,
+    is_dock_area_change,
+    as_dock_area_change,
+    as_dock_area_change_mut,
+    AIKeyframe,
+    is_ai_keyframe,
+    as_ai_keyframe,
+    as_ai_keyframe_mut,
+    MetroidAlpha,
+    is_metroid_alpha,
+    as_metroid_alpha,
+    as_metroid_alpha_mut,
+    Steam,
+    is_steam,
+    as_steam,
+    as_steam_mut,
+    Ripple,
+    is_ripple,
+    as_ripple,
+    as_ripple_mut,
+    TargetingPoint,
+    is_targeting_point,
+    as_targeting_point,
+    as_targeting_point_mut,
+    ElectroMagneticPulse,
+    is_electro_magnetic_pulse,
+    as_electro_magnetic_pulse,
+    as_electro_magnetic_pulse_mut,
+    AreaAttributes,
+    is_area_attributes,
+    as_area_attributes,
+    as_area_attributes_mut,
+    FishCloudModifier,
+    is_fish_cloud_modifier,
+    as_fish_cloud_modifier,
+    as_fish_cloud_modifier_mut,
+    VisorFlare,
+    is_visor_flare,
+    as_visor_flare,
+    as_visor_flare_mut,
+    WorldTeleporter,
+    is_world_teleporter,
+    as_world_teleporter,
+    as_world_teleporter_mut,
+    VisorGoo,
+    is_visor_goo,
+    as_visor_goo,
+    as_visor_goo_mut,
+    PlayerStateChange,
+    is_player_state_change,
+    as_player_state_change,
+    as_player_state_change_mut,
+    SaveStation,
+    is_save_station,
+    as_save_station,
+    as_save_station_mut,
+    WallCrawlerSwarm,
+    is_wall_crawler_swarm,
+    as_wall_crawler_swarm,
+    as_wall_crawler_swarm_mut,
+    RoomAcoustics,
+    is_room_acoustics,
+    as_room_acoustics,
+    as_room_acoustics_mut,
+    ColorModulate,
+    is_color_modulate,
+    as_color_modulate,
+    as_color_modulate_mut,
+    Midi,
+    is_midi,
+    as_midi,
+    as_midi_mut,
+    Repulsor,
+    is_repulsor,
+    as_repulsor,
+    as_repulsor_mut,
+    FogVolume,
+    is_fog_volume,
+    as_fog_volume,
+    as_fog_volume_mut,
+    RadialDamage,
+    is_radial_damage,
+    as_radial_damage,
+    as_radial_damage_mut,
+    EnvFxDensityController,
+    is_env_fx_density_controller,
+    as_env_fx_density_controller,
+    as_env_fx_density_controller_mut,
+    TeamAIMgr,
+    is_team_ai_mgr,
+    as_team_ai_mgr,
+    as_team_ai_mgr_mut,
+    Oculus,
+    is_oculus,
+    as_oculus,
+    as_oculus_mut,
+    SpindleCamera,
+    is_spindle_camera,
+    as_spindle_camera,
+    as_spindle_camera_mut,
+    RumbleEffect,
+    is_rumble_effect,
+    as_rumble_effect,
+    as_rumble_effect_mut,
+    IceZoomer,
+    is_ice_zoomer,
+    as_ice_zoomer,
+    as_ice_zoomer_mut,
+    Ridley,
+    is_ridley,
+    as_ridley,
+    as_ridley_mut,
+    ThermalHeatFader,
+    is_thermal_heat_fader,
+    as_thermal_heat_fader,
+    as_thermal_heat_fader_mut,
+    ScriptBeam,
+    is_script_beam,
+    as_script_beam,
+    as_script_beam_mut,
+    MetroidPrimeRelay,
+    is_metroid_prime_relay,
+    as_metroid_prime_relay,
+    as_metroid_prime_relay_mut,
+    MazeNode,
+    is_maze_node,
+    as_maze_node,
+    as_maze_node_mut,
+    ShadowProjector,
+    is_shadow_projector,
+    as_shadow_projector,
+    as_shadow_projector_mut,
 );
 
 pub trait SclyPropertyData {
     const OBJECT_TYPE: u8;
+
+    /* Active */
+    const SUPPORTS_ACTIVE: bool = false;
+
+    fn impl_get_active(&self) -> u8 {
+        panic!(
+            "Script object type 0x{:X} does not implement the 'active' property",
+            Self::OBJECT_TYPE
+        )
+    }
+
+    fn impl_set_active(&mut self, _: u8) {
+        panic!(
+            "Script object type 0x{:X} does not implement the 'active' property",
+            Self::OBJECT_TYPE
+        )
+    }
 
     /* Position */
     const SUPPORTS_POSITION: bool = false;
@@ -1122,7 +1419,7 @@ pub trait SclyPropertyData {
 }
 
 #[auto_struct(Readable, FixedSize, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Connection {
     pub state: ConnectionState,
     pub message: ConnectionMsg,
@@ -1175,7 +1472,7 @@ macro_rules! build_scly_conn_field {
     };
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct ConnectionState(pub u32);
 build_scly_conn_field!(ConnectionState {
     ANY = 0xFFFFFFFF,
@@ -1213,7 +1510,7 @@ build_scly_conn_field!(ConnectionState {
     INHERIT_BOUNDS = 0x20,
 });
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct ConnectionMsg(pub u32);
 build_scly_conn_field!(ConnectionMsg {
     NONE = 0xFFFFFFFF,

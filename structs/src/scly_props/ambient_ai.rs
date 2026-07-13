@@ -1,10 +1,12 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use crate::{impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData};
+use crate::{
+    impl_active, impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData,
+};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AmbientAI<'r> {
     #[auto_struct(expect = 16)]
     pub prop_count: u32,
@@ -32,6 +34,7 @@ pub struct AmbientAI<'r> {
 impl SclyPropertyData for AmbientAI<'_> {
     const OBJECT_TYPE: u8 = 0x75;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
     impl_scale!(); // TODO: scale should also affect collision extent and mass

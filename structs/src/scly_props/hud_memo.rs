@@ -4,7 +4,7 @@ use reader_writer::CStr;
 use crate::{res_id::*, ResId, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HudMemo<'r> {
     #[auto_struct(expect = 6)]
     prop_count: u32,

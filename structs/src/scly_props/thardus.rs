@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Thardus<'r> {
     #[auto_struct(expect = 44)]
     pub prop_count: u32,

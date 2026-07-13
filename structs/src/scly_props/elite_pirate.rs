@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::{scly_structs::*, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ElitePirate<'r> {
     #[auto_struct(expect = 42)]
     pub prop_count: u32,

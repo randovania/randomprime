@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    collections::{hash_map::DefaultHasher, HashMap},
+    collections::{hash_map::DefaultHasher, HashMap, HashSet},
     convert::TryInto,
     ffi::CString,
     fs::{self, File},
@@ -11,9 +11,7 @@ use std::{
     time::Instant,
 };
 
-use dol_symbol_table::mp1_symbol;
 use encoding::{all::WINDOWS_1252, EncoderTrap, Encoding};
-use ppcasm::ppcasm;
 use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 use reader_writer::{
     generic_array::GenericArray, typenum::U3, CStr, CStrConversionExtension, FourCC, Reader,
@@ -23,7 +21,7 @@ use resource_info_table::{resource_info, ResourceInfo};
 use structs::{
     res_id,
     scly_structs::{DamageInfo, TypeVulnerability},
-    Languages, MapaObjectVisibilityMode, ResId, SclyPropertyData,
+    Dependency, Languages, MapaObjectVisibilityMode, ResId, SclyProperty, SclyPropertyData,
 };
 
 use crate::{
@@ -32,7 +30,7 @@ use crate::{
     custom_assets::{
         collect_game_resources, custom_asset_filename, custom_asset_ids, PickupHashKey,
     },
-    dol_patcher::DolPatcher,
+    dol_patches,
     door_meta::{BlastShieldType, DoorType},
     elevators::{is_elevator, Elevator, SpawnRoom, SpawnRoomData, World},
     extern_assets::ExternPickupModel,
@@ -43,18 +41,19 @@ use crate::{
         ArtifactHintBehavior, BlockConfig, BombSlotCover, ConnectionConfig, ConnectionMsg,
         ConnectionState, CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode,
         FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat,
-        LevelConfig, PatchConfig, PhazonDamageModifier, PickupConfig, PlatformConfig, PlatformType,
-        RoomConfig, RunMode, SpecialFunctionType, SuitDamageReduction, TimerConfig, Version, Visor,
+        LevelConfig, PatchConfig, PickupConfig, PlatformConfig, PlatformType, RoomConfig, RunMode,
+        SpecialFunctionType, TimerConfig, Version,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
         self, pickup_model_for_pickup, pickup_type_for_pickup, DoorLocation, ObjectsToRemove,
         PickupModel, PickupType, ScriptObjectLocation,
     },
+    room_lookup::ROOM_BY_NAME,
     starting_items::StartingItems,
     structs::LightLayer,
     txtr_conversions::{
-        cmpr_compress, cmpr_decompress, huerotate_color, huerotate_in_place, huerotate_matrix,
+        cmpr_compress, cmpr_decompress, huerotate_in_place, huerotate_matrix,
         GRAVITY_SUIT_TEXTURES, PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, VARIA_SUIT_TEXTURES,
     },
     GcDiscLookupExtensions,
@@ -90,6 +89,11 @@ impl From<DoorLocation> for ModifiableDoorLocation {
             dock_scale: door_loc.dock_scale,
         }
     }
+}
+
+fn add_obj<'r>(layers: &mut [structs::SclyLayer<'r>], obj: structs::SclyObject<'r>) {
+    let layer_idx = obj.get_layer_idx();
+    layers[layer_idx].objects.as_mut_vec().push(obj);
 }
 
 const ARTIFACT_OF_TRUTH_REQ_LAYER: u32 = 23;
@@ -306,13 +310,13 @@ fn patch_tournament_winners<'r>(
 ) -> Result<(), String> {
     let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
 
-    let scan_dep: structs::Dependency = custom_asset_ids::TOURNEY_WINNERS_SCAN.into();
+    let scan_dep: Dependency = custom_asset_ids::TOURNEY_WINNERS_SCAN.into();
     area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-    let strg_dep: structs::Dependency = custom_asset_ids::TOURNEY_WINNERS_STRG.into();
+    let strg_dep: Dependency = custom_asset_ids::TOURNEY_WINNERS_STRG.into();
     area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
-    let frme_dep: structs::Dependency = frme_id.into();
+    let frme_dep: Dependency = frme_id.into();
     area.add_dependencies(game_resources, 0, iter::once(frme_dep));
 
     let scly = area.mrea().scly_section_mut();
@@ -707,7 +711,7 @@ fn patch_door<'r>(
         deps.extend_from_slice(&door_type_after_open.dependencies());
     }
 
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: fourcc,
     });
@@ -774,13 +778,14 @@ fn patch_door<'r>(
         area.add_layer(b"Custom Shield Layer\0".as_cstr());
         blast_shield_layer_idx = area.layer_flags.layer_count as usize - 1;
 
-        sound_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        streamed_audio_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        shaker_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        blast_shield_instance_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
+        sound_id = area.new_object_id_from_layer_id(0);
+        streamed_audio_id = area.new_object_id_from_layer_id(0);
+        shaker_id = area.new_object_id_from_layer_id(0);
+        blast_shield_instance_id = area.new_object_id_from_layer_id(0);
+        effect_id = area.new_object_id_from_layer_id(0);
+
         timer_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         timer2_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
-        effect_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         auto_open_relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         dt_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
@@ -1002,7 +1007,7 @@ fn patch_door<'r>(
                 target_object_id: relay_id,
             }]
             .into(),
-            property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
+            property_data: SclyProperty::Actor(Box::new(structs::Actor {
                 name: b"Custom Blast Shield\0".as_cstr(),
                 position,
                 rotation,
@@ -1362,7 +1367,7 @@ fn patch_door<'r>(
         let poi = structs::SclyObject {
             instance_id: poi_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::PointOfInterest(
+            property_data: SclyProperty::PointOfInterest(
                 structs::PointOfInterest {
                     name: b"mypoi\0".as_cstr(),
                     position: [dt_pos[0], dt_pos[1], dt_pos[2] + 0.5].into(),
@@ -1719,7 +1724,7 @@ fn patch_door<'r>(
         let sound = structs::SclyObject {
             instance_id: sound_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::Sound(Box::new(structs::Sound {
+            property_data: SclyProperty::Sound(Box::new(structs::Sound {
                 // copied from main plaza half-pipe
                 name: b"mysound\0".as_cstr(),
                 position: [position[0], position[1], position[2]].into(),
@@ -1748,7 +1753,7 @@ fn patch_door<'r>(
         let streamed_audio = structs::SclyObject {
             instance_id: streamed_audio_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::StreamedAudio(Box::new(structs::StreamedAudio {
+            property_data: SclyProperty::StreamedAudio(Box::new(structs::StreamedAudio {
                 name: b"mystreamedaudio\0".as_cstr(),
                 active: 1,
                 audio_file_name: b"/audio/evt_x_event_00.dsp\0".as_cstr(),
@@ -1762,47 +1767,20 @@ fn patch_door<'r>(
         };
 
         // add new script objects to layer //
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(streamed_audio);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(sound);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(shaker);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(blast_shield);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(timer);
-        layers[blast_shield_layer_idx].objects.as_mut_vec().push(dt);
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(poi);
+        add_obj(layers, streamed_audio);
+        add_obj(layers, sound);
+        add_obj(layers, shaker);
+        add_obj(layers, blast_shield);
+        add_obj(layers, timer);
+        add_obj(layers, dt);
+        add_obj(layers, poi);
         if let Some(effect) = effect {
-            layers[blast_shield_layer_idx]
-                .objects
-                .as_mut_vec()
-                .push(effect);
+            add_obj(layers, effect);
         }
         if let Some(timer2) = timer2 {
-            layers[blast_shield_layer_idx]
-                .objects
-                .as_mut_vec()
-                .push(timer2);
+            add_obj(layers, timer2);
         }
-        layers[blast_shield_layer_idx]
-            .objects
-            .as_mut_vec()
-            .push(relay);
+        add_obj(layers, relay);
     } else {
         position = [0.0, 0.0, 0.0].into();
     }
@@ -2682,14 +2660,14 @@ fn patch_add_item<'r>(
         }
     };
 
-    let hudmemo_dep: structs::Dependency = hudmemo_strg.into();
+    let hudmemo_dep: Dependency = hudmemo_strg.into();
     area.add_dependencies(game_resources, new_layer_idx, iter::once(hudmemo_dep));
 
     /* Add Model Dependencies */
     // Dependencies are defined externally
     if extern_model.is_some() {
         let deps = extern_model.as_ref().unwrap().dependencies.clone();
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+        let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
             asset_id: file_id,
             asset_type: fourcc,
         });
@@ -2700,7 +2678,7 @@ fn patch_add_item<'r>(
         let deps_iter = pickup_model_type
             .dependencies()
             .iter()
-            .map(|&(file_id, fourcc)| structs::Dependency {
+            .map(|&(file_id, fourcc)| Dependency {
                 asset_id: file_id,
                 asset_type: fourcc,
             });
@@ -2709,25 +2687,25 @@ fn patch_add_item<'r>(
 
     {
         let frme = ResId::<res_id::FRME>::new(0xDCEC3E77);
-        let frme_dep: structs::Dependency = frme.into();
+        let frme_dep: Dependency = frme.into();
         area.add_dependencies(game_resources, new_layer_idx, iter::once(frme_dep));
     }
     let scan_id = {
         if pickup_config.scan_text.is_some() {
             let (scan, strg) = *pickup_scans.get(&pickup_hash_key).unwrap();
 
-            let scan_dep: structs::Dependency = scan.into();
+            let scan_dep: Dependency = scan.into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = strg.into();
+            let strg_dep: Dependency = strg.into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(strg_dep));
 
             scan
         } else {
-            let scan_dep: structs::Dependency = pickup_type.scan().into();
+            let scan_dep: Dependency = pickup_type.scan().into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = pickup_type.scan_strg().into();
+            let strg_dep: Dependency = pickup_type.scan_strg().into();
             area.add_dependencies(game_resources, new_layer_idx, iter::once(strg_dep));
 
             pickup_type.scan()
@@ -2857,13 +2835,13 @@ fn patch_add_item<'r>(
     let mut pickup_obj = structs::SclyObject {
         instance_id: pickup_obj_id,
         connections: vec![].into(),
-        property_data: structs::SclyProperty::Pickup(Box::new(pickup)),
+        property_data: SclyProperty::Pickup(Box::new(pickup)),
     };
 
     let hudmemo = structs::SclyObject {
         instance_id: area.new_object_id_from_layer_id(new_layer_idx),
         connections: vec![].into(),
-        property_data: structs::SclyProperty::HudMemo(Box::new(structs::HudMemo {
+        property_data: SclyProperty::HudMemo(Box::new(structs::HudMemo {
             name: b"myhudmemo\0".as_cstr(),
             first_message_timer: {
                 if skip_hudmemos {
@@ -2899,7 +2877,7 @@ fn patch_add_item<'r>(
     let attainment_audio = structs::SclyObject {
         instance_id: area.new_object_id_from_layer_id(new_layer_idx),
         connections: vec![].into(),
-        property_data: structs::SclyProperty::Sound(Box::new(structs::Sound {
+        property_data: SclyProperty::Sound(Box::new(structs::Sound {
             // copied from main plaza half-pipe
             name: b"mysound\0".as_cstr(),
             position: pickup_position.into(),
@@ -3066,16 +3044,14 @@ fn patch_add_item<'r>(
             .push(structs::SclyObject {
                 instance_id: poi_id,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::PointOfInterest(Box::new(
-                    structs::PointOfInterest {
-                        name: b"mypoi\0".as_cstr(),
-                        position: pickup_position.into(),
-                        rotation: [0.0, 0.0, 0.0].into(),
-                        active: 1,
-                        scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
-                        point_size: 500.0,
-                    },
-                )),
+                property_data: SclyProperty::PointOfInterest(Box::new(structs::PointOfInterest {
+                    name: b"mypoi\0".as_cstr(),
+                    position: pickup_position.into(),
+                    rotation: [0.0, 0.0, 0.0].into(),
+                    active: 1,
+                    scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
+                    point_size: 500.0,
+                })),
             });
 
         pickup_obj
@@ -3110,26 +3086,24 @@ fn patch_add_item<'r>(
         let special_function = structs::SclyObject {
             instance_id: special_function_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::SpecialFunction(Box::new(
-                structs::SpecialFunction {
-                    name: b"myspecialfun\0".as_cstr(),
-                    position: [0., 0., 0.].into(),
-                    rotation: [0., 0., 0.].into(),
-                    type_: 16, // layer change
-                    unknown0: b"\0".as_cstr(),
-                    unknown1: 0.,
-                    unknown2: 0.,
-                    unknown3: 0.,
-                    layer_change_room_id: room_id,
-                    layer_change_layer_id: new_layer_idx as u32,
-                    item_id: 0,
-                    unknown4: 1, // active
-                    unknown5: 0.,
-                    unknown6: 0xFFFFFFFF,
-                    unknown7: 0xFFFFFFFF,
-                    unknown8: 0xFFFFFFFF,
-                },
-            )),
+            property_data: SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
+                name: b"myspecialfun\0".as_cstr(),
+                position: [0., 0., 0.].into(),
+                rotation: [0., 0., 0.].into(),
+                type_: 16, // layer change
+                unknown0: b"\0".as_cstr(),
+                unknown1: 0.,
+                unknown2: 0.,
+                unknown3: 0.,
+                layer_change_room_id: room_id,
+                layer_change_layer_id: new_layer_idx as u32,
+                item_id: 0,
+                active: 1,
+                unknown5: 0.,
+                unknown6: 0xFFFFFFFF,
+                unknown7: 0xFFFFFFFF,
+                unknown8: 0xFFFFFFFF,
+            })),
         };
 
         // Activate the layer change when item is picked up
@@ -3330,7 +3304,7 @@ fn patch_superheated_room(
     let area_damage_special_function = structs::SclyObject {
         instance_id: area.new_object_id_from_layer_name("Default"),
         connections: vec![].into(),
-        property_data: structs::SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
+        property_data: SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
             name: b"SpecialFunction Area Damage-component\0".as_cstr(),
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
@@ -3342,7 +3316,7 @@ fn patch_superheated_room(
             layer_change_room_id: 4294967295,
             layer_change_layer_id: 4294967295,
             item_id: 0,
-            unknown4: 1,
+            active: 1,
             unknown5: 0.0,
             unknown6: 4294967295,
             unknown7: 4294967295,
@@ -3496,7 +3470,7 @@ impl WaterType {
             WaterType::Normal => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::Water(Box::new(structs::Water {
+                property_data: SclyProperty::Water(Box::new(structs::Water {
                     name: b"normal water\0".as_cstr(),
                     position: [0.0, 0.0, 0.0].into(),
                     scale: [10.0, 10.0, 10.0].into(),
@@ -3592,8 +3566,8 @@ impl WaterType {
             WaterType::Poison => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::Water(Box::new(structs::Water {
-                    name: b"poison water\0".as_cstr(),
+                property_data: SclyProperty::Water(Box::new(structs::Water {
+                    name: b"poision water\0".as_cstr(),
                     position: [405.3748, -43.92318, 10.530313].into(),
                     scale: [13.0, 30.0, 1.0].into(),
                     damage_info: structs::scly_structs::DamageInfo {
@@ -3688,7 +3662,7 @@ impl WaterType {
             WaterType::Lava => structs::SclyObject {
                 instance_id: 0xFFFFFFFF,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::Water(Box::new(structs::Water {
+                property_data: SclyProperty::Water(Box::new(structs::Water {
                     name: b"lava\0".as_cstr(),
                     position: [26.634968, -14.81889, 0.237813].into(),
                     scale: [41.601, 52.502003, 7.0010004].into(),
@@ -3895,7 +3869,7 @@ fn patch_submerge_room<'r>(
 
     // add dependencies to area //
     let deps = water_type.dependencies();
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: fourcc,
     });
@@ -3970,27 +3944,25 @@ fn patch_add_poi<'r>(
         .push(structs::SclyObject {
             instance_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::PointOfInterest(Box::new(
-                structs::PointOfInterest {
-                    name: b"mypoi\0".as_cstr(),
-                    position: position.into(),
-                    rotation: [0.0, 0.0, 0.0].into(),
-                    active: 1,
-                    scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
-                    point_size: 12.0,
-                },
-            )),
+            property_data: SclyProperty::PointOfInterest(Box::new(structs::PointOfInterest {
+                name: b"mypoi\0".as_cstr(),
+                position: position.into(),
+                rotation: [0.0, 0.0, 0.0].into(),
+                active: 1,
+                scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
+                point_size: 12.0,
+            })),
         });
 
     let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
 
-    let scan_dep: structs::Dependency = scan_id.into();
+    let scan_dep: Dependency = scan_id.into();
     area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-    let strg_dep: structs::Dependency = strg_id.into();
+    let strg_dep: Dependency = strg_id.into();
     area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
-    let frme_dep: structs::Dependency = frme_id.into();
+    let frme_dep: Dependency = frme_id.into();
     area.add_dependencies(game_resources, 0, iter::once(frme_dep));
 
     Ok(())
@@ -4014,7 +3986,7 @@ fn patch_add_scan_actor<'r>(
         .push(structs::SclyObject {
             instance_id,
             connections: vec![].into(),
-            property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
+            property_data: SclyProperty::Actor(Box::new(structs::Actor {
                 name: b"Scan Actor\0".as_cstr(),
                 position: position.into(),
                 rotation: [0.0, 90.0, rotation].into(),
@@ -4085,25 +4057,25 @@ fn patch_add_scan_actor<'r>(
             })),
         });
 
-    let dep: structs::Dependency = ResId::<res_id::ANCS>::new(0x98DAB29C).into();
+    let dep: Dependency = ResId::<res_id::ANCS>::new(0x98DAB29C).into();
     area.add_dependencies(game_resources, 0, iter::once(dep));
 
-    let dep: structs::Dependency = ResId::<res_id::CMDL>::new(0x2A0FA4F9).into();
+    let dep: Dependency = ResId::<res_id::CMDL>::new(0x2A0FA4F9).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_bound.CMDL
 
-    let dep: structs::Dependency = ResId::<res_id::TXTR>::new(0x336B78E8).into();
+    let dep: Dependency = ResId::<res_id::TXTR>::new(0x336B78E8).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // Worlds/IntroLevel/common_textures/sp_holoanim1C.TXTR
 
-    let dep: structs::Dependency = ResId::<res_id::CSKR>::new(0x41200B2F).into();
+    let dep: Dependency = ResId::<res_id::CSKR>::new(0x41200B2F).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_bound.CSKR
 
-    let dep: structs::Dependency = ResId::<res_id::CINF>::new(0xE436418D).into();
+    let dep: Dependency = ResId::<res_id::CINF>::new(0xE436418D).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_bound.CINF
 
-    let dep: structs::Dependency = ResId::<res_id::ANIM>::new(0xA1ED00B6).into();
+    let dep: Dependency = ResId::<res_id::ANIM>::new(0xA1ED00B6).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_ready.ANIM
 
-    let dep: structs::Dependency = ResId::<res_id::EVNT>::new(0xA7DDBDC4).into();
+    let dep: Dependency = ResId::<res_id::EVNT>::new(0xA7DDBDC4).into();
     area.add_dependencies(game_resources, 0, iter::once(dep)); // AnimatedObjects/Introlevel/scenes/SP_blueHolograms/cooked/Scanholo_ready.EVNT
 
     Ok(())
@@ -4412,14 +4384,14 @@ fn modify_pickups_in_mrea<'r>(
         }
     };
 
-    let hudmemo_dep: structs::Dependency = hudmemo_strg.into();
+    let hudmemo_dep: Dependency = hudmemo_strg.into();
     area.add_dependencies(game_resources, 0, iter::once(hudmemo_dep));
 
     /* Add Model Dependencies */
     // Dependencies are defined externally
     if extern_model.is_some() {
         let deps = extern_model.as_ref().unwrap().dependencies.clone();
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+        let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
             asset_id: file_id,
             asset_type: fourcc,
         });
@@ -4430,7 +4402,7 @@ fn modify_pickups_in_mrea<'r>(
         let deps_iter = pickup_model_type
             .dependencies()
             .iter()
-            .map(|&(file_id, fourcc)| structs::Dependency {
+            .map(|&(file_id, fourcc)| Dependency {
                 asset_id: file_id,
                 asset_type: fourcc,
             });
@@ -4439,7 +4411,7 @@ fn modify_pickups_in_mrea<'r>(
 
     {
         let frme = ResId::<res_id::FRME>::new(0xDCEC3E77);
-        let frme_dep: structs::Dependency = frme.into();
+        let frme_dep: Dependency = frme.into();
         area.add_dependencies(game_resources, 0, iter::once(frme_dep));
     }
 
@@ -4447,18 +4419,18 @@ fn modify_pickups_in_mrea<'r>(
         if pickup_config.scan_text.is_some() {
             let (scan, strg) = *pickup_scans.get(&pickup_hash_key).unwrap();
 
-            let scan_dep: structs::Dependency = scan.into();
+            let scan_dep: Dependency = scan.into();
             area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = strg.into();
+            let strg_dep: Dependency = strg.into();
             area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
             scan
         } else {
-            let scan_dep: structs::Dependency = pickup_type.scan().into();
+            let scan_dep: Dependency = pickup_type.scan().into();
             area.add_dependencies(game_resources, 0, iter::once(scan_dep));
 
-            let strg_dep: structs::Dependency = pickup_type.scan_strg().into();
+            let strg_dep: Dependency = pickup_type.scan_strg().into();
             area.add_dependencies(game_resources, 0, iter::once(strg_dep));
 
             pickup_type.scan()
@@ -4875,16 +4847,14 @@ fn modify_pickups_in_mrea<'r>(
             .push(structs::SclyObject {
                 instance_id: jumbo_poi_id,
                 connections: vec![].into(),
-                property_data: structs::SclyProperty::PointOfInterest(Box::new(
-                    structs::PointOfInterest {
-                        name: b"mypoi\0".as_cstr(),
-                        position: position.into(),
-                        rotation: [0.0, 0.0, 0.0].into(),
-                        active: 1,
-                        scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
-                        point_size: 500.0, // makes it jumbo!
-                    },
-                )),
+                property_data: SclyProperty::PointOfInterest(Box::new(structs::PointOfInterest {
+                    name: b"mypoi\0".as_cstr(),
+                    position: position.into(),
+                    rotation: [0.0, 0.0, 0.0].into(),
+                    active: 1,
+                    scan_param: structs::scly_structs::ScannableParameters { scan: scan_id },
+                    point_size: 500.0, // makes it jumbo!
+                })),
             });
     }
 
@@ -5689,7 +5659,7 @@ fn patch_sunchamber_cutscene_hack(
                     layer_change_room_id: 0xFFFFFFFF,
                     layer_change_layer_id: 0xFFFFFFFF,
                     item_id: 0,
-                    unknown4: 0, // active
+                    active: 0,
                     unknown5: 0.0,
                     unknown6: 0xFFFFFFFF,
                     unknown7: 0xFFFFFFFF,
@@ -5726,7 +5696,7 @@ fn patch_sunchamber_cutscene_hack(
                     layer_change_room_id: 0xFFFFFFFF,
                     layer_change_layer_id: 0xFFFFFFFF,
                     item_id: 0,
-                    unknown4: 0, // active
+                    active: 0,
                     unknown5: 0.0,
                     unknown6: 0xFFFFFFFF,
                     unknown7: 0xFFFFFFFF,
@@ -6030,7 +6000,7 @@ fn patch_add_cutscene_skip_fn(
             layer_change_room_id: 0,
             layer_change_layer_id: 0,
             item_id: 0,
-            unknown4: 1, // active
+            active: 1,
             unknown5: 0.0,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,
@@ -6197,7 +6167,7 @@ fn patch_visible_aether_boundaries<'r>(
         (AETHER_BOUNDARY_TEXTURE.cmdl().to_u32(), b"CMDL"),
         (AETHER_BOUNDARY_TEXTURE.txtr().to_u32(), b"TXTR"),
     ];
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: FourCC::from_bytes(fourcc),
     });
@@ -6361,7 +6331,7 @@ fn patch_ambient_lighting(
 //         (0xB4A658C3, b"PART"),
 //     ];
 //     let deps_iter = deps.iter()
-//         .map(|&(file_id, fourcc)| structs::Dependency {
+//         .map(|&(file_id, fourcc)| Dependency {
 //             asset_id: file_id,
 //             asset_type: FourCC::from_bytes(fourcc),
 //         }
@@ -8715,7 +8685,7 @@ fn patch_add_pb_refill(
             layer_change_room_id: 0xFFFFFFFF,
             layer_change_layer_id: 0xFFFFFFFF,
             item_id: 0,
-            unknown4: 1, // active
+            active: 1,
             unknown5: 0.0,
             unknown6: 0xFFFFFFFF,
             unknown7: 0xFFFFFFFF,
@@ -8912,7 +8882,7 @@ fn patch_remove_cutscenes(
                     structs::SclyObject {
                         instance_id: obj.instance_id,
                         connections: obj.connections.clone(),
-                        property_data: structs::SclyProperty::Relay(Box::new(structs::Relay {
+                        property_data: SclyProperty::Relay(Box::new(structs::Relay {
                             name: b"camera-relay\0".as_cstr(),
                             active: 1,
                         })),
@@ -9193,6 +9163,413 @@ fn patch_purge_debris_extended(
             .as_mut_vec()
             .retain(|obj| !obj.property_data.is_debris_extended());
     }
+
+    // TODO: purge dependencies too
+
+    Ok(())
+}
+
+// fn object_is_dead(
+//     obj: &reader_writer::LCow<'_, structs::SclyObject<'_>>,
+//     all_incoming_connections: &HashMap<
+//         u32,
+//         HashSet<(u32, structs::ConnectionMsg, structs::ConnectionState)>,
+//     >,
+//     dead_connections: &HashSet<(u32, structs::Connection)>,
+// ) -> bool {
+//     // Messages which never have gameplay affect
+//     const INERT_MESSAGES: &[structs::ConnectionMsg] = &[
+//         structs::ConnectionMsg::NONE,
+//         structs::ConnectionMsg::DEACTIVATE,
+//         structs::ConnectionMsg::STOP,
+//         structs::ConnectionMsg::STOP_AND_RESET,
+//         structs::ConnectionMsg::REGISTERED,
+//         structs::ConnectionMsg::DELETED,
+//         structs::ConnectionMsg::INITIALIZED_IN_AREA,
+//         structs::ConnectionMsg::WORLD_INITIALIZED,
+//     ];
+
+//     // Object types which never have gameplay affect, but may
+//     // send messages to object types which do
+//     const NO_SIDE_EFFECT_OBJS: &[u8] = &[
+//         // structs::Trigger::OBJECT_TYPE, // except for push
+//         structs::Timer::OBJECT_TYPE,
+//         structs::Counter::OBJECT_TYPE,
+//         structs::Generator::OBJECT_TYPE,
+//         structs::PickupGenerator::OBJECT_TYPE,
+//         structs::RandomRelay::OBJECT_TYPE,
+//         structs::Relay::OBJECT_TYPE,
+//         structs::Switch::OBJECT_TYPE,
+//     ];
+
+//     // Object types which never have gameplay affect unless
+//     // a non-inert message is received
+//     const INERT_OBJS: &[u8] = &[
+//         structs::Waypoint::OBJECT_TYPE,
+//         structs::Counter::OBJECT_TYPE,
+//         structs::CameraWaypoint::OBJECT_TYPE,
+//         structs::Camera::OBJECT_TYPE,
+//         structs::CameraHint::OBJECT_TYPE,
+//         structs::RandomRelay::OBJECT_TYPE,
+//         structs::Relay::OBJECT_TYPE,
+//         structs::CameraFilterKeyframe::OBJECT_TYPE,
+//         structs::CameraBlurKeyframe::OBJECT_TYPE,
+//         structs::NewCameraShaker::OBJECT_TYPE,
+//         structs::CameraShaker::OBJECT_TYPE,
+//         structs::ActorKeyFrame::OBJECT_TYPE,
+//         structs::CoverPoint::OBJECT_TYPE,
+//         structs::PathCamera::OBJECT_TYPE,
+//         structs::ActorRotate::OBJECT_TYPE,
+//         structs::PlayerHint::OBJECT_TYPE,
+//         structs::PickupGenerator::OBJECT_TYPE,
+//         structs::AIJumpPoint::OBJECT_TYPE,
+//         structs::WorldTransporter::OBJECT_TYPE,
+//         structs::CameraPitchVolume::OBJECT_TYPE,
+//         structs::SpindleCamera::OBJECT_TYPE,
+//         structs::RumbleEffect::OBJECT_TYPE,
+//         structs::StreamedAudio::OBJECT_TYPE,
+//     ];
+
+//     // Object types which only have gameplay affect
+//     // if sent the message "SET_TO_ZERO"
+//     const SET_TO_ZERO_OBJS: &[u8] = &[
+//         structs::Switch::OBJECT_TYPE,
+//         structs::Relay::OBJECT_TYPE,
+//         structs::HudMemo::OBJECT_TYPE,
+//         structs::Generator::OBJECT_TYPE,
+//         structs::RandomRelay::OBJECT_TYPE,
+//     ];
+
+//     let empty_set = HashSet::new();
+//     let obj_id = obj.instance_id & 0x00FFFFFF;
+//     let object_type = obj.property_data.object_type();
+
+//     let incoming_connections = all_incoming_connections.get(&obj_id).unwrap_or(&empty_set);
+//     let incoming_messages: Vec<_> = incoming_connections.iter().map(|(_, m, _)| *m).collect();
+
+//     // let any_incoming_messages = incoming_connections.len() > 0;
+//     let any_outgoing_messages = obj
+//         .connections
+//         .iter()
+//         .any(|conn| !dead_connections.contains(&(obj_id, conn.clone().into_owned())));
+
+//     // Check for unused objects with no side effects
+//     if NO_SIDE_EFFECT_OBJS.contains(&object_type) && !any_outgoing_messages {
+//         return true; // This object does not have any side effects and doesn't send any messages so it cannot cause other objects to have side-effects
+//     }
+
+//     // Check for unused inert objects
+//     if INERT_OBJS.contains(&object_type)
+//         && incoming_messages.iter().all(|m| INERT_MESSAGES.contains(m))
+//     {
+//         return true; // This object does not create side effects inherently, and will not ever because it does not receive any messages that would make it do so
+//     }
+
+//     // Check for unused inert objects that only respond to SET_TO_ZERO
+//     if SET_TO_ZERO_OBJS.contains(&object_type)
+//         && !incoming_messages.contains(&structs::ConnectionMsg::SET_TO_ZERO)
+//     {
+//         return true; // This object only "does it's thing" when it receives SET_TO_ZERO and there are no objects which send it
+//     }
+
+//     // Check for unused spawn points
+//     if let Some(spawn_point) = obj.property_data.as_spawn_point() {
+//         if spawn_point.default_spawn == 0
+//             && !incoming_messages.iter().any(|m| {
+//                 [
+//                     structs::ConnectionMsg::SET_TO_ZERO,
+//                     structs::ConnectionMsg::RESET,
+//                 ]
+//                 .contains(m)
+//             })
+//         {
+//             return true; // This object is a spawn point which is not the default spawn and is neither reset nor SET_TO_ZERO
+//         }
+//     }
+
+//     // Check for unused timers
+//     if let Some(timer) = obj.property_data.as_timer() {
+//         if timer.start_immediately == 0
+//             && !incoming_messages.iter().any(|m| {
+//                 [
+//                     structs::ConnectionMsg::START,
+//                     structs::ConnectionMsg::RESET_AND_START,
+//                 ]
+//                 .contains(m)
+//             })
+//         {
+//             return true; // This object is a timer which does not auto-start and nothing starts it
+//         }
+//     }
+
+//     // Check for inactive objects that never activate
+//     if obj.property_data.supports_active()
+//         && !obj.property_data.get_active()
+//         && !incoming_messages.iter().any(|m| {
+//             [
+//                 structs::ConnectionMsg::ACTIVATE,
+//                 structs::ConnectionMsg::TOGGLE_ACTIVE,
+//             ]
+//             .contains(m)
+//         })
+//     {
+//         return true;
+//     }
+
+//     false
+// }
+
+fn patch_optimize_memory(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+) -> Result<(), String> {
+    /* Shrink Names */
+    {
+        fn empty_name() -> CStr<'static> {
+            b"\0".as_cstr()
+        }
+
+        let scly = area.mrea().scly_section_mut();
+        for layer in scly.layers.as_mut_vec() {
+            for obj in layer.objects.as_mut_vec() {
+                obj.property_data.set_name(empty_name());
+            }
+        }
+    }
+
+    // let mrea_id = area.mlvl_area.mrea.to_u32();
+    // let scly = area.mrea().scly_section();
+
+    // let mut objs = HashSet::new();
+    // let mut incoming_connections = HashMap::new();
+    // for layer in scly.layers.iter() {
+    //     for obj in layer.objects.iter() {
+    //         let obj_id = obj.instance_id & 0x00FFFFFF;
+    //         objs.insert(obj_id);
+    //     }
+    // }
+
+    // for layer in scly.layers.iter() {
+    //     for obj in layer.objects.iter() {
+    //         let obj_id = obj.instance_id & 0x00FFFFFF;
+    //         for conn in obj.connections.iter() {
+    //             let target_id = conn.target_object_id & 0x00FFFFFF;
+    //             if objs.contains(&target_id) {
+    //                 incoming_connections
+    //                     .entry(target_id)
+    //                     .or_insert_with(HashSet::new)
+    //                     .insert((obj_id, conn.message, conn.state));
+    //             }
+    //         }
+    //     }
+    // }
+
+    // let mut dead_objs = HashSet::<u32>::new();
+    // let mut dead_connections = HashSet::<(u32, structs::Connection)>::new();
+    // let add_connections = HashSet::<(u32, structs::Connection)>::new();
+    // let mut counts = (0, 0, 0, 0);
+
+    // loop {
+    //     /* Collect dead objects */
+    //     for layer in scly.layers.iter() {
+    //         for obj in layer.objects.iter() {
+    //             let obj_id = obj.instance_id & 0x00FFFFFF;
+    //             if !dead_objs.contains(&obj_id)
+    //                 && object_is_dead(&obj, &incoming_connections, &dead_connections)
+    //             {
+    //                 dead_objs.insert(obj_id);
+    //             }
+    //         }
+    //     }
+
+    //     /* Collect Dead Connections */
+    //     for layer in scly.layers.iter() {
+    //         for obj in layer.objects.iter() {
+    //             let obj_id = obj.instance_id & 0x00FFFFFF;
+    //             for conn in obj.connections.iter() {
+    //                 let target_id = conn.target_object_id & 0x00FFFFFF;
+    //                 let value = (obj_id, conn.clone().into_owned());
+    //                 if dead_objs.contains(&target_id) || !objs.contains(&target_id) {
+    //                     dead_connections.insert(value);
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     /* Cleanup lists */
+    //     for (sender_id, conn) in &add_connections {
+    //         let target_id = conn.target_object_id & 0x00FFFFFF;
+    //         incoming_connections
+    //             .entry(target_id)
+    //             .or_insert_with(HashSet::new)
+    //             .insert((*sender_id, conn.message, conn.state));
+    //     }
+
+    //     for (target_id, messages) in incoming_connections.iter_mut() {
+    //         messages.retain(|(sender_id, message, state)| {
+    //             !dead_objs.contains(sender_id)
+    //                 && !dead_objs.contains(target_id)
+    //                 && !dead_connections.iter().any(|(dead_sender_id, dead_conn)| {
+    //                     sender_id == dead_sender_id
+    //                         && dead_conn.target_object_id & 0x00FFFFFF == *target_id
+    //                         && dead_conn.state == *state
+    //                         && dead_conn.message == *message
+    //                 })
+    //         });
+    //     }
+
+    //     /* Check for break condition */
+    //     let new_counts = (
+    //         incoming_connections.values().map(HashSet::len).sum(),
+    //         dead_objs.len(),
+    //         dead_connections.len(),
+    //         add_connections.len(),
+    //     );
+    //     if new_counts == counts {
+    //         break;
+    //     }
+    //     counts = new_counts;
+    // }
+
+    /* Collect dead dependencies */
+
+    // let scly = area.mrea().scly_section_mut();
+
+    // for layer in scly.layers.as_mut_vec() {
+    //     /* Purge dead objects */
+    //     layer
+    //         .objects
+    //         .as_mut_vec()
+    //         .retain(|obj| !dead_objs.contains(&(obj.instance_id & 0x00FFFFFF)));
+
+    //     /* Purge dead connections */
+    //     for obj in layer.objects.as_mut_vec() {
+    //         let obj_id = obj.instance_id & 0x00FFFFFF;
+    //         obj.connections
+    //             .as_mut_vec()
+    //             .retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
+    //     }
+    // }
+
+    /* Prune dead pickup model dependencies */
+    let _dead_dep_len = {
+        /* AGSC (audio groups), STRG/SCAN (scan text), and FRME (UI frames) are excluded
+         * because they may be shared with non-pickup room objects. */
+        let pickup_dep_filter = |fourcc: &FourCC| {
+            matches!(
+                fourcc.as_bytes(),
+                b"TXTR" | b"CMDL" | b"ANCS" | b"PART" | b"CSKR" | b"CINF" | b"ANIM" | b"EVNT"
+            )
+        };
+
+        let all_pickup_deps: HashSet<(u32, FourCC)> = pickup_meta::PickupModel::iter()
+            .flat_map(|model| model.dependencies().iter().copied())
+            .filter(|(_, fourcc)| pickup_dep_filter(fourcc))
+            .collect();
+
+        let live_pickup_deps: HashSet<(u32, FourCC)> = {
+            let scly = area.mrea().scly_section();
+            let mut set = HashSet::new();
+            for layer in scly.layers.iter() {
+                for obj in layer.objects.iter() {
+                    if let Some(pickup) = obj.property_data.as_pickup() {
+                        if let Some(model) = pickup_meta::pickup_model_for_pickup(&pickup) {
+                            set.extend(
+                                model
+                                    .dependencies()
+                                    .iter()
+                                    .copied()
+                                    .filter(|(_, fourcc)| pickup_dep_filter(fourcc)),
+                            );
+                        }
+                        let cmdl_id = pickup.cmdl.to_u32();
+                        if cmdl_id != u32::MAX && cmdl_id != 0 {
+                            set.insert((cmdl_id, FourCC::from_bytes(b"CMDL")));
+                        }
+                        let ancs_id = pickup.ancs.file_id.to_u32();
+                        if ancs_id != u32::MAX && ancs_id != 0 {
+                            set.insert((ancs_id, FourCC::from_bytes(b"ANCS")));
+                        }
+                        let part_id = pickup.part.to_u32();
+                        if part_id != u32::MAX && part_id != 0 {
+                            set.insert((part_id, FourCC::from_bytes(b"PART")));
+                        }
+                    }
+                }
+            }
+            set
+        };
+
+        let dead_pickup_deps: Vec<Dependency> = area
+            .mlvl_area
+            .dependencies
+            .deps
+            .iter()
+            .flat_map(|layer| layer.iter().map(|d| d.into_owned()).collect::<Vec<_>>())
+            .filter(|dep| {
+                let key = (dep.asset_id, dep.asset_type);
+                all_pickup_deps.contains(&key) && !live_pickup_deps.contains(&key)
+            })
+            .collect();
+
+        let dead_dep_len = dead_pickup_deps.len();
+
+        if !dead_pickup_deps.is_empty() {
+            // println!(
+            //     "[room 0x{:X}] pruning {} dead pickup deps: {}",
+            //     mrea_id,
+            //     dead_pickup_deps.len(),
+            //     dead_pickup_deps
+            //         .iter()
+            //         .map(|d| format!("0x{:X}({})", d.asset_id, d.asset_type))
+            //         .collect::<Vec<_>>()
+            //         .join(", ")
+            // );
+            area.remove_dependencies(dead_pickup_deps);
+        }
+
+        dead_dep_len
+    };
+
+    // let _dead_memory_relay_conn_len = {
+    //     let mut all_ids: HashSet<u32> = HashSet::new();
+    //     {
+    //         let scly = area.mrea().scly_section();
+    //         for layer in scly.layers.iter() {
+    //             let layer_ids: HashSet<_> = layer
+    //                 .objects
+    //                 .iter()
+    //                 .map(|obj| obj.instance_id & 0x00FFFFFF)
+    //                 .collect();
+    //             all_ids.extend(layer_ids);
+    //         }
+    //     }
+    //     let area_index = area.mrea_index as u32;
+    //     let relay_conns = area.memory_relay_conns.as_mut_vec();
+    //     let before = relay_conns.len();
+    //     relay_conns.retain(|conn| {
+    //         let sender_area = (conn.sender_id >> 16) & 0x3FF;
+    //         let target_area = (conn.target_id >> 16) & 0x3FF;
+
+    //         if sender_area == area_index && !all_ids.contains(&(conn.sender_id & 0x00FFFFFF)) {
+    //             return false;
+    //         }
+    //         if target_area == area_index && !all_ids.contains(&(conn.target_id & 0x00FFFFFF)) {
+    //             return false;
+    //         }
+    //         true
+    //     });
+    //     before - relay_conns.len()
+    // };
+
+    // println!(
+    //     "OPTIMIZE | {:<27} | dead_obj {:>3} | dead_conn {:>3} | dead_mem_relay_conn {:>3} | dead_dep {:>3}",
+    //     ROOM_BY_MREA.get(&mrea_id).unwrap().room_name,
+    //     dead_objs.len(),
+    //     dead_connections.len(),
+    //     dead_memory_relay_conn_len,
+    //     dead_dep_len,
+    // );
 
     Ok(())
 }
@@ -10250,2392 +10627,6 @@ fn create_rel_config_file(spawn_room: SpawnRoomData, quickplay: bool) -> Vec<u8>
     buf
 }
 
-#[rustfmt::skip]
-#[allow(clippy::too_many_arguments)]
-fn patch_dol(
-    file: &mut structs::FstEntryFile,
-    spawn_room: SpawnRoomData,
-    version: Version,
-    config: &PatchConfig,
-    remove_ball_color: bool,
-    smoother_teleports: bool,
-    skip_splash_screens: bool,
-    escape_sequence_counts_up: bool,
-    uuid: Option<[u8; 16]>,
-    shoot_in_grapple: bool,
-) -> Result<(), String> {
-    if version == Version::NtscUTrilogy
-        || version == Version::NtscJTrilogy
-        || version == Version::PalTrilogy
-    {
-        return Ok(());
-    }
-
-    macro_rules! symbol_addr {
-        ($sym:tt, $version:expr) => {{
-            let s = mp1_symbol!($sym);
-            match &$version {
-                Version::NtscU0_00 => s.addr_0_00,
-                Version::NtscU0_01 => s.addr_0_01,
-                Version::NtscU0_02 => s.addr_0_02,
-                Version::NtscK => s.addr_kor,
-                Version::NtscJ => s.addr_jpn,
-                Version::Pal => s.addr_pal,
-                Version::NtscUTrilogy => unreachable!(),
-                Version::NtscJTrilogy => unreachable!(),
-                Version::PalTrilogy => unreachable!(),
-            }
-            .unwrap_or_else(|| panic!("Symbol {} unknown for version {}", $sym, $version))
-        }};
-    }
-
-    // new text section for code caves or rel loader
-    // skip 0x103c0 bytes after toc register
-    let new_text_section_start = symbol_addr!("OSArenaHi", version);
-    let mut new_text_section_end = new_text_section_start;
-    let mut new_text_section = vec![];
-
-    let reader = match *file {
-        structs::FstEntryFile::Unknown(ref reader) => reader.clone(),
-        _ => panic!(),
-    };
-
-    let mut dol_patcher = DolPatcher::new(reader);
-
-    if uuid.is_some() {
-        let uuid = uuid.unwrap();
-
-        // e.g. "!#$MetroidBuildInfo!#$ Build v1.088 10/29/2002 2:21:25"
-        let build_info_address: u32 = match version {
-            Version::NtscU0_00 => 0x803cc588,
-            Version::NtscU0_01 => 0x803cc768,
-            Version::NtscU0_02 => 0x803cd648,
-            Version::NtscK => 0x803cc688,
-            Version::NtscJ => 0x803b86cc,
-            Version::Pal => 0x803b6924,
-            _ => panic!("This version of the game does not support etching a UUID into the dol"),
-        };
-
-        // Leave the start alone for easier pattern matching
-        let build_info_address = build_info_address + "!#$Met".len() as u32;
-
-        // Replace characters with raw bytes
-        dol_patcher.patch(build_info_address, uuid.to_vec().clone().into())?;
-    }
-
-    if version == Version::Pal || version == Version::NtscJ {
-        dol_patcher.patch(
-            symbol_addr!("aMetroidprime", version),
-            b"randomprime\0"[..].into(),
-        )?;
-    } else {
-        dol_patcher
-            .patch(
-                symbol_addr!("aMetroidprimeA", version),
-                b"randomprime A\0"[..].into(),
-            )?
-            .patch(
-                symbol_addr!("aMetroidprimeB", version),
-                b"randomprime B\0"[..].into(),
-            )?;
-    }
-
-    if config.difficulty_behavior != DifficultyBehavior::Either {
-        let only_one_option_jump_offset = if version == Version::Pal || version == Version::NtscJ {
-            0x210
-        } else {
-            0x1f8
-        };
-        let only_one_option_patch = ppcasm!(symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + 0x110, {
-            b   { symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + only_one_option_jump_offset };
-        });
-        dol_patcher.ppcasm_patch(&only_one_option_patch)?;
-    }
-
-    match config.difficulty_behavior {
-        DifficultyBehavior::NormalOnly => {
-            let normal_is_only_patch = ppcasm!(symbol_addr!("DoPopupAdvance__19SNewFileSelectFrameFPC14CGuiTableGroup", version) + 0x78, {
-                b   { symbol_addr!("DoPopupAdvance__19SNewFileSelectFrameFPC14CGuiTableGroup", version) + 0xd0 };
-            });
-            dol_patcher.ppcasm_patch(&normal_is_only_patch)?;
-        }
-        DifficultyBehavior::HardOnly => {}
-        DifficultyBehavior::Either => {
-            let normal_is_default_patch = ppcasm!(symbol_addr!("ActivateNewGamePopup__19SNewFileSelectFrameFv", version) + 0x3C, {
-                li      r4, 2;
-            });
-            dol_patcher.ppcasm_patch(&normal_is_default_patch)?;
-        }
-    };
-
-    // hide normal text
-    // let normal_only_patch = ppcasm!(0x8001f52c, {
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&normal_only_patch)?;
-
-    if escape_sequence_counts_up {
-        // Escape Sequences count up
-        // NTSC-U (0x80044f24 - 0x80044ef4)
-        let escape_seq_timer_count_up_patch = ppcasm!(symbol_addr!("UpdateEscapeSequenceTimer__13CStateManagerFf", version) + 0x30, {
-            fadds   f2, f2, f1;
-        });
-        dol_patcher.ppcasm_patch(&escape_seq_timer_count_up_patch)?;
-
-        // Escape Sequences don't check for rumbling
-        // NTSC-U (0x80044fa8 - 0x80044ef4) => b (0x80045058 - 0x80044ef4)
-        let remove_escape_sequence_rumble_patch = ppcasm!(symbol_addr!("UpdateEscapeSequenceTimer__13CStateManagerFf", version) + 0xb4, {
-                b       { symbol_addr!("UpdateEscapeSequenceTimer__13CStateManagerFf", version) + 0x164 };
-        });
-        dol_patcher.ppcasm_patch(&remove_escape_sequence_rumble_patch)?;
-
-        // Never hide the escape sequence timer
-        // NTSC-U (0x80066e78 - 0x80066380)
-        let patch_offset = if version == Version::Pal || version == Version::NtscJ {
-            0xb84
-        } else {
-            0xaf8
-        };
-        let remove_escape_sequence_rumble_patch = ppcasm!(
-            symbol_addr!("Update__9CSamusHudFfRC13CStateManagerUibb", version) + patch_offset,
-            { nop }
-        );
-        dol_patcher.ppcasm_patch(&remove_escape_sequence_rumble_patch)?;
-    }
-    // byte pattern to find GetIsFusionEnabled__12CPlayerStateFv
-    // 88030000 5403dffe 7c0300d0
-    if config.force_fusion {
-        let force_fusion_patch = ppcasm!(symbol_addr!("GetIsFusionEnabled__12CPlayerStateFv", version) + 4, {
-                li  r0, 1;
-        });
-        dol_patcher.ppcasm_patch(&force_fusion_patch)?;
-    }
-
-    if remove_ball_color {
-        let colors = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
-        dol_patcher.patch(
-            symbol_addr!("skBallInnerGlowColors", version),
-            colors.clone().into(),
-        )?;
-        dol_patcher.patch(
-            symbol_addr!("BallAuxGlowColors", version),
-            colors.clone().into(),
-        )?;
-        dol_patcher.patch(
-            symbol_addr!("BallTransFlashColors", version),
-            colors.clone().into(),
-        )?;
-        dol_patcher.patch(
-            symbol_addr!("BallSwooshColors", version),
-            colors.clone().into(),
-        )?;
-        dol_patcher.patch(
-            symbol_addr!("BallSwooshColorsJaggy", version),
-            colors.clone().into(),
-        )?;
-        dol_patcher.patch(
-            symbol_addr!("BallSwooshColorsCharged", version),
-            colors.clone().into(),
-        )?;
-        dol_patcher.patch(
-            symbol_addr!("BallGlowColors", version),
-            colors.clone().into(),
-        )?;
-    } else if config.suit_colors.is_some() {
-        let suit_colors = config.suit_colors.as_ref().unwrap();
-        let mut colors: Vec<Vec<u8>> = vec![
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
-                0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
-            ], // skBallInnerGlowColors
-            vec![
-                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
-                0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ], // BallAuxGlowColors
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ], // BallTransFlashColors
-            vec![
-                0xC2, 0x8F, 0x17, 0x70, 0xD4, 0xFF, 0x6A, 0xFF, 0x8A, 0x3D, 0x4D, 0xFF, 0xC0, 0x00,
-                0x00, 0x00, 0xBE, 0xDC, 0xDF, 0xFF, 0x00, 0xC4, 0x9E, 0xFF, 0xFF, 0x9A, 0x22,
-            ], // BallSwooshColors
-            vec![
-                0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xD5,
-                0x19, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00,
-            ], // BallSwooshColorsJaggy
-            vec![
-                0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0x80,
-                0x20, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00,
-            ], // BallSwooshColorsCharged
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ], // BallGlowColors
-        ];
-
-        for color in colors.iter_mut() {
-            for j in 0..9 {
-                let angle = if [0].contains(&j) && suit_colors.power_deg.is_some() {
-                    suit_colors.power_deg.unwrap()
-                } else if [1, 2].contains(&j) && suit_colors.varia_deg.is_some() {
-                    suit_colors.varia_deg.unwrap()
-                } else if [3].contains(&j) && suit_colors.gravity_deg.is_some() {
-                    suit_colors.gravity_deg.unwrap()
-                } else if [4].contains(&j) && suit_colors.phazon_deg.is_some() {
-                    suit_colors.phazon_deg.unwrap()
-                } else {
-                    0
-                };
-
-                let angle = angle % 360;
-                if angle == 0 {
-                    continue;
-                }
-                let matrix = huerotate_matrix(angle as f32);
-
-                let r_idx = j * 3;
-                let g_idx = r_idx + 1;
-                let b_idx = r_idx + 2;
-
-                let new_rgb = huerotate_color(matrix, color[r_idx], color[g_idx], color[b_idx]);
-                color[r_idx] = new_rgb[0];
-                color[g_idx] = new_rgb[1];
-                color[b_idx] = new_rgb[2];
-            }
-        }
-
-        let mut i = 0;
-        dol_patcher.patch(
-            symbol_addr!("skBallInnerGlowColors", version),
-            colors[i].clone().into(),
-        )?;
-        i += 1;
-        dol_patcher.patch(
-            symbol_addr!("BallAuxGlowColors", version),
-            colors[i].clone().into(),
-        )?;
-        i += 1;
-        dol_patcher.patch(
-            symbol_addr!("BallTransFlashColors", version),
-            colors[i].clone().into(),
-        )?;
-        i += 1;
-        dol_patcher.patch(
-            symbol_addr!("BallSwooshColors", version),
-            colors[i].clone().into(),
-        )?;
-        i += 1;
-        dol_patcher.patch(
-            symbol_addr!("BallSwooshColorsJaggy", version),
-            colors[i].clone().into(),
-        )?;
-        i += 1;
-        dol_patcher.patch(
-            symbol_addr!("BallSwooshColorsCharged", version),
-            colors[i].clone().into(),
-        )?;
-        i += 1;
-        dol_patcher.patch(
-            symbol_addr!("BallGlowColors", version),
-            colors[i].clone().into(),
-        )?;
-    }
-
-    if config.starting_visor != Visor::Combat {
-        let visor = config.starting_visor as u16;
-        let no_starting_visor = !config.starting_items.combat_visor
-            && !config.starting_items.scan_visor
-            && !config.starting_items.thermal_visor
-            && !config.starting_items.xray;
-
-        // If no visors, spawn into scan visor without transitioning (spawn without scan GUI)
-        if no_starting_visor {
-            let scan_visor = Visor::Scan as u16;
-            let default_visor_patch = ppcasm!(symbol_addr!("__ct__12CPlayerStateFv", version) + 0x68, {
-                    li      r0, scan_visor;
-                    stw     r0, 0x14(r31); // currentVisor
-                    stw     r0, 0x18(r31); // transitioningVisor
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            let default_visor_patch = ppcasm!(symbol_addr!("__ct__12CPlayerStateFR12CInputStream", version) + 0x70, {
-                    li      r0, scan_visor;
-                    stw     r0, 0x14(r30); // currentVisor
-                    stw     r0, 0x18(r30); // transitioningVisor
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            // spawn after elevator
-            let default_visor_patch = ppcasm!(symbol_addr!("ResetVisor__12CPlayerStateFv", version), {
-                    li      r0, scan_visor;
-                    stw     r0, 0x14(r3); // currentVisor
-                    stw     r0, 0x18(r3); // transitioningVisor
-                    nop;
-                    nop;
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-        // Otherwise, spawn mid-transition into default visor
-        } else {
-            // spawn on game initalization
-            let default_visor_patch = ppcasm!(symbol_addr!("__ct__12CPlayerStateFv", version) + 0x68, {
-                    li      r0, visor;
-                    stw     r6, 0x14(r31); // currentVisor = combat
-                    stw     r0, 0x18(r31); // transitioningVisor
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            let default_visor_patch = ppcasm!(symbol_addr!("__ct__12CPlayerStateFR12CInputStream", version) + 0x70, {
-                    li      r0, visor;
-                    stw     r5, 0x14(r30); // currentVisor = combat
-                    stw     r0, 0x18(r30); // transitioningVisor
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            // spawn after elevator
-            let default_visor_patch = ppcasm!(symbol_addr!("ResetVisor__12CPlayerStateFv", version), {
-                    li      r0, 0;
-                    stw     r0, 0x14(r3); // currentVisor = combat
-                    li      r0, visor;
-                    stw     r0, 0x18(r3); // transitioningVisor
-                    nop;
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-        }
-
-        let visor_item = match config.starting_visor {
-            Visor::Combat => 17,
-            Visor::Scan => 5,
-            Visor::Thermal => 9,
-            Visor::XRay => 13,
-        };
-
-        // If scan visor or no visor
-        if config.starting_visor == Visor::Scan || no_starting_visor {
-            // 2022-02-08 - I had to remove this because there's a bug in the vanilla engine where playerhint -> Scan Visor doesn't holster the weapon
-            // if no_starting_visor {
-            //     // Do not check for combat visor in inventory when switching to it
-            //     let default_visor_patch = ppcasm!(symbol_addr!("SetAreaPlayerHint__7CPlayerFRC17CScriptPlayerHintRC13CStateManager", version) + 0x120, {
-            //         nop;
-            //     });
-            //     dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            // }
-
-            // spawn with weapon holstered instead of drawn
-            let patch_offset = if version == Version::Pal || version == Version::NtscJ {
-                0x3bc
-            } else {
-                0x434
-            };
-            let default_visor_patch = ppcasm!(symbol_addr!("__ct__7CPlayerF9TUniqueIdRC12CTransform4fRC6CAABoxUi9CVector3fffffRC13CMaterialList", version) + patch_offset, {
-                    li      r0, 0; // r0 = holstered
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-
-            // stop gun from being drawn after unmorphing
-            let (patch_offset, patch_offset2) =
-                if version == Version::Pal || version == Version::NtscJ {
-                    (0x79c, 0x7a8)
-                } else {
-                    (0x7c8, 0x7d4)
-                };
-            let default_visor_patch = ppcasm!(
-                symbol_addr!(
-                    "TransitionFromMorphBallState__7CPlayerFR13CStateManager",
-                    version
-                ) + patch_offset,
-                {
-                    nop;
-                }
-            );
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            let default_visor_patch = ppcasm!(
-                symbol_addr!(
-                    "TransitionFromMorphBallState__7CPlayerFR13CStateManager",
-                    version
-                ) + patch_offset2,
-                {
-                    nop;
-                }
-            );
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-
-            // stop gun from being drawn after unmorphing
-            let (patch_offset, patch_offset2) =
-                if version == Version::Pal || version == Version::NtscJ {
-                    (0x14c, 0x158)
-                } else {
-                    (0x1a4, 0x1b0)
-                };
-            let default_visor_patch = ppcasm!(
-                symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version)
-                    + patch_offset,
-                {
-                    nop;
-                }
-            );
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            let default_visor_patch = ppcasm!(
-                symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version)
-                    + patch_offset2,
-                {
-                    nop;
-                }
-            );
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-
-            // do not change visors after unmorphing
-            let patch_offset = if version == Version::Pal || version == Version::NtscJ {
-                0xb0
-            } else {
-                0x108
-            };
-            let default_visor_patch = ppcasm!(
-                symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version)
-                    + patch_offset,
-                {
-                    nop;
-                    nop;
-                    nop;
-                }
-            );
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-        } else {
-            let (patch_offset, patch_offset2) =
-                if version == Version::Pal || version == Version::NtscJ {
-                    (0xdc, 0xf0)
-                } else {
-                    (0xe8, 0xfc)
-                };
-
-            // When pressing a or y in in scan visor, check for and switch to default visor instead of combat
-            let default_visor_patch = ppcasm!(symbol_addr!("UpdateVisorState__7CPlayerFRC11CFinalInputfR13CStateManager", version) + patch_offset, {
-                    li r4, visor_item;
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-            let default_visor_patch = ppcasm!(symbol_addr!("UpdateVisorState__7CPlayerFRC11CFinalInputfR13CStateManager", version) + patch_offset2, {
-                    li r4, visor;
-            });
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-
-            let patch_offset = if version == Version::Pal || version == Version::NtscJ {
-                0xb0
-            } else {
-                0x108
-            };
-
-            let default_visor_patch = ppcasm!(
-                symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version)
-                    + patch_offset,
-                {
-                    nop;
-                    nop;
-                    nop;
-                }
-            );
-            dol_patcher.ppcasm_patch(&default_visor_patch)?;
-        }
-    }
-
-    let beam = config.starting_beam as u16;
-    let default_beam_patch = ppcasm!(symbol_addr!("__ct__12CPlayerStateFv", version) + 0x58, {
-            li      r0, beam;
-            stw     r0, 0x8(r31); // currentBeam
-    });
-    dol_patcher.ppcasm_patch(&default_beam_patch)?;
-
-    if skip_splash_screens {
-        let splash_scren_patch = ppcasm!(
-            symbol_addr!(
-                "__ct__13CSplashScreenFQ213CSplashScreen13ESplashScreen",
-                version
-            ) + 0x70,
-            {
-                nop;
-            }
-        );
-        dol_patcher.ppcasm_patch(&splash_scren_patch)?;
-    }
-
-    // Don't holster weapon when grappling
-    // (0x8017a998 - 0x8017A668)
-    // byte pattern : 40820178 7f83e378 7fc4f378 4b
-    if shoot_in_grapple {
-        let shoot_in_grapple_offset = if [Version::NtscJ, Version::Pal].contains(&version) {
-            0x324
-        } else {
-            0x330
-        };
-        let patch = ppcasm!(
-            symbol_addr!(
-                "UpdateGrappleState__7CPlayerFRC11CFinalInputR13CStateManager",
-                version
-            ) + shoot_in_grapple_offset,
-            {
-                nop;
-            }
-        );
-        dol_patcher.ppcasm_patch(&patch)?;
-    }
-
-    /*
-        // need to undo sub801ae980()
-
-        let function_addr = symbol_addr!("AcceptScriptMsg__9CFlaahgraF20EScriptObjectMessage9TUniqueIdR13CStateManager", version);
-
-        // RESET
-        let flaahgra_patch = ppcasm!(function_addr + 0x80c, {
-            // skip grow animation
-            // lis r0, 0xFFFF;
-            // ori r0, r0, 0xFFFF;
-            // stw r0, 0x8e4(r31);
-            nop;
-            nop;
-            nop;
-
-            // branch to the unused ACTION handling (patched below)
-            b       { function_addr + 0x7c8 };
-        });
-        dol_patcher.ppcasm_patch(&flaahgra_patch)?;
-
-        // ACTION
-        let flaahgra_patch = ppcasm!(function_addr + 0x7c8, {
-            li r0, 0;
-            stw r0, 0x7d4(r31); // x7d4_faintTime
-
-            lfs  f0, 0x5744(r2); // 3.0, ideally it would be 6.0
-            stfs f0, 0x7d8(r31); // x7d8_
-
-            li r0, 4;
-            stw r0, 0x568(r31); // x568_state
-            nop;
-        });
-        dol_patcher.ppcasm_patch(&flaahgra_patch)?;
-
-        // re-add the RESET handling
-        dol_patcher.patch(function_addr + 0x7c8 + 9*4, vec![
-                0x88, 0x1f, 0x08, 0xe5,
-                0x38, 0x60, 0x00, 0x01,
-                0x50, 0x60, 0x1f, 0x38,
-                0x98, 0x1f, 0x08, 0xe5,
-            ].into()
-        )?;
-
-        // break;
-
-
-        // 801b3440 c0 02 a8 bc     lfs        f0,-0x5744(r2)=>d_float_0 = 0.0
-        // 801b3444 d0 1f 07 d4     stfs       f0,0x7d4(r31)
-    */
-
-    if config.qol_general {
-        // Replaces the HasPowerUp condition in the if statement at the top of CPlayerGun::FireSecondary
-        // with a check for "or not wavebuster point-blank range"
-        let point_blank_patch = ppcasm!(
-            symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0x78,
-            {
-                // if (!IsWeaponStateSet(0x4)) { // x2f8_stateFlags
-                //     // goto "play sfx and return"
-                // }
-                lwz         r0, 0x2f8(r30);
-                rlwinm.     r0, r0, 0, 29, 29;
-                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xA8 };
-
-                // if (x310_currentBeam != CPlayerState::kBI_Wave) {
-                //     // goto "normal flow"
-                // }
-                lwz         r0, 0x310(r30);
-                cmpwi       r0, 2;
-                bne         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
-
-                // if (!x832_26_comboFiring) {
-                //     // goto "normal flow"
-                // }
-                lbz         r0, 0x832(r30);
-                rlwinm.     r0, r0, 27, 31, 31;
-                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
-
-                // if (!x833_29_pointBlankWorldSurface) {
-                //     // goto "normal flow"
-                // }
-                lbz         r0, 0x833(r30);
-                rlwinm.     r0, r0, 30, 31, 31;
-                beq         { symbol_addr!("FireSecondary__10CPlayerGunFfR13CStateManager", version) + 0xC8 };
-            }
-        );
-        dol_patcher.ppcasm_patch(&point_blank_patch)?;
-    }
-
-    /* This is where I keep random dol patch experiments */
-
-    // let boost_on_spider = ppcasm!(symbol_addr!("ComputeBoostBallMovement__10CMorphBallFRC11CFinalInputRC13CStateManagerf", version) + (0x800f4454 - 0x800f43ac), {
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&boost_on_spider)?;
-
-    // let bouncy_beam_patch = ppcasm!(symbol_addr!("Explode__17CEnergyProjectileFRC9CVector3fRC9CVector3f29EWeaponCollisionResponseTypesR13CStateManagerRC20CDamageVulnerability9TUniqueId", version) + (0x80214cb4 - 0x80214bf8), {
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&bouncy_beam_patch)?;
-
-    // let disable_platform_ride_patch = ppcasm!(symbol_addr!("AcceptScriptMsg__15CScriptPlatformF20EScriptObjectMessage9TUniqueIdR13CStateManager", version) + (0x800b2258 - 0x800b21f4), {
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&disable_platform_ride_patch)?;
-
-    // let fidgety_samus_patch = ppcasm!(0x80041024, {
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&fidgety_samus_patch)?;
-    // let fidgety_samus_patch = ppcasm!(0x80041030, {
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&fidgety_samus_patch)?;
-
-    // let roll_shot_patch = ppcasm!(0x80040540, { // if shot_ready
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&roll_shot_patch)?;
-    // let roll_shot_patch = ppcasm!(0x8003dd60, { // if unmorphed
-    //         b   0x8003df38;
-    // });
-    // dol_patcher.ppcasm_patch(&roll_shot_patch)?;
-    // let roll_shot_patch = ppcasm!(0x8003dd54, { // if state flags
-    //         b   0x8003df38;
-    // });
-    // dol_patcher.ppcasm_patch(&roll_shot_patch)?;
-    // let roll_shot_patch = ppcasm!(0x8003dd80, { // if uVar4
-    //         b   0x8003df38;
-    // });
-    // dol_patcher.ppcasm_patch(&roll_shot_patch)?;
-    // let roll_shot_patch = ppcasm!(0x8003da74, { // just some random instruction at start of fn
-    //         b   0x8003df38;
-    // });
-    // dol_patcher.ppcasm_patch(&roll_shot_patch)?;
-
-    // This would work, but it makes all scans already compelted
-    // let infinite_scan_fix_patch = ppcasm!(0x80091720, {
-    //         nop;
-    // });
-    // dol_patcher.ppcasm_patch(&infinite_scan_fix_patch)?;
-
-    if smoother_teleports {
-        // Do not holster arm cannon
-        let better_teleport_patch = ppcasm!(
-            symbol_addr!(
-                "Teleport__7CPlayerFRC12CTransform4fR13CStateManagerb",
-                version
-            ) + 0x31C,
-            {
-                nop;
-            }
-        );
-        dol_patcher.ppcasm_patch(&better_teleport_patch)?;
-        // NTSC-U 0-00 (0x80017690 - 0x8001766c)
-        let better_teleport_patch = ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0x24, {
-                nop; // SetCameraState
-        });
-        dol_patcher.ppcasm_patch(&better_teleport_patch)?;
-        // NTSC-U 0-00 (0x80017770 - 0x8001766c)
-        let better_teleport_patch = ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0x104, {
-                nop; // ForceGunOrientation
-        });
-        dol_patcher.ppcasm_patch(&better_teleport_patch)?;
-        // NTSC-U 0-00 (0x80017764 - 0x8001766c)
-        let better_teleport_patch = ppcasm!(symbol_addr!("SetSpawnedMorphBallState__7CPlayerFQ27CPlayer21EPlayerMorphBallStateR13CStateManager", version) + 0xf8, {
-                nop; // DrawGun
-        });
-        dol_patcher.ppcasm_patch(&better_teleport_patch)?;
-        // let better_teleport_patch = ppcasm!(symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version) + (0x80282ec0 - 0x80282d1c), {
-        //         nop; // ForceGunOrientation
-        // });
-        // dol_patcher.ppcasm_patch(&better_teleport_patch)?;
-        // let better_teleport_patch = ppcasm!(symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version) + (0x80282ecc - 0x80282d1c), {
-        //         nop; // DrawGun
-        // });
-        // dol_patcher.ppcasm_patch(&better_teleport_patch)?;
-    }
-
-    if config.automatic_crash_screen {
-        let patch_offset = if version == Version::NtscU0_00 {
-            0xEC
-        } else {
-            0x120
-        };
-        let automatic_crash_patch = ppcasm!(
-            symbol_addr!("CrashScreenControllerPollBranch", version) + patch_offset,
-            {
-                nop;
-            }
-        );
-        dol_patcher.ppcasm_patch(&automatic_crash_patch)?;
-    }
-
-    let cinematic_skip_patch = ppcasm!(symbol_addr!("ShouldSkipCinematic__22CScriptSpecialFunctionFR13CStateManager", version), {
-            li      r3, 0x1;
-            blr;
-    });
-    dol_patcher.ppcasm_patch(&cinematic_skip_patch)?;
-
-    // stop doors from communicating with their partner
-    // let open_door_patch = ppcasm!(symbol_addr!("OpenDoor__11CScriptDoorF9TUniqueIdR13CStateManager", version) + (0x8007ec70 - 0x8007ea64), {
-    //     nop;
-    // });
-    // dol_patcher.ppcasm_patch(&open_door_patch)?;
-
-    // pattern 50801f38 981f???? 881f???? 5080177a 981f???? 83e1
-    if version == Version::Pal {
-        let unlockables_default_ctor_patch = ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x1dc, {
-            li      r6, 100;
-            stw     r6, 0x80(r31);
-            lis     r6, 0xF7FF;
-            stw     r6, 0x84(r31);
-        });
-        dol_patcher.ppcasm_patch(&unlockables_default_ctor_patch)?;
-    } else if version == Version::NtscJ {
-        let unlockables_default_ctor_patch = ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x1bc, {
-            li      r6, 100;
-            stw     r6, 0x664(r31);
-            lis     r6, 0xF7FF;
-            stw     r6, 0x668(r31);
-        });
-        dol_patcher.ppcasm_patch(&unlockables_default_ctor_patch)?;
-    } else {
-        let unlockables_default_ctor_patch = ppcasm!(symbol_addr!("__ct__14CSystemOptionsFv", version) + 0x194, {
-            li      r6, 100;
-            stw     r6, 0xcc(r3);
-            lis     r6, 0xF7FF;
-            stw     r6, 0xd0(r3);
-        });
-        dol_patcher.ppcasm_patch(&unlockables_default_ctor_patch)?;
-    };
-
-    if version == Version::Pal {
-        let unlockables_read_ctor_patch = ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x330, {
-            li      r6, 100;
-            stw     r6, 0x80(r28);
-            lis     r6, 0xF7FF;
-            stw     r6, 0x84(r28);
-            mr      r3, r29;
-            li      r4, 2;
-        });
-        dol_patcher.ppcasm_patch(&unlockables_read_ctor_patch)?;
-    } else if version == Version::NtscJ {
-        let unlockables_read_ctor_patch = ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x310, {
-            li      r6, 100;
-            stw     r6, 0x664(r29);
-            lis     r6, 0xF7FF;
-            stw     r6, 0x668(r29);
-            mr      r3, r30;
-            li      r4, 2;
-        });
-        dol_patcher.ppcasm_patch(&unlockables_read_ctor_patch)?;
-    } else {
-        let unlockables_read_ctor_patch = ppcasm!(symbol_addr!("__ct__14CSystemOptionsFRC12CInputStream", version) + 0x308, {
-            li      r6, 100;
-            stw     r6, 0xcc(r28);
-            lis     r6, 0xF7FF;
-            stw     r6, 0xd0(r28);
-            mr      r3, r29;
-            li      r4, 2;
-        });
-        dol_patcher.ppcasm_patch(&unlockables_read_ctor_patch)?;
-    };
-
-    if config.qol_cosmetic {
-        if version != Version::Pal && version != Version::NtscJ {
-            let missile_hud_formating_patch = ppcasm!(symbol_addr!("SetNumMissiles__20CHudMissileInterfaceFiRC13CStateManager", version) + 0x14, {
-                    b          skip;
-                fmt:
-                    .asciiz b"%03d/%03d";
-
-                skip:
-                    stw        r30, 40(r1);// var_8(r1);
-                    mr         r30, r3;
-                    stw        r4, 8(r1);// var_28(r1)
-
-                    lwz        r6, 4(r30);
-
-                    mr         r5, r4;
-
-                    lis        r4, fmt@h;
-                    addi       r4, r4, fmt@l;
-
-                    addi       r3, r1, 12;// arg_C
-
-                    nop; // crclr      cr6;
-                    bl         { symbol_addr!("sprintf", version) };
-
-                    addi       r3, r1, 20;// arg_14;
-                    addi       r4, r1, 12;// arg_C
-            });
-            dol_patcher.ppcasm_patch(&missile_hud_formating_patch)?;
-        }
-
-        let powerbomb_hud_formating_patch = ppcasm!(symbol_addr!("SetBombParams__17CHudBallInterfaceFiiibbb", version) + 0x2c, {
-                b skip;
-            fmt:
-                .asciiz b"%d/%d";// %d";
-                nop;
-            skip:
-                mr         r6, r27;
-                mr         r5, r28;
-                lis        r4, fmt@h;
-                addi       r4, r4, fmt@l;
-                addi       r3, r1, 12;// arg_C;
-                nop; // crclr      cr6;
-                bl         { symbol_addr!("sprintf", version) };
-
-        });
-        dol_patcher.ppcasm_patch(&powerbomb_hud_formating_patch)?;
-    }
-
-    if version == Version::Pal || version == Version::NtscJ {
-        let level_select_mlvl_upper_patch = ppcasm!(symbol_addr!("__sinit_CFrontEndUI_cpp", version) + 0x0c, {
-                lis         r3, {spawn_room.mlvl}@h;
-        });
-        dol_patcher.ppcasm_patch(&level_select_mlvl_upper_patch)?;
-
-        let level_select_mlvl_lower_patch = ppcasm!(symbol_addr!("__sinit_CFrontEndUI_cpp", version) + 0x18, {
-                addi        r0, r3, {spawn_room.mlvl}@l;
-        });
-        dol_patcher.ppcasm_patch(&level_select_mlvl_lower_patch)?;
-    } else {
-        let level_select_mlvl_upper_patch = ppcasm!(symbol_addr!("__sinit_CFrontEndUI_cpp", version) + 0x04, {
-                lis         r4, {spawn_room.mlvl}@h;
-        });
-        dol_patcher.ppcasm_patch(&level_select_mlvl_upper_patch)?;
-
-        let level_select_mlvl_lower_patch = ppcasm!(symbol_addr!("__sinit_CFrontEndUI_cpp", version) + 0x10, {
-                addi        r0, r4, {spawn_room.mlvl}@l;
-        });
-        dol_patcher.ppcasm_patch(&level_select_mlvl_lower_patch)?;
-    }
-
-    let level_select_mrea_idx_patch = ppcasm!(symbol_addr!("__ct__11CWorldStateFUi", version) + 0x10, {
-            li          r0, { spawn_room.mrea_idx };
-    });
-    dol_patcher.ppcasm_patch(&level_select_mrea_idx_patch)?;
-
-    if config.nonvaria_heat_damage {
-        let heat_damage_patch = ppcasm!(symbol_addr!("ThinkAreaDamage__22CScriptSpecialFunctionFfR13CStateManager", version) + 0x4c, {
-                lwz     r4, 0xdc(r4);
-                nop;
-                subf    r0, r6, r5;
-                cntlzw  r0, r0;
-                nop;
-        });
-        dol_patcher.ppcasm_patch(&heat_damage_patch)?;
-    }
-
-    match config.staggered_suit_damage {
-        SuitDamageReduction::Progressive => {
-            let (patch_offset, jump_offset) =
-                if version == Version::Pal || version == Version::NtscJ {
-                    (0x11c, 0x1b8)
-                } else {
-                    (0x128, 0x1c4)
-                };
-            let staggered_suit_damage_patch = ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + patch_offset, {
-                    lwz     r3, 0x8b8(r25);
-                    lwz     r3, 0(r3);
-                    lwz     r4, 220(r3);
-                    lwz     r5, 212(r3);
-                    addc    r4, r4, r5;
-                    lwz     r5, 228(r3);
-                    addc    r4, r4, r5;
-                    rlwinm  r4, r4, 2, 0, 29;
-                    lis     r6, data@h;
-                    addi    r6, r6, data@l;
-                    lfsx    f0, r4, r6;
-                    b       { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jump_offset };
-                data:
-                    .float 0.0;
-                    .float 0.1;
-                    .float 0.2;
-                    .float 0.5;
-            });
-            dol_patcher.ppcasm_patch(&staggered_suit_damage_patch)?;
-        }
-        SuitDamageReduction::Additive => {
-            let (patch_offset, jump_offset) =
-                if version == Version::Pal || version == Version::NtscJ {
-                    (0x11c, 0x1b8)
-                } else {
-                    (0x128, 0x1c4)
-                };
-            let staggered_suit_damage_patch = ppcasm!(symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + patch_offset, {
-                    lwz     r3, 0x8b8(r25);
-                    lwz     r3, 0(r3);
-                    lwz     r4, 220(r3);
-                    lwz     r5, 212(r3);
-                    slwi    r5, r5, 1;
-                    or      r4, r4, r5;
-                    lwz     r5, 228(r3);
-                    slwi    r5, r5, 2;
-                    or      r4, r4, r5;
-                    rlwinm  r4, r4, 2, 0, 29;
-                    lis     r6, data@h;
-                    addi    r6, r6, data@l;
-                    lfsx    f0, r4, r6;
-                    b       { symbol_addr!("ApplyLocalDamage__13CStateManagerFRC9CVector3fRC9CVector3fR6CActorfRC11CWeaponMode", version) + jump_offset };
-                data:
-                    .float 0.0; // 000 - Power Suit
-                    .float 0.1; // 001 - Varia Suit
-                    .float 0.1; // 010 - Gravity Suit
-                    .float 0.2; // 011 - Varia + Gravity Suit
-                    .float 0.3; // 100 - Phazon Suit
-                    .float 0.4; // 101 - Phazon + Varia Suit
-                    .float 0.4; // 110 - Phazon + Gravity Suit
-                    .float 0.5; // 111 - All Suits
-            });
-            dol_patcher.ppcasm_patch(&staggered_suit_damage_patch)?;
-        }
-        SuitDamageReduction::Default => {}
-    }
-
-    for (pickup_type, value) in &config.item_max_capacity {
-        let capacity_patch = ppcasm!(symbol_addr!("CPlayerState_PowerUpMaxValues", version) + pickup_type.kind() * 4, {
-            .long *value;
-        });
-        dol_patcher.ppcasm_patch(&capacity_patch)?;
-    }
-
-    for (missile_type, cost) in &config.missile_costs {
-        let cost_patch = ppcasm!(symbol_addr!("CPlayerState_MissileCostValues", version) + missile_type * 4, {
-            .long *cost;
-        });
-        dol_patcher.ppcasm_patch(&cost_patch)?;
-    }
-
-    // set etank capacity and base health
-    let etank_capacity = config.etank_capacity as f32;
-    let base_health = etank_capacity - 1.0;
-    let etank_capacity_base_health_patch = ppcasm!(symbol_addr!("g_EtankCapacity", version), {
-        .float etank_capacity;
-        .float base_health;
-    });
-    dol_patcher.ppcasm_patch(&etank_capacity_base_health_patch)?;
-
-    if version == Version::NtscU0_02 || version == Version::Pal || version == Version::NtscJ {
-        let players_choice_scan_dash_patch = ppcasm!(symbol_addr!("SidewaysDashAllowed__7CPlayerCFffRC11CFinalInputR13CStateManager", version) + 0x3c, {
-                b       { symbol_addr!("SidewaysDashAllowed__7CPlayerCFffRC11CFinalInputR13CStateManager", version) + 0x54 };
-        });
-        dol_patcher.ppcasm_patch(&players_choice_scan_dash_patch)?;
-    }
-
-    // Deprecated
-    // if config.map_default_state == MapaObjectVisibilityMode::Always {
-    //     let is_area_visited_patch = ppcasm!(symbol_addr!("IsAreaVisited__13CMapWorldInfoCF7TAreaId", version), {
-    //         li      r3, 0x1;
-    //         blr;
-    //     });
-    //     dol_patcher.ppcasm_patch(&is_area_visited_patch)?;
-    // }
-
-    // Update default game options to match user's prefrence
-    {
-        /* define default defaults (lol) */
-        let mut screen_brightness: u32 = 4;
-        let mut screen_offset_x: i32 = 0;
-        let mut screen_offset_y: i32 = 0;
-        let mut screen_stretch: i32 = 0;
-        let mut sound_mode: u32 = 1;
-        let mut sfx_volume: u32 = 0x7f;
-        let mut music_volume: u32 = 0x7f;
-        let mut visor_opacity: u32 = 0xff;
-        let mut helmet_opacity: u32 = 0xff;
-        let mut hud_lag: bool = true;
-        let mut reverse_y_axis: bool = false;
-        let mut rumble: bool = true;
-        let mut swap_beam_controls: bool = false;
-        let hints: bool = false;
-
-        /* Update with user-defined defaults */
-        if config.default_game_options.is_some() {
-            let default_game_options = config.default_game_options.clone().unwrap();
-            if default_game_options.screen_brightness.is_some() {
-                screen_brightness = default_game_options.screen_brightness.unwrap();
-            }
-            if default_game_options.screen_offset_x.is_some() {
-                screen_offset_x = default_game_options.screen_offset_x.unwrap();
-            }
-            if default_game_options.screen_offset_y.is_some() {
-                screen_offset_y = default_game_options.screen_offset_y.unwrap();
-            }
-            if default_game_options.screen_stretch.is_some() {
-                screen_stretch = default_game_options.screen_stretch.unwrap();
-            }
-            if default_game_options.sound_mode.is_some() {
-                sound_mode = default_game_options.sound_mode.unwrap();
-            }
-            if default_game_options.sfx_volume.is_some() {
-                sfx_volume = default_game_options.sfx_volume.unwrap();
-            }
-            if default_game_options.music_volume.is_some() {
-                music_volume = default_game_options.music_volume.unwrap();
-            }
-            if default_game_options.visor_opacity.is_some() {
-                visor_opacity = default_game_options.visor_opacity.unwrap();
-            }
-            if default_game_options.helmet_opacity.is_some() {
-                helmet_opacity = default_game_options.helmet_opacity.unwrap();
-            }
-            if default_game_options.hud_lag.is_some() {
-                hud_lag = default_game_options.hud_lag.unwrap();
-            }
-            if default_game_options.reverse_y_axis.is_some() {
-                reverse_y_axis = default_game_options.reverse_y_axis.unwrap();
-            }
-            if default_game_options.rumble.is_some() {
-                rumble = default_game_options.rumble.unwrap();
-            }
-            if default_game_options.swap_beam_controls.is_some() {
-                swap_beam_controls = default_game_options.swap_beam_controls.unwrap();
-            }
-            // Users may not change default hint state
-        }
-
-        /* Aggregate bit fields */
-        let mut bit_flags: u32 = 0x00;
-        if hud_lag {
-            bit_flags |= 1 << 7;
-        }
-        if reverse_y_axis {
-            bit_flags |= 1 << 6;
-        }
-        if rumble {
-            bit_flags |= 1 << 5;
-        }
-        if swap_beam_controls {
-            bit_flags |= 1 << 4;
-        }
-        if hints {
-            bit_flags |= 1 << 3;
-        }
-
-        /* Replace reset to default function */
-        let default_game_options_patch = ppcasm!(symbol_addr!("ResetToDefaults__12CGameOptionsFv", version) + 9 * 4, {
-            li         r0, screen_brightness;
-            stw        r0, 0x48(r3);
-            li         r0, screen_offset_x;
-            stw        r0, 0x4C(r3);
-            li         r0, screen_offset_y;
-            stw        r0, 0x50(r3);
-            li         r0, screen_stretch;
-            stw        r0, 0x54(r3);
-            li         r0, sfx_volume;
-            stw        r0, 0x58(r3);
-            li         r0, music_volume;
-            stw        r0, 0x5C(r3);
-            li         r0, sound_mode;
-            stw        r0, 0x44(r3);
-            li         r0, visor_opacity;
-            stw        r0, 0x60(r3);
-            li         r0, helmet_opacity;
-            stw        r0, 0x64(r3);
-            li         r0, bit_flags;
-            stb        r0, 0x68(r3);
-            nop;
-            nop;
-            nop;
-            nop;
-            nop;
-        });
-        dol_patcher.ppcasm_patch(&default_game_options_patch)?;
-    }
-
-    // Multiworld focused patches
-    if config.multiworld_dol_patches {
-        // IncrPickUp's switch array for UnknownItem1 to actually give stuff
-        let incr_pickup_switch_patch = ppcasm!(symbol_addr!("IncrPickUpSwitchCaseData", version) + 21 * 4, {
-            .long symbol_addr!("IncrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 25 * 4;
-        });
-        dol_patcher.ppcasm_patch(&incr_pickup_switch_patch)?;
-
-        // Remove DecrPickUp checks for the correct item types
-        let decr_pickup_patch = ppcasm!(
-            symbol_addr!(
-                "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
-                version
-            ) + 5 * 4,
-            {
-                nop;
-                nop;
-                nop;
-                nop;
-                nop;
-                nop;
-                nop;
-            }
-        );
-        dol_patcher.ppcasm_patch(&decr_pickup_patch)?;
-    }
-
-    if let Some(update_hint_state_replacement) = &config.update_hint_state_replacement {
-        dol_patcher.patch(
-            symbol_addr!("UpdateHintState__13CStateManagerFf", version),
-            Cow::from(update_hint_state_replacement.clone()),
-        )?;
-    }
-
-    // Default value is 0.2 on US version and 0.65 on PAL version
-    // So on PAL version the damages kicks in way faster than on US
-    // and since we know that phazon damage is growing up the more time
-    // we spend in phazon, so it explains why PAL makes Early Newborn impossible
-    let max_phazon_damage_lag_before_damaging_patch = ppcasm!(symbol_addr!("g_maxPhazonLagBeforeDamaging", version), {
-        .float 0.2;
-    });
-    dol_patcher.ppcasm_patch(&max_phazon_damage_lag_before_damaging_patch)?;
-
-    if config.phazon_damage_modifier != PhazonDamageModifier::Default {
-        let phazon_damage_per_sec_patch = ppcasm!(symbol_addr!("g_maxPhazonLagBeforeDamaging", version) + 4, {
-            .float config.phazon_damage_per_sec;
-        });
-        dol_patcher.ppcasm_patch(&phazon_damage_per_sec_patch)?;
-
-        let linear_phazon_damage_offset = if version == Version::Pal && version == Version::NtscJ {
-            0x558
-        } else {
-            0x3ec
-        };
-        let linear_phazon_damage_patch = ppcasm!(symbol_addr!("UpdatePhazonDamage__7CPlayerFfR13CStateManager", version) + linear_phazon_damage_offset, {
-            fmr f2, f0;
-        });
-        dol_patcher.ppcasm_patch(&linear_phazon_damage_patch)?;
-
-        if config.phazon_damage_modifier == PhazonDamageModifier::Linear {
-            let remove_phazon_damage_delay_offset =
-                if version == Version::Pal && version == Version::NtscJ {
-                    0x534
-                } else {
-                    0x3c8
-                };
-            let remove_phazon_damage_delay_patch = ppcasm!(
-                symbol_addr!("UpdatePhazonDamage__7CPlayerFfR13CStateManager", version)
-                    + remove_phazon_damage_delay_offset,
-                {
-                    nop;
-                    nop;
-                }
-            );
-            dol_patcher.ppcasm_patch(&remove_phazon_damage_delay_patch)?;
-        }
-    }
-
-    // Add rel loader to the binary
-    let (rel_loader_bytes, rel_loader_map_str) = match version {
-        Version::NtscU0_00 => {
-            let loader_bytes = rel_files::REL_LOADER_100;
-            let map_str = rel_files::REL_LOADER_100_MAP;
-            (loader_bytes, map_str)
-        }
-        Version::NtscU0_01 => {
-            let loader_bytes = rel_files::REL_LOADER_101;
-            let map_str = rel_files::REL_LOADER_101_MAP;
-            (loader_bytes, map_str)
-        }
-        Version::NtscU0_02 => {
-            let loader_bytes = rel_files::REL_LOADER_102;
-            let map_str = rel_files::REL_LOADER_102_MAP;
-            (loader_bytes, map_str)
-        }
-        Version::NtscK => {
-            let loader_bytes = rel_files::REL_LOADER_KOR;
-            let map_str = rel_files::REL_LOADER_KOR_MAP;
-            (loader_bytes, map_str)
-        }
-        Version::NtscJ => {
-            let loader_bytes = rel_files::REL_LOADER_JPN;
-            let map_str = rel_files::REL_LOADER_JPN_MAP;
-            (loader_bytes, map_str)
-        }
-        Version::Pal => {
-            let loader_bytes = rel_files::REL_LOADER_PAL;
-            let map_str = rel_files::REL_LOADER_PAL_MAP;
-            (loader_bytes, map_str)
-        }
-        Version::NtscUTrilogy => unreachable!(),
-        Version::NtscJTrilogy => unreachable!(),
-        Version::PalTrilogy => unreachable!(),
-    };
-
-    let mut rel_loader = rel_loader_bytes.to_vec();
-    let rel_loader_padding_size = ((rel_loader.len() + 3) & !3) - rel_loader.len();
-    rel_loader.extend([0; 4][..rel_loader_padding_size].iter().copied());
-
-    let rel_loader_map = dol_linker::parse_symbol_table(
-        "extra_assets/rel_loader_1.0?.bin.map".as_ref(),
-        rel_loader_map_str.lines().map(|l| Ok(l.to_owned())),
-    )
-    .map_err(|e| e.to_string())?;
-
-    let rel_loader_size = rel_loader.len() as u32;
-    new_text_section.extend(rel_loader);
-
-    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("PPCSetFpIEEEMode", version), {
-        b      { rel_loader_map["rel_loader_hook"] };
-    }))?;
-
-    new_text_section_end += rel_loader_size;
-
-    // bool __thiscall CGameState::IsMemoryRelayActive(uint object_id, uint mlvl_id)
-    let is_memory_relay_active_func = new_text_section_end;
-    let is_memory_relay_active_func_patch = ppcasm!(is_memory_relay_active_func, {
-        // function header
-        stwu      r1, -0x24(r1);
-        mflr      r0;
-        stw       r0, 0x24(r1);
-        stw       r14, 0x20(r1);
-        stw       r15, 0x1c(r1);
-        stw       r29, 0x18(r1);
-        mr        r29, r6;
-        stw       r30, 0x14(r1);
-        mr        r30, r4;
-        stw       r31, 0x10(r1);
-        mr        r31, r3;
-
-        // function body
-        lis       r3, { symbol_addr!("g_GameState", version) }@h;
-        addi      r3, r3, { symbol_addr!("g_GameState", version) }@l;
-        lwz       r3, 0x0(r3);
-        bl        { symbol_addr!("StateForWorld__10CGameStateFUi", version) };
-        lwz       r14, 0x08(r3);
-        lwz       r14, 0x00(r14);
-        li        r0, 0;
-        li        r3, 1;
-        lwz       r6, 0x00(r14);
-        addi      r6, r6, 1;
-        cmpw      r3, r6;
-        bge       { is_memory_relay_active_func + 0x80 };
-        rlwinm    r3, r3, 2, 0, 29;
-        lwzx      r15, r3, r14;
-        rlwinm    r3, r3, 30, 4, 31;
-        cmpw      r15, r31;
-        bne       { is_memory_relay_active_func + 0x78 };
-        li        r0, 1;
-        b         { is_memory_relay_active_func + 0x80 };
-        addi      r3, r3, 1;
-        b         { is_memory_relay_active_func + 0x54 };
-        mr        r3, r0;
-
-        // function footer
-        lwz       r0, 0x24(r1);
-        lwz       r14, 0x20(r1);
-        lwz       r15, 0x1c(r1);
-        mr        r6, r29;
-        lwz       r29, 0x18(r1);
-        mr        r4, r30;
-        lwz       r30, 0x14(r1);
-        lwz       r31, 0x10(r1);
-        mtlr      r0;
-        addi      r1, r1, 0x24;
-        blr;
-    });
-
-    new_text_section_end += is_memory_relay_active_func_patch.encoded_bytes().len() as u32;
-    new_text_section.extend(is_memory_relay_active_func_patch.encoded_bytes());
-
-    let patch_pickup_icon_case = ppcasm!(symbol_addr!("Case1B_Switch_Draw__CMappableObject", version) + ((structs::MapaObjectType::Pickup as u32) - 0x1b) * 4, {
-            .long         new_text_section_end;
-    });
-    dol_patcher.ppcasm_patch(&patch_pickup_icon_case)?;
-
-    // r31 -> CMapWorldDrawParams from CMapWorld::DrawAreas()
-    // lwz r4, 0x24(r31) -> IWorld
-    // lwz r4, 0x08(r4) -> MLVL
-    // Pattern to find CMappableObject::Draw(int, const CMapWorldInfo&, float, bool)
-    // 2c070000 7c????78 38000000
-    let off = if version == Version::Pal {
-        -0x5e3c
-    } else if version == Version::NtscJ {
-        -0x5e64
-    } else {
-        -0x5eb4
-    };
-
-    if version == Version::NtscJ || version == Version::Pal {
-        let set_pickup_icon_txtr_patch = ppcasm!(new_text_section_end, {
-            lwz          r3, 0x08(r18);
-            lwz          r4, 0x6c(r1);
-            lwz          r4, 0x24(r4);
-            lbz          r0, 0x04(r4);
-
-            // here we check if IWorld is CDummyWorld or CWorld
-            cmpwi        r0, 1;
-            beq          { new_text_section_end + 0x20 };
-            lwz          r4, 0x08(r4);
-            b            { new_text_section_end + 0x24 };
-            lwz          r4, 0x0c(r4);
-
-            bl           { is_memory_relay_active_func };
-            lis          r31, { custom_asset_ids::MAP_PICKUP_ICON_TXTR.to_u32() }@h;
-            addi         r31, r31, { custom_asset_ids::MAP_PICKUP_ICON_TXTR.to_u32() }@l;
-            mr           r0, r31;
-            cmpwi        r3, 0;
-            lis          r31, 0xffff;
-            ori          r31, r31, 0xffff;
-            lwz          r3, { off }(r13);
-            beq          { new_text_section_end + 0x4c };
-            fmr          f30, f14;
-            b            { symbol_addr!("Draw__15CMappableObjectCFiRC13CMapWorldInfofb", version) + 0x284 };
-        });
-
-        new_text_section_end += set_pickup_icon_txtr_patch.encoded_bytes().len() as u32;
-        new_text_section.extend(set_pickup_icon_txtr_patch.encoded_bytes());
-    } else {
-        let set_pickup_icon_txtr_patch = ppcasm!(new_text_section_end, {
-            lwz          r3, 0x08(r18);
-            lwz          r4, 0x24(r31);
-            lbz          r0, 0x04(r4);
-
-            // here we check if IWorld is CDummyWorld or CWorld
-            cmpwi        r0, 1;
-            beq          { new_text_section_end + 0x1c };
-            lwz          r4, 0x08(r4);
-            b            { new_text_section_end + 0x20 };
-            lwz          r4, 0x0c(r4);
-
-            bl           { is_memory_relay_active_func };
-            cmpwi        r3, 0;
-            lwz          r3, { off }(r13);
-            lis          r6, { custom_asset_ids::MAP_PICKUP_ICON_TXTR.to_u32() }@h;
-            addi         r6, r6, { custom_asset_ids::MAP_PICKUP_ICON_TXTR.to_u32() }@l;
-            beq          { new_text_section_end + 0x3c };
-            fmr          f30, f14;
-            b            { symbol_addr!("Draw__15CMappableObjectCFiRC13CMapWorldInfofb", version) + 0x298 };
-        });
-
-        new_text_section_end += set_pickup_icon_txtr_patch.encoded_bytes().len() as u32;
-        new_text_section.extend(set_pickup_icon_txtr_patch.encoded_bytes());
-    }
-
-    if config.warp_to_start {
-        #[rustfmt::skip]
-        let handle_no_to_save_msg_patch = ppcasm!(
-            symbol_addr!(
-                "ThinkSaveStation__22CScriptSpecialFunctionFfR13CStateManager",
-                version
-            ) + 0x54,
-            {
-                b { new_text_section_end };
-            }
-        );
-        dol_patcher.ppcasm_patch(&handle_no_to_save_msg_patch)?;
-
-        let warp_to_start_patch = ppcasm!(new_text_section_end, {
-                lis       r14, {symbol_addr!("g_Main", version)}@h;
-                addi      r14, r14, {symbol_addr!("g_Main", version)}@l;
-                lwz       r14, 0x0(r14);
-                lwz       r14, 0x164(r14);
-                lwz       r14, 0x34(r14);
-                lbz       r0, 0x86(r14);
-                cmpwi     r0, 0;
-                beq       { new_text_section_end + 0x34 };
-                lbz       r0, 0x89(r14);
-                cmpwi     r0, 0;
-                beq       { new_text_section_end + 0x34 };
-                li        r4, 12;
-                b         { new_text_section_end + 0x38 };
-                li        r4, 9;
-                andi      r14, r14, 0;
-                b         { symbol_addr!("ThinkSaveStation__22CScriptSpecialFunctionFfR13CStateManager", version) + 0x58 };
-        });
-
-        new_text_section_end += warp_to_start_patch.encoded_bytes().len() as u32;
-        new_text_section.extend(warp_to_start_patch.encoded_bytes());
-    }
-
-    // TO-DO :
-    // Set spring ball item on Trilogy
-    if [
-        Version::NtscJTrilogy,
-        Version::NtscUTrilogy,
-        Version::PalTrilogy,
-    ]
-    .contains(&version)
-    {
-    } else {
-        // call compute spring ball movement
-        #[rustfmt::skip]
-        let call_compute_spring_ball_movement_patch = ppcasm!(
-            symbol_addr!(
-                "ComputeBallMovement__10CMorphBallFRC11CFinalInputR13CStateManagerf",
-                version
-            ) + 0x2c,
-            {
-                bl { new_text_section_end };
-            }
-        );
-        dol_patcher.ppcasm_patch(&call_compute_spring_ball_movement_patch)?;
-
-        // rewrote as tuple to make it cleaner
-        let (
-            velocity_offset,
-            movement_state_offset,
-            attached_actor_offset,
-            energy_drain_offset,
-            out_of_water_ticks_offset,
-            surface_restraint_type_offset,
-            morph_ball_offset,
-        ) = if version == Version::NtscU0_00
-            || version == Version::NtscU0_01
-            || version == Version::NtscK
-        {
-            (0x138, 0x258, 0x26c, 0x274, 0x2b0, 0x2ac, 0x768)
-        } else {
-            (0x148, 0x268, 0x27c, 0x284, 0x2c0, 0x2bc, 0x778)
-        };
-
-        let compute_spring_ball_movement = new_text_section_end;
-        let compute_spring_ball_movement_data = compute_spring_ball_movement + 0x1b4;
-
-        let spring_ball_patch_start = ppcasm!(new_text_section_end, {
-                // stack init (at +0x000)
-                stwu      r1, -0x20(r1);
-                mflr      r0;
-                stw       r0, 0x20(r1);
-                fmr       f15, f1;
-                stw       r31, 0x1c(r1);
-                stw       r30, 0x18(r1);
-                mr        r30, r5;
-                stw       r29, 0x14(r1);
-                mr        r29, r4;
-                stw       r28, 0x10(r1);
-                mr        r28, r3;
-
-                // function body (at +0x02c)
-                lwz       r14, 0x84c(r30);
-                lwz       r15, 0x8b8(r30);
-                lis       r16, { compute_spring_ball_movement_data }@h;
-                addi      r16, r16, { compute_spring_ball_movement_data }@l;
-                lwz       r17, { morph_ball_offset }(r14);
-                lfs       f1, 0x40(r14);
-                stfs      f1, 0x00(r16);
-                lfs       f1, 0x50(r14);
-                stfs      f1, 0x04(r16);
-                lfs       f1, 0x60(r14);
-                stfs      f1, 0x08(r16);
-                lwz       r0, 0x0c(r16);
-                cmplwi    r0, 0;
-                bgt       { compute_spring_ball_movement + 0x14c };
-                lwz       r0, { movement_state_offset }(r14);
-                cmplwi    r0, 0;
-                beq       { compute_spring_ball_movement + 0x84 };
-                b         { compute_spring_ball_movement + 0x14c };
-                cmplwi    r0, 4;
-                bne       { compute_spring_ball_movement + 0x14c };
-                lwz       r0, { out_of_water_ticks_offset }(r14);
-                cmplwi    r0, 2;
-                bne       { compute_spring_ball_movement + 0x90 };
-                lwz       r0, { surface_restraint_type_offset }(r14);
-                b         { compute_spring_ball_movement + 0x94 };
-                li        r0, 4;
-                cmplwi    r0, 7;
-                beq       { compute_spring_ball_movement + 0x14c };
-                mr        r3, r28;
-                bl        { symbol_addr!("IsMovementAllowed__10CMorphBallCFv", version) };
-                cmplwi    r3, 0;
-                beq       { compute_spring_ball_movement + 0x14c };
-        });
-
-        new_text_section_end += spring_ball_patch_start.encoded_bytes().len() as u32;
-        new_text_section.extend(spring_ball_patch_start.encoded_bytes());
-
-        let spring_ball_item_condition_patch = if config.spring_ball_item != PickupType::Nothing {
-            let _spring_ball_item_condition_patch = ppcasm!(new_text_section_end, {
-                    lwz       r3, 0x0(r15);
-                    li        r4, { config.spring_ball_item.kind() };
-                    bl        { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) };
-                    cmplwi    r3, 0;
-                    beq       { compute_spring_ball_movement + 0x14c };
-            });
-            _spring_ball_item_condition_patch.encoded_bytes()
-        } else {
-            let _spring_ball_item_condition_patch = ppcasm!(new_text_section_end, {
-                nop;
-                nop;
-                nop;
-                nop;
-                nop;
-            });
-            _spring_ball_item_condition_patch.encoded_bytes()
-        };
-
-        new_text_section_end += spring_ball_item_condition_patch.len() as u32;
-        new_text_section.extend(spring_ball_item_condition_patch);
-
-        let spring_ball_patch_end = ppcasm!(new_text_section_end, {
-                lhz       r0, { attached_actor_offset }(r14);
-                cmplwi    r0, 65535;
-                bne       { compute_spring_ball_movement + 0x14c };
-                addi      r3, r14, { energy_drain_offset };
-                bl        { symbol_addr!("GetEnergyDrainIntensity__18CPlayerEnergyDrainCFv", version) };
-                fcmpu     cr0, f1, f14;
-                bgt       { compute_spring_ball_movement + 0x14c };
-                lwz       r0, 0x187c(r28);
-                cmplwi    r0, 0;
-                bne       { compute_spring_ball_movement + 0x14c };
-                lfs       f1, 0x14(r29);
-                fcmpu     cr0, f1, f14;
-                ble       { compute_spring_ball_movement + 0x14c };
-                lfs       f16, { velocity_offset }(r14);
-                lfs       f17, { velocity_offset + 4 }(r14);
-                mr        r3, r14;
-                mr        r4, r16;
-                mr        r5, r30;
-                bl        { symbol_addr!("BombJump__7CPlayerFRC9CVector3fR13CStateManager", version) };
-                stfs      f16, { velocity_offset }(r14);
-                stfs      f17, { velocity_offset + 4 }(r14);
-                lfs       f17, 0x1dfc(r17);
-                fcmpu     cr0, f17, f14;
-                ble       { compute_spring_ball_movement + 0x130 };
-                lfs       f17, 0x10(r16);
-                lfs       f16, { velocity_offset + 8 }(r14);
-                fdivs     f16, f16, f17;
-                stfs      f16, { velocity_offset + 8 }(r14);
-                mr        r3, r14;
-                li        r4, 4;
-                mr        r5, r29;
-                bl        { symbol_addr!("SetMoveState__7CPlayerFQ27NPlayer20EPlayerMovementStateR13CStateManager", version) };
-                li        r3, 40;
-                stw       r3, 0x0c(r16);
-                b         { compute_spring_ball_movement + 0x160 };
-                lwz       r3, 0x0c(r16);
-                cmplwi    r3, 0;
-                beq       { compute_spring_ball_movement + 0x160 };
-                addi      r3, r3, -1;
-                stw       r3, 0x0c(r16);
-
-                // call compute boost ball movement (at +0x160)
-                mr        r3, r28;
-                mr        r4, r29;
-                mr        r5, r30;
-                fmr       f1, f15;
-                bl        { symbol_addr!("ComputeBoostBallMovement__10CMorphBallFRC11CFinalInputRC13CStateManagerf", version) };
-
-                // clear used registers (at +0x174)
-                andi      r14, r14, 0;
-                andi      r15, r15, 0;
-                andi      r16, r16, 0;
-                andi      r17, r17, 0;
-
-                // stack deinit (at +0x184)
-                lwz       r0, 0x20(r1);
-                fmr       f1, f15;
-                fmr       f15, f14;
-                fmr       f16, f14;
-                fmr       f17, f14;
-                lwz       r31, 0x1c(r1);
-                lwz       r30, 0x18(r1);
-                lwz       r29, 0x14(r1);
-                lwz       r28, 0x10(r1);
-                mtlr      r0;
-                addi      r1, r1, 0x20;
-                blr;
-            data:
-                .float 0.0;
-                .float 0.0;
-                .float 0.0;
-                .long 0;
-                .float 1.5;
-        });
-
-        new_text_section_end += spring_ball_patch_end.encoded_bytes().len() as u32;
-        new_text_section.extend(spring_ball_patch_end.encoded_bytes());
-
-        let spring_ball_cooldown = new_text_section_end - 8;
-
-        let (call_leave_morph_ball_offset, call_enter_morph_ball_offset) =
-            if version == Version::NtscJ || version == Version::Pal {
-                (0x850, 0x940)
-            } else {
-                (0xa34, 0xb24)
-            };
-
-        #[rustfmt::skip]
-        let call_leave_morph_ball_patch = ppcasm!(
-            symbol_addr!(
-                "UpdateMorphBallTransition__7CPlayerFfR13CStateManager",
-                version
-            ) + call_leave_morph_ball_offset,
-            {
-                bl { new_text_section_end };
-            }
-        );
-        dol_patcher.ppcasm_patch(&call_leave_morph_ball_patch)?;
-
-        let spring_ball_cooldown_reset_on_unmorph_patch = ppcasm!(new_text_section_end, {
-                // stack init (at +0x000)
-                stwu      r1, -0x18(r1);
-                mflr      r0;
-                stw       r0, 0x18(r1);
-                fmr       f15, f1;
-                stw       r31, 0x10(r1);
-                mr        r31, r3;
-                stw       r30, 0x14(r1);
-                mr        r30, r4;
-
-                // function body (at +0x20)
-                lis       r14, { spring_ball_cooldown }@h;
-                addi      r14, r14, { spring_ball_cooldown }@l;
-                li        r0, 0;
-                stw       r0, 0x0(r14);
-                mr        r3, r31;
-                mr        r4, r30;
-                bl        { symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version) };
-
-                // clear used registers (at +0x3c)
-                andi      r14, r14, 0;
-
-                // stack deinit (at +0x40)
-                lwz       r0, 0x18(r1);
-                lwz       r31, 0x14(r1);
-                lwz       r30, 0x10(r1);
-                mtlr      r0;
-                addi      r1, r1, 0x18;
-                blr;
-        });
-
-        new_text_section_end += spring_ball_cooldown_reset_on_unmorph_patch
-            .encoded_bytes()
-            .len() as u32;
-        new_text_section.extend(spring_ball_cooldown_reset_on_unmorph_patch.encoded_bytes());
-
-        #[rustfmt::skip]
-        let call_enter_morph_ball_patch = ppcasm!(
-            symbol_addr!(
-                "UpdateMorphBallTransition__7CPlayerFfR13CStateManager",
-                version
-            ) + call_enter_morph_ball_offset,
-            {
-                bl { new_text_section_end };
-            }
-        );
-        dol_patcher.ppcasm_patch(&call_enter_morph_ball_patch)?;
-
-        let spring_ball_cooldown_reset_on_morph_patch = ppcasm!(new_text_section_end, {
-                // stack init (at +0x000)
-                stwu      r1, -0x18(r1);
-                mflr      r0;
-                stw       r0, 0x18(r1);
-                fmr       f15, f1;
-                stw       r31, 0x10(r1);
-                mr        r31, r3;
-                stw       r30, 0x14(r1);
-                mr        r30, r4;
-
-                // function body (at +0x20)
-                lis       r14, { spring_ball_cooldown }@h;
-                addi      r14, r14, { spring_ball_cooldown }@l;
-                li        r0, 0;
-                stw       r0, 0x0(r14);
-                mr        r3, r31;
-                mr        r4, r30;
-                bl        { symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version) };
-
-                // clear used registers (at +0x3c)
-                andi      r14, r14, 0;
-
-                // stack deinit (at +0x40)
-                lwz       r0, 0x18(r1);
-                lwz       r31, 0x14(r1);
-                lwz       r30, 0x10(r1);
-                mtlr      r0;
-                addi      r1, r1, 0x18;
-                blr;
-        });
-
-        new_text_section_end += spring_ball_cooldown_reset_on_morph_patch
-            .encoded_bytes()
-            .len() as u32;
-        new_text_section.extend(spring_ball_cooldown_reset_on_morph_patch.encoded_bytes());
-    }
-
-    // custom item support
-    let first_custom_item_idx = -((PickupType::ArtifactOfNewborn.kind() + 1) as i32);
-    let (actor_flags_offset, out_of_water_ticks_offset, fluid_depth_offset) =
-        if [Version::Pal, Version::NtscJ, Version::NtscU0_02].contains(&version) {
-            (0xf0, 0x2c0, 0x838)
-        } else {
-            (0xe4, 0x2b0, 0x828)
-        };
-    let (probability_offset, life_time_offset) =
-        if [Version::Pal, Version::NtscJ].contains(&version) {
-            (0x274, 0x27c)
-        } else {
-            (0x264, 0x26c)
-        };
-    let custom_item_initialize_power_up_hook = ppcasm!(
-        symbol_addr!(
-            "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
-            version
-        ) + 0x1c,
-        {
-            b {
-                new_text_section_end
-            };
-        }
-    );
-    dol_patcher.ppcasm_patch(&custom_item_initialize_power_up_hook)?;
-
-    let custom_item_initialize_power_up_patch = ppcasm!(new_text_section_end, {
-        mr           r29, r4;
-        mr           r14, r5;
-        lis          r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@h;
-        addi         r15, r15, { symbol_addr!("CPlayerState_PowerUpMaxValues", version) }@l;
-
-        // add to item total if pickup isn't disappearing and has 100% probability to spawn
-        lwz          r4, 0x14(r1);
-        lwz          r3, { life_time_offset }(r4);
-        cmpwi        r3, 0;
-        lhz          r3, { probability_offset }(r4);
-        bne          check_custom_item;
-        cmpwi        r3, 0x42c8;
-        bne          check_custom_item;
-        li           r3, { PickupType::PowerSuit.kind() };
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r31, r0;
-        addi         r3, r3, 0x28;
-        lwz          r4, 0x4(r3);
-        addi         r4, r4, 1;
-        stw          r4, 0x4(r3);
-
-        // add/remove custom item to unknown item 2
-    check_custom_item:
-        cmpwi        r29, { PickupType::ArtifactOfNewborn.kind() };
-        ble          continue_init_power_up;
-        cmpwi        r29, { PickupType::Nothing.kind() };
-        bge          check_missile_launcher;
-        li           r3, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r31, r0;
-        addi         r3, r3, 0x2c;
-        li           r4, { first_custom_item_idx };
-        add          r4, r4, r29;
-        li           r0, 1;
-        slw          r0, r4, r4;
-        lwz          r0, 0x0(r3);
-        cmpwi        r14, 0;
-        blt          remove_custom_item;
-        or           r0, r4, r4;
-        b            set_custom_item;
-    remove_custom_item:
-        not          r4, r4;
-        and          r0, r4, r4;
-    set_custom_item:
-        stw          r4, 0x0(r3);
-
-    check_missile_launcher:
-        // check if it is missile launcher
-        cmpwi        r29, { PickupType::MissileLauncher.kind() };
-        bne          check_power_bomb;
-        li           r3, { PickupType::Missile.kind() };
-        lwz          r0, { PickupType::Missile.kind() * 4 }(r15);
-        b            incr_capacity;
-
-        // check if it is power bomb launcher
-    check_power_bomb:
-        cmpwi        r29, { PickupType::PowerBombLauncher.kind() };
-        bne          check_ice_trap;
-        li           r3, { PickupType::PowerBomb.kind() };
-        lwz          r0, { PickupType::PowerBomb.kind() * 4 }(r15);
-        b            incr_capacity;
-
-        // check if it is ice trap
-    check_ice_trap:
-        cmpwi        r29, { PickupType::IceTrap.kind() };
-        bne          check_floaty_jump;
-        mr           r16, r5;
-        lwz          r3, 0x84c(r30);
-        mr           r4, r25;
-        lis          r5, 0x6FC0;
-        ori          r5, r5, 0x3D46;
-        li           r6, 0xC34;
-        lis          r7, 0x2B75;
-        ori          r7, r7, 0x7945;
-        bl           { symbol_addr!("Freeze__7CPlayerFR13CStateManagerUiUsUi", version) };
-        lis          r5, data@h;
-        addi         r5, r5, data@l;
-        lfs          f14, 0x0(r5);
-        lwz          r5, 0x8b8(r30);
-        lwz          r5, 0x0(r5);
-        lfs          f15, 0x0c(r5);
-        fsubs        f15, f15, f14;
-        stfs         f15, 0x0c(r5);
-        fcmpu        cr0, f15, f28;
-        bgt          not_dead_from_ice_trap;
-        lwz          r4, 0x0(r5);
-        andis        r4, r4, 0x7fff;
-        stw          r4, 0x0(r5);
-    not_dead_from_ice_trap:
-        b            end_init_power_up;
-
-        // check if it is floaty jump
-    check_floaty_jump:
-        cmpwi        r29, { PickupType::FloatyJump.kind() };
-        bne          continue_init_power_up;
-        lwz          r3, 0x84c(r30);
-        lwz          r0, { out_of_water_ticks_offset }(r3);
-        lwz          r5, { actor_flags_offset }(r3);
-        mr           r4, r5;
-        srwi         r5, r5, 14; // remove bits on the right of fluid count
-        andi         r5, r5, 7;  // remove bits on the left of fluid count
-
-        // remove fluid counts
-        lis          r6, 0xffff;
-        ori          r6, r6, 0x3fff;
-        and          r4, r4, r6;
-
-        cmpwi        r14, 0;
-        blt          remove_floaty_jump;
-        addi         r5, r5, 1;  // add 1 to fluid count
-        andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
-        slwi         r5, r5, 14;
-        or           r4, r4, r5; // actor flags |= (value << 14)
-        cmpwi        r0, 2;      // check if we are in water
-        bne          apply_underwater_floaty_jump;
-        lis          r5, 0x41a0; // 20.0
-        b            apply_floaty_jump;
-    remove_floaty_jump:
-        cmpwi        r0, 2;      // check if we are in water
-        bne          do_not_decrement_fluid_count_more_than_one;
-        cmpwi        r5, 0;
-        ble          do_not_decrement_fluid_count;
-        b            decrement_fluid_count;
-    do_not_decrement_fluid_count_more_than_one:
-        cmpwi        r5, 1;
-        ble          do_not_decrement_fluid_count;
-    decrement_fluid_count:
-        addi         r5, r5, -1; // subtract 1 to fluid count
-    do_not_decrement_fluid_count:
-        andi         r5, r5, 7;  // making sure we don't go past 3 bits (=> 0b111)
-        slwi         r5, r5, 14;
-        or           r4, r4, r5; // actor flags |= (value << 14)
-        cmpwi        r0, 2;      // check if we are in water
-        bne          apply_underwater_floaty_jump;
-        lis          r5, 0;
-    apply_floaty_jump:
-        stw          r5, { fluid_depth_offset }(r3);
-    apply_underwater_floaty_jump:
-        stw          r4, { actor_flags_offset }(r3);
-        b            end_init_power_up;
-
-        // check for max capacity
-    incr_capacity:
-        rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-        add          r3, r31, r0;
-        addi         r3, r3, 0x28;
-        lwz          r4, 0x4(r3);
-        add          r4, r4, r14;
-        cmpw         r4, r0;
-        ble          incr_capacity_check_for_negative;
-        mr           r4, r0;
-        b            incr_capacity_set_capacity;
-    incr_capacity_check_for_negative:
-        cmpwi        r4, 0;
-        bge          incr_capacity_set_capacity;
-        li           r4, 0;
-    incr_capacity_set_capacity:
-        stw          r4, 0x4(r3);
-
-        // check for max amount
-        lwz          r4, 0x0(r3);
-        add          r4, r4, r14;
-        lwz          r0, 0x4(r3);
-        cmpw         r4, r0;
-        ble          incr_amount_check_for_negative;
-        mr           r4, r0;
-        b            incr_amount_set_amount;
-    incr_amount_check_for_negative:
-        cmpwi        r4, 0;
-        bge          incr_amount_set_amount;
-        li           r4, 0;
-    incr_amount_set_amount:
-        stw          r4, 0x0(r3);
-
-    end_init_power_up:
-        mr           r5, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
-        andi         r16, r16, 0;
-        fmr          f14, f28;
-        fmr          f15, f28;
-        b            { symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x108 };
-
-        // restore previous context
-    continue_init_power_up:
-        mr           r5, r14;
-        andi         r14, r14, 0;
-        andi         r15, r15, 0;
-        andi         r16, r16, 0;
-        fmr          f14, f28;
-        fmr          f15, f28;
-        cmpwi        r29, 0;
-        b            { symbol_addr!("InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x20 };
-    data:
-        .float    75.0;
-    });
-
-    new_text_section_end += custom_item_initialize_power_up_patch.encoded_bytes().len() as u32;
-    new_text_section.extend(custom_item_initialize_power_up_patch.encoded_bytes());
-
-    let custom_item_has_power_up_hook = ppcasm!(
-        symbol_addr!(
-            "HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType",
-            version
-        ),
-        {
-            b {
-                new_text_section_end
-            };
-            nop;
-        }
-    );
-    dol_patcher.ppcasm_patch(&custom_item_has_power_up_hook)?;
-    let custom_item_has_power_up_patch = ppcasm!(new_text_section_end, {
-        // backup arguments
-        mr           r0, r3;
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        stw          r0, 0x0(r3);
-        lwz          r3, 0x0(r3);
-        mr           r0, r4;
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        stw          r0, 0x0(r4);
-        lwz          r4, 0x0(r4);
-
-        // check custom item in unknown item 2
-        cmpwi        r4, { PickupType::ArtifactOfNewborn.kind() };
-        ble          not_custom_item;
-        li           r4, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
-        add          r4, r3, r0;
-        addi         r4, r4, 0x2c;
-        lwz          r0, 0x0(r4);
-
-        // restore r4 back to its previous value because we need it now
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-        // check if we got the custom item
-        li           r3, { first_custom_item_idx };
-        add          r3, r3, r4;
-        srw          r0, r3, r3;
-        andi         r3, r3, 1;
-
-    powerup_not_valid:
-        blr;
-
-    not_custom_item:
-        // restore previous context
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-        cmpwi        r4, 0;
-        blt          powerup_not_valid;
-        b            { symbol_addr!("HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
-
-    r3_backup:
-        .long 0;
-    r4_backup:
-        .long 0;
-    });
-
-    new_text_section_end += custom_item_has_power_up_patch.encoded_bytes().len() as u32;
-    new_text_section.extend(custom_item_has_power_up_patch.encoded_bytes());
-
-    let custom_item_get_item_amount_hook = ppcasm!(
-        symbol_addr!(
-            "GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType",
-            version
-        ),
-        {
-            b {
-                new_text_section_end
-            };
-            nop;
-        }
-    );
-    dol_patcher.ppcasm_patch(&custom_item_get_item_amount_hook)?;
-    let custom_item_get_item_amount_patch = ppcasm!(new_text_section_end, {
-        // backup arguments
-        mr           r0, r3;
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        stw          r0, 0x0(r3);
-        lwz          r3, 0x0(r3);
-        mr           r0, r4;
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        stw          r0, 0x0(r4);
-        lwz          r4, 0x0(r4);
-
-        // preload unknown item 2 for future checks in the function
-        mr           r4, r3;
-        li           r3, { PickupType::UnknownItem2.kind() };
-        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-        add          r3, r4, r3;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        mr           r0, r3;
-
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-        cmpwi        r4, { PickupType::Missile.kind() };
-        bne          check_power_bomb;
-        // check for missile launcher
-        andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        // check for missile capacity
-        lis          r4, r3_backup@h;
-        addi         r4, r4, r3_backup@l;
-        lwz          r4, 0x0(r4);
-        li           r3, { PickupType::Missile.kind() };
-        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-        add          r3, r4, r3;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        // check for unlimited missiles
-        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 255;
-        b            is_unlimited;
-
-    check_power_bomb:
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-        cmpwi        r4, { PickupType::PowerBomb.kind() };
-        bne          not_unlimited_or_not_pb_missiles;
-        // check for power bomb launcher
-        andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        // check for power bomb capacity
-        lis          r4, r3_backup@h;
-        addi         r4, r4, r3_backup@l;
-        lwz          r4, 0x0(r4);
-        li           r3, { PickupType::PowerBomb.kind() };
-        rlwinm       r3, r3, 0x3, 0x0, 0x1c;
-        add          r3, r4, r3;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        // check for unlimited power bombs
-        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 8;
-        b            is_unlimited;
-
-    no_launcher:
-        li           r3, 0;
-    is_unlimited:
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-        blr;
-
-    not_unlimited_or_not_pb_missiles:
-        // restore previous context
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        lwz          r3, 0x0(r3);
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-        cmpwi        r4, 0;
-        blt          item_type_negative;
-        b            { symbol_addr!("GetItemAmount__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
-    item_type_negative:
-        li           r3, 0;
-        blr;
-
-    r3_backup:
-        .long 0;
-    r4_backup:
-        .long 0;
-    });
-
-    new_text_section_end += custom_item_get_item_amount_patch.encoded_bytes().len() as u32;
-    new_text_section.extend(custom_item_get_item_amount_patch.encoded_bytes());
-
-    let custom_item_get_item_capacity_hook = ppcasm!(
-        symbol_addr!(
-            "GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType",
-            version
-        ),
-        {
-            b {
-                new_text_section_end
-            };
-            nop;
-        }
-    );
-    dol_patcher.ppcasm_patch(&custom_item_get_item_capacity_hook)?;
-    let custom_item_get_item_capacity_patch = ppcasm!(new_text_section_end, {
-        // backup arguments
-        mr           r0, r3;
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        stw          r0, 0x0(r3);
-        mr           r0, r4;
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        stw          r0, 0x0(r4);
-
-        // preload unknown item 2 for future checks in the function
-        lwz          r3, 0x0(r3);
-        li           r4, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
-        add          r4, r3, r0;
-        addi         r4, r4, 0x2c;
-        lwz          r0, 0x0(r4);
-
-        // restore r4 back to its previous value because we need it now
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-        cmpwi        r4, { PickupType::Missile.kind() };
-        bne          check_power_bomb;
-        // check for missile launcher
-        andi         r0, r3, { PickupType::MissileLauncher.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        // check for missile capacity
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        lwz          r3, 0x0(r3);
-        li           r4, { PickupType::Missile.kind() };
-        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
-        add          r3, r3, r4;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        // check for unlimited missiles
-        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 255;
-        b            custom_capacity_returned;
-
-    check_power_bomb:
-        cmpwi        r4, { PickupType::PowerBomb.kind() };
-        bne          not_unlimited_or_not_pb_missiles;
-        // check for power bomb launcher
-        andi         r0, r3, { PickupType::PowerBombLauncher.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          no_launcher;
-        // check for power bomb capacity
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        lwz          r3, 0x0(r3);
-        li           r4, { PickupType::PowerBomb.kind() };
-        rlwinm       r4, r4, 0x3, 0x0, 0x1c;
-        add          r3, r3, r4;
-        addi         r3, r3, 0x2c;
-        lwz          r3, 0x0(r3);
-        cmpwi        r3, 0;
-        ble          no_launcher;
-        // check for unlimited power bombs
-        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          not_unlimited_or_not_pb_missiles;
-        li           r3, 8;
-        b            custom_capacity_returned;
-
-    no_launcher:
-        li           r3, 0;
-
-    custom_capacity_returned:
-        // restore previous context
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-    powerup_not_valid:
-        blr;
-
-    not_unlimited_or_not_pb_missiles:
-        // restore previous context
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        lwz          r3, 0x0(r3);
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-        cmpwi        r4, 0;
-        blt          powerup_not_valid;
-        b            { symbol_addr!("GetItemCapacity__12CPlayerStateCFQ212CPlayerState9EItemType", version) + 0x8 };
-
-    r3_backup:
-        .long 0;
-    r4_backup:
-        .long 0;
-    });
-
-    new_text_section_end += custom_item_get_item_capacity_patch.encoded_bytes().len() as u32;
-    new_text_section.extend(custom_item_get_item_capacity_patch.encoded_bytes());
-
-    let custom_item_decr_pickup_hook = ppcasm!(
-        symbol_addr!(
-            "DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
-            version
-        ),
-        {
-            b {
-                new_text_section_end
-            };
-            nop;
-        }
-    );
-    dol_patcher.ppcasm_patch(&custom_item_decr_pickup_hook)?;
-    let custom_item_decr_pickup_patch = ppcasm!(new_text_section_end, {
-        // backup arguments
-        mr           r0, r3;
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        stw          r0, 0x0(r3);
-        mr           r0, r4;
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        stw          r0, 0x0(r4);
-
-        // preload unknown item 2 for future checks in the function
-        lwz          r3, 0x0(r3);
-        li           r4, { PickupType::UnknownItem2.kind() };
-        rlwinm       r0, r4, 0x3, 0x0, 0x1c;
-        add          r4, r3, r0;
-        addi         r4, r4, 0x28;
-        lwz          r0, 0x0(r4);
-
-        // restore r4 back to its previous value because we need it now
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-        cmpwi        r4, { PickupType::Missile.kind() };
-        bne          check_power_bomb;
-        // check for unlimited missiles
-        andi         r0, r3, { PickupType::UnlimitedMissiles.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          pre_cleanup;
-        li           r0, 1;
-        b            cleanup;
-
-    check_power_bomb:
-        cmpwi        r4, { PickupType::PowerBomb.kind() };
-        bne          cleanup;
-        // check for unlimited power bombs
-        andi         r0, r3, { PickupType::UnlimitedPowerBombs.custom_item_value() };
-        cmpwi        r3, 0;
-        beq          pre_cleanup;
-        li           r0, 1;
-        b            cleanup;
-
-    // if not unlimited then set r0 to 0
-    pre_cleanup:
-        li           r0, 0;
-    cleanup:
-        // restore previous context
-        lis          r3, r3_backup@h;
-        addi         r3, r3, r3_backup@l;
-        lwz          r3, 0x0(r3);
-        lis          r4, r4_backup@h;
-        addi         r4, r4, r4_backup@l;
-        lwz          r4, 0x0(r4);
-
-        // if unlimited then we return
-        cmpwi        r0, 0;
-        beq          not_unlimited;
-    powerup_not_valid:
-        blr;
-
-    not_unlimited:
-        cmpwi        r4, 0;
-        blt          powerup_not_valid;
-        b            { symbol_addr!("DecrPickUp__12CPlayerStateFQ212CPlayerState9EItemTypei", version) + 0x8 };
-
-    r3_backup:
-        .long 0;
-    r4_backup:
-        .long 0;
-    });
-
-    new_text_section_end += custom_item_decr_pickup_patch.encoded_bytes().len() as u32;
-    new_text_section.extend(custom_item_decr_pickup_patch.encoded_bytes());
-
-    // restore chest vulnerability to missile and charged shot, also wavebuster cheese works too
-    if [Version::Pal, Version::NtscJ].contains(&version) {
-        let cridley_acceptscriptmsg_addr = symbol_addr!(
-            "AcceptScriptMsg__7CRidleyF20EScriptObjectMessage9TUniqueIdR13CStateManager",
-            version
-        );
-        let remove_check_1_patch = ppcasm!(cridley_acceptscriptmsg_addr + 0x830, {
-            nop;
-        });
-
-        dol_patcher.ppcasm_patch(&remove_check_1_patch)?;
-
-        let remove_check_2_patch = ppcasm!(cridley_acceptscriptmsg_addr + 0x840, {
-            nop;
-        });
-
-        dol_patcher.ppcasm_patch(&remove_check_2_patch)?;
-
-        let restore_original_check_patch = ppcasm!(cridley_acceptscriptmsg_addr + 0x884, {
-            beq {cridley_acceptscriptmsg_addr + 0x88C};
-            b {new_text_section_end + 0x18};
-            b {new_text_section_end};
-            nop;
-            nop;
-        });
-
-        dol_patcher.ppcasm_patch(&restore_original_check_patch)?;
-
-        let restore_original_check_code_cave_patch = ppcasm!(new_text_section_end, {
-            lbz r0, 0x0140(r3);
-            rlwinm. r0, r0, 26, 31, 31;
-            bne {new_text_section_end + 0x18};
-            lwz r0, 0x13c(r3);
-            cmpwi r0, 6;
-            bne {new_text_section_end + 0x20};
-            fmr f0, f14;
-            stfs f0, 0xad0(r30);
-            b {cridley_acceptscriptmsg_addr + 0x898};
-        });
-
-        new_text_section_end += restore_original_check_code_cave_patch.encoded_bytes().len() as u32;
-        new_text_section.extend(restore_original_check_code_cave_patch.encoded_bytes());
-    }
-
-    let bytes_needed = ((new_text_section.len() + 31) & !31) - new_text_section.len();
-    new_text_section.extend([0; 32][..bytes_needed].iter().copied());
-    dol_patcher.add_text_segment(new_text_section_start, Cow::Owned(new_text_section))?;
-
-    // move the ram after the newly added sections (if there are any)
-    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("OSInit", version) + 0xe0, {
-        lis        r3, { new_text_section_end + 0x10000 }@h;
-    }))?;
-
-    dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("OSInit", version) + 0x118, {
-        lis        r3, { new_text_section_end + 0x10000 }@h;
-    }))?;
-
-    *file = structs::FstEntryFile::ExternalFile(Box::new(dol_patcher));
-    Ok(())
-}
-
 fn empty_frigate_pak(file: &mut structs::FstEntryFile) -> Result<(), String> {
     // To reduce the amount of data that needs to be copied, empty the contents of the pak
     let pak = match file {
@@ -13304,7 +11295,7 @@ fn patch_final_boss_permadeath<'r>(
     if mrea_id == 0x1A666C55 {
         // lair
         let deps = [(0x12771AF0, b"CMDL"), (0xA6114429, b"TXTR")];
-        let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+        let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
             asset_id: file_id,
             asset_type: FourCC::from_bytes(fourcc),
         });
@@ -13627,7 +11618,7 @@ fn patch_final_boss_permadeath<'r>(
                 },
             ]
             .into(),
-            property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
+            property_data: SclyProperty::Trigger(Box::new(structs::Trigger {
                 name: b"warp\0".as_cstr(),
                 position: [52.0, -298.0, -373.0].into(),
                 scale: [3.0, 3.0, 6.0].into(),
@@ -13654,7 +11645,7 @@ fn patch_final_boss_permadeath<'r>(
                 target_object_id: 0x000B0173, // dock
             }]
             .into(),
-            property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
+            property_data: SclyProperty::Trigger(Box::new(structs::Trigger {
                 name: b"unload subchamber five\0".as_cstr(),
                 position: [44.219_9, -286.196_7, -350.0].into(),
                 scale: [100.0, 100.0, 130.0].into(),
@@ -14363,7 +12354,7 @@ fn patch_add_dock_teleport<'r>(
     layer.objects.as_mut_vec().push(structs::SclyObject {
         instance_id: spawn_point_id,
         connections: vec![].into(),
-        property_data: structs::SclyProperty::SpawnPoint(Box::new(structs::SpawnPoint {
+        property_data: SclyProperty::SpawnPoint(Box::new(structs::SpawnPoint {
             name: b"dockspawnpoint\0".as_cstr(),
             position: spawn_point_position,
             rotation: spawn_point_rotation.into(),
@@ -14431,7 +12422,7 @@ fn patch_add_dock_teleport<'r>(
     layer.objects.as_mut_vec().push(structs::SclyObject {
         instance_id: dock_teleport_trigger_id,
         connections: connections.into(),
-        property_data: structs::SclyProperty::Trigger(Box::new(structs::Trigger {
+        property_data: SclyProperty::Trigger(Box::new(structs::Trigger {
             name: b"dockteleporttrigger\0".as_cstr(),
             position: source_position.into(),
             scale: source_scale.into(),
@@ -14492,11 +12483,11 @@ fn patch_modify_dock<'r>(
         let (scan_id, strg_id) = scan.unwrap();
 
         let frme_id = ResId::<res_id::FRME>::new(0xDCEC3E77);
-        let scan_dep: structs::Dependency = scan_id.into();
+        let scan_dep: Dependency = scan_id.into();
         area.add_dependencies(game_resources, 0, iter::once(scan_dep));
-        let strg_dep: structs::Dependency = strg_id.into();
+        let strg_dep: Dependency = strg_id.into();
         area.add_dependencies(game_resources, 0, iter::once(strg_dep));
-        let frme_dep: structs::Dependency = frme_id.into();
+        let frme_dep: Dependency = frme_id.into();
         area.add_dependencies(game_resources, 0, iter::once(frme_dep));
     }
 
@@ -16840,7 +14831,6 @@ fn build_and_run_patches<'r>(
     let morph_ball_size = config.ctwk_config.morph_ball_size.unwrap_or(1.0);
     let player_size = config.ctwk_config.player_size.unwrap_or(1.0);
 
-    let remove_ball_color = morph_ball_size < 0.999;
     let remove_control_disabler = player_size < 0.999 || morph_ball_size < 0.999;
     let move_item_loss_scan = player_size > 1.001;
     let mut rng = StdRng::seed_from_u64(config.seed);
@@ -17460,7 +15450,7 @@ fn build_and_run_patches<'r>(
         let world = World::from_pak(pak_name).unwrap();
 
         for room_info in rooms.iter() {
-            let room_idx = room_info.index();
+            let room_idx: usize = room_info.index();
 
             if remove_control_disabler {
                 patcher.add_scly_patch(
@@ -18724,40 +16714,18 @@ fn build_and_run_patches<'r>(
         }
     }
 
-    if smoother_teleports {
-        patcher.add_file_patch(b"default.dol", |file| {
-            patch_dol(
-                file,
-                starting_room,
-                config.version,
-                config,
-                remove_ball_color,
-                true,
-                config.skip_splash_screens,
-                config.escape_sequence_counts_up,
-                config.uuid,
-                config.shoot_in_grapple,
-            )
-        });
+    let overflow_cell = std::rc::Rc::new(std::cell::RefCell::new(Vec::<u8>::new()));
+    let overflow_capture = std::rc::Rc::clone(&overflow_cell);
+    patcher.add_file_patch(b"default.dol", move |file| {
+        let bytes = dol_patches::patch_dol(file, starting_room, config)?;
+        *overflow_capture.borrow_mut() = bytes;
+        Ok(())
+    });
 
+    if smoother_teleports {
         // Quarantine Monitor doesn't have a load trigger
         patcher.add_scly_patch(resource_info!("pickup04.MREA").into(), move |ps, area| {
             patch_add_load_trigger(ps, area, [304.0, -606.0, 69.0], [5.0, 5.0, 5.0], 0)
-        });
-    } else {
-        patcher.add_file_patch(b"default.dol", |file| {
-            patch_dol(
-                file,
-                starting_room,
-                config.version,
-                config,
-                remove_ball_color,
-                false,
-                config.skip_splash_screens,
-                config.escape_sequence_counts_up,
-                config.uuid,
-                config.shoot_in_grapple,
-            )
         });
     }
 
@@ -19949,7 +17917,53 @@ fn build_and_run_patches<'r>(
         }
     }
 
+    if config.qol_game_breaking {
+        /* Optimize rooms that are likely to crash */
+        let rooms = [
+            (World::ChozoRuins, "Main Plaza"),
+            (World::ChozoRuins, "Ruined Fountain Access"),
+            (World::ChozoRuins, "Ruins Entrance"),
+            (World::ChozoRuins, "Ruined Shrine Access"),
+            (World::ChozoRuins, "Nursery Access"),
+            (World::ChozoRuins, "Plaza Access"),
+        ];
+
+        for (world, room_name) in rooms {
+            let pak_name = world.to_pak_str().as_bytes();
+            let world_name = World::ChozoRuins.to_json_key();
+            let mrea_id = ROOM_BY_NAME
+                .get(&(world_name.to_string(), room_name.to_string()))
+                .unwrap_or_else(|| panic!("'{} - {}' is not a real room", world_name, room_name))
+                .mrea_id;
+            patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
+                patch_optimize_memory(ps, area)
+            });
+        }
+
+        /* Optimize ALL rooms */
+        // for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+        //     for room_info in rooms.iter() {
+        //         patcher.add_scly_patch(
+        //             (pak_name.as_bytes(), room_info.room_id.to_u32()),
+        //             move |ps, area| patch_optimize_memory(ps, area),
+        //         );
+        //     }
+        // }
+    }
+
     patcher.run(gc_disc)?;
+    drop(patcher); // release the Rc clone held by the DOL closure
+
+    let overflow_bytes = std::rc::Rc::try_unwrap(overflow_cell)
+        .ok()
+        .unwrap()
+        .into_inner();
+    if !overflow_bytes.is_empty() {
+        gc_disc.add_file(
+            "cave_overflow.bin",
+            structs::FstEntryFile::Unknown(Reader::new(overflow_bytes.leak())),
+        )?;
+    }
 
     Ok(())
 }
@@ -20266,7 +18280,7 @@ fn patch_elite_research_door_lock<'r>(
         (0x0D36FB59, b"TXTR"),
         (0xACADD83F, b"TXTR"),
     ];
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| structs::Dependency {
+    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
         asset_id: file_id,
         asset_type: FourCC::from_bytes(fourcc),
     });
@@ -20286,7 +18300,7 @@ fn patch_elite_research_door_lock<'r>(
     let top_door_lock = structs::SclyObject {
         instance_id: top_door_lock_id,
         connections: vec![].into(),
-        property_data: structs::SclyProperty::Actor(Box::new(structs::Actor {
+        property_data: SclyProperty::Actor(Box::new(structs::Actor {
             name: b"Custom Blast Shield\0".as_cstr(),
             position: [21.35, 166.275_13, 51.825].into(),
             rotation: [0.0, 0.0, 0.0].into(),

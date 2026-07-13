@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Sound<'r> {
     #[auto_struct(expect = 20)]
     prop_count: u32,
@@ -33,9 +33,10 @@ pub struct Sound<'r> {
     pub pitch: u32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for Sound<'_> {
     const OBJECT_TYPE: u8 = 0x9;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

@@ -6,7 +6,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr, CStrConversio
 use crate::{res_id::*, scly_props::structs::AncsProp, ResId, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WorldTransporter<'r> {
     #[auto_struct(derive = 21 + 5 * pal_additions.is_some() as u32)]
     prop_count: u32,
@@ -39,7 +39,7 @@ pub struct WorldTransporter<'r> {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WorldTransporterPalAdditions<'r> {
     pub audio_stream: CStr<'r>,
     pub unknown0: u8,

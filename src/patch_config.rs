@@ -517,10 +517,11 @@ pub struct StreamedAudioConfig {
     pub is_music: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EditObjConfig {
     pub layer: Option<u32>,
+    pub active: Option<bool>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
     pub scale: Option<[f32; 3]>,
@@ -1434,7 +1435,7 @@ pub struct PatchConfig {
     pub export_asset_dir: Option<String>,
     pub extern_assets_dir: Option<String>,
     pub seed: u64,
-    pub uuid: Option<[u8; 16]>,
+    pub uuid: [u8; 16],
 
     pub force_vanilla_layout: bool,
 
@@ -1483,6 +1484,7 @@ pub struct PatchConfig {
     pub warp_to_start_delay_s: f32,
 
     pub automatic_crash_screen: bool,
+    pub os_diagnostics: bool,
     pub etank_capacity: u32,
     pub shuffle_pickup_position: bool,
     pub shuffle_pickup_pos_all_rooms: bool,
@@ -1529,6 +1531,7 @@ pub struct PatchConfig {
     pub game_banner: GameBanner,
     pub comment: String,
     pub main_menu_message: String,
+    pub save_name: Option<String>,
 
     #[serde(skip_serializing)] // skipped for competitive integrity reasons
     pub credits_string: Option<String>,
@@ -1567,6 +1570,7 @@ struct Preferences {
     map_default_state: Option<String>,
     artifact_hint_behavior: Option<String>,
     automatic_crash_screen: Option<bool>,
+    os_diagnostics: Option<bool>,
     visible_bounding_box: Option<bool>,
     door_destination_scans: Option<bool>,
     no_hud: Option<bool>,
@@ -1633,6 +1637,7 @@ struct GameConfig {
     game_banner: Option<GameBanner>,
     comment: Option<String>,
     main_menu_message: Option<String>,
+    save_name: Option<String>,
 
     credits_string: Option<String>,
     results_string: Option<String>,
@@ -2147,6 +2152,7 @@ impl PatchConfigPrivate {
                             Some(self_config) => {
                                 // merge
                                 merge_optional!(layer, self_config, other_config, room_name);
+                                merge_optional!(active, self_config, other_config, room_name);
                                 merge_optional!(position, self_config, other_config, room_name);
                                 merge_optional!(rotation, self_config, other_config, room_name);
                                 merge_optional!(scale, self_config, other_config, room_name);
@@ -2709,7 +2715,7 @@ impl PatchConfigPrivate {
             force_vanilla_layout,
 
             seed: self.seed.unwrap_or(123),
-            uuid: self.uuid,
+            uuid: self.uuid.unwrap_or([0u8; 16]),
             extern_assets_dir: self.extern_assets_dir.clone(),
 
             level_data: self.level_data.clone(),
@@ -2759,6 +2765,7 @@ impl PatchConfigPrivate {
                 .game_config
                 .hall_of_the_elders_bomb_slot_covers,
             automatic_crash_screen: self.preferences.automatic_crash_screen.unwrap_or(true),
+            os_diagnostics: self.preferences.os_diagnostics.unwrap_or(false),
             visible_bounding_box: self.preferences.visible_bounding_box.unwrap_or(false),
             door_destination_scans: self
                 .preferences
@@ -2846,6 +2853,7 @@ impl PatchConfigPrivate {
             game_banner: self.game_config.game_banner.clone().unwrap_or_default(),
             comment: self.game_config.comment.clone().unwrap_or_default(),
             main_menu_message,
+            save_name: self.game_config.save_name.clone(),
 
             credits_string,
             results_string,

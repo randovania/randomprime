@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable, FixedSize)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PlayerHintStruct {
     #[auto_struct(expect = 15)]
     prop_count: u32,
@@ -27,7 +27,7 @@ pub struct PlayerHintStruct {
 }
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PlayerHint<'r> {
     #[auto_struct(expect = 6)]
     prop_count: u32,
@@ -42,9 +42,10 @@ pub struct PlayerHint<'r> {
     pub priority: u32,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for PlayerHint<'_> {
     const OBJECT_TYPE: u8 = 0x3E;
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }

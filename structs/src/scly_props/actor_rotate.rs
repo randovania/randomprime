@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::{impl_rotation, SclyPropertyData};
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ActorRotate<'r> {
     #[auto_struct(expect = 6)]
     pub prop_count: u32,
@@ -19,6 +19,16 @@ pub struct ActorRotate<'r> {
 
 impl SclyPropertyData for ActorRotate<'_> {
     const OBJECT_TYPE: u8 = 0x39;
+
+    const SUPPORTS_ACTIVE: bool = true;
+
+    fn impl_get_active(&self) -> u8 {
+        self.update_active
+    }
+
+    fn impl_set_active(&mut self, x: u8) {
+        self.update_active = x;
+    }
 
     impl_rotation!();
 }

@@ -4,7 +4,7 @@ use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Camera<'r> {
     #[auto_struct(expect = 15)]
     pub prop_count: u32,
@@ -27,10 +27,11 @@ pub struct Camera<'r> {
     pub disable_out_of_into: u8,
 }
 
-use crate::{impl_position, impl_rotation};
+use crate::{impl_active, impl_position, impl_rotation};
 impl SclyPropertyData for Camera<'_> {
     const OBJECT_TYPE: u8 = 0x0C;
 
+    impl_active!();
     impl_position!();
     impl_rotation!();
 }
