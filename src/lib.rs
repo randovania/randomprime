@@ -12,6 +12,7 @@ pub mod add_modify_obj_patches;
 pub mod c_interface;
 pub mod ciso_writer;
 pub mod custom_assets;
+pub mod dol_codegen;
 pub mod dol_patcher;
 pub mod dol_patches;
 pub mod door_meta;

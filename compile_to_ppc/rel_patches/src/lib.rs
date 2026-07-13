@@ -53,7 +53,7 @@ unsafe extern "C" fn apply_cave_overflow() {
     let mut raw = alloc::vec![MaybeUninit::<u8>::uninit(); file_size + 63];
     let buf = Aligned32::split_unaligned_prefix_mut(&mut raw[..]).1;
     let buf = &mut buf[..(file_size + 31) & !31];
-    { let _ = fi.read_async(buf, 0, 0); }
+    { let _ = fi.read_async(buf, 0, 0); } // block here until read finishes
     // Safe: DVD read filled these bytes.
     let data: &[u8] = core::slice::from_raw_parts(buf.as_mut_ptr() as *const u8, file_size);
 
