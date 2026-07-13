@@ -1771,6 +1771,82 @@ fn patch_meta(
         }))?;
     }
 
+    patch_remove_hint_option(dol_patcher, version)?;
+
+    Ok(())
+}
+
+fn patch_remove_hint_option(
+    dol_patcher: &mut DolPatcher<'_>,
+    version: Version,
+) -> Result<(), String> {
+    const SGAME_OPTION_SIZE: u32 = 0x18;
+    const OPTION_TYPE_OFF: u32 = 0x14;
+    const HINT_SYSTEM_OPTION: u32 = 3;
+    const DOUBLE_ENUM_TYPE: u32 = 1;
+    const RESTORE_DEFAULTS_TYPE: u32 = 3;
+
+    let registry = match version {
+        Version::NtscU0_00 => 0x803E8720,
+        Version::NtscU0_01 => 0x803E8900,
+        Version::NtscU0_02 => 0x803E97E0,
+        Version::NtscK => 0x803E8820,
+        Version::Pal => 0x803D0F38,
+        Version::NtscJ => 0x803D1ED8,
+        _ => return Ok(()),
+    };
+
+    let count = dol_patcher.read_u32(registry)?;
+    let visor_opts = dol_patcher.read_u32(registry + 4)?;
+    if !(2..=8).contains(&count) {
+        return Err(format!(
+            "GameOptionsRegistry Visor count {} at {:#x} is out of range (wrong address?)",
+            count, registry
+        ));
+    }
+
+    // Locate HintSystem by its invariant option enum + widget type.
+    let mut hint_idx = None;
+    for i in 0..count {
+        let entry = visor_opts + i * SGAME_OPTION_SIZE;
+        if dol_patcher.read_u32(entry)? == HINT_SYSTEM_OPTION
+            && dol_patcher.read_u32(entry + OPTION_TYPE_OFF)? == DOUBLE_ENUM_TYPE
+        {
+            hint_idx = Some(i);
+            break;
+        }
+    }
+    let Some(hint_idx) = hint_idx else {
+        return Err(format!(
+            "HintSystem option not found in Visor category at {:#x}",
+            visor_opts
+        ));
+    };
+
+    // The last Visor entry must be RestoreDefaults; it slides up into the freed slot and must keep
+    // working. If it isn't, the address/layout is wrong
+    if dol_patcher.read_u32(visor_opts + (count - 1) * SGAME_OPTION_SIZE + OPTION_TYPE_OFF)?
+        != RESTORE_DEFAULTS_TYPE
+    {
+        return Err(format!(
+            "unexpected Visor options layout at {:#x}: last entry is not RestoreDefaults",
+            visor_opts
+        ));
+    }
+
+    // Delete entry `hint_idx`: shift each later entry down one 24-byte slot (read_u32 always returns
+    // the original word, so write order is irrelevant), then drop the Visor category count by one.
+    for i in hint_idx..(count - 1) {
+        let src = visor_opts + (i + 1) * SGAME_OPTION_SIZE;
+        let dst = visor_opts + i * SGAME_OPTION_SIZE;
+        let mut entry = Vec::with_capacity(SGAME_OPTION_SIZE as usize);
+        for w in 0..(SGAME_OPTION_SIZE / 4) {
+            entry.extend_from_slice(&dol_patcher.read_u32(src + w * 4)?.to_be_bytes());
+        }
+        dol_patcher.patch(dst, entry.into())?;
+    }
+    dol_patcher.patch(registry, (count - 1).to_be_bytes().to_vec().into())?;
+
     Ok(())
 }
 
