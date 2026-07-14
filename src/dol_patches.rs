@@ -2095,6 +2095,115 @@ fn patch_gameplay_tweaks(
     Ok(())
 }
 
+fn patch_phazon_ball_rainbow(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let counter = emitter.emit_addressed(dol_patcher, |_addr| vec![0u8; 4])?;
+    let hook = symbol_addr!("Update__10CMorphBallFfR13CStateManager", version);
+    let ret = hook + 4;
+    let displaced = dol_patcher.read_u32(hook)?;
+
+    let slot4_base = symbol_addr!("BallGlowColors", version) + 0xc;
+    let tramp = emitter.emit_addressed(dol_patcher, |addr| {
+        ppcasm!(addr, {
+                stwu    r1, -0x30(r1);
+                stw     r3, 0x28(r1);
+                stw     r4, 0x24(r1);
+                stw     r5, 0x20(r1);
+                stw     r6, 0x1c(r1);
+                stw     r7, 0x18(r1);
+                stw     r8, 0x14(r1);
+                stw     r9, 0x10(r1);
+                stw     r10, 0x0c(r1);
+                stw     r11, 0x08(r1);
+                lis     r3, {counter}@h;
+                addi    r3, r3, {counter}@l;
+                lwz     r5, 0x0(r3);
+                rlwinm  r6, r5, 24, 8, 31;
+                rlwinm  r7, r5, 0, 24, 31;
+                li      r4, 255;
+                subf    r8, r7, r4;
+                cmpwi   r6, 0;
+                beq     reg0;
+                cmpwi   r6, 1;
+                beq     reg1;
+                cmpwi   r6, 2;
+                beq     reg2;
+                cmpwi   r6, 3;
+                beq     reg3;
+                cmpwi   r6, 4;
+                beq     reg4;
+                li      r9, 255;
+                li      r10, 0;
+                mr      r11, r8;
+                b       store;
+            reg0:
+                li      r9, 255;
+                mr      r10, r7;
+                li      r11, 0;
+                b       store;
+            reg1:
+                mr      r9, r8;
+                li      r10, 255;
+                li      r11, 0;
+                b       store;
+            reg2:
+                li      r9, 0;
+                li      r10, 255;
+                mr      r11, r7;
+                b       store;
+            reg3:
+                li      r9, 0;
+                mr      r10, r8;
+                li      r11, 255;
+                b       store;
+            reg4:
+                mr      r9, r7;
+                li      r10, 0;
+                li      r11, 255;
+            store:
+                lis     r3, {slot4_base}@h;
+                addi    r3, r3, {slot4_base}@l;
+                li      r4, 7;
+            storelp:
+                stb     r9, 0x0(r3);
+                stb     r10, 0x1(r3);
+                stb     r11, 0x2(r3);
+                addi    r3, r3, 0x1c;
+                addi    r4, r4, -1;
+                cmpwi   r4, 0;
+                bne     storelp;
+                addi    r5, r5, 1;
+                cmpwi   r5, 1536;
+                blt     savec;
+                addi    r5, r5, -1536;
+            savec:
+                lis     r3, {counter}@h;
+                addi    r3, r3, {counter}@l;
+                stw     r5, 0x0(r3);
+                lwz     r3, 0x28(r1);
+                lwz     r4, 0x24(r1);
+                lwz     r5, 0x20(r1);
+                lwz     r6, 0x1c(r1);
+                lwz     r7, 0x18(r1);
+                lwz     r8, 0x14(r1);
+                lwz     r9, 0x10(r1);
+                lwz     r10, 0x0c(r1);
+                lwz     r11, 0x08(r1);
+                addi    r1, r1, 0x30;
+                .long   displaced;
+                b       {ret};
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(hook, {
+        b { tramp };
+    }))?;
+    Ok(())
+}
+
 fn patch_cosmetic(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -2199,6 +2308,16 @@ fn patch_cosmetic(
         for (addr, color) in addrs.iter().zip(colors.into_iter()) {
             dol_patcher.patch(*addr, color.into())?;
         }
+    }
+
+    if config.rainbow_phazon_ball
+        && !remove_ball_color
+        && matches!(
+            version,
+            Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscU0_02
+        )
+    {
+        patch_phazon_ball_rainbow(dol_patcher, emitter, version)?;
     }
 
     if config.qol_cosmetic {

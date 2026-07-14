@@ -126,6 +126,18 @@ pub const PHAZON_SUIT_TEXTURES: &[ResourceInfo] = &[
     resource_info!("06CE2C16.TXTR"),
 ];
 
+// Full-detail phazon spider ball only: body TestAnim/Node1_0.CMDL (SamusPhazonBallANCS) and glass
+// shell TestAnim/SamusPhazonBallGlassCMDL.CMDL. Excludes the low-poly transition texture so the
+// morph/unmorph transition keeps its stock look.
+pub const PHAZON_SPIDER_BALL_TEXTURES: &[ResourceInfo] = &[
+    resource_info!("8B105F2E.TXTR"),
+    resource_info!("2F1AC0DD.TXTR"),
+    resource_info!("8BF681E5.TXTR"),
+    resource_info!("51F20A44.TXTR"),
+    resource_info!("D3889172.TXTR"),
+    resource_info!("0B3DBDB4.TXTR"),
+];
+
 // Fusion morph ball ANCS TestAnim/Fusion_Ball.ANCS
 pub const FUSION_POWER_SUIT_TEXTURES: &[ResourceInfo] = &[
     // High res Characters/Samus/cooked/fusion_suit_high_rez_bound.CMDL
@@ -293,6 +305,17 @@ pub fn huerotate_color(matrix: [f32; 9], r: u8, g: u8, b: u8) -> [u8; 3] {
         (matrix[3] * r + matrix[4] * g + matrix[5] * b).clamp(0.0, 255.0) as u8,
         (matrix[6] * r + matrix[7] * g + matrix[8] * b).clamp(0.0, 255.0) as u8,
     ]
+}
+
+pub fn whiten_in_place(image: &mut [u8]) {
+    const BRIGHTNESS_PERCENT: u16 = 25;
+    for pixel in image.chunks_exact_mut(4) {
+        let value = pixel[0].max(pixel[1]).max(pixel[2]);
+        let value = (u16::from(value) * BRIGHTNESS_PERCENT / 100) as u8;
+        pixel[0] = value;
+        pixel[1] = value;
+        pixel[2] = value;
+    }
 }
 
 // Adapted from image-rs

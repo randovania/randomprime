@@ -193,6 +193,11 @@
                     "type": "boolean",
                     "default": false
                 },
+                "rainbowPhazonBall": {
+                    "description": "If true, the color of Phazon Morph Ball cycles through the color spectrum indefinitely. Phazon Spider Ball texture is desaturated to avoid clashing colors. NTSC-U only (0-00, 0-01, 0-02).",
+                    "type": "boolean",
+                    "default": false
+                },
                 "cacheDir": {
                     "description": "Path to a directory which randomprime can use to cache a copies of suit color rotations.",
                     "type": "string",

@@ -1523,6 +1523,7 @@ pub struct PatchConfig {
     pub default_game_options: Option<DefaultGameOptions>,
     pub suit_colors: Option<SuitColors>,
     pub force_fusion: bool,
+    pub rainbow_phazon_ball: bool,
     pub cache_dir: String,
 
     pub quickplay: bool,
@@ -1559,6 +1560,7 @@ struct Preferences {
     default_game_options: Option<DefaultGameOptions>,
     suit_colors: Option<SuitColors>,
     force_fusion: Option<bool>,
+    rainbow_phazon_ball: Option<bool>,
     cache_dir: Option<String>,
 
     qol_game_breaking: Option<bool>,
@@ -2776,6 +2778,7 @@ impl PatchConfigPrivate {
             flaahgra_music_files,
             suit_colors: self.preferences.suit_colors.clone(),
             force_fusion: self.preferences.force_fusion.unwrap_or(false),
+            rainbow_phazon_ball: self.preferences.rainbow_phazon_ball.unwrap_or(false),
             cache_dir: self
                 .preferences
                 .cache_dir
