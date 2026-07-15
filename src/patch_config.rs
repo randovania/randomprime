@@ -1610,7 +1610,9 @@ struct GameConfig {
     starting_items: Option<StartingItems>,
     item_loss_items: Option<StartingItems>,
     disable_item_loss: Option<bool>,
+    #[allow(dead_code)] // deprecated no-op; kept parseable for older configs
     starting_visor: Option<String>,
+    #[allow(dead_code)] // deprecated no-op; kept parseable for older configs
     starting_beam: Option<String>,
     escape_sequence_counts_up: Option<bool>,
     enable_ice_traps: Option<bool>,
@@ -2566,62 +2568,29 @@ impl PatchConfigPrivate {
             }
         };
 
-        let default_starting_visor = if starting_items.combat_visor {
-            "combat"
+        // startingVisor/startingBeam are deprecated no-ops; both derive from the
+        // starting inventory. Combat is the placeholder when no combat/thermal/xray
+        // visor is owned (scan-only and visorless start in fake combat).
+        let starting_visor = if starting_items.combat_visor {
+            Visor::Combat
         } else if starting_items.thermal_visor {
-            "thermal"
+            Visor::Thermal
         } else if starting_items.xray {
-            "xray"
+            Visor::XRay
         } else {
-            "scan"
+            Visor::Combat
         };
 
-        let starting_visor = match self
-            .game_config
-            .starting_visor
-            .as_ref()
-            .unwrap_or(&default_starting_visor.to_string())
-            .to_lowercase()
-            .trim()
-        {
-            "combat" => Visor::Combat,
-            "scan" => Visor::Scan,
-            "thermal" => Visor::Thermal,
-            "xray" => Visor::XRay,
-            _ => panic!(
-                "Unknown starting visor {}",
-                self.game_config.starting_visor.as_ref().unwrap()
-            ),
-        };
-
-        let default_starting_beam = if starting_items.power_beam {
-            "power"
+        let starting_beam = if starting_items.power_beam {
+            Beam::Power
         } else if starting_items.plasma {
-            "plasma"
+            Beam::Plasma
         } else if starting_items.ice {
-            "ice"
+            Beam::Ice
         } else if starting_items.wave {
-            "wave"
+            Beam::Wave
         } else {
-            "power"
-        };
-
-        let starting_beam = match self
-            .game_config
-            .starting_beam
-            .as_ref()
-            .unwrap_or(&default_starting_beam.to_string())
-            .to_lowercase()
-            .trim()
-        {
-            "power" => Beam::Power,
-            "ice" => Beam::Ice,
-            "wave" => Beam::Wave,
-            "plasma" => Beam::Plasma,
-            _ => panic!(
-                "Unknown starting beam {}",
-                self.game_config.starting_beam.as_ref().unwrap()
-            ),
+            Beam::Power
         };
 
         let spring_ball = self.game_config.spring_ball.unwrap_or(false);

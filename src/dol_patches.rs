@@ -2635,143 +2635,33 @@ fn patch_game_start(
     config: &PatchConfig,
     spawn_room: SpawnRoomData,
 ) -> Result<(), String> {
+    let no_starting_beam = !config.starting_items.power_beam
+        && !config.starting_items.wave
+        && !config.starting_items.ice
+        && !config.starting_items.plasma;
+
+    // New-game spawn mid-transition into the starting visor. Not persisted: save
+    // reloads and post-elevator respawns reset to combat and are corrected by the
+    // visor auto-transition inventory gate, so only this site needs patching.
     if config.starting_visor != Visor::Combat {
         let visor = config.starting_visor as u16;
-        let no_starting_visor = !config.starting_items.combat_visor
-            && !config.starting_items.scan_visor
-            && !config.starting_items.thermal_visor
-            && !config.starting_items.xray;
+        dol_patcher.ppcasm_patch(
+            &ppcasm!(symbol_addr!("__ct__12CPlayerStateFv", version) + 0x68, {
+                li r0, visor; stw r6, 0x14(r31); stw r0, 0x18(r31);
+            }),
+        )?;
+    }
 
-        if no_starting_visor {
-            let scan_visor = Visor::Scan as u16;
-            dol_patcher.ppcasm_patch(
-                &ppcasm!(symbol_addr!("__ct__12CPlayerStateFv", version) + 0x68, {
-                    li r0, scan_visor; stw r0, 0x14(r31); stw r0, 0x18(r31);
-                }),
-            )?;
-            dol_patcher.ppcasm_patch(
-                &ppcasm!(symbol_addr!("__ct__12CPlayerStateFR12CInputStream", version) + 0x70, {
-                    li r0, scan_visor; stw r0, 0x14(r30); stw r0, 0x18(r30);
-                }),
-            )?;
-            dol_patcher.ppcasm_patch(
-                &ppcasm!(symbol_addr!("ResetVisor__12CPlayerStateFv", version), {
-                    li r0, scan_visor; stw r0, 0x14(r3); stw r0, 0x18(r3); nop; nop;
-                }),
-            )?;
+    // spawn with weapon holstered instead of drawn when no beam is owned
+    if no_starting_beam {
+        let patch_offset = if version == Version::Pal || version == Version::NtscJ {
+            0x3bc
         } else {
-            dol_patcher.ppcasm_patch(
-                &ppcasm!(symbol_addr!("__ct__12CPlayerStateFv", version) + 0x68, {
-                    li r0, visor; stw r6, 0x14(r31); stw r0, 0x18(r31);
-                }),
-            )?;
-            dol_patcher.ppcasm_patch(
-                &ppcasm!(symbol_addr!("__ct__12CPlayerStateFR12CInputStream", version) + 0x70, {
-                    li r0, visor; stw r5, 0x14(r30); stw r0, 0x18(r30);
-                }),
-            )?;
-            dol_patcher.ppcasm_patch(
-                &ppcasm!(symbol_addr!("ResetVisor__12CPlayerStateFv", version), {
-                    li r0, 0; stw r0, 0x14(r3); li r0, visor; stw r0, 0x18(r3); nop;
-                }),
-            )?;
-        }
-
-        let visor_item = match config.starting_visor {
-            Visor::Combat => 17,
-            Visor::Scan => 5,
-            Visor::Thermal => 9,
-            Visor::XRay => 13,
+            0x434
         };
-
-        if config.starting_visor == Visor::Scan || no_starting_visor {
-            let patch_offset = if version == Version::Pal || version == Version::NtscJ {
-                0x3bc
-            } else {
-                0x434
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__7CPlayerF9TUniqueIdRC12CTransform4fRC6CAABoxUi9CVector3fffffRC13CMaterialList", version) + patch_offset, {
-                li r0, 0;
-            }))?;
-            let (po, po2) = if version == Version::Pal || version == Version::NtscJ {
-                (0x79c, 0x7a8)
-            } else {
-                (0x7c8, 0x7d4)
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(
-                symbol_addr!(
-                    "TransitionFromMorphBallState__7CPlayerFR13CStateManager",
-                    version
-                ) + po,
-                {
-                    nop;
-                }
-            ))?;
-            dol_patcher.ppcasm_patch(&ppcasm!(
-                symbol_addr!(
-                    "TransitionFromMorphBallState__7CPlayerFR13CStateManager",
-                    version
-                ) + po2,
-                {
-                    nop;
-                }
-            ))?;
-            let (po, po2) = if version == Version::Pal || version == Version::NtscJ {
-                (0x14c, 0x158)
-            } else {
-                (0x1a4, 0x1b0)
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(
-                symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version) + po,
-                {
-                    nop;
-                }
-            ))?;
-            dol_patcher.ppcasm_patch(&ppcasm!(
-                symbol_addr!("LeaveMorphBallState__7CPlayerFR13CStateManager", version) + po2,
-                {
-                    nop;
-                }
-            ))?;
-            let po = if version == Version::Pal || version == Version::NtscJ {
-                0xb0
-            } else {
-                0x108
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(
-                symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version) + po,
-                {
-                    nop;
-                    nop;
-                    nop;
-                }
-            ))?;
-        } else {
-            let (po, po2) = if version == Version::Pal || version == Version::NtscJ {
-                (0xdc, 0xf0)
-            } else {
-                (0xe8, 0xfc)
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("UpdateVisorState__7CPlayerFRC11CFinalInputfR13CStateManager", version) + po, {
-                li r4, visor_item;
-            }))?;
-            dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("UpdateVisorState__7CPlayerFRC11CFinalInputfR13CStateManager", version) + po2, {
-                li r4, visor;
-            }))?;
-            let po = if version == Version::Pal || version == Version::NtscJ {
-                0xb0
-            } else {
-                0x108
-            };
-            dol_patcher.ppcasm_patch(&ppcasm!(
-                symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version) + po,
-                {
-                    nop;
-                    nop;
-                    nop;
-                }
-            ))?;
-        }
+        dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("__ct__7CPlayerF9TUniqueIdRC12CTransform4fRC6CAABoxUi9CVector3fffffRC13CMaterialList", version) + patch_offset, {
+            li r0, 0;
+        }))?;
     }
 
     dol_patcher.ppcasm_patch(
@@ -2809,6 +2699,639 @@ fn patch_game_start(
             li r0, { spawn_room.mrea_idx };
         }),
     )?;
+
+    Ok(())
+}
+
+// Inventory-gate DOL patches: starting without a beam and/or visor behaves the same
+// everywhere (fresh spawn, save reload, world/morph transitions). Every check is a
+// no-op when the relevant item is owned, so all are applied unconditionally. The
+// trampolines land in code caves (emit_and_patch); displaced first instructions are
+// read from the target so they stay correct across versions.
+fn patch_inventory_gates(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let pal_like = version == Version::Pal || version == Version::NtscJ;
+    let start_transition_to_visor = symbol_addr!(
+        "StartTransitionToVisor__12CPlayerStateFQ212CPlayerState12EPlayerVisor",
+        version
+    );
+    let draw_gun = symbol_addr!("DrawGun__7CPlayerFR13CStateManager", version);
+
+    // Skip beam fire when the equipped beam isn't owned. Phazon swaps the gun without
+    // changing x310_currentBeam, so exempt it via its active flag.
+    let update_normal_shot_cycle = symbol_addr!(
+        "UpdateNormalShotCycle__10CPlayerGunFfR13CStateManager",
+        version
+    );
+    let orig = dol_patcher.read_u32(update_normal_shot_cycle)?;
+    emitter.emit_and_patch(dol_patcher, update_normal_shot_cycle, false, |addr| {
+        ppcasm!(addr, {
+                // r3 = CPlayerGun*, r4 = CStateManager&
+                lbz     r11, 0x833(r3);
+                andi    r11, r11, 0x8;      // x833_28_phazonBeamActive
+                cmplwi  r11, 0;
+                bne     beam_owned;
+                lwz     r11, 0x310(r3);     // x310_currentBeam
+                cmplwi  r11, 3;
+                bgt     beam_owned;
+                lwz     r12, 0x8b8(r4);
+                lwz     r12, 0x0(r12);      // CPlayerState*
+                rlwinm  r11, r11, 3, 0, 28;
+                add     r12, r12, r11;
+                lwz     r11, 0x2c(r12);     // beam item capacity
+                cmplwi  r11, 0;
+                bne     beam_owned;
+                li      r11, 0;
+                stw     r11, 0x2f0(r3);     // suppress the gun recoil motion
+                blr;                        // beam not owned; fire nothing
+            beam_owned:
+                .long orig;                 // displaced first instruction
+                b       { update_normal_shot_cycle + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // A visorless player is technically in scan visor; report scanning as invalid
+    // unless Scan Visor is owned.
+    let validate_scanning = symbol_addr!(
+        "ValidateScanning__7CPlayerCFRC11CFinalInputR13CStateManager",
+        version
+    );
+    let orig = dol_patcher.read_u32(validate_scanning)?;
+    emitter.emit_and_patch(dol_patcher, validate_scanning, false, |addr| {
+        ppcasm!(addr, {
+                // r3 = CPlayer*, r4 = CFinalInput&, r5 = CStateManager&
+                lwz     r11, 0x8b8(r5);
+                lwz     r11, 0x0(r11);      // CPlayerState*
+                lwz     r11, 0x54(r11);     // scan visor item capacity
+                cmplwi  r11, 0;
+                bne     scan_visor_owned;
+                li      r3, 0;
+                blr;                        // scan visor not owned; nothing is scannable
+            scan_visor_owned:
+                .long orig;                 // displaced first instruction
+                b       { validate_scanning + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // Morph forces a transition to combat visor; redirect to the best owned real visor
+    // (combat > thermal > xray, else fake combat). Scan is never picked, so a
+    // scan-only/visorless player unmorphs into the fake combat visor.
+    let enter_morph_visor_callsite =
+        symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version)
+            + if pal_like { 0xb8 } else { 0x110 };
+    emitter.emit_and_patch(dol_patcher, enter_morph_visor_callsite, true, |addr| {
+        ppcasm!(addr, {
+                // r3 = CPlayerState*, r4 = kPV_Combat (0)
+                lwz     r11, 0xb4(r3);      // combat visor item capacity
+                cmplwi  r11, 0;
+                bne     do_transition;
+                lwz     r11, 0x74(r3);      // thermal visor item capacity
+                cmplwi  r11, 0;
+                li      r4, 3;              // thermal
+                bne     do_transition;
+                lwz     r11, 0x94(r3);      // xray visor item capacity
+                cmplwi  r11, 0;
+                li      r4, 1;              // xray
+                bne     do_transition;
+                li      r4, 0;              // fake combat visor
+            do_transition:
+                b       { start_transition_to_visor };
+        })
+        .encoded_bytes()
+    })?;
+
+    // Refuse to raise the gun with no beam owned or in/entering scan visor. Retail
+    // never draws in scan visor, but a combat-visorless player unmorphing there now can.
+    let orig = dol_patcher.read_u32(draw_gun)?;
+    emitter.emit_and_patch(dol_patcher, draw_gun, false, |addr| {
+        ppcasm!(addr, {
+                // r3 = CPlayer*, r4 = CStateManager&
+                lwz     r11, 0x8b8(r4);
+                lwz     r11, 0x0(r11);      // CPlayerState*
+                lwz     r12, 0x18(r11);     // transitioning visor
+                cmplwi  r12, 2;             // scan
+                beq     refuse_draw;
+                lwz     r12, 0x2c(r11);     // power beam item capacity
+                lwz     r0, 0x34(r11);      // ice beam item capacity
+                or      r12, r12, r0;
+                lwz     r0, 0x3c(r11);      // wave beam item capacity
+                or      r12, r12, r0;
+                lwz     r0, 0x44(r11);      // plasma beam item capacity
+                or      r12, r12, r0;
+                cmplwi  r12, 0;
+                bne     beam_owned;
+            refuse_draw:
+                blr;                        // no beam owned or in scan visor; stay holstered
+            beam_owned:
+                .long orig;                 // displaced first instruction
+                b       { draw_gun + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // Per-frame reconcile of gun and inventory: holster when no beam is owned, draw when
+    // the equipped beam isn't owned but a real one is (so the gun's state machine can
+    // switch beams - it only processes input while drawn). Holster/Draw no-op when
+    // already in that state. CPlayer offsets shifted in later builds.
+    let (morph_state_offset, gun_offset) =
+        if [Version::NtscU0_02, Version::Pal, Version::NtscJ].contains(&version) {
+            (0x308, 0x4a0)
+        } else {
+            (0x2f8, 0x490)
+        };
+    let update_gun_state = symbol_addr!(
+        "UpdateGunState__7CPlayerFRC11CFinalInputR13CStateManager",
+        version
+    );
+    let holster_gun = symbol_addr!("HolsterGun__7CPlayerFR13CStateManager", version);
+    let orig = dol_patcher.read_u32(update_gun_state)?;
+    emitter.emit_and_patch(dol_patcher, update_gun_state, false, |addr| {
+        ppcasm!(addr, {
+                // r3 = CPlayer*, r4 = CFinalInput&, r5 = CStateManager&
+                lwz     r11, 0x8b8(r5);
+                lwz     r11, 0x0(r11);      // CPlayerState*
+                lwz     r12, 0x2c(r11);     // power beam item capacity
+                lwz     r0, 0x34(r11);      // ice beam item capacity
+                or      r12, r12, r0;
+                lwz     r0, 0x3c(r11);      // wave beam item capacity
+                or      r12, r12, r0;
+                lwz     r0, 0x44(r11);      // plasma beam item capacity
+                or      r12, r12, r0;
+                cmplwi  r12, 0;
+                bne     beam_owned;
+            force_holster:
+                // no beam owned: force holster
+                stwu    r1, -0x20(r1);
+                mflr    r0;
+                stw     r0, 0x24(r1);
+                stw     r3, 0x8(r1);
+                stw     r4, 0xc(r1);
+                stw     r5, 0x10(r1);
+                mr      r4, r5;
+                bl      { holster_gun };
+                lwz     r3, 0x8(r1);
+                lwz     r4, 0xc(r1);
+                lwz     r5, 0x10(r1);
+                lwz     r0, 0x24(r1);
+                mtlr    r0;
+                addi    r1, r1, 0x20;
+                b       run_function;
+            beam_owned:
+                lwz     r12, { morph_state_offset }(r3);
+                cmplwi  r12, 0;             // kMS_Unmorphed
+                bne     run_function;
+                // never keep the gun out in or entering scan visor
+                lwz     r12, 0x18(r11);     // transitioning visor
+                cmplwi  r12, 2;             // scan
+                beq     force_holster;
+                lwz     r12, { gun_offset }(r3);
+                lwz     r12, 0x310(r12);    // equipped beam
+                cmplwi  r12, 3;
+                bgt     run_function;
+                rlwinm  r12, r12, 3, 0, 28;
+                add     r12, r11, r12;
+                lwz     r12, 0x2c(r12);     // equipped beam item capacity
+                cmplwi  r12, 0;
+                bne     run_function;       // equipped beam is owned; nothing to fix
+                stwu    r1, -0x20(r1);
+                mflr    r0;
+                stw     r0, 0x24(r1);
+                stw     r3, 0x8(r1);
+                stw     r4, 0xc(r1);
+                stw     r5, 0x10(r1);
+                mr      r4, r5;
+                bl      { draw_gun };
+                lwz     r3, 0x8(r1);
+                lwz     r4, 0xc(r1);
+                lwz     r5, 0x10(r1);
+                lwz     r0, 0x24(r1);
+                mtlr    r0;
+                addi    r1, r1, 0x20;
+            run_function:
+                .long orig;                 // displaced first instruction
+                b       { update_gun_state + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // When no beam is input-selected and the equipped one isn't owned, auto-equip the
+    // first owned beam via HandleBeamChange (reuses retail anim/sfx/ammo).
+    let handle_beam_change = symbol_addr!(
+        "HandleBeamChange__10CPlayerGunFRC11CFinalInputR13CStateManager",
+        version
+    );
+    let auto_equip_callsite = handle_beam_change + 0xa0;
+    let orig = dol_patcher.read_u32(auto_equip_callsite)?;
+    emitter.emit_and_patch(dol_patcher, auto_equip_callsite, false, |addr| {
+        ppcasm!(addr, {
+                // r26 = input-selected beam (-1 = none), r29 = CPlayerState*, r30 = CPlayerGun*
+                cmpwi   r26, -1;
+                bne     done;
+                lwz     r11, 0x310(r30);    // equipped beam
+                cmplwi  r11, 3;
+                bgt     done;
+                rlwinm  r11, r11, 3, 0, 28;
+                add     r11, r29, r11;
+                lwz     r11, 0x2c(r11);     // equipped beam item capacity
+                cmplwi  r11, 0;
+                bne     done;               // equipped beam is owned; nothing to fix
+                // select the first owned beam, if any
+                lwz     r11, 0x2c(r29);
+                cmplwi  r11, 0;
+                li      r26, 0;             // power
+                bne     done;
+                lwz     r11, 0x34(r29);
+                cmplwi  r11, 0;
+                li      r26, 1;             // ice
+                bne     done;
+                lwz     r11, 0x3c(r29);
+                cmplwi  r11, 0;
+                li      r26, 2;             // wave
+                bne     done;
+                lwz     r11, 0x44(r29);
+                cmplwi  r11, 0;
+                li      r26, 3;             // plasma
+                bne     done;
+                li      r26, -1;            // no beam owned
+            done:
+                .long orig;                 // displaced instruction (cmpwi r26, -1)
+                b       { handle_beam_change + 0xa4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // When the current visor isn't owned, transition to the first owned real visor
+    // (combat > thermal > xray). Injected in UpdateVisorState's gated block so retail
+    // switch conditions apply. Scan is never auto-equipped (it holsters the gun); the
+    // player picks it manually. PAL/JPN use different registers/offsets.
+    let update_visor_state = symbol_addr!(
+        "UpdateVisorState__7CPlayerFRC11CFinalInputfR13CStateManager",
+        version
+    );
+    let auto_trans_callsite = update_visor_state + if pal_like { 0xa4 } else { 0xb0 };
+    let auto_trans_resume = update_visor_state + if pal_like { 0xa8 } else { 0xb4 };
+    let orig = dol_patcher.read_u32(auto_trans_callsite)?;
+    if pal_like {
+        emitter.emit_and_patch(dol_patcher, auto_trans_callsite, false, |addr| {
+            ppcasm!(addr, {
+                    // r28 = CPlayerState*, r29 = CPlayer*, r31 = CStateManager&
+                    // map current visor (0 combat, 1 xray, 2 scan, 3 thermal) to capacity offset
+                    lwz     r11, 0x14(r28);     // current visor
+                    cmplwi  r11, 0;
+                    li      r12, 0xb4;          // combat
+                    beq     have_offset;
+                    cmplwi  r11, 1;
+                    li      r12, 0x94;          // xray
+                    beq     have_offset;
+                    cmplwi  r11, 2;
+                    li      r12, 0x54;          // scan
+                    beq     have_offset;
+                    li      r12, 0x74;          // thermal
+                have_offset:
+                    lwzx    r11, r28, r12;      // current visor item capacity
+                    cmplwi  r11, 0;
+                    bne     run_block;
+                    // select the first owned real visor, if any
+                    lwz     r11, 0xb4(r28);     // combat visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 0;
+                    bne     transition;
+                    lwz     r11, 0x74(r28);     // thermal visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 3;
+                    bne     transition;
+                    lwz     r11, 0x94(r28);     // xray visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 1;
+                    bne     transition;
+                    b       run_block;          // no real visor owned
+                transition:
+                    mr      r3, r28;
+                    mr      r4, r12;
+                    bl      { start_transition_to_visor };
+                    // retail draws the gun on a visor switch (never scan here)
+                    mr      r3, r29;
+                    mr      r4, r31;
+                    bl      { draw_gun };
+                run_block:
+                    .long orig;                 // displaced instruction
+                    b       { auto_trans_resume };
+            })
+            .encoded_bytes()
+        })?;
+    } else {
+        emitter.emit_and_patch(dol_patcher, auto_trans_callsite, false, |addr| {
+            ppcasm!(addr, {
+                    // r28 = CPlayer*, r30 = CStateManager&, r31 = CPlayerState*
+                    // map current visor (0 combat, 1 xray, 2 scan, 3 thermal) to capacity offset
+                    lwz     r11, 0x14(r31);     // current visor
+                    cmplwi  r11, 0;
+                    li      r12, 0xb4;          // combat
+                    beq     have_offset;
+                    cmplwi  r11, 1;
+                    li      r12, 0x94;          // xray
+                    beq     have_offset;
+                    cmplwi  r11, 2;
+                    li      r12, 0x54;          // scan
+                    beq     have_offset;
+                    li      r12, 0x74;          // thermal
+                have_offset:
+                    lwzx    r11, r31, r12;      // current visor item capacity
+                    cmplwi  r11, 0;
+                    bne     run_block;
+                    // select the first owned real visor, if any
+                    lwz     r11, 0xb4(r31);     // combat visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 0;
+                    bne     transition;
+                    lwz     r11, 0x74(r31);     // thermal visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 3;
+                    bne     transition;
+                    lwz     r11, 0x94(r31);     // xray visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 1;
+                    bne     transition;
+                    b       run_block;          // no real visor owned
+                transition:
+                    mr      r3, r31;
+                    mr      r4, r12;
+                    bl      { start_transition_to_visor };
+                    // retail draws the gun on a visor switch (never scan here)
+                    mr      r3, r28;
+                    mr      r4, r30;
+                    bl      { draw_gun };
+                run_block:
+                    .long orig;                 // displaced instruction
+                    b       { auto_trans_resume };
+            })
+            .encoded_bytes()
+        })?;
+    }
+
+    // Exiting scan visor via fire/missile: retail requires Combat Visor. Replace that
+    // HasPowerUp call - transition to the best owned visor (else fake combat), draw the
+    // gun, and report "not owned" to skip the retail block. PAL/JPN use different
+    // registers/offsets.
+    let scan_exit_callsite = update_visor_state + if pal_like { 0xe0 } else { 0xec };
+    if pal_like {
+        emitter.emit_and_patch(dol_patcher, scan_exit_callsite, true, |addr| {
+            ppcasm!(addr, {
+                    // bl-callee; r3 = CPlayerState*, r4 = combat visor item (ignored)
+                    // live caller registers: r29 = CPlayer*, r31 = CStateManager&
+                    lwz     r11, 0xb4(r3);      // combat visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 0;             // combat
+                    bne     transition;
+                    lwz     r11, 0x74(r3);      // thermal visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 3;             // thermal
+                    bne     transition;
+                    lwz     r11, 0x94(r3);      // xray visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 1;             // xray
+                    bne     transition;
+                    // nothing owned: fake combat visor so the gun stays reachable
+                    li      r12, 0;
+                transition:
+                    stwu    r1, -0x10(r1);
+                    mflr    r0;
+                    stw     r0, 0x14(r1);
+                    mr      r4, r12;
+                    bl      { start_transition_to_visor };
+                    mr      r3, r29;
+                    mr      r4, r31;
+                    bl      { draw_gun };
+                    lwz     r0, 0x14(r1);
+                    mtlr    r0;
+                    addi    r1, r1, 0x10;
+                    li      r3, 0;              // already handled; skip the retail block
+                    blr;
+            })
+            .encoded_bytes()
+        })?;
+    } else {
+        emitter.emit_and_patch(dol_patcher, scan_exit_callsite, true, |addr| {
+            ppcasm!(addr, {
+                    // bl-callee; r3 = CPlayerState*, r4 = combat visor item (ignored)
+                    // live caller registers: r28 = CPlayer*, r30 = CStateManager&
+                    lwz     r11, 0xb4(r3);      // combat visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 0;             // combat
+                    bne     transition;
+                    lwz     r11, 0x74(r3);      // thermal visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 3;             // thermal
+                    bne     transition;
+                    lwz     r11, 0x94(r3);      // xray visor item capacity
+                    cmplwi  r11, 0;
+                    li      r12, 1;             // xray
+                    bne     transition;
+                    // nothing owned: fake combat visor so the gun stays reachable
+                    li      r12, 0;
+                transition:
+                    stwu    r1, -0x10(r1);
+                    mflr    r0;
+                    stw     r0, 0x14(r1);
+                    mr      r4, r12;
+                    bl      { start_transition_to_visor };
+                    mr      r3, r28;
+                    mr      r4, r30;
+                    bl      { draw_gun };
+                    lwz     r0, 0x14(r1);
+                    mtlr    r0;
+                    addi    r1, r1, 0x10;
+                    li      r3, 0;              // already handled; skip the retail block
+                    blr;
+            })
+            .encoded_bytes()
+        })?;
+    }
+
+    // In the fake combat visor, report HUD state None so retail tears down the combat
+    // HUD. The permanent visor/beam menus and radar are only hidden by state transitions
+    // that never run when booting straight into None, so hide them each None frame. Wraps
+    // GetDesiredHudState's only callsite. CSamusHud offsets shift in PAL/JPN.
+    let (visor_menu_offset, beam_menu_offset, radar_offset) = if pal_like {
+        (0x2b0, 0x2b4, 0x2b8)
+    } else {
+        (0x2a4, 0x2a8, 0x2ac)
+    };
+    let hud_state_callsite = symbol_addr!(
+        "UpdateStateTransition__9CSamusHudFfRC13CStateManager",
+        version
+    ) + if pal_like { 0x40 } else { 0x44 };
+    let get_desired_hud_state =
+        symbol_addr!("GetDesiredHudState__9CSamusHudCFRC13CStateManager", version);
+    let set_visible_menu = symbol_addr!("SetIsVisibleGame__17CHudVisorBeamMenuFb", version);
+    let set_visible_radar = symbol_addr!("SetIsVisibleGame__18CHudRadarInterfaceFb", version);
+    emitter.emit_and_patch(dol_patcher, hud_state_callsite, true, |addr| {
+        ppcasm!(addr, {
+                // r3 = CSamusHud*, r4 = CStateManager&
+                stwu    r1, -0x10(r1);
+                mflr    r0;
+                stw     r0, 0x14(r1);
+                stw     r3, 0xc(r1);
+                stw     r4, 0x8(r1);
+                bl      { get_desired_hud_state };
+                lwz     r4, 0x8(r1);
+                cmplwi  r3, 0;              // EHudState::Combat
+                bne     keep_state;
+                lwz     r11, 0x8b8(r4);
+                lwz     r11, 0x0(r11);      // CPlayerState*
+                lwz     r12, 0xb4(r11);     // combat visor item capacity
+                cmplwi  r12, 0;
+                bne     keep_state;
+                // null-check each: the CSamusHud ctor runs this before creating them
+                lwz     r11, 0xc(r1);       // CSamusHud*
+                lwz     r3, { visor_menu_offset }(r11);
+                cmplwi  r3, 0;
+                beq     skip_visor_menu;
+                li      r4, 0;
+                bl      { set_visible_menu };
+            skip_visor_menu:
+                lwz     r11, 0xc(r1);
+                lwz     r3, { beam_menu_offset }(r11);
+                cmplwi  r3, 0;
+                beq     skip_beam_menu;
+                li      r4, 0;
+                bl      { set_visible_menu };
+            skip_beam_menu:
+                lwz     r11, 0xc(r1);
+                lwz     r3, { radar_offset }(r11);
+                cmplwi  r3, 0;
+                beq     hud_hidden;
+                li      r4, 0;
+                bl      { set_visible_radar };
+            hud_hidden:
+                li      r3, 5;              // EHudState::None
+            keep_state:
+                lwz     r0, 0x14(r1);
+                mtlr    r0;
+                addi    r1, r1, 0x10;
+                blr;
+        })
+        .encoded_bytes()
+    })?;
+
+    // Hide the targeting reticle in the fake combat visor.
+    let target_reticle_draw = symbol_addr!(
+        "Draw__22CCompoundTargetReticleCFRC13CStateManagerb",
+        version
+    );
+    let orig = dol_patcher.read_u32(target_reticle_draw)?;
+    emitter.emit_and_patch(dol_patcher, target_reticle_draw, false, |addr| {
+        ppcasm!(addr, {
+                // r3 = CCompoundTargetReticle*, r4 = CStateManager&, r5 = hideLockon
+                lwz     r11, 0x8b8(r4);
+                lwz     r11, 0x0(r11);      // CPlayerState*
+                lwz     r12, 0x14(r11);     // current visor
+                cmplwi  r12, 0;             // combat
+                bne     visor_owned;
+                lwz     r12, 0xb4(r11);     // combat visor item capacity
+                cmplwi  r12, 0;
+                bne     visor_owned;
+                blr;                        // fake combat visor; draw no reticle
+            visor_owned:
+                .long orig;                 // displaced first instruction
+                b       { target_reticle_draw + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // Refuse combat lock-on in the fake combat visor by adding an ownership test to
+    // ValidateOrbitTargetId's combat-targetable check. Grapple points stay exempt so a
+    // visorless player can still grapple.
+    let validate_orbit_target_id = symbol_addr!(
+        "ValidateOrbitTargetId__7CPlayerCF9TUniqueIdR13CStateManager",
+        version
+    );
+    let (orbit_check_offset, orbit_resume_offset, orbit_block_offset) = if pal_like {
+        (0x1e8, 0x1ec, 0x1f0)
+    } else {
+        (0x1f4, 0x1f8, 0x1fc)
+    };
+    let orbit_callsite = validate_orbit_target_id + orbit_check_offset;
+    let orbit_resume = validate_orbit_target_id + orbit_resume_offset;
+    let orbit_block = validate_orbit_target_id + orbit_block_offset;
+    let tcast_grapple = symbol_addr!(
+        "__ct__33TCastToPtr<19CScriptGrapplePoint>FP7CEntity",
+        version
+    );
+    let orig = dol_patcher.read_u32(orbit_callsite)?;
+    emitter.emit_and_patch(dol_patcher, orbit_callsite, false, |addr| {
+        ppcasm!(addr, {
+                // r3 = targetable visor flags, r4 = CPlayerState*, r31 = actor;
+                // reached only when the current visor is combat
+                lwz     r0, 0xb4(r4);       // combat visor item capacity
+                cmplwi  r0, 0;
+                beq     combat_unowned;
+            run_flag_test:
+                .long orig;                 // displaced combat targetable flag test
+                b       { orbit_resume };
+            combat_unowned:
+                stwu    r1, -0x20(r1);
+                mflr    r0;
+                stw     r0, 0x24(r1);
+                stw     r3, 0x8(r1);
+                stw     r4, 0xc(r1);
+                mr      r4, r31;
+                addi    r3, r1, 0x10;       // 8 byte TCastToPtr temp
+                bl      { tcast_grapple };
+                lwz     r12, 0x4(r3);       // cast result
+                lwz     r3, 0x8(r1);
+                lwz     r4, 0xc(r1);
+                lwz     r0, 0x24(r1);
+                mtlr    r0;
+                addi    r1, r1, 0x20;
+                cmplwi  r12, 0;
+                bne     run_flag_test;      // grapple point: retail validation
+                b       { orbit_block };    // PlayerNotReadyToTarget
+        })
+        .encoded_bytes()
+    })?;
+
+    // The fake combat visor lives in the None state, which retail skips entirely:
+    // re-enable UpdateEnergy/UpdateFreeLook (freelook sfx) and the base HUD frame
+    // (hudmemos, escape timer). Per-visor interfaces are null in None, so the rest stays
+    // hidden.
+    let hud_update_gate = symbol_addr!("Update__9CSamusHudFfRC13CStateManagerUibb", version)
+        + if pal_like { 0x380 } else { 0x35c };
+    dol_patcher.ppcasm_patch(&ppcasm!(hud_update_gate, {
+        nop; // was: beq past UpdateEnergy/UpdateFreeLook
+    }))?;
+    dol_patcher.ppcasm_patch(
+        &ppcasm!(symbol_addr!("Draw__9CSamusHudCFRC13CStateManagerfUibb", version) + 0x30, {
+                cmpwi   r0, 6;              // was: cmpwi r0, 5 (None); never matches now
+        }),
+    )?;
+
+    // Hide the mini automapper in the fake combat visor. Retargets the minimap
+    // GetVisorTransitionFactor call: owned -> retail function, else jump to the retail
+    // zero-alpha path.
+    let in_game_gui_draw = symbol_addr!("Draw__17CInGameGuiManagerCFRC13CStateManager", version);
+    let minimap_gvtf_offset = if pal_like { 0x544 } else { 0x4a0 };
+    let minimap_callsite = in_game_gui_draw + minimap_gvtf_offset;
+    let minimap_zero_alpha = in_game_gui_draw + minimap_gvtf_offset + 0xc;
+    let get_visor_transition_factor =
+        symbol_addr!("GetVisorTransitionFactor__12CPlayerStateCFv", version);
+    emitter.emit_and_patch(dol_patcher, minimap_callsite, true, |addr| {
+        ppcasm!(addr, {
+                // r3 = CPlayerState*; reached only when the current visor is combat
+                lwz     r11, 0xb4(r3);      // combat visor item capacity
+                cmplwi  r11, 0;
+                beq     fake_combat_visor;
+                b       { get_visor_transition_factor };
+            fake_combat_visor:
+                b       { minimap_zero_alpha }; // zero alpha path
+        })
+        .encoded_bytes()
+    })?;
 
     Ok(())
 }
@@ -3679,6 +4202,9 @@ pub fn patch_dol(
     if config.warp_to_start {
         patch_warp_to_start(&mut dol_patcher, &mut emitter, version)?;
     }
+
+    // Overflow-safe trampolines; emitted after the must-fit emit_addressed reservations.
+    patch_inventory_gates(&mut dol_patcher, &mut emitter, version)?;
 
     // Emitted last for readability; these emit_and_patch stubs are overflow-safe (see make_pic).
     patch_save_uuid_stamp(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
