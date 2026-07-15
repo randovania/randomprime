@@ -393,6 +393,8 @@
 0x8009148c GetComboFireAmmoPeriod__12CPlayerStateCFv
 0x800914a4 GetMissileCostForAltAttack__12CPlayerStateCFv
 0x80091504 CalculateItemCollectionRate__12CPlayerStateFv
+0x80091504 CalculateItemCollectionRate__12CPlayerStateCFv
+0x8009177c GetTotalPickupCount__12CPlayerStateCFv
 0x80091794 GetIsFusionEnabled__12CPlayerStateFv
 0x800917ac GetCurrentSuit__12CPlayerStateFv
 0x800917ec CanVisorSeeFog__12CPlayerStateCFRC13CStateManager
@@ -479,6 +481,7 @@
 0x800ba9a0 offshoot_func__Ffff
 0x800bb15c __ct__10CWeaponMgrFv
 0x800bb18c __dl__FPv
+0x800bb534 Touch__13CScriptPickupFR6CActorR13CStateManager
 0x800bc1ec __ct__11CDamageInfoFRC11CDamageInfo
 0x800bc304 __ct__11CDamageInfoFR12CInputStream
 0x800bc3f0 sub_800c3bd0
@@ -1093,6 +1096,7 @@
 0x801c67e4 StateForWorld__10CGameStateFUi
 0x801c69c0 sub_801d4404
 0x801c6d04 PutTo__10CGameStateCFR13COutputStream
+0x801c6ed0 LoadGameFileState__10CGameStateFPCv
 0x801c7180 InitializeMemoryStates__10CGameStateFv
 0x801c7970 SetDesiredAreaAssetId__11CWorldStateFUi
 0x801c79cc PutTo__11CWorldStateFR16CMemoryStreamOut
@@ -3632,6 +3636,7 @@
 0x8046ad38 g_MainStringTable
 0x8046ad3c g_Main
 0x8046ad44 g_GameState
+0x8046ad44 gpGameState
 0x8046b888 __DBInterface
 0x8046b88c DBVerbose
 0x8046b8b0 StopAtNextInt

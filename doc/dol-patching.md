@@ -68,7 +68,7 @@ The block layout is defined in `dol_patches.rs` (the `SAVE_SCHEMA_*` constants).
 The 128-byte front region is **save-owned data**: the `CGameState` constructor zeroes it, and thereafter only the feature owning each field mutates it. `PutTo` and the load constructor round-trip it untouched. Two lifecycle zones:
 
 - The **identity block** (magic/version/uuid/save_name, `[0, SAVE_SCHEMA_SIZE)`) is stamped once at save birth by `patch_save_uuid_stamp`. The stamp is guarded on the magic already being present, so re-saving neither re-derives `save_name`/version from the current ISO's config nor clobbers runtime-owned fields. A per-`PutTo` stamp would forbid any such field in the region.
-- Fields in the free tail (e.g. the `completion` counter at offset 60, schema version 2) are **not** stamped. The constructor's zeroing gives them a 0 start, and their owning feature mutates them in place (the counter is bumped by the `CScriptPickup::Touch` hook and read by the completion-percent patches). An older-schema save simply had zeros in the tail, which decodes as the field's zero value - no version gate needed to read it.
+- Fields in the free tail (the `completion` counter at offset 60 and its `completion_max` denominator at offset 64) are **not** stamped. The constructor's zeroing gives them a 0 start, and their owning feature mutates them in place.
 
 ## References
 

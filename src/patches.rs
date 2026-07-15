@@ -98,6 +98,10 @@ fn add_obj<'r>(layers: &mut [structs::SclyLayer<'r>], obj: structs::SclyObject<'
 
 const ARTIFACT_OF_TRUTH_REQ_LAYER: u32 = 23;
 
+// Special pickup lifetime value used to mark a
+// a randomprime pickup as not contributing towards completion
+const NON_COMPLETION_LIFETIME: f32 = 1.0e9;
+
 fn artifact_layer_change_template<'r>(
     instance_id: u32,
     pickup_kind: u32,
@@ -2805,7 +2809,11 @@ fn patch_add_item<'r>(
         scan_offset,
         fade_in_timer: 0.0,
         spawn_delay: 0.0,
-        disappear_timer: 0.0,
+        disappear_timer: if pickup_config.contributes_to_completion() {
+            0.0
+        } else {
+            NON_COMPLETION_LIFETIME
+        },
         active: 1,
         drop_rate: 100.0,
 
@@ -5034,11 +5042,13 @@ fn update_pickup(
         rotation: pickup_model_data.rotation,
         hitbox: original_pickup.hitbox,
         scan_offset: scan_offset.into(),
-        // completion-percent (qolGeneral) counts a collection only when lifeTime (disappear_timer)
-        // is 0 - the static-pickup discriminator vs. runtime enemy/crate drops (always nonzero).
         fade_in_timer: 0.0,
         spawn_delay: original_pickup.spawn_delay,
-        disappear_timer: 0.0,
+        disappear_timer: if pickup_config.contributes_to_completion() {
+            0.0
+        } else {
+            NON_COMPLETION_LIFETIME
+        },
         active: original_pickup.active,
         drop_rate: original_pickup.drop_rate,
 
@@ -14959,6 +14969,7 @@ fn build_and_run_patches<'r>(
                         invisible_and_silent: None,
                         thermal_only: None,
                         scale: None,
+                        contribute_to_completion: None,
                     }]);
                 }
             }
@@ -16135,6 +16146,7 @@ fn build_and_run_patches<'r>(
                             invisible_and_silent: None,
                             thermal_only: None,
                             scale: None,
+                            contribute_to_completion: None,
                         }
                     } else {
                         pickups[idx].clone() // TODO: cloning is suboptimal

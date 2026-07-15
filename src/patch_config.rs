@@ -106,6 +106,19 @@ pub struct PickupConfig {
     pub invisible_and_silent: Option<bool>,
     pub thermal_only: Option<bool>,
     pub scale: Option<[f32; 3]>,
+    pub contribute_to_completion: Option<bool>,
+}
+
+impl PickupConfig {
+    pub fn contributes_to_completion(&self) -> bool {
+        if let Some(contribute_to_completion) = self.contribute_to_completion {
+            contribute_to_completion
+        } else {
+            let pickup_type = PickupType::from_str(&self.pickup_type);
+            let respawn = self.respawn.unwrap_or(false);
+            pickup_type != PickupType::Nothing && !respawn
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -2486,7 +2499,17 @@ impl PatchConfigPrivate {
 
         // Must be >= 1 (the DOL patches divide by it) and <= 0x7fff to fit the P1 patch's single
         // `li` immediate over the retail 8-byte GetTotalPickupCount function.
-        let completion_percent_max = self.game_config.completion_percent_max.unwrap_or(100);
+        let completion_percent_max = self.game_config.completion_percent_max.unwrap_or_else(|| {
+            let contributing = self
+                .level_data
+                .values()
+                .flat_map(|level| level.rooms.values())
+                .filter_map(|room| room.pickups.as_ref())
+                .flatten()
+                .filter(|pickup| pickup.contributes_to_completion())
+                .count();
+            (contributing as u32).max(1)
+        });
         if !(1..=0x7fff).contains(&completion_percent_max) {
             panic!("completionPercentMax must be between 1 and 32767");
         }

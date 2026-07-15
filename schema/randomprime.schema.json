@@ -492,11 +492,10 @@
                     "default": 100
                 },
                 "completionPercentMax": {
-                    "description": "The total number of item locations used as the denominator for the completion percentage shown on the file-select and end screens (collected locations / this value). Only takes effect when the 'qolGeneral' preference is enabled, and only on the NTSC-U 0-00 and 0-01 game versions (other versions keep the vanilla inventory-based percentage). A new save always starts at 0%. Each one-time collectable location increments completion by 1; enemy/crate drops and memory-edited multiworld items never do. Note: a 'respawn: true' pickup counts on every collection, and the completion value also drives the ending-variant thresholds (75%/100%) and the all-items gallery unlock. Retail has 100 locations, but the patcher can add or remove them.",
+                    "description": "The denominator for the completion percentage calculation shown on the file-select and end screens. When omitted, defaults to the number of pickups whose 'contributeToCompletion' resolves true. Each one-time collectable pickup increments the completion numerator unless its 'contributeToCompletion' is false. Only takes effect when the 'qolGeneral' preference is enabled. Note: Vanilla game has 100 pickup locations.",
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 32767,
-                    "default": 100
+                    "maximum": 32767
                 },
                 "itemMaxCapacity": {
                     "description": "The maximum capacity which a player can have of an item.",
@@ -2909,6 +2908,10 @@
                                 "description": "If true, marks the pickup location with a white dot on the map",
                                 "type": "boolean",
                                 "default": false
+                            },
+                            "contributeToCompletion": {
+                                "description": "Whether collecting this pickup counts toward the completion percentage (see 'completionPercentMax'). Only takes effect when the 'qolGeneral' preference is enabled. Defaults to false when 'type' is 'Nothing' or 'respawn' is true, otherwise true.",
+                                "type": "boolean"
                             }
                         },
                         "required": [
