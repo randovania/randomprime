@@ -2095,6 +2095,110 @@ fn patch_gameplay_tweaks(
     Ok(())
 }
 
+fn patch_ball_glow_normalized(
+    dol_patcher: &mut DolPatcher<'_>,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    let (power, gravity, varia, phazon) = config
+        .suit_colors
+        .as_ref()
+        .map(|s| {
+            (
+                s.power_deg.unwrap_or(0),
+                s.gravity_deg.unwrap_or(0),
+                s.varia_deg.unwrap_or(0),
+                s.phazon_deg.unwrap_or(0),
+            )
+        })
+        .unwrap_or((0, 0, 0, 0));
+
+    // Retail contents of each glow table (9 slots x RGB), preserved verbatim.
+    let retail: [[u8; 27]; 7] = [
+        // skBallInnerGlowColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
+            0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
+        ],
+        // BallGlowColors
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
+            0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        ],
+        // BallTransFlashColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
+            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+        ],
+        // BallAuxGlowColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
+            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+        ],
+        // BallSwooshColors
+        [
+            0xc2, 0x8f, 0x17, 0x70, 0xd4, 0xff, 0x6a, 0xff, 0x8a, 0x3d, 0x4d, 0xff, 0xc0, 0x00,
+            0x00, 0x00, 0xbe, 0xdc, 0xdf, 0xff, 0x00, 0xc4, 0x9e, 0xff, 0xff, 0x9a, 0x22,
+        ],
+        // BallSwooshColorsCharged
+        [
+            0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0x80,
+            0x20, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00,
+        ],
+        // BallSwooshColorsJaggy
+        [
+            0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xd5,
+            0x19, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00,
+        ],
+    ];
+
+    // Owning suit of each color slot, all keeping their retail color and rotated by the owner's deg:
+    // idx0 Power, idx1 Varia non-spider, idx2 Varia spider, idx3 Gravity, idx4 Phazon. Fusion slots:
+    // idx5 Power+F, idx6 Varia+F, idx7 Gravity+F, idx8 Phazon+F.
+    let slot_deg = [
+        power, varia, varia, gravity, phazon, power, varia, gravity, phazon,
+    ];
+
+    let addrs = [
+        symbol_addr!("skBallInnerGlowColors", version),
+        symbol_addr!("BallGlowColors", version),
+        symbol_addr!("BallTransFlashColors", version),
+        symbol_addr!("BallAuxGlowColors", version),
+        symbol_addr!("BallSwooshColors", version),
+        symbol_addr!("BallSwooshColorsCharged", version),
+        symbol_addr!("BallSwooshColorsJaggy", version),
+    ];
+    for (addr, base) in addrs.iter().zip(retail.iter()) {
+        let mut table = *base;
+        for (slot, &deg) in slot_deg.iter().enumerate() {
+            let deg = deg.rem_euclid(360);
+            if deg == 0 {
+                continue;
+            }
+            let rgb = huerotate_color(
+                huerotate_matrix(deg as f32),
+                table[slot * 3],
+                table[slot * 3 + 1],
+                table[slot * 3 + 2],
+            );
+            table[slot * 3..slot * 3 + 3].copy_from_slice(&rgb);
+        }
+        dol_patcher.patch(*addr, table.to_vec().into())?;
+    }
+
+    // Re-point the glow-index tables (unsymbolized skMorphBallModelTables members, uint[8] BE),
+    // indexed by modelIdx = suitRaw (Power, Gravity, Varia, Phazon); fusion adds 4. Each suit gets a
+    // single color across spider/non-spider except Varia, which keeps its two retail colors.
+    // Non-spider: Power->0, Gravity->3, Varia->1, Phazon->4.
+    // Spider:     Power->0, Gravity->3, Varia->2, Phazon->4.
+    let pack = |idx: [u32; 8]| -> Vec<u8> { idx.iter().flat_map(|i| i.to_be_bytes()).collect() };
+    let glow_colors = symbol_addr!("BallGlowColors", version);
+    dol_patcher.patch(glow_colors - 0x40, pack([0, 3, 2, 4, 5, 7, 6, 8]).into())?; // x180 spider
+    dol_patcher.patch(glow_colors - 0x20, pack([0, 3, 1, 4, 5, 7, 6, 8]).into())?; // x1a0 non-spider
+
+    Ok(())
+}
+
 fn patch_phazon_ball_rainbow(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -2239,75 +2343,8 @@ fn patch_cosmetic(
             colors.clone().into(),
         )?;
         dol_patcher.patch(symbol_addr!("BallGlowColors", version), colors.into())?;
-    } else if let Some(suit_colors) = config.suit_colors.as_ref() {
-        let mut colors: Vec<Vec<u8>> = vec![
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
-                0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
-            ],
-            vec![
-                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
-                0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ],
-            vec![
-                0xC2, 0x8F, 0x17, 0x70, 0xD4, 0xFF, 0x6A, 0xFF, 0x8A, 0x3D, 0x4D, 0xFF, 0xC0, 0x00,
-                0x00, 0x00, 0xBE, 0xDC, 0xDF, 0xFF, 0x00, 0xC4, 0x9E, 0xFF, 0xFF, 0x9A, 0x22,
-            ],
-            vec![
-                0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xD5,
-                0x19, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00,
-            ],
-            vec![
-                0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0x80,
-                0x20, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00,
-            ],
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ],
-        ];
-        for color in colors.iter_mut() {
-            for j in 0..9 {
-                let angle = if [0].contains(&j) && suit_colors.power_deg.is_some() {
-                    suit_colors.power_deg.unwrap()
-                } else if [1, 2].contains(&j) && suit_colors.varia_deg.is_some() {
-                    suit_colors.varia_deg.unwrap()
-                } else if [3].contains(&j) && suit_colors.gravity_deg.is_some() {
-                    suit_colors.gravity_deg.unwrap()
-                } else if [4].contains(&j) && suit_colors.phazon_deg.is_some() {
-                    suit_colors.phazon_deg.unwrap()
-                } else {
-                    0
-                };
-                let angle = angle % 360;
-                if angle == 0 {
-                    continue;
-                }
-                let matrix = huerotate_matrix(angle as f32);
-                let r_idx = j * 3;
-                let new_rgb =
-                    huerotate_color(matrix, color[r_idx], color[r_idx + 1], color[r_idx + 2]);
-                color[r_idx] = new_rgb[0];
-                color[r_idx + 1] = new_rgb[1];
-                color[r_idx + 2] = new_rgb[2];
-            }
-        }
-        let addrs = [
-            symbol_addr!("skBallInnerGlowColors", version),
-            symbol_addr!("BallAuxGlowColors", version),
-            symbol_addr!("BallTransFlashColors", version),
-            symbol_addr!("BallSwooshColors", version),
-            symbol_addr!("BallSwooshColorsJaggy", version),
-            symbol_addr!("BallSwooshColorsCharged", version),
-            symbol_addr!("BallGlowColors", version),
-        ];
-        for (addr, color) in addrs.iter().zip(colors.into_iter()) {
-            dol_patcher.patch(*addr, color.into())?;
-        }
+    } else {
+        patch_ball_glow_normalized(dol_patcher, version, config)?;
     }
 
     if config.rainbow_phazon_ball

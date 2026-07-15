@@ -70,6 +70,8 @@ pub const GRAVITY_SUIT_TEXTURES: &[ResourceInfo] = &[
     resource_info!("f_varia_head_incan.TXTR"),
     resource_info!("f_varia_arms.TXTR"),
     resource_info!("f_varia_arms_incan.TXTR"),
+    resource_info!("f_varia_reflected.TXTR"),
+    resource_info!("power_reflected_l_blue.TXTR"),
     // Low poly TestAnim/GravitySuit.CMDL
     resource_info!("349AD971.TXTR"),
     resource_info!("A082D0BF.TXTR"),
