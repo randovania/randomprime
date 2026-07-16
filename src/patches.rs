@@ -550,24 +550,6 @@ fn patch_rotate_hive_totem_door(
     Ok(())
 }
 
-fn patch_remove_box_debris_deps(
-    _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
-) -> Result<(), String> {
-    
-    let deps_to_remove: Vec<u32> = vec![
-        0xD34257F0, // TXTR
-        0x19C56C57, 0x4908FDE4, 0x04C05CEF // CMDL
-    ];
-    for dep_array in area.mlvl_area.dependencies.deps.as_mut_vec() {
-        dep_array
-            .as_mut_vec()
-            .retain(|dep| !deps_to_remove.contains(&dep.asset_id));
-    }
-
-    Ok(())
-}
-
 fn patch_map_door_icon(
     res: &mut structs::Resource,
     door: ModifiableDoorLocation,
@@ -15916,25 +15898,11 @@ fn build_and_run_patches<'r>(
                         if do_cutscene_skip_patches {
                             /* Some rooms need to be update to play nicely with skippable cutscenes */
                             match room_info.room_id.to_u32() {
-                                0x54C40995 => {
-                                    // Sunchamber Access
-                                    patcher.add_scly_patch(
-                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| patch_remove_box_debris_deps(ps, area),
-                                    );
-                                }
                                 0x9A0A03EB => {
                                     // Sunchamber
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                         move |ps, area| patch_sunchamber_cutscene_hack(ps, area),
-                                    );
-                                }
-                                0x41CC90EC => {
-                                    // Sun Tower Access
-                                    patcher.add_scly_patch(
-                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
-                                        move |ps, area| patch_remove_box_debris_deps(ps, area),
                                     );
                                 }
                                 0x1921876D => {
