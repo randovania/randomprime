@@ -2402,6 +2402,19 @@
                     ]
                 },
                 "Furnace": {
+                    "deleteIds": [
+                        3212047, // [Trigger] Trigger - Play Music 00i Battle Naka
+                        3212054, // [Trigger] Trigger - Play Music 00i Clear Naka
+                        3212053, // [Trigger] Trigger - Play Music 00i Clear Samus
+                        3212056, // [Trigger] Trigger - Play Music Naka
+                        3212058, // [Trigger] Trigger - Play Music Naka
+                        3212055, // [Trigger] Trigger - Play Music Samus
+                        3212057, // [Trigger] Trigger - Play Music Samus
+                        3212044, // [Trigger] Trigger - Play Music x06 Battle 2
+                        3212045, // [Trigger] Trigger - Play Music x06 Battle Naka
+                        3212052, // [Trigger] Trigger - Play Music x06 Clear Naka
+                        3212051  // [Trigger] Trigger - Play Music x06 Clear Samus
+                    ],
                     "addConnections": [
                         {
                             "senderId": 3211267, // [SpecialFunction] Music Player For Area
@@ -2557,15 +2570,9 @@
                 "Gathering Hall Access": {
                     "addConnections": [
                         {
-                            "senderId": 1704007, // [Timer] Music Player For Area
-                            "targetId": 1704005, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 1704005, // [SpecialFunction] Music Player For Area
                             "targetId": 1704006, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         }
                     ],
@@ -2582,14 +2589,6 @@
                             "isMusic": true,
                             "fadeInTime": 0.01,
                             "audioFileName": "/audio/rui_samusL.dsp|/audio/rui_samusR.dsp"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 1704007, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "looping": true,
-                            "startImmediately": true
                         }
                     ]
                 },
@@ -3048,24 +3047,10 @@
                 "Plaza Access": {
                     "addConnections": [
                         {
-                            "senderId": 393538, // [Timer] Music Player For Area
-                            "targetId": 393236, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 393236, // [SpecialFunction] Music Player For Area
                             "targetId": 393237, // [StreamedAudio] StreamedAudio - Ruins Samus SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 393538, // [Timer] Music Player For Area
-                            "time": 0.02,
-                            "looping": true,
-                            "startImmediately": true
                         }
                     ],
                     "specialFunctions": [
@@ -4339,7 +4324,8 @@
                         2437326, // [Trigger] Trigger - Play Music 00L Battle 2
                         2437327, // [Trigger] Trigger - Play Music 00L Samus
                         2437325, // [Trigger] Trigger - Play Music 00v Battle 2
-                        2437324 // [Trigger] Trigger - Play Music 00v Samus
+                        2437324, // [Trigger] Trigger - Play Music 00v Samus
+                        2293856  // External connection dummy
                     ],
                     "removeConnections": [
                         {
@@ -4664,6 +4650,11 @@
                             "id": 2424937, // [Switch] CLOSED: Flaahgra Music / OPEN: Ruins Music
                             "open": true,
                             "layer": 1 // 1st Pass Flaahgra
+                        }
+                    ],
+                    "waypoints": [
+                        {
+                            "id": 2293856 // External connection dummy
                         }
                     ]
                 },
@@ -5427,6 +5418,10 @@
                     ]
                 },
                 "Chapel Tunnel": {
+                    "deleteIds": [
+                        721086, // [Trigger] Trigger Play Chapel Music
+                        721087  // [StreamedAudio] StreamedAudio Ice Chapel SW
+                    ],
                     "layers": {
                         "1": false,
                         "2": false
@@ -5443,18 +5438,6 @@
                         {
                             "id": 720900, // [SpecialFunction] Music Player For Area
                             "type": "PlayerInAreaRelay"
-                        },
-                        {
-                            "id": 720904, // [SpecialFunction] Right Row Destroyed
-                            "type": "ScriptLayerController",
-                            "layerChangeLayerId": 1,
-                            "layerChangeRoomId": 2574619068
-                        },
-                        {
-                            "id": 720903, // [SpecialFunction] Left Row Destroyed
-                            "type": "ScriptLayerController",
-                            "layerChangeLayerId": 2,
-                            "layerChangeRoomId": 2574619068
                         }
                     ],
                     "streamedAudios": [
@@ -5503,21 +5486,15 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2555914, // [Timer] Music Player For Area
-                            "targetId": 2555913, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 2555913, // [SpecialFunction] Music Player For Area
                             "targetId": 2557206, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 2555913, // [SpecialFunction] Music Player For Area
                             "targetId": 2557051, // [StreamedAudio] StreamedAudio - Pirate Isogi SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
@@ -5584,15 +5561,6 @@
                             "fadeInTime": 0.01,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/pir_isogiL.dsp|/audio/pir_isogiR.dsp"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 2555914, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
                         }
                     ]
                 },
@@ -6034,12 +6002,6 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 1968366, // [Timer] Music Player For Area
-                            "targetId": 1966088, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 1966108, // [Timer] 2nd Pass Check
                             "targetId": 1999922, // [Relay] Observatory Music
                             "state": "ZERO",
@@ -6132,25 +6094,25 @@
                         {
                             "senderId": 1966088, // [SpecialFunction] Music Player For Area
                             "targetId": 1966100, // [Relay] Pirate Battle
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 1966088, // [SpecialFunction] Music Player For Area
                             "targetId": 1966110, // [Relay] Pirate Ambiance
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 1966088, // [SpecialFunction] Music Player For Area
                             "targetId": 1966115, // [Relay] Puzzle Music
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 1966088, // [SpecialFunction] Music Player For Area
                             "targetId": 1999922, // [Relay] Observatory Music
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "SET_TO_ZERO"
                         },
                         {
@@ -6246,13 +6208,6 @@
                         }
                     ],
                     "timers": [
-                        {
-                            "id": 1968366, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
-                        },
                         {
                             "id": 1968365, // [Timer] Setup Proper Music
                             "time": 0.001,
@@ -6829,6 +6784,12 @@
                             "targetId": 2621456, // [Swtich] CLOSED: Pirate Battle / OPEN: Pirate Ambiance
                             "state": "ZERO",
                             "message": "OPEN"
+                        },
+                        {
+                            "senderId": 2622568, // [Relay] Relay Master Layer Switch
+                            "targetId": 2621548, // [SpecialFunction] Research Lab Aether Metroid Music Check
+                            "state": "ZERO",
+                            "message": "DECREMENT"
                         }
                     ],
                     "streamedAudios": [
@@ -6861,10 +6822,10 @@
                             "layer": 2
                         },
                         {
-                            "id": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
+                            "id": 2621548, // [SpecialFunction] Research Lab Aether Metroid Music Check
                             "type": "ScriptLayerController",
-                            "layerChangeRoomId": 351383175,
-                            "layerChangeLayerId": 7
+                            "layerChangeRoomId": 893946318,
+                            "layerChangeLayerId": 6
                         }
                     ],
                     "switches": [
@@ -6902,14 +6863,14 @@
                 },
                 "Research Entrance": {
                     "deleteIds": [
-                        1311600,
-                        1311601,
-                        1311613,
-                        1311614,
-                        1311521,
-                        1311522,
-                        1311599,
-                        1311598
+                        1311600, // [Trigger] Trigger - Play Music 00j Battle 3
+                        1311601, // [Trigger] Trigger - Play Music 00j Yoin
+                        1311613, // [Trigger] Trigger - Play Music Mapstation Savestation CLEAR
+                        1311614, // [Trigger] Trigger - Play Music Mapstation Yoin CLEAR
+                        1311521, // [Trigger] Trigger - Play Music Savestation Battle
+                        1311522, // [Trigger] Trigger - Play Music Savestation Battle 3
+                        1311599, // [Trigger] Trigger - Play Music z8 Battle 3
+                        1311598  // [Trigger] Trigger - Play Music z8 Yoin
                     ],
                     "removeConnections": [
                         {
@@ -7054,54 +7015,6 @@
                         },
                         {
                             "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1311451, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1311288, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1310773, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
-                            "targetId": 1311061, // [SpacePirate] SpacePirate
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1311451, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1311288, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1310773, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1311461, // [Trigger] Trigger
-                            "targetId": 1311061, // [SpacePirate] SpacePirate
-                            "state": "ENTERED",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 1310728, // [Timer] 1st Pass Check
                             "targetId": 1310729, // [Timer] 2nd Pass Check
                             "state": "ZERO",
                             "message": "STOP"
@@ -7139,12 +7052,6 @@
                         {
                             "id": 1310723, // [SpecialFunction] Dud
                             "type": "CinematicSkip"
-                        }
-                    ],
-                    "distanceFogs": [
-                        {
-                            "id": 1311344, // [DistanceFog] Distance Fog_firstpass
-                            "layer": 7
                         }
                     ],
                     "timers": [
@@ -7202,8 +7109,6 @@
                 },
                 "Research Lab Aether": {
                     "deleteIds": [
-                        3343300, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
-                        3343299, // [StreamedAudio] StreamedAudio Pirate Yoin SW
                         3343292, // [Trigger] Trigger - Play Music 1
                         3343295, // [Trigger] Trigger - Play Music 1
                         3343298, // [Trigger] Trigger - Play Music 1
@@ -7217,118 +7122,160 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 3342350, // [Timer] Music Player For Area
-                            "targetId": 3342345, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
+                            "senderId": 3342345, // [SpecialFunction] Music Player For Area
+                            "targetId": 3342605, // [Relay] Play Pirate Battle
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 3342345, // [SpecialFunction] Music Player For Area
-                            "targetId": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ZERO",
-                            "message": "PLAY"
+                            "targetId": 3342606, // [Relay] Play Pirate Ambiance
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 3342345, // [SpecialFunction] Music Player For Area
+                            "targetId": 3342607, // [Relay] Play Metroid Breakout
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 3342345, // [SpecialFunction] Music Player For Area
+                            "targetId": 3342611, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 3342605, // [Relay] Play Pirate Battle
                             "targetId": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
                             "state": "ZERO",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 3342345, // [SpecialFunction] Music Player For Area
+                            "senderId": 3342606, // [Relay] Play Pirate Ambiance
+                            "targetId": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 3342607, // [Relay] Play Metroid Breakout
                             "targetId": 3343347, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
                             "state": "ZERO",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 3342611, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "targetId": 3343299, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 3342611, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "targetId": 3343300, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 3342345, // [SpecialFunction] Music Player For Area
                             "targetId": 3342364, // [Trigger] Metroid Encounter Music Check
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3342364, // [Trigger] Metroid Encounter Music Check
-                            "targetId": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "targetId": 3342606, // [Relay] Play Pirate Ambiance
                             "state": "ENTERED",
                             "message": "ACTIVATE"
                         },
                         {
                             "senderId": 3342364, // [Trigger] Metroid Encounter Music Check
-                            "targetId": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "targetId": 3342607, // [Relay] Play Metroid Breakout
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 3342364, // [Trigger] Metroid Encounter Music Check
+                            "targetId": 3342605, // [Relay] Play Pirate Battle
                             "state": "ENTERED",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3342473, // [DamageableTrigger] DamageableTrigger
-                            "targetId": 3343347, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "targetId": 3342607, // [Relay] Play Metroid Breakout
                             "state": "DEAD",
                             "message": "ACTIVATE"
                         },
                         {
                             "senderId": 3342473, // [DamageableTrigger] DamageableTrigger
-                            "targetId": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "targetId": 3342605, // [Relay] Play Pirate Battle
                             "state": "DEAD",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3342473, // [DamageableTrigger] DamageableTrigger
-                            "targetId": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "targetId": 3342606, // [Relay] Play Pirate Ambiance
                             "state": "DEAD",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3342528, // [Timer] Timer-component - start break out
-                            "targetId": 3343347, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "targetId": 3342607, // [Relay] Play Metroid Breakout
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
                             "senderId": 3342528, // [Timer] Timer-component - start break out
-                            "targetId": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "targetId": 3342605, // [Relay] Play Pirate Battle
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 3342528, // [Timer] Timer-component - start break out
+                            "targetId": 3342606, // [Relay] Play Pirate Ambiance
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3343294, // [Timer] Timer - Pirate Music Switch
-                            "targetId": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "targetId": 3342605, // [Relay] Play Pirate Battle
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 3343294, // [Timer] Timer - Pirate Music Switch
+                            "targetId": 3342607, // [Relay] Play Metroid Breakout
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3343294, // [Timer] Timer - Pirate Music Switch
-                            "targetId": 3343347, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
+                            "targetId": 3342606, // [Relay] Play Pirate Ambiance
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
-                            "senderId": 3343294, // [Timer] Timer - Pirate Music Switch
-                            "targetId": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "senderId": 3343291, // [Counter] Counter 1st Pass Enemies
+                            "targetId": 3342606, // [Relay] Play Pirate Ambiance
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
                         {
                             "senderId": 3343291, // [Counter] Counter 1st Pass Enemies
-                            "targetId": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "targetId": 3342605, // [Relay] Play Pirate Battle
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3343291, // [Counter] Counter 1st Pass Enemies
-                            "targetId": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3343301, // [Counter] Counter - 2nd Pass Music
-                            "targetId": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "targetId": 3342607, // [Relay] Play Metroid Breakout
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3343301, // [Counter] Counter - 2nd Pass Music
-                            "targetId": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                            "targetId": 3342611, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
                             "state": "ZERO",
-                            "message": "ACTIVATE"
+                            "message": "OPEN"
                         }
                     ],
                     "specialFunctions": [
@@ -7337,170 +7284,186 @@
                             "type": "PlayerInAreaRelay"
                         }
                     ],
-                    "streamedAudios": [
+                    "relays": [
                         {
-                            "id": 3343289, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
-                            "layer": 0,
-                            "volume": 95,
-                            "isMusic": true,
-                            "fadeInTime": 0.01,
-                            "fadeOutTime": 4.0,
-                            "audioFileName": "/audio/pir_battle3L.dsp|/audio/pir_battle3R.dsp"
+                            "id": 3342605, // [Relay] Play Pirate Battle
+                            "layer": 1
                         },
                         {
-                            "id": 3343347, // [StreamedAudio] StreamedAudio - General ShortBattle 2 SW
-                            "volume": 80,
-                            "active": false,
-                            "isMusic": true,
-                            "fadeInTime": 0.01,
-                            "fadeOutTime": 4.0,
-                            "audioFileName": "/audio/gen_ShortBattle2L.dsp|/audio/gen_ShortBattle2R.dsp"
+                            "id": 3342606, // [Relay] Play Pirate Ambiance
+                            "layer": 1,
+                            "active": false
                         },
                         {
-                            "id": 3343285, // [StreamedAudio] StreamedAudio Pirate Yoin SW
-                            "layer": 0,
-                            "volume": 90,
-                            "isMusic": true,
-                            "active": false,
-                            "fadeInTime": 0.01,
-                            "fadeOutTime": 2.0,
-                            "audioFileName": "/audio/pir_yoinL.dsp|/audio/pir_yoinR.dsp"
+                            "id": 3342607, // [Relay] Play Metroid Breakout
+                            "layer": 1,
+                            "active": false
                         }
                     ],
-                    "timers": [
+                    "switches": [
                         {
-                            "id": 3342350, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
+                            "id": 3342611, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "layer": 2
                         }
                     ],
                     "triggers": [
                         {
                             "id": 3342364, // [Trigger] Metroid Encounter Music Check
-                            "layer": 5,
-                            "position": [
-                                58.925964,
-                                -850.081604,
-                                128.44841
-                            ],
-                            "scale": [
-                                4.0,
-                                2.0,
-                                4.0
-                            ]
+                            "layer": 6,
+                            "position": [58.925964, -850.081604, 128.44841],
+                            "scale": [4.0, 2.0, 4.0]
                         }
                     ]
                 },
                 "Research Lab Hydra": {
                     "deleteIds": [
-                        1639793, // [Trigger] Trigger - Play Music 00o Isogi
-                        1639789, // [Trigger] Trigger - Play Music z8 Isogi
                         1639792, // [Trigger] Trigger - Play Music z8 Yoin
                         1639790, // [Trigger] Trigger - Play Music 1 - 00o Yoin
+                        1639793, // [Trigger] Trigger - Play Music 00o Isogi
                         1640031, // [Trigger] Trigger - Play Music 1
                         1640033, // [Trigger] Trigger - Play Music 1
                         1640030, // [Trigger] Trigger - Play Music 2
                         1640032 // [Trigger] Trigger - Play Music 2
                     ],
+                    "removeConnections": [
+                        {
+                            "senderId": 1639791, // [Relay] Relay - Scanned Music
+                            "targetId": 1639790, // [Trigger] Trigger - Play Music 1 - 00o Yoin
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1639791, // [Relay] Relay - Scanned Music
+                            "targetId": 1639792, // [Trigger] Trigger - Play Music z8 Yoin
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1639789, // [Trigger] Trigger - Play Music z8 Isogi
+                            "targetId": 1639787, // [StreamedAudio] StreamedAudio - Pirate Isogi SW
+                            "state": "ENTERED",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1639789, // [Trigger] Trigger - Play Music z8 Isogi
+                            "targetId": 1639790, // [Trigger] Trigger - Play Music 1 - 00o Yoin
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        }
+                    ],
                     "addConnections": [
                         {
-                            "senderId": 1769500, // [Timer] Music Player For Area
-                            "targetId": 1769492, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
+                            "senderId": 1638522, // [SpecialFunction] 1st Pass Music Player For Area
+                            "targetId": 1638520, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 1769492, // [SpecialFunction] Music Player For Area
+                            "senderId": 1638532, // [SpecialFunction] 2nd Pass Music Player For Area
+                            "targetId": 1638520, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "state": "ENTERED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1638520, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "targetId": 1639786, // [StreamedAudio] StreamedAudio Pirate Yoin SW (1st Pass)
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1638520, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "targetId": 1640035, // [StreamedAudio] StreamedAudio Pirate Yoin SW (2nd Pass)
+                            "state": "OPEN",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 1638520, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
                             "targetId": 1639787, // [StreamedAudio] StreamedAudio - Pirate Isogi SW
-                            "state": "ZERO",
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 1769492, // [SpecialFunction] Music Player For Area
-                            "targetId": 1640034, // [StreamedAudio] StreamedAudio - Pirate Battle 3 SW
-                            "state": "ZERO",
+                            "senderId": 1638520, // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                            "targetId": 1640034, // [StreamedAudio] StreamedAudio Pirate Battle 3 SW
+                            "state": "CLOSED",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 1769492, // [SpecialFunction] Music Player For Area
+                            "senderId": 1639788, // [Counter] Counter - 1st Pass Pirates Dead
                             "targetId": 1639786, // [StreamedAudio] StreamedAudio Pirate Yoin SW (1st Pass)
                             "state": "ZERO",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 1769492, // [SpecialFunction] Music Player For Area
+                            "senderId": 1640036, // [Counter] Counter Dead Pirate Music
                             "targetId": 1640035, // [StreamedAudio] StreamedAudio Pirate Yoin SW (2nd Pass)
                             "state": "ZERO",
                             "message": "PLAY"
                         },
                         {
-                            "senderId": 1639788, // [Counter] Counter - 1st Pass Pirates Dead
-                            "targetId": 1639787, // [StreamedAudio] StreamedAudio - Pirate Isogi SW
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1639788, // [Counter] Counter - 1st Pass Pirates Dead
-                            "targetId": 1639786, // [StreamedAudio] StreamedAudio Pirate Yoin SW (1st Pass)
+                            "senderId": 1639848, // [Timer] Timer - Delay Pirate Music
+                            "targetId": 1638522, // [SpecialFunction] Music Player For Area
                             "state": "ZERO",
                             "message": "ACTIVATE"
                         },
+                        // MemoryRelay is activating this music trigger, so we're repurposing
+                        // it to activate the Music Player, since MemoryRelays in Prime 1 suck
+                        // (Can't change it's connections, but can make [Relay] > Activate > [Object] > Active [Target])
                         {
-                            "senderId": 1639788, // [Counter] Counter - 1st Pass Pirates Dead
-                            "targetId": 1639787, // [StreamedAudio] StreamedAudio - Pirate Isogi SW
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1640036, // [Counter] Counter Dead Pirate Music
-                            "targetId": 1640034, // [StreamedAudio] StreamedAudio - Pirate Battle 3 SW
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 1640036, // [Counter] Counter Dead Pirate Music
-                            "targetId": 1640035, // [StreamedAudio] StreamedAudio Pirate Yoin SW (2nd Pass)
-                            "state": "ZERO",
+                            "senderId": 1639789, // [Trigger] Trigger - Play Music z8 Isogi
+                            "targetId": 1638522, // [SpecialFunction] Music Player For Area
+                            "state": "ACTIVE",
                             "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1639848, // [Timer] Timer - Delay Pirate Music
+                            "targetId": 1638519, // [Trigger] Activate Music Player if coming from Observatory
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1639789, // [Trigger] Trigger - Play Music z8 Isogi
+                            "targetId": 1638519, // [Trigger] Activate Music Player if coming from Observatory
+                            "state": "ACTIVE",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1638519, // [Trigger] Activate Music Player if coming from Observatory
+                            "targetId": 1638522, // [SpecialFunction] Music Player For Area
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1638519, // [Trigger] Activate Music Player if coming from Observatory
+                            "targetId": 1639848, // [Timer] Timer - Delay Pirate Music
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
                         }
                     ],
                     "specialFunctions": [
                         {
-                            "id": 1769492, // [SpecialFunction] Music Player For Area
-                            "type": "PlayerInAreaRelay"
-                        }
-                    ],
-                    "streamedAudios": [
-                        {
-                            "id": 1639786, // [StreamedAudio] StreamedAudio Pirate Yoin SW (1st Pass)
+                            "id": 1638522, // [SpecialFunction] 1st Pass Music Player For Area
+                            "type": "PlayerInAreaRelay",
                             "layer": 1,
-                            "active": false,
-                            "volume": 90,
-                            "isMusic": true,
-                            "fadeInTime": 0.01,
-                            "fadeOutTime": 2.0,
-                            "audioFileName": "/audio/pir_yoinL.dsp|/audio/pir_yoinR.dsp"
+                            "active": false
                         },
                         {
-                            "id": 1640035, // [StreamedAudio] StreamedAudio Pirate Yoin SW (2nd Pass)
-                            "layer": 2,
-                            "active": false,
-                            "volume": 90,
-                            "isMusic": true,
-                            "fadeInTime": 0.01,
-                            "fadeOutTime": 2.0,
-                            "audioFileName": "/audio/pir_yoinL.dsp|/audio/pir_yoinR.dsp"
+                            "id": 1638532, // [SpecialFunction] 2nd Pass Music Player For Area
+                            "type": "PlayerInAreaRelay",
+                            "layer": 2
                         }
                     ],
-                    "timers": [
+                    "switches": [
                         {
-                            "id": 1769500, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
+                            "id": 1638520 // [Switch] OPEN: Pirate Ambiance / CLOSED: Pirate Battle
+                        }
+                    ],
+                    "triggers": [
+                        {
+                            "id": 1638519, // [Trigger] Activate Music Player if coming from Observatory
+                            "position": [-51.0, -777.0, 103.0],
+                            "scale": [12.0, 10.0, 12.0],
+                            "deactivateOnEnter": true
                         }
                     ]
                 },
@@ -7638,15 +7601,9 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 1114116, // [Timer] Music Player For Area
-                            "targetId": 1114115, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 1114115, // [SpecialFunction] Music Player For Area
                             "targetId": 1114308, // [StreamedAudio] StreamedAudio - Savestation Music
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
@@ -7656,16 +7613,16 @@
                             "message": "START"
                         },
                         {
-                            "senderId": 1114114, // [Timer] Timer - Start Music
-                            "targetId": 1114115, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
                             "senderId": 1114268, // [Trigger] Trigger -- Back from Load
                             "targetId": 1114115, // [SpecialFunction] Music Player For Area
                             "state": "ENTERED",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1114114, // [Timer] Timer - Start Music
+                            "targetId": 1114115, // [SpecialFunction] Music Player For Area
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "specialFunctions": [
@@ -7680,13 +7637,6 @@
                         }
                     ],
                     "timers": [
-                        {
-                            "id": 1114116, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
-                        },
                         {
                             "id": 1114114, // [Timer] Timer - Start Music
                             "time": 6.0,
@@ -7761,28 +7711,22 @@
                     ],
                     "addConnections": [
                         {
-                            "senderId": 2949123, // [Timer] Music Player For Area
-                            "targetId": 2949122, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 2949122, // [SpecialFunction] Music Player For Area
                             "targetId": 2949240, // [StreamedAudio] StreamedAudio - Savestation Music
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
-                        },
-                        {
-                            "senderId": 2949239, // [Timer] Timer Start Music
-                            "targetId": 2949122, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 2949187, // [Trigger] Trigger -- Back from Load
                             "targetId": 2949122, // [SpecialFunction] Music Player For Area
                             "state": "ENTERED",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2949239, // [Timer] Timer Start Music
+                            "targetId": 2949122, // [SpecialFunction] Music Player For Area
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         }
                     ],
                     "specialFunctions": [
@@ -7794,15 +7738,6 @@
                                 -1228.156982,
                                 49.32811
                             ]
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 2949123, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
                         }
                     ]
                 },
@@ -8228,21 +8163,15 @@
                     },
                     "addConnections": [
                         {
-                            "senderId": 262152, // [Timer] Music Player For Area
-                            "targetId": 262150, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 262150, // [SpecialFunction] Music Player For Area
                             "targetId": 262159, // [StreamedAudio] StreamedAudio - Overworld Daichi SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 262150, // [SpecialFunction] Music Player For Area
                             "targetId": 262160, // [StreamedAudio] StreamedAudio - Overworld SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         }
                     ],
@@ -8271,15 +8200,6 @@
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/over-worldL.dsp|/audio/over-worldR.dsp"
                         }
-                    ],
-                    "timers": [
-                        {
-                            "id": 262152, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
-                        }
                     ]
                 },
                 "Arbor Chamber": {
@@ -8288,21 +8208,15 @@
                     },
                     "addConnections": [
                         {
-                            "senderId": 1310745, // [Timer] Music Player For Area
-                            "targetId": 1310743, // [SpecialFunction] Music Player For Area
-                            "state": "ZERO",
-                            "message": "ACTION"
-                        },
-                        {
                             "senderId": 1310743, // [SpecialFunction] Music Player For Area
                             "targetId": 1310746, // [StreamedAudio] StreamedAudio - Overworld Daichi SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 1310743, // [SpecialFunction] Music Player For Area
                             "targetId": 1310747, // [StreamedAudio] StreamedAudio - Overworld SW
-                            "state": "ZERO",
+                            "state": "ENTERED",
                             "message": "PLAY"
                         }
                     ],
@@ -8330,15 +8244,6 @@
                             "fadeInTime": 1.5,
                             "fadeOutTime": 1.5,
                             "audioFileName": "/audio/over-worldL.dsp|/audio/over-worldR.dsp"
-                        }
-                    ],
-                    "timers": [
-                        {
-                            "id": 1310745, // [Timer] Music Player For Area
-                            "time": 0.001,
-                            "active": true,
-                            "looping": true,
-                            "startImmediately": true
                         }
                     ]
                 },
@@ -9098,6 +9003,11 @@
                     ]
                 },
                 "Main Ventilation Shaft Section C": {
+                    "deleteIds": [
+                        1114223, // [Trigger] Trigger - Play Music Over-World Underwater Hall A
+                        1114222, // [Trigger] Trigger - Play Music Crashship-mae Underwater Hall A
+                        1114224  // [StreamedAudio] StreamedAudio - Overworld SW
+                    ],
                     "addConnections": [
                         {
                             "senderId": 1114113, // [SpecialFunction] Music Player For Area
@@ -10120,21 +10030,21 @@
                 },
                 "Elite Control": {
                     "deleteIds": [
-                        1051555,
-                        1051495,
-                        1051554,
-                        1051167,
-                        1051165,
-                        1051164,
-                        1051162,
-                        1051496,
-                        1051166,
-                        1051383,
-                        1051384,
-                        1051385,
-                        1051386,
-                        1051382,
-                        1051381
+                        1051555, // [Trigger] Trigger - Play Music Shortbattle 00g
+                        1051495, // [Trigger] Trigger - Play Music Yoin 00g Troopers
+                        1051554, // [Trigger] Trigger - Play Music Yoin 00g Elite
+                        1051167, // [Trigger] Trigger - Play Music Yoin 00f Troopers
+                        1051165, // [Trigger] Trigger - Play Music Yoin 00f Elite
+                        1051164, // [Trigger] Trigger - Play Music ShortBattle 00f
+                        1051162, // [Trigger] Trigger - Play Music Battle 3 00h
+                        1051496, // [Trigger] Trigger - Play Music Battle 3 00g
+                        1051166, // [Trigger] Trigger - Play Music Battle 3 00f
+                        1051383, // [Trigger] Trigger - Play Music 00h Yoin
+                        1051384, // [Trigger] Trigger - Play Music 00h Battle 3
+                        1051385, // [Trigger] Trigger - Play Music 00g Yoin
+                        1051386, // [Trigger] Trigger - Play Music 00g Battle 3
+                        1051382, // [Trigger] Trigger - Play Music 00f Yoin
+                        1051381  // [Trigger] Trigger - Play Music 00f Battle 3
                     ],
                     "addConnections": [
                         {
@@ -10569,6 +10479,12 @@
                     ]
                 },
                 "Map Station Mines": {
+                    "deleteIds": [
+                        1507557, // [Trigger] Trigger - Play Music 1
+                        1507558, // [Trigger] Trigger - Play Music 2
+                        1507559, // [StreamedAudio] StreamedAudio - Savestation Music
+                        1507560  // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                    ],
                     "addConnections": [
                         {
                             "senderId": 1507332, // [SpecialFunction] Music Player For Area
@@ -10595,6 +10511,20 @@
                     ]
                 },
                 "Metroid Quarantine A": {
+                    "deleteIds": [
+                        2098931, // [Trigger] Trigger - Play Music 00j Battle 2
+                        2098930, // [Trigger] Trigger - Play Music 00j Battle Yoin
+                        2099052, // [Trigger] Trigger - Play Music 00j Clear Phazon
+                        2099051, // [Trigger] Trigger - Play Music 00j Clear Yoin
+                        2098933, // [Trigger] Trigger - Play Music 00k Battle 2
+                        2098934, // [Trigger] Trigger - Play Music 00k Battle Phazon
+                        2099054, // [Trigger] Trigger - Play Music 1
+                        2098835, // [Trigger] Trigger - Play Music 1
+                        2099053, // [Trigger] Trigger - Play Music 2
+                        2098834, // [Trigger] Trigger - Play Music 2
+                        2098837, // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                        2099055  // [StreamedAudio] StreamedAudio Pirate Yoin SW
+                    ],
                     "addConnections": [
                         {
                             "senderId": 2097169, // [SpecialFunction] Music Player For Area
@@ -10825,6 +10755,17 @@
                     ]
                 },
                 "Omega Research": {
+                    "deleteIds": [
+                        1312012, // [Trigger] Trigger - Play Music Battle 3
+                        1312014, // [Trigger] Trigger - Play Music Battle 3
+                        1312267, // [Trigger] Trigger - Play Music Mapstation Battle 3
+                        1312266, // [Trigger] Trigger - Play Music Mapstation Battle Savestation
+                        1312264, // [Trigger] Trigger - Play Music Mapstation CLEAR Savestation
+                        1312265, // [Trigger] Trigger - Play Music Mapstation CLEAR Yoin
+                        1312013, // [Trigger] Trigger - Play Music Yoin
+                        1312015, // [Trigger] Trigger - Play Music Yoin
+                        1312268  // [StreamedAudio] StreamedAudio - Savestation Music
+                    ],
                     "removeConnections": [
                         {
                             "senderId": 1311904, // [SpacePirate] SpacePirate-WAVE TROOPER

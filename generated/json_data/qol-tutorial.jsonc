@@ -4,90 +4,82 @@
         "Frigate Orpheon": {
             "rooms": {
                 "Biotech Research Area 1": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        917554
+                        917554 // [HUDMemo] HUDMemo
                     ]
                 },
                 "Biotech Research Area 2": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        458789
+                        458789 // [HUDMemo] HUDMemo grapple
                     ]
                 },
                 "Connection Elevator to Deck Alpha": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        328032,
-                        328033,
-                        328034,
-                        328038,
-                        328058
+                        328032, // [HUDMemo] HUDMemo 1
+                        328033, // [HUDMemo] HUDMemo 2
+                        328034, // [HUDMemo] HUDMemo 3
+                        328038, // [HUDMemo] HUDMemo 4
+                        328058, // [HUDMemo] HUDMemo 4
+                        328036, // [Timer] Timer
+                        328037, // [Timer] Timer
+                        328039, // [Timer] Timer
+                        328059  // [Timer] Timer
                     ]
                 },
                 "Connection Elevator to Deck Beta": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        655456,
-                        655448
+                        655456, // [HUDMemo] HUDMemo Help with Scan
+                        655448  // [HUDMemo] HUDMemo
                     ]
                 },
                 "Deck Beta Conduit Hall": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        786539,
-                        786568
+                        786539, // [HUDMemo] POI_00c_Morphball.STRG
+                        786568  // [HUDMemo] POI_00c_Morphball_2.STRG
                     ]
                 },
                 "Deck Beta Security Hall": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        1048710
+                        1048710 // [HUDMemo] HUDMemo
                     ]
                 },
                 "Emergency Evacuation Area": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        262413,
-                        262275
+                        262413, // [HUDMemo] HUDMemo - escape lock enemies Pirate
+                        262275  // [HUDMemo] HUDMemo lock enemy
                     ]
                 },
                 "Exterior Docking Hangar": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        933, // Trigger - Add Samus to cut scene
-                        669,
-                        1089,
-                        676,
-                        685,
-                        671,
-                        675,
-                        696,
-                        672,
-                        693,
-                        691,
-                        1096,
-                        1098
+                        669,  // [HUDMemo] HUDMemo door message
+                        671,  // [HUDMemo] HUDMemo lockon
+                        672,  // [HUDMemo] HUDMemo turn on Scan
+                        675,  // [HUDMemo] HUDMemo press D to switch
+                        676,  // [HUDMemo] HUDMemo freelook
+                        685,  // [HUDMemo] HUDMemo jumping
+                        691,  // [HUDMemo] HUDMemo use dpad
+                        693,  // [HUDMemo] HUDMemo use R to scan
+                        696,  // [HUDMemo] HUDMemo return to combat
+                        1089, // [HUDMemo] HUDMemo door2 message
+                        1096, // [HUDMemo] HUDMemo use dpad
+                        1098  // [HUDMemo] HUDMemo use dpad
                     ]
                 },
                 "Map Facility": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        524466
+                        524466 // [HUDMemo] HUDMemo - 00b_map enter.STRG
                     ]
                 },
                 "Reactor Core": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        1638690,
-                        1638605
+                        1638690, // [HUDMemo] HUDMemo --reactor scan boss hint
+                        1638605  // [HUDMemo] HUDMemo dash
                     ]
                 },
                 "Reactor Core Entrance": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        1769827,
-                        1769828
+                        1769827, // [HUDMemo] HUDMemo - Charge suck in
+                        1769828  // [HUDMemo] HUDMemo - Charge suck in 2
                     ]
                 }
             }
@@ -95,28 +87,15 @@
         "Chozo Ruins": {
             "rooms": {
                 "Dynamo": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        2949319,
-                        2949320
+                        2949319, // [HUDMemo] HUDMemo - spiderball 1
+                        2949320  // [HUDMemo] HUDMemo - spiderball 2
                     ]
                 },
                 "Furnace": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        3211975,
-                        3211976,
-                        3212047,
-                        3212054,
-                        3212053,
-                        3212056,
-                        3212058,
-                        3212055,
-                        3212057,
-                        3212044,
-                        3212045,
-                        3212052,
-                        3212051
+                        3211975, // [HUDMemo] HUDMemo - spiderball 1
+                        3211976  // [HUDMemo] HUDMemo - spiderball 2
                     ]
                 },
                 "Ruined Shrine": {
@@ -134,8 +113,8 @@
                 },
                 "Sun Tower": {
                     "deleteIds": [
-                        1900904,
-                        1900905
+                        1900904, // [HUDMemo] HUDMemo - spiderball 1
+                        1900905  // [HUDMemo] HUDMemo - spiderball 2
                     ]
                 }
             }
@@ -143,17 +122,15 @@
         "Phendrana Drifts": {
             "rooms": {
                 "Frozen Pike": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        2228678,
-                        2228682
+                        2228678, // [HUDMemo] HUDMemo - need gravity suit 1
+                        2228682  // [HUDMemo] HUDMemo - need gravity suit 2
                     ]
                 },
                 "Phendrana Canyon": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        1049573,
-                        1049574
+                        1049573, // [HUDMemo] HUDMemo - boost part 1
+                        1049574  // [HUDMemo] HUDMemo - boost part 2
                     ]
                 },
                 "Research Core": {
@@ -163,14 +140,13 @@
                         2622701, // [Timer] HUDMemo 2 Activation Timer
                         2622696, // [ControllerAction] ControllerAction - Switch to thermal
                         2622699, // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 1.STRG
-                        2622700 // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 2.STRG
+                        2622700  // [HUDMemo] HUDMemo - 13_Vault Turn on Thermal 2.STRG
                     ]
                 },
                 "Ruined Courtyard": {
-                    // Disable tutorial hudmemos
                     "deleteIds": [
-                        983794,
-                        983795
+                        983794, // [HUDMemo] HUDMemo - spiderball 1
+                        983795  // [HUDMemo] HUDMemo - spiderball 2
                     ]
                 }
             }
@@ -179,8 +155,8 @@
             "rooms": {
                 "Cargo Freight Lift to Deck Gamma": {
                     "deleteIds": [
-                        1769724,
-                        1769739
+                        1769724, // [HUDMemo] HUDMemo - need gravity suit 1
+                        1769739  // [HUDMemo] HUDMemo - need gravity suit 2
                     ]
                 }
             }
