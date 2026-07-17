@@ -15919,7 +15919,7 @@ fn build_and_run_patches<'r>(
                                     );
                                 }
                                 0x1921876D => {
-                                    // ruined courtyard
+                                    // Ruined Courtyard
                                     patcher.add_scly_patch(
                                         (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                         move |ps, area| {

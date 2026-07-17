@@ -4,6 +4,9 @@
         "Frigate Orpheon": {
             "rooms": {
                 "Exterior Docking Hangar": {
+                    "deleteIds": [
+                        933 // [Trigger] Trigger - Add Samus to cut scene
+                    ],
                     "addConnections": [
                         {
                             "senderId": 782, // [Trigger] Trigger - Start Closing Cinema
@@ -83,10 +86,10 @@
                 },
                 "Burn Dome": {
                     "deleteIds": [
-                        3155763,
-                        3145736,
-                        3145741,
-                        3155765
+                        3155763, // [CameraFilterKeyframe] Camera Filter Keyframe Flash (Fast)
+                        3145736, // [CameraFilterKeyframe] Camera Filter Keyframe Flash
+                        3145741, // [Timer] Timer Flash
+                        3155765  // [Timer] Timer Flash
                     ]
                 },
                 "Energy Core": {
@@ -119,10 +122,8 @@
                 },
                 "Hive Totem": {
                     "deleteIds": [
-                        3211975,
-                        3211976,
-                        2359420,
-                        2359427
+                        2359420, // [CameraFilterKeyframe] Target hit sceen flash
+                        2359427  // [Timer] Screen flash shut off timer
                     ],
                     "editObjs": {
                         // [PointOfInterest] POI_19_Hive Totem Boss.scan
@@ -147,6 +148,7 @@
                     ]
                 },
                 "Magma Pool": {
+                    // Change HUD Activation and Jingle to match the rest of the pickups
                     "timers": [
                         {
                             "id": 1310979, // [Timer] Timer HUD
@@ -267,10 +269,11 @@
                 },
                 "Sun Tower": {
                     "deleteIds": [
-                        2293906,
-                        2293930,
-                        2293904,
-                        2293933
+                        // Sun Tower Access boxes external connection thing
+                        2293906, // [Platform] Platform Small Crate
+                        2293930, // [Platform] Platform Small Crate
+                        2293904, // [Platform] Platform Small Crate
+                        2293933  // [Platform] Platform Small Crate
                     ],
                     "addConnections": [
                         {
@@ -347,21 +350,69 @@
                         },
                         {
                             "senderId": 1900891, // [Trigger] Trigger - Change Scripting
-                            "targetId": 2900573, // [Timer] Reload Room
+                            "targetId": 1900959, // [Trigger] Reload Sun Tower Access - Upper
                             "state": "ENTERED",
-                            "message": "START"
-                        },
-                        {
-                            "senderId": 2900573, // [Timer] Reload Room
-                            "targetId": 1900546, // [Dock] Dock
-                            "state": "ZERO",
-                            "message": "SET_TO_MAX"
+                            "message": "ACTIVATE"
                         },
                         {
                             "senderId": 1900891, // [Trigger] Trigger - Change Scripting
-                            "targetId": 1900546, // [Dock] Dock
+                            "targetId": 1900966, // [Trigger] Reload Sun Tower Access - Lower
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1900959, // [Trigger] Reload Sun Tower Access - Upper
+                            "targetId": 1900965, // [Relay] Reload Room Relay
                             "state": "ENTERED",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900966, // [Trigger] Reload Sun Tower Access - Lower
+                            "targetId": 1900963, // [Relay] Allow Sun Tower Access Reload once Elevator is Finished
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1900966, // [Trigger] Reload Sun Tower Access - Lower
+                            "targetId": 1900959, // [Trigger] Reload Sun Tower Access - Upper
+                            "state": "ENTERED",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900545, // [Dock] Dock
+                            "targetId": 1900963, // [Relay] Allow Sun Tower Access Reload once Elevator is Finished
+                            "state": "MAX_REACHED",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900963, // [Relay] Allow Sun Tower Access Reload once Elevator is Finished
+                            "targetId": 1900965, // [Relay] Reload Room Relay
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900965, // [Relay] Reload Room Relay
+                            "targetId": 1900546, // [Dock] Dock
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 1900965, // [Relay] Reload Room Relay
+                            "targetId": 1900867, // [Timer] Reload Room
+                            "state": "ZERO",
+                            "message": "START"
+                        },
+                        {
+                            "senderId": 1900965, // [Relay] Reload Room Relay
+                            "targetId": 1900965, // [Relay] Reload Room Relay
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 1900867, // [Timer] Reload Room
+                            "targetId": 1900546, // [Dock] Dock
+                            "state": "ZERO",
+                            "message": "SET_TO_MAX"
                         }
                     ],
                     "relays": [
@@ -384,15 +435,38 @@
                             "id": 1900583, // [Relay] Box 4 Destroyed
                             "layer": 2,
                             "active": false
+                        },
+                        {
+                            "id": 1900963, // [Relay] Allow Sun Tower Access Reload once Elevator is Finished
+                            "active": false
+                        },
+                        {
+                            "id": 1900965 // [Relay] Reload Room Relay
                         }
                     ],
                     "timers": [
                         {
-                            "id": 2900573, // [Timer] Reload Room
+                            "id": 1900867, // [Timer] Reload Room
                             "time": 0.1
                         }
                     ],
-                    // Dummy IDs for externals
+                    "triggers": [
+                        {
+                            "id": 1900959, // [Trigger] Reload Sun Tower Access - Upper
+                            "position": [239.494904, 344.350586, 71.36792],
+                            "scale": [20.0, 21.5, 0.5],
+                            "active": false,
+                            "deactivateOnEnter": true
+                        },
+                        {
+                            "id": 1900966, // [Trigger] Reload Sun Tower Access - Lower
+                            "position": [239.494904, 344.350586, 49.0],
+                            "scale": [20.0, 21.5, 0.5],
+                            "active": false,
+                            "deactivateOnEnter": true
+                        }
+                    ],
+                    // Dummy IDs for external connections to Sun Tower Access boxes
                     "waypoints": [
                         {
                             "id": 2293906
@@ -600,17 +674,6 @@
                         }
                     ]
                 },
-                "Sunchamber": {
-                    "deleteIds": [
-                        2293856
-                    ],
-                    // Dummy IDs for External connection
-                    "waypoints": [
-                        {
-                            "id": 2293856
-                        }
-                    ]
-                },
                 "Training Chamber": {
                     "triggers": [
                         {
@@ -767,10 +830,6 @@
                     ]
                 },
                 "Chapel Tunnel": {
-                    "deleteIds": [
-                        721086,
-                        721087
-                    ],
                     "addConnections": [
                         {
                             "senderId": 720982, // [Actor] Actor - Moveable Block Section
@@ -846,6 +905,20 @@
                             "layer": 2,
                             "startImmediately": true
                         }
+                    ],
+                    "specialFunctions": [
+                        {
+                            "id": 720904, // [SpecialFunction] Right Row Destroyed
+                            "type": "ScriptLayerController",
+                            "layerChangeLayerId": 1,
+                            "layerChangeRoomId": 2574619068
+                        },
+                        {
+                            "id": 720903, // [SpecialFunction] Left Row Destroyed
+                            "type": "ScriptLayerController",
+                            "layerChangeLayerId": 2,
+                            "layerChangeRoomId": 2574619068
+                        }
                     ]
                 },
                 "Chozo Ice Temple": {
@@ -882,9 +955,9 @@
                     },
                     "deleteIds": [
                         2557275, // [Trigger] Trigger - Fallen Tower - outside_hole_fixed_deactivate
-                        2556985,
-                        2556990,
-                        2556986
+                        2556985, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2556990, // [Timer] Timer
+                        2556986  // [Timer] Timer Camera Filter Deactivator
                     ],
                     "addConnections": [
                         {
@@ -987,6 +1060,7 @@
                     ]
                 },
                 "Ice Ruins West": {
+                    // Change HUD Activation and Jingle to match the rest of the pickups
                     "timers": [
                         {
                             "id": 600310, // [Timer] Timer HUD
@@ -1487,6 +1561,74 @@
                             "position": [81.294876, -997.477783, 52.713493],
                             "scale": [20.0, 40.0, 4.0]
                         }
+                    ],
+                    "specialFunctions": [
+                        {
+                            "id": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
+                            "type": "ScriptLayerController",
+                            "layerChangeRoomId": 351383175,
+                            "layerChangeLayerId": 7
+                        }
+                    ]
+                },
+                "Research Entrance": {
+                    // Make the Pirates inactive by Default to avoid doors locking softlock
+                    "editObjs": {
+                        "1311451":{
+                            "active": false
+                        },
+                        "1311288":{
+                            "active": false
+                        },
+                        "1310773":{
+                            "active": false
+                        },
+                        "1311061":{
+                            "active": false
+                        }
+                    },
+                    "addConnections": [
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1311451, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1311288, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1310773, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 1311461, // [Trigger] Trigger
+                            "targetId": 1311061, // [SpacePirate] SpacePirate
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "distanceFogs": [
+                        {
+                            "id": 1311344, // [DistanceFog] Distance Fog_firstpass
+                            "layer": 7
+                        }
+                    ]
+                },
+                "Research Lab Aether": {
+                    // Make Killing the Metroid also unlock the door
+                    "addConnections": [
+                        {
+                            "senderId": 3342506, // [MetroidAlpha] Metroid Alpha
+                            "targetId": 3343187, // [Relay] Relay Disable Lock (To Trigger_Unlock&Key With Decrement)
+                            "state": "DEAD",
+                            "message": "SET_TO_ZERO"
+                        }
                     ]
                 },
                 "Ruined Courtyard": {
@@ -1498,6 +1640,7 @@
                     ]
                 },
                 "Security Cave": {
+                    // Change HUD Activation and Jingle to match the rest of the pickups
                     "timers": [
                         {
                             "id": 3604515, // [Timer] Timer HUD
@@ -1836,12 +1979,12 @@
                 },
                 "Frigate Crash Site": {
                     "deleteIds": [
-                        524576,
-                        524614,
-                        524652,
-                        524653,
-                        524577,
-                        524615
+                        524576, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        524614, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        524652, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        524653, // [Timer] Timer Camera Filter Deactivator
+                        524577, // [Timer] Timer Camera Filter Deactivator
+                        524615  // [Timer] Timer Camera Filter Deactivator
                     ],
                     "triggers": [
                         {
@@ -1874,26 +2017,26 @@
                 },
                 "Great Tree Hall": {
                     "deleteIds": [
-                        2359647,
-                        2359658,
-                        2359669,
-                        2359680,
-                        2359691,
-                        2359702,
-                        2359648,
-                        2359659,
-                        2359670,
-                        2359681,
-                        2359692,
-                        2359703
+                        2359647, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2359658, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2359669, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2359680, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2359691, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2359702, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2359648, // [Timer] Timer Camera Filter Deactivator
+                        2359659, // [Timer] Timer Camera Filter Deactivator
+                        2359670, // [Timer] Timer Camera Filter Deactivator
+                        2359681, // [Timer] Timer Camera Filter Deactivator
+                        2359692, // [Timer] Timer Camera Filter Deactivator
+                        2359703  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Gully": {
                     "deleteIds": [
-                        65624,
-                        65586,
-                        65623,
-                        65585
+                        65624, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        65586, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        65623, // [Timer] Timer Camera Filter Deactivator
+                        65585  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Landing Site": {
@@ -1933,31 +2076,24 @@
                 },
                 "Life Grove": {
                     "deleteIds": [
-                        2752911,
-                        2752912
+                        2752911, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2752912  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Life Grove Tunnel": {
                     "deleteIds": [
-                        2555998,
-                        2556038,
-                        2556090,
-                        2555999,
-                        2556039,
-                        2556091
+                        2555998, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2556038, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2556090, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2555999, // [Timer] Timer Camera Filter Deactivator
+                        2556039, // [Timer] Timer Camera Filter Deactivator
+                        2556091  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Main Ventilation Shaft Section B": {
                     "deleteIds": [
-                        1376292,
-                        1376293
-                    ]
-                },
-                "Main Ventilation Shaft Section C": {
-                    "deleteIds": [
-                        1114223,
-                        1114222,
-                        1114224
+                        1376292, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        1376293  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Root Cave": {
@@ -1992,24 +2128,24 @@
                 },
                 "Root Tunnel": {
                     "deleteIds": [
-                        655532,
-                        655570,
-                        655608,
-                        655646,
-                        655684,
-                        655533,
-                        655571,
-                        655609,
-                        655647,
-                        655685
+                        655532, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        655570, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        655608, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        655646, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        655684, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        655533, // [Timer] Timer Camera Filter Deactivator
+                        655571, // [Timer] Timer Camera Filter Deactivator
+                        655609, // [Timer] Timer Camera Filter Deactivator
+                        655647, // [Timer] Timer Camera Filter Deactivator
+                        655685  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Tallon Canyon": {
                     "deleteIds": [
-                        393485,
-                        393531,
-                        393486,
-                        393532
+                        393485, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        393531, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        393486, // [Timer] Timer Camera Filter Deactivator
+                        393532  // [Timer] Timer Camera Filter Deactivator
                     ],
                     "triggers": [
                         {
@@ -2042,38 +2178,38 @@
                 },
                 "Transport Tunnel A": {
                     "deleteIds": [
-                        590068,
-                        590030,
-                        589992,
-                        589954,
-                        590069,
-                        590031,
-                        589993,
-                        589955
+                        590068, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        590030, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        589992, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        589954, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        590069, // [Timer] Timer Camera Filter Deactivator
+                        590031, // [Timer] Timer Camera Filter Deactivator
+                        589993, // [Timer] Timer Camera Filter Deactivator
+                        589955  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Transport Tunnel B": {
                     "deleteIds": [
-                        1245318,
-                        1245356,
-                        1245394,
-                        1245432,
-                        1245319,
-                        1245357,
-                        1245395,
-                        1245433
+                        1245318, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        1245356, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        1245394, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        1245432, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        1245319, // [Timer] Timer Camera Filter Deactivator
+                        1245357, // [Timer] Timer Camera Filter Deactivator
+                        1245395, // [Timer] Timer Camera Filter Deactivator
+                        1245433  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Transport Tunnel D": {
                     "deleteIds": [
-                        2490400,
-                        2490455,
-                        2490647,
-                        2490687,
-                        2490401,
-                        2490456,
-                        2490648,
-                        2490688
+                        2490400, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2490455, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2490647, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2490687, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2490401, // [Timer] Timer Camera Filter Deactivator
+                        2490456, // [Timer] Timer Camera Filter Deactivator
+                        2490648, // [Timer] Timer Camera Filter Deactivator
+                        2490688  // [Timer] Timer Camera Filter Deactivator
                     ]
                 }
             }
@@ -2116,18 +2252,18 @@
                 },
                 "Elevator A": {
                     "deleteIds": [
-                        917596,
-                        917584,
-                        917608,
-                        917607,
-                        917583,
-                        917595
+                        917596, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        917584, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        917608, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        917607, // [Timer] Timer Camera Filter Deactivator
+                        917583, // [Timer] Timer Camera Filter Deactivator
+                        917595  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Elite Control Access": {
                     "deleteIds": [
-                        983177,
-                        983176
+                        983177, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        983176  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Elite Quarters": {
@@ -2150,47 +2286,27 @@
                 },
                 "Main Quarry": {
                     "deleteIds": [
-                        131788,
-                        131789,
-                        131793
-                    ]
-                },
-                "Map Station Mines": {
-                    "deleteIds": [
-                        1507557,
-                        1507558,
-                        1507559,
-                        1507560
+                        131788, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        131789, // [Timer] Timer Camera Filter Deactivator
+                        131793  // [Timer] Timer
                     ]
                 },
                 "Metroid Quarantine A": {
                     "deleteIds": [
-                        2097712,
-                        2097743,
-                        2098132,
-                        2098138,
-                        2097711,
-                        2097742,
-                        2098131,
-                        2098137,
-                        2098931,
-                        2098930,
-                        2099052,
-                        2099051,
-                        2098933,
-                        2098934,
-                        2099054,
-                        2098835,
-                        2099053,
-                        2098834,
-                        2098837,
-                        2099055
+                        2097712, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2097743, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2098132, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2098138, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2097711, // [Timer] Timer Camera Filter Deactivator
+                        2097742, // [Timer] Timer Camera Filter Deactivator
+                        2098131, // [Timer] Timer Camera Filter Deactivator
+                        2098137  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Metroid Quarantine B": {
                     "deleteIds": [
-                        2031962,
-                        2031961
+                        2031962, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        2031961  // [Timer] Timer Camera Filter Deactivator
                     ],
                     "triggers": [
                         {
@@ -2332,39 +2448,30 @@
                 },
                 "Omega Research": {
                     "deleteIds": [
-                        1311270,
-                        1311252,
-                        1311271,
-                        1311253,
-                        1312012,
-                        1312014,
-                        1312267,
-                        1312266,
-                        1312264,
-                        1312265,
-                        1312013,
-                        1312015,
-                        1312268
+                        1311270, // [Timer] Timer Camera Filter Deactivator
+                        1311252, // [Timer] Timer Camera Filter Deactivator
+                        1311271, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        1311253  // [CameraFilterKeyframe] Camera Filter Keyframe
                     ]
                 },
                 "Quarry Access": {
                     "deleteIds": [
-                        65627,
-                        65657,
-                        65631,
-                        65661,
-                        65656,
-                        65626
+                        65627, // [Timer] Timer Camera Filter Deactivator
+                        65657, // [Timer] Timer Camera Filter Deactivator
+                        65631, // [Timer] Timer
+                        65661, // [Timer] Timer
+                        65656, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        65626  // [CameraFilterKeyframe] Camera Filter Keyframe
                     ]
                 },
                 "Security Access A": {
                     "deleteIds": [
-                        327942,
-                        327912,
-                        327947,
-                        327917,
-                        327913,
-                        327943
+                        327942, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        327912, // [CameraFilterKeyframe] Camera Filter Keyframe
+                        327947, // [Timer] Timer
+                        327917, // [Timer] Timer
+                        327913, // [Timer] Timer Camera Filter Deactivator
+                        327943  // [Timer] Timer Camera Filter Deactivator
                     ]
                 },
                 "Ventilation Shaft": {
@@ -2431,42 +2538,7 @@
         "Magmoor Caverns": {
             "rooms": {
                 "Fiery Shores": {
-                    // Remove DebrisExtended to save memory
-                    "deleteIds": [
-                        917866,
-                        917867,
-                        917871,
-                        917876,
-                        917877,
-                        917878,
-                        917879,
-                        917880,
-                        917881,
-                        917883,
-                        917884,
-                        917870,
-                        917869,
-                        917868,
-                        917872,
-                        917873,
-                        917613,
-                        917614,
-                        917615,
-                        917618,
-                        917619,
-                        917620,
-                        917621,
-                        918141,
-                        918146,
-                        918149,
-                        918148,
-                        918147,
-                        918145,
-                        918144,
-                        918143,
-                        917617,
-                        917616
-                    ],
+                    // Change HUD Activation and Jingle to match the rest of the pickups
                     "timers": [
                         {
                             "id": 918089, // [Timer] Timer HUD
@@ -2505,6 +2577,7 @@
                 },
                 "Lava Lake": {
                     "addConnections": [
+                        // Change cinematic skip to also reposition player
                         {
                             "senderId": 272887, // [SpecialFunction] SpecialFunction Cinematic Skip
                             "targetId": 272966, // [SpawnPoint] Spawn point
@@ -2517,6 +2590,7 @@
                             "state": "ZERO",
                             "message": "DEACTIVATE"
                         },
+                        // Make all Puffers leave drops on dead instead of just some
                         {
                             "senderId": 272548, // [Puffer] 07/06/02 Alpha Puffer MMT
                             "targetId": 272221, // [PickupGenerator] Pickup Generator
@@ -2571,6 +2645,7 @@
                             "state": "DEAD",
                             "message": "SET_TO_ZERO"
                         },
+                        // Make blocks disappear permanently upon being bombed
                         {
                             "senderId": 262226, // [DamageableTrigger] West Bomb Block
                             "targetId": 262188, // [SpecialFunction] West Bomb Block Destroyed
@@ -2639,64 +2714,6 @@
                             ],
                             "active": false
                         }
-                    ]
-                },
-                "Monitor Station": {
-                    // Remove debris extended to save memory
-                    "deleteIds": [
-                        590198,
-                        590199,
-                        590203,
-                        590208,
-                        590209,
-                        590210,
-                        590211,
-                        590212,
-                        590213,
-                        590214,
-                        590215,
-                        590216,
-                        590202,
-                        590201,
-                        590200,
-                        590204,
-                        590205,
-                        589937,
-                        589938,
-                        589939,
-                        589987,
-                        589988,
-                        589989,
-                        589997,
-                        589998,
-                        589999,
-                        590004,
-                        590005,
-                        590006,
-                        590139,
-                        590475,
-                        590476,
-                        590477,
-                        590478,
-                        590494,
-                        590495,
-                        590496,
-                        590497,
-                        590513,
-                        590514,
-                        590515,
-                        590516,
-                        590532,
-                        590533,
-                        590534,
-                        590535,
-                        590144,
-                        590147,
-                        590146,
-                        590145,
-                        590143,
-                        590142,
-                        590141
                     ]
                 },
                 "Transport Tunnel C": {
@@ -2779,31 +2796,10 @@
                     ]
                 },
                 "Warrior Shrine": {
-                    "deleteIds": [
-                        720937,
-                        720938,
-                        720939,
-                        720940,
-                        720941,
-                        720942,
-                        720943,
-                        720944,
-                        720945
-                    ],
                     "triggers": [
                         {
                             "id": 720905, // [Trigger] Trigger_DoorOpen
-                            "active": false,
-                            "position": [
-                                274.873657,
-                                -289.401978,
-                                59.116589
-                            ],
-                            "scale": [
-                                20.0,
-                                10.0,
-                                10.0
-                            ]
+                            "scale": [20.0, 10.0, 10.0]
                         }
                     ]
                 }
@@ -2813,9 +2809,9 @@
             "rooms": {
                 "Crater Entry Point": {
                     "deleteIds": [
-                        173,
-                        172,
-                        171
+                        173, // [StreamedAudio] StreamedAudio - Crater Main SW
+                        172, // [Trigger] Trigger - Play Music 1
+                        171  // [Trigger] Trigger - Play Music 2
                     ]
                 },
                 "Subchamber Four": {
@@ -2836,7 +2832,7 @@
                     ],
                     "triggers": [
                         {
-                            "id": 689826,
+                            "id": 689826, // [Trigger] Destroy Energy Balls
                             "active": false,
                             "position": [
                                 7.918359,
@@ -2872,7 +2868,7 @@
                     ],
                     "triggers": [
                         {
-                            "id": 624291,
+                            "id": 624291, // [Trigger] Destroy Energy Balls
                             "active": false,
                             "position": [
                                 -22.108036,
@@ -2908,7 +2904,7 @@
                     ],
                     "triggers": [
                         {
-                            "id": 558758,
+                            "id": 558758, // [Trigger] Destroy Energy Balls
                             "active": false,
                             "position": [
                                 -22.069084,
