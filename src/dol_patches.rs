@@ -496,12 +496,6 @@ fn patch_custom_items(
         } else {
             (0xe4, 0x2b0, 0x828)
         };
-    let (probability_offset, life_time_offset) =
-        if [Version::Pal, Version::NtscJ].contains(&version) {
-            (0x274, 0x27c)
-        } else {
-            (0x264, 0x26c)
-        };
     let init_power_up_sym = symbol_addr!(
         "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
         version
@@ -534,21 +528,6 @@ fn patch_custom_items(
             mr           r14, r5;
             lis          r15, {power_up_max_values_sym}@h;
             addi         r15, r15, {power_up_max_values_sym}@l;
-            lwz          r4, 0x14(r1);
-            lwz          r3, {life_time_offset}(r4);
-            cmpwi        r3, 0;
-            lhz          r3, {probability_offset}(r4);
-            bne          check_custom_item;
-            cmpwi        r3, 0x42c8;
-            bne          check_custom_item;
-            li           r3, {PickupType::PowerSuit.kind()};
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r31, r0;
-            addi         r3, r3, 0x28;
-            lwz          r4, 0x4(r3);
-            addi         r4, r4, 1;
-            stw          r4, 0x4(r3);
-        check_custom_item:
             cmpwi        r29, {PickupType::ArtifactOfNewborn.kind()};
             ble          continue_init_power_up;
             cmpwi        r29, {PickupType::Nothing.kind()};
