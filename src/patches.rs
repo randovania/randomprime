@@ -381,7 +381,7 @@ fn is_door_lock(obj: &structs::SclyObject) -> bool {
         false // non-actors are never door locks
     } else {
         let _actor = actor.unwrap();
-        _actor.cmdl == 0x5391EDB6 || _actor.cmdl == 0x6E5D6796 // door locks are indentified by their model (check for both horizontal and vertical variants)
+        _actor.static_model == 0x5391EDB6 || _actor.static_model == 0x6E5D6796 // door locks are indentified by their model (check for both horizontal and vertical variants)
     }
 }
 
@@ -619,7 +619,7 @@ fn patch_remove_blast_shield(
                 continue;
             }
 
-            if actor.cmdl.to_u32() == BlastShieldType::Missile.cmdl().to_u32() {
+            if actor.static_model.to_u32() == BlastShieldType::Missile.cmdl().to_u32() {
                 actor.active = 0;
                 actor.position[2] -= 100.0;
             }
@@ -852,7 +852,7 @@ fn patch_door<'r>(
             .and_then(|obj| obj.property_data.as_actor_mut())
             .unwrap();
 
-        let is_vertical = DoorType::from_cmdl(&door_shield.cmdl.to_u32()).is_vertical();
+        let is_vertical = DoorType::from_cmdl(&door_shield.static_model.to_u32()).is_vertical();
 
         let blast_shield_type = blast_shield_type.as_ref().unwrap();
 
@@ -860,10 +860,8 @@ fn patch_door<'r>(
         let mut rotation: GenericArray<f32, U3>;
         let scale: GenericArray<f32, U3>;
 
-        // CollisionBox
-        let scan_offset: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
-        // CollisionOffset
-        let hitbox: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
+        let collision_box: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
+        let collision_offset: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
 
         let door_rotation = door_loc.door_rotation.unwrap();
         let mut is_ceiling = false;
@@ -1012,22 +1010,22 @@ fn patch_door<'r>(
                 position,
                 rotation,
                 scale,
-                hitbox,
-                scan_offset,
-                unknown1: 1.0, // mass
-                unknown2: 0.0, // momentum
+                collision_box,
+                collision_offset,
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 1.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: blast_shield_type.vulnerability(),
-                cmdl: blast_shield_type.cmdl(),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: blast_shield_type.cmdl(),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(),
                     node_index: 0,
                     default_animation: 0xFFFFFFFF,
                 },
-                actor_params: structs::scly_structs::ActorParameters {
+                actor_parameters: structs::scly_structs::ActorParameters {
                     light_params: structs::scly_structs::LightParameters {
                         unknown0: 1,
                         unknown1: 1.0,
@@ -1064,17 +1062,17 @@ fn patch_door<'r>(
                     unknown4: 0,
                     unknown5: 1.0,
                 },
-                looping: 1,
-                snow: 1, // immovable
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 1, // immovable
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 0,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 0,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             })),
         };
 
@@ -1808,7 +1806,7 @@ fn patch_door<'r>(
                 .find(|obj| obj.instance_id == door_shield_location.instance_id)
                 .and_then(|obj| obj.property_data.as_actor_mut())
                 .unwrap();
-            door_shield.cmdl = _door_type.shield_cmdl();
+            door_shield.static_model = _door_type.shield_cmdl();
         }
 
         // Add scan point
@@ -1857,7 +1855,7 @@ fn patch_door<'r>(
                     structs::Actor::OBJECT_TYPE => {
                         let id = obj.instance_id;
                         let obj = obj.property_data.as_actor().unwrap();
-                        let cmdl = obj.cmdl.to_u32();
+                        let cmdl = obj.static_model.to_u32();
 
                         obj.active != 0 || // remove inactive
                                 !this_near_that(obj.position.into(), position.into()) || // ...and within 3 units
@@ -2096,7 +2094,7 @@ fn patch_door<'r>(
             let mut new_door_shield = door_shield.clone();
             let new_door_shield_data = new_door_shield.property_data.as_actor_mut().unwrap();
             new_door_shield.instance_id = door_shield_id;
-            new_door_shield_data.cmdl = door_type_after_open.shield_cmdl();
+            new_door_shield_data.static_model = door_type_after_open.shield_cmdl();
             new_door_shield_data.active = 1;
             layers[0].objects.as_mut_vec().push(new_door_shield);
         }
@@ -3991,22 +3989,22 @@ fn patch_add_scan_actor<'r>(
                 position: position.into(),
                 rotation: [0.0, 90.0, rotation].into(),
                 scale: [1.0, 1.0, 1.0].into(),
-                hitbox: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
-                unknown1: 1.0, // mass
-                unknown2: 0.0, // momentum
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 5.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Disabled.vulnerability(),
-                cmdl: ResId::invalid(),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: ResId::invalid(),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::<res_id::ANCS>::new(0x98dab29c), // Scanholo.ANCS
                     node_index: 0,
                     default_animation: 0,
                 },
-                actor_params: structs::scly_structs::ActorParameters {
+                actor_parameters: structs::scly_structs::ActorParameters {
                     light_params: structs::scly_structs::LightParameters {
                         unknown0: 0,
                         unknown1: 1.0,
@@ -4043,17 +4041,17 @@ fn patch_add_scan_actor<'r>(
                     unknown4: 0,
                     unknown5: 1.0,
                 },
-                looping: 1,
-                snow: 0, // immovable
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 0, // immovable
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 0,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 0,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             })),
         });
 
@@ -4880,7 +4878,7 @@ fn modify_pickups_in_mrea<'r>(
                 // Also the ice in ruins west
                 if obj_id == 0x0017016E || obj_id == 0x0017016F || obj_id == 0x00092738 {
                     let actor = obj.property_data.as_actor_mut().unwrap();
-                    actor.actor_params.visor_params.target_passthrough = 1;
+                    actor.actor_parameters.visor_params.target_passthrough = 1;
                 } else if obj.property_data.is_point_of_interest() {
                     let poi = obj.property_data.as_point_of_interest_mut().unwrap();
                     if (
@@ -7142,7 +7140,7 @@ fn patch_research_lab_hydra_barrier(
         .find(|obj| obj.instance_id == 202965810)
         .unwrap();
     let actor = obj.property_data.as_actor_mut().unwrap();
-    actor.actor_params.visor_params.target_passthrough = 1;
+    actor.actor_parameters.visor_params.target_passthrough = 1;
     Ok(())
 }
 
@@ -7544,22 +7542,22 @@ fn make_main_plaza_locked_door_two_ways(
                 position: [151.951_19, 86.462_58, 24.503178].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
                 scale: [1.0, 1.0, 1.0].into(),
-                hitbox: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
-                unknown1: 1.0,
-                unknown2: 0.0,
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 5.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Blue.vulnerability(),
-                cmdl: DoorType::Blue.shield_cmdl(),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: DoorType::Blue.shield_cmdl(),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(), // None
                     node_index: 0,
                     default_animation: 0xFFFFFFFF, // -1
                 },
-                actor_params: structs::scly_structs::ActorParameters {
+                actor_parameters: structs::scly_structs::ActorParameters {
                     light_params: structs::scly_structs::LightParameters {
                         unknown0: 1,
                         unknown1: 1.0,
@@ -7598,17 +7596,17 @@ fn make_main_plaza_locked_door_two_ways(
                     unknown4: 1,
                     unknown5: 1.0,
                 },
-                looping: 1,
-                snow: 1,
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 1,
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 1,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 1,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             }
             .into(),
             connections: vec![].into(),
@@ -8347,7 +8345,7 @@ fn patch_backwards_lower_mines_mqb(
         .find(|obj| obj.instance_id & 0x00FFFFFF == 0x001F0018)
         .unwrap();
     let actor = obj.property_data.as_actor_mut().unwrap();
-    actor.actor_params.visor_params.target_passthrough = 1;
+    actor.actor_parameters.visor_params.target_passthrough = 1;
     Ok(())
 }
 
@@ -8398,7 +8396,7 @@ fn patch_backwards_lower_mines_elite_control(
         .find(|obj| obj.instance_id & 0x00FFFFFF == 0x00100086)
         .unwrap();
     let actor = obj.property_data.as_actor_mut().unwrap();
-    actor.actor_params.visor_params.target_passthrough = 1;
+    actor.actor_parameters.visor_params.target_passthrough = 1;
     Ok(())
 }
 
@@ -9051,7 +9049,7 @@ fn patch_remove_cutscenes(
                 // central dynamo collision blocker
                 // the power bomb rock collision should not extend beyond the door
                 let actor = obj.property_data.as_actor_mut().unwrap();
-                actor.hitbox[1] = 0.4;
+                actor.collision_box[1] = 0.4;
                 actor.position[1] -= 0.8;
             } else if obj_id == 0x0002023E {
                 // main plaza turn crane left relay
@@ -11475,22 +11473,22 @@ fn patch_final_boss_permadeath<'r>(
                 position: [52.0, -298.0, -375.5].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
                 scale: [1.0, 1.0, 1.0].into(),
-                hitbox: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
-                unknown1: 1.0,
-                unknown2: 0.0,
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 5.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Blue.vulnerability(),
-                cmdl: ResId::<res_id::CMDL>::new(0x12771AF0),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: ResId::<res_id::CMDL>::new(0x12771AF0),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(), // None
                     node_index: 0,
                     default_animation: 0xFFFFFFFF, // -1
                 },
-                actor_params: structs::scly_structs::ActorParameters {
+                actor_parameters: structs::scly_structs::ActorParameters {
                     light_params: structs::scly_structs::LightParameters {
                         unknown0: 1,
                         unknown1: 1.0,
@@ -11529,17 +11527,17 @@ fn patch_final_boss_permadeath<'r>(
                     unknown4: 1,
                     unknown5: 1.0,
                 },
-                looping: 1,
-                snow: 1,
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 1,
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 0,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 0,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             }
             .into(),
             connections: vec![].into(),
@@ -12032,7 +12030,7 @@ fn is_blast_shield(obj: &structs::SclyObject) -> bool {
     if !obj.property_data.is_actor() {
         return false;
     }
-    obj.property_data.as_actor().unwrap().cmdl == 0xEFDFFB8C
+    obj.property_data.as_actor().unwrap().static_model == 0xEFDFFB8C
 }
 
 fn is_blast_shield_poi(obj: &structs::SclyObject) -> bool {
@@ -18098,7 +18096,7 @@ fn patch_slot_cover<'a>(
                             TypeVulnerability::Reflect as u32;
                         match cover {
                             BombSlotCover::Wave => {
-                                actor.cmdl = ResId::<res_id::CMDL>::new(WAVE_CMDL_ID);
+                                actor.static_model = ResId::<res_id::CMDL>::new(WAVE_CMDL_ID);
                                 actor.damage_vulnerability.wave =
                                     TypeVulnerability::DirectNormal as u32;
                                 actor.damage_vulnerability.charged_beams.wave =
@@ -18107,7 +18105,7 @@ fn patch_slot_cover<'a>(
                                     TypeVulnerability::DirectNormal as u32;
                             }
                             BombSlotCover::Ice => {
-                                actor.cmdl = ResId::<res_id::CMDL>::new(ICE_CMDL_ID);
+                                actor.static_model = ResId::<res_id::CMDL>::new(ICE_CMDL_ID);
                                 actor.damage_vulnerability.ice =
                                     TypeVulnerability::DirectNormal as u32;
                                 actor.damage_vulnerability.charged_beams.ice =
@@ -18116,7 +18114,7 @@ fn patch_slot_cover<'a>(
                                     TypeVulnerability::DirectNormal as u32;
                             }
                             BombSlotCover::Plasma => {
-                                actor.cmdl = ResId::<res_id::CMDL>::new(PLASMA_CMDL_ID);
+                                actor.static_model = ResId::<res_id::CMDL>::new(PLASMA_CMDL_ID);
                                 actor.damage_vulnerability.plasma =
                                     TypeVulnerability::DirectNormal as u32;
                                 actor.damage_vulnerability.charged_beams.plasma =
@@ -18310,10 +18308,10 @@ fn patch_elite_research_door_lock<'r>(
             position: [21.35, 166.275_13, 51.825].into(),
             rotation: [0.0, 0.0, 0.0].into(),
             scale: [1.45, 1.45, 1.45].into(),
-            hitbox: [1.75, 5.0, 5.0].into(),
-            scan_offset: [0.0, 0.0, 0.0].into(),
-            unknown1: 1.0, // mass
-            unknown2: 0.0, // momentum
+            collision_box: [1.75, 5.0, 5.0].into(),
+            collision_offset: [0.0, 0.0, 0.0].into(),
+            mass: 1.0,
+            gravity: 0.0,
             health_info: structs::scly_structs::HealthInfo {
                 health: 5.0,
                 knockback_resistance: 1.0,
@@ -18353,13 +18351,13 @@ fn patch_elite_research_door_lock<'r>(
                     phazon: structs::scly_structs::TypeVulnerability::Reflect as u32,
                 },
             },
-            cmdl: ResId::new(0x6E5D6796),
-            ancs: structs::scly_structs::AncsProp {
+            static_model: ResId::new(0x6E5D6796),
+            animation_parameters: structs::scly_structs::AncsProp {
                 file_id: ResId::invalid(),
                 node_index: 0,
                 default_animation: 0xFFFFFFFF,
             },
-            actor_params: structs::scly_structs::ActorParameters {
+            actor_parameters: structs::scly_structs::ActorParameters {
                 light_params: structs::scly_structs::LightParameters {
                     unknown0: 1,
                     unknown1: 1.0,
@@ -18396,17 +18394,17 @@ fn patch_elite_research_door_lock<'r>(
                 unknown4: 0,
                 unknown5: 1.0,
             },
-            looping: 1,
-            snow: 1, // immovable
-            solid: 1,
-            camera_passthrough: 0,
+            is_loop: 1,
+            immovable: 1,
+            is_solid: 1,
+            is_camera_through: 0,
             active: 0,
-            unknown8: 0,
-            unknown9: 1.0,
-            unknown10: 0,
-            unknown11: 0,
-            unknown12: 0,
-            unknown13: 0,
+            render_texture_set: 0,
+            xray_alpha: 1.0,
+            thermal_visible_through_geometry: 0,
+            draws_shadow: 0,
+            scale_animation: 0,
+            material_flag_54: 0,
         })),
     };
 
