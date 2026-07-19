@@ -18933,10 +18933,6 @@
                                 -180.0
                             ],
                             "morphed": true
-                        },
-                        {
-                            "id": 2752513, // [SpawnPoint] Spawn point
-                            "position": [17.360912, -44.115761, 2.214531]
                         }
                     ],
                     "triggers": [
