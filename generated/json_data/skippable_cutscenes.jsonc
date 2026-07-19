@@ -18564,6 +18564,12 @@
                             "targetId": 2752709, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "INACTIVE",
                             "message": "DECREMENT"
+                        },
+                        {
+                            "senderId": 2752971, // [Platform] Platform - Post
+                            "targetId": 2752973, // [Waypoint] Waypoint - Post Top
+                            "state": "PLAY",
+                            "message": "FOLLOW"
                         }
                     ],
                     "addConnections": [
@@ -18605,6 +18611,12 @@
                         },
                         {
                             "senderId": 2752519, // [SpecialFunction] Pillar Rise Cinematic Skip
+                            "targetId": 2752780, // [Relay] Platform Skip, Move to next
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2752780, // [Relay] Platform Skip, Move to next
                             "targetId": 2752971, // [Platform] Platform - Post
                             "state": "ZERO",
                             "message": "NEXT"
@@ -18842,12 +18854,48 @@
                             "targetId": 2752938, // [Relay] Relay - [IN] Explode Beak
                             "state": "ZERO",
                             "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2752971, // [Platform] Platform - Post
+                            "targetId": 2752791, // [Waypoint] Platform Start
+                            "state": "PLAY",
+                            "message": "FOLLOW"
+                        },
+                        {
+                            "senderId": 2752791, // [Waypoint] Platform Start
+                            "targetId": 2752794, // [Waypoint] Platform Before-End
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2752794, // [Waypoint] Platform Before-End
+                            "targetId": 2752973, // [Waypoint] Waypoint - Post Top
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2752794, // [Waypoint] Platform Before-End
+                            "targetId": 2752780, // [Relay] Platform Skip, Move to next
+                            "state": "ARRIVED",
+                            "message": "DEACTIVATE"
                         }
                     ],
                     "timers": [
                         {
                             "id": 2752527, // [Timer] Cutscene Skip Move Ghosts
                             "time": 4.5
+                        }
+                    ],
+                    "waypoints": [
+                        {
+                            "id": 2752791, // [Waypoint] Platform Start
+                            "position": [17.621321, -49.084217, -5.494504],
+                            "speed": 2.0
+                        },
+                        {
+                            "id": 2752794, // [Waypoint] Platform Before-End
+                            "position": [17.621321, -49.084217, 2.36],
+                            "speed": 2.0
                         }
                     ],
                     "relays": [
@@ -18865,6 +18913,9 @@
                         },
                         {
                             "id": 2752522 // [Relay] End Unveil Pillar Cinematic
+                        },
+                        {
+                            "id": 2752780 // [Relay] Platform Skip, Move to next
                         }
                     ],
                     "spawnPoints": [
@@ -18882,6 +18933,10 @@
                                 -180.0
                             ],
                             "morphed": true
+                        },
+                        {
+                            "id": 2752513, // [SpawnPoint] Spawn point
+                            "position": [17.360912, -44.115761, 2.214531]
                         }
                     ],
                     "triggers": [
