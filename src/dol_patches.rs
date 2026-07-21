@@ -2175,6 +2175,7 @@ fn patch_ball_glow_normalized(
     dol_patcher: &mut DolPatcher<'_>,
     version: Version,
     config: &PatchConfig,
+    rainbow_ball: bool,
 ) -> Result<(), String> {
     let (power, gravity, varia, phazon) = config
         .suit_colors
@@ -2258,6 +2259,11 @@ fn patch_ball_glow_normalized(
                 table[slot * 3 + 2],
             );
             table[slot * 3..slot * 3 + 3].copy_from_slice(&rgb);
+        }
+        if rainbow_ball {
+            // Phazon slot 4 and fusion-phazon slot 8: match patch_phazon_ball_rainbow's counter-0 red.
+            table[12..15].copy_from_slice(&[0xff, 0x00, 0x00]);
+            table[24..27].copy_from_slice(&[0xff, 0x00, 0x00]);
         }
         dol_patcher.patch(*addr, table.to_vec().into())?;
     }
@@ -2351,6 +2357,9 @@ fn patch_phazon_ball_rainbow(
                 stb     r9, 0x0(r3);
                 stb     r10, 0x1(r3);
                 stb     r11, 0x2(r3);
+                stb     r9, 0xc(r3);
+                stb     r10, 0xd(r3);
+                stb     r11, 0xe(r3);
                 addi    r3, r3, 0x1c;
                 addi    r4, r4, -1;
                 cmpwi   r4, 0;
@@ -2391,6 +2400,12 @@ fn patch_cosmetic(
     config: &PatchConfig,
 ) -> Result<(), String> {
     let remove_ball_color = config.ctwk_config.morph_ball_size.unwrap_or(1.0) < 0.999;
+    let rainbow_ball = config.rainbow_phazon_ball
+        && !remove_ball_color
+        && matches!(
+            version,
+            Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscU0_02
+        );
 
     if remove_ball_color {
         let colors = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
@@ -2420,16 +2435,10 @@ fn patch_cosmetic(
         )?;
         dol_patcher.patch(symbol_addr!("BallGlowColors", version), colors.into())?;
     } else {
-        patch_ball_glow_normalized(dol_patcher, version, config)?;
+        patch_ball_glow_normalized(dol_patcher, version, config, rainbow_ball)?;
     }
 
-    if config.rainbow_phazon_ball
-        && !remove_ball_color
-        && matches!(
-            version,
-            Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscU0_02
-        )
-    {
+    if rainbow_ball {
         patch_phazon_ball_rainbow(dol_patcher, emitter, version)?;
     }
 

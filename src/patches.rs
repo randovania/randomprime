@@ -54,8 +54,9 @@ use crate::{
     structs::LightLayer,
     txtr_conversions::{
         cmpr_compress, cmpr_decompress, huerotate_in_place, huerotate_matrix, whiten_in_place,
-        FUSION_GRAVITY_SUIT_TEXTURES, FUSION_PHAZON_SUIT_TEXTURES, FUSION_POWER_SUIT_TEXTURES,
-        FUSION_VARIA_SUIT_TEXTURES, GRAVITY_SUIT_TEXTURES, PHAZON_SPIDER_BALL_TEXTURES,
+        FUSION_GRAVITY_SUIT_TEXTURES, FUSION_PHAZON_BALL_TEXTURES, FUSION_PHAZON_SUIT_TEXTURES,
+        FUSION_POWER_SUIT_TEXTURES, FUSION_VARIA_SUIT_TEXTURES, GRAVITY_SUIT_TEXTURES,
+        PHAZON_SPIDER_BALL_TEXTURES,
         PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, SHIP_TEXTURES, VARIA_SUIT_TEXTURES,
     },
     GcDiscLookupExtensions,
@@ -17969,7 +17970,15 @@ fn build_and_run_patches<'r>(
     }
 
     if config.rainbow_phazon_ball {
-        for texture in PHAZON_SPIDER_BALL_TEXTURES {
+        for texture in PHAZON_SPIDER_BALL_TEXTURES
+            .iter()
+            .chain(FUSION_PHAZON_BALL_TEXTURES)
+        {
+            let brightness_percent = if FUSION_PHAZON_BALL_TEXTURES.contains(texture) {
+                95
+            } else {
+                15
+            };
             patcher.add_resource_patch((*texture).into(), move |res| {
                 let res_data;
                 let data;
@@ -17993,7 +18002,7 @@ fn build_and_run_patches<'r>(
                 for mipmap in txtr.pixel_data.as_mut_vec() {
                     let mut decompressed_bytes = vec![0u8; w * h * 4];
                     cmpr_decompress(&mipmap.as_mut_vec()[..], h, w, &mut decompressed_bytes[..]);
-                    whiten_in_place(&mut decompressed_bytes[..]);
+                    whiten_in_place(&mut decompressed_bytes[..], brightness_percent);
                     cmpr_compress(&decompressed_bytes[..], w, h, &mut mipmap.as_mut_vec()[..]);
                     w /= 2;
                     h /= 2;
