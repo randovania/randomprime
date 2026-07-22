@@ -4,6 +4,8 @@ use json_strip::strip_jsonc_comments;
 use minify::json::minify;
 
 fn helper(filename: &'static str) {
+    println!("cargo:rerun-if-changed={}", filename);
+
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir);
 

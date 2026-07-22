@@ -6900,12 +6900,6 @@
                         },
                         {
                             "senderId": 589930, // [Relay] Relay - end of cinema
-                            "targetId": 589944, // [Beetle] GarBeetle
-                            "state": "ZERO",
-                            "message": "RESET"
-                        },
-                        {
-                            "senderId": 589930, // [Relay] Relay - end of cinema
                             "targetId": 590117, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -7011,6 +7005,58 @@
                             "targetId": 590117, // [CameraFilterKeyframe] Camera Filter Keyframe
                             "state": "ZERO",
                             "message": "ACTIVATE"
+                        },
+                        // randomprime beetle spawns simultaneously with vanilla beetle, then despawns 0.65s after
+                        {
+                            "senderId": 589836, // [Timer] Start Beta Beetle
+                            "targetId": 651384, // [Beetle] GarBeetle (randomprime, no intro animation)
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 589836, // [Timer] Start Beta Beetle
+                            "targetId": 651387, // [Timer] Deactivate randomprime beetle
+                            "state": "ZERO",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 651387, // [Timer] Deactivate randomprime beetle
+                            "targetId": 651384, // [Beetle] GarBeetle (randomprime, no intro animation)
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        // skipping the cutscene early stops the randomprime beetle despawn
+                        {
+                            "senderId": 589932, // [SpecialFunction] beta reveal Cinematic Skip
+                            "targetId": 651387, // [Timer] Deactivate randomprime beetle
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        // skipping the cutscene deactivates vanilla beetle and reactivates randomprime beetle on the same frame
+                        {
+                            "senderId": 589932, // [SpecialFunction] beta reveal Cinematic Skip
+                            "targetId": 589944, // [Beetle] GarBeetle (vanilla)
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 589932, // [SpecialFunction] beta reveal Cinematic Skip
+                            "targetId": 651384, // [Beetle] GarBeetle (randomprime, no intro animation)
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        // Cutscene skip is disabled for the last 1.1s of the cutscene
+                        {
+                            "senderId": 590084, // [Camera] Camera3 (last beta-reveal shot, 3s)
+                            "targetId": 651386, // [Timer] Disable CS Skip
+                            "state": "ACTIVE",
+                            "message": "RESET_AND_START"
+                        },
+                        {
+                            "senderId": 651386, // [Timer] Disable CS Skip
+                            "targetId": 589932, // [SpecialFunction] beta reveal Cinematic Skip
+                            "state": "ZERO",
+                            "message": "DECREMENT"
                         }
                     ],
                     "relays": [
@@ -7045,6 +7091,14 @@
                         {
                             "id": 789829, // [Timer] Re-Enable Black Bars
                             "time": 0.03
+                        },
+                        {
+                            "id": 651386, // [Timer] Disable CS Skip - 1.9s into Camera3 (3s) = final 1.1s
+                            "time": 1.9
+                        },
+                        {
+                            "id": 651387, // [Timer] Deactivate randomprime beetle
+                            "time": 0.65
                         }
                     ],
                     "lockOnPoints": [

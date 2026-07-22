@@ -6013,6 +6013,41 @@ fn patch_add_cutscene_skip_fn(
     Ok(())
 }
 
+fn patch_ruined_shrine_beetle_swap(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    const RUINED_SHRINE_BEETLE: u32 = 0x00090078;
+    const RUINED_SHRINE_BEETLE_DUP: u32 = 0x0009F078;
+
+    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
+
+    let mut found: Option<(usize, structs::SclyObject)> = None;
+    for (i, layer) in layers.iter_mut().enumerate() {
+        let obj = layer
+            .objects
+            .as_mut_vec()
+            .iter()
+            .find(|o| o.instance_id & 0x00FFFFFF == RUINED_SHRINE_BEETLE);
+        if let Some(obj) = obj {
+            let mut dup = obj.clone();
+            dup.instance_id = (obj.instance_id & 0xFF000000) | RUINED_SHRINE_BEETLE_DUP;
+            if let Some(beetle) = dup.property_data.as_beetle_mut() {
+                beetle.entrance_type = 0.0; // kET_FacePlayer
+                beetle.patterned_info.active = 0; // dormant until the swap activates it
+                beetle.position = [-60.34137, 3.246905, -0.101854].into();
+            }
+            found = Some((i, dup));
+            break;
+        }
+    }
+
+    let (layer_idx, dup) = found.ok_or("Ruined Shrine beetle 0x090078 not found")?;
+    layers[layer_idx].objects.as_mut_vec().push(dup);
+
+    Ok(())
+}
+
 pub fn string_to_cstr<'r>(string: String) -> CStr<'r> {
     let x = CString::new(string).expect("CString conversion failed");
     let x = Cow::Owned(x);
@@ -15921,6 +15956,13 @@ fn build_and_run_patches<'r>(
                                         move |ps, area| {
                                             patch_artifact_temple_pillar(ps, area, 1048911)
                                         },
+                                    );
+                                }
+                                0x3C785450 => {
+                                    // Ruined Shrine
+                                    patcher.add_scly_patch(
+                                        (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                        patch_ruined_shrine_beetle_swap,
                                     );
                                 }
                                 _ => {}
