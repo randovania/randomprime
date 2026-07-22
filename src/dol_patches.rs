@@ -1669,6 +1669,219 @@ fn patch_inflate_buffer_oom_recover(
     Ok(())
 }
 
+// Teach beetles to respect reset on all versions and expand
+// reset functionality to clear velocity and and attack timers
+fn patch_beetle_reset(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    #[derive(Clone, Copy)]
+    struct BeetleFieldOffsets {
+        reset_flag: u32,
+        vertical_movement: u32,
+        state_prog: u32,
+        anim_time_rem: u32,
+        avg_attack_time: u32,
+        attack_delay: u32,
+    }
+    const BEETLE_OFF_EARLY: BeetleFieldOffsets = BeetleFieldOffsets {
+        reset_flag: 0x838,
+        vertical_movement: 0x328,
+        state_prog: 0x568,
+        anim_time_rem: 0x5a8,
+        avg_attack_time: 0x304,
+        attack_delay: 0x814,
+    };
+    const BEETLE_OFF_SHIFTED: BeetleFieldOffsets = BeetleFieldOffsets {
+        reset_flag: 0x848,
+        vertical_movement: 0x338,
+        state_prog: 0x578,
+        anim_time_rem: 0x5b8,
+        avg_attack_time: 0x314,
+        attack_delay: 0x824,
+    };
+
+    enum BeetleWiring {
+        Port {
+            reset_jt_entry: u32,
+            accept_tail: u32,
+            solid_gate: u32,
+            gen_update_end: u32,
+            deliver_cmd: u32,
+            body_state_cmd_vt: u32,
+        },
+        NativeAbort {
+            abort_hook: u32,
+        },
+    }
+
+    let (off, wiring) = match version {
+        Version::NtscU0_00 => (
+            BEETLE_OFF_EARLY,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803dfb84,
+                accept_tail: 0x800e79fc,
+                solid_gate: 0x800e7560,
+                gen_update_end: 0x800e77d4,
+                deliver_cmd: 0x801317b8,
+                body_state_cmd_vt: 0x803daa68,
+            },
+        ),
+        Version::NtscU0_01 => (
+            BEETLE_OFF_EARLY,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803dfd64,
+                accept_tail: 0x800e7a78,
+                solid_gate: 0x800e75dc,
+                gen_update_end: 0x800e7850,
+                deliver_cmd: 0x80131834,
+                body_state_cmd_vt: 0x803dac48,
+            },
+        ),
+        Version::NtscK => (
+            BEETLE_OFF_EARLY,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803dfc84,
+                accept_tail: 0x800e7a70,
+                solid_gate: 0x800e75d4,
+                gen_update_end: 0x800e7848,
+                deliver_cmd: 0x8013182c,
+                body_state_cmd_vt: 0,
+            },
+        ),
+        Version::NtscU0_02 => (
+            BEETLE_OFF_SHIFTED,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803e0c44,
+                accept_tail: 0x800e7f80,
+                solid_gate: 0x800e7ae4,
+                gen_update_end: 0x800e7d58,
+                deliver_cmd: 0x80131f9c,
+                body_state_cmd_vt: 0,
+            },
+        ),
+        Version::NtscJ => (
+            BEETLE_OFF_SHIFTED,
+            BeetleWiring::NativeAbort {
+                abort_hook: 0x800e066c,
+            },
+        ),
+        Version::Pal => (
+            BEETLE_OFF_SHIFTED,
+            BeetleWiring::NativeAbort {
+                abort_hook: 0x800df594,
+            },
+        ),
+        _ => return Ok(()),
+    };
+
+    let reset_flag = off.reset_flag;
+    let vertical_movement = off.vertical_movement;
+    let state_prog = off.state_prog;
+    let anim_time_rem = off.anim_time_rem;
+    let avg_attack_time = off.avg_attack_time;
+    let attack_delay = off.attack_delay;
+
+    match wiring {
+        BeetleWiring::Port {
+            reset_jt_entry,
+            accept_tail,
+            solid_gate,
+            gen_update_end,
+            deliver_cmd,
+            body_state_cmd_vt,
+        } => {
+            let jt = dol_patcher.read_u32(reset_jt_entry)?;
+            if jt != accept_tail {
+                return Err(format!(
+                    "patch_beetle_reset: Reset jumptable entry {reset_jt_entry:#010x} = {jt:#010x}, expected forward tail {accept_tail:#010x}"
+                ));
+            }
+            let gate = dol_patcher.read_u32(solid_gate)?;
+            let expect_gate = 0xc03c0000 | anim_time_rem; // lfs f1, anim_time_rem(r28)
+            if gate != expect_gate {
+                return Err(format!(
+                    "patch_beetle_reset: has-Solid gate {solid_gate:#010x} = {gate:#010x}, expected `lfs f1,{anim_time_rem:#x}(r28)` {expect_gate:#010x}"
+                ));
+            }
+            let solid_gate_resume = solid_gate + 4;
+
+            let reset_cave = emitter.emit_addressed(dol_patcher, |addr| {
+                ppcasm!(addr, {
+                    lbz     r0, { reset_flag }(r27);
+                    ori     r0, r0, 0x10;
+                    stb     r0, { reset_flag }(r27);
+                    b       { accept_tail };
+                })
+                .encoded_bytes()
+            })?;
+            dol_patcher.ppcasm_patch(&ppcasm!(reset_jt_entry, {
+                .long reset_cave;
+            }))?;
+
+            let generate_cave = emitter.emit_addressed(dol_patcher, |addr| {
+                ppcasm!(addr, {
+                    lbz     r0, { reset_flag }(r28);
+                    andi    r0, r0, 0x10;
+                    bne     { addr + 0x14 };
+                    lfs     f1, { anim_time_rem }(r28);
+                    b       { solid_gate_resume };
+                    lbz     r0, { vertical_movement }(r28);
+                    andi    r0, r0, 0xbf;
+                    stb     r0, { vertical_movement }(r28);
+                    lwz     r0, { avg_attack_time }(r28);
+                    stw     r0, { attack_delay }(r28);
+                    li      r0, 4;
+                    stw     r0, { state_prog }(r28);
+                    stwu    r1, -0x10(r1);
+                    lis     r4, { body_state_cmd_vt }@h;
+                    addi    r4, r4, { body_state_cmd_vt }@l;
+                    stw     r4, 0x8(r1);
+                    li      r0, 0xc;
+                    stw     r0, 0xc(r1);
+                    addi    r4, r1, 0x8;
+                    addi    r3, r31, 0x4;
+                    bl      { deliver_cmd };
+                    addi    r1, r1, 0x10;
+                    b       { gen_update_end };
+                })
+                .encoded_bytes()
+            })?;
+            dol_patcher.ppcasm_patch(&ppcasm!(solid_gate, {
+                b { generate_cave };
+            }))?;
+        }
+        BeetleWiring::NativeAbort { abort_hook } => {
+            let hook = dol_patcher.read_u32(abort_hook)?;
+            if hook != 0x38000004 {
+                return Err(format!(
+                    "patch_beetle_reset: native abort hook {abort_hook:#010x} = {hook:#010x}, expected `li r0,4` 0x38000004"
+                ));
+            }
+            let abort_hook_next = abort_hook + 4;
+
+            let enhance_cave = emitter.emit_addressed(dol_patcher, |addr| {
+                ppcasm!(addr, {
+                    lbz     r0, { vertical_movement }(r28);
+                    andi    r0, r0, 0xbf;
+                    stb     r0, { vertical_movement }(r28);
+                    lwz     r0, { avg_attack_time }(r28);
+                    stw     r0, { attack_delay }(r28);
+                    li      r0, 4;
+                    b       { abort_hook_next };
+                })
+                .encoded_bytes()
+            })?;
+            dol_patcher.ppcasm_patch(&ppcasm!(abort_hook, {
+                b { enhance_cave };
+            }))?;
+        }
+    }
+
+    Ok(())
+}
+
 fn patch_meta(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1676,6 +1889,14 @@ fn patch_meta(
     config: &PatchConfig,
 ) -> Result<(), String> {
     patch_rel_loader(dol_patcher, emitter, version)?;
+
+    if matches!(
+        config.qol_cutscenes,
+        crate::patch_config::CutsceneMode::Skippable
+            | crate::patch_config::CutsceneMode::SkippableCompetitive
+    ) {
+        patch_beetle_reset(dol_patcher, emitter, version)?;
+    }
 
     {
         let build_info_address: u32 = match version {
