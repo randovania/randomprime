@@ -1098,7 +1098,7 @@ pub struct TimerConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub active: Option<bool>,
-    pub time: f32,
+    pub time: Option<f32>,
     pub max_random_add: Option<f32>,
     pub looping: Option<bool>,
     pub start_immediately: Option<bool>,
