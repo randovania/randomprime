@@ -419,7 +419,7 @@ pub fn patch_add_timer(
         () => {
             structs::Timer {
                 name: b"my timer\0".as_cstr(),
-                start_time: config.time,
+                start_time: config.time.unwrap_or(1.0),
                 max_random_add: config.max_random_add.unwrap_or(0.0),
                 looping: config.looping.unwrap_or(false) as u8,
                 start_immediately: config.start_immediately.unwrap_or(false) as u8,
@@ -432,8 +432,9 @@ pub fn patch_add_timer(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_timer_mut().unwrap();
 
-            property_data.start_time = config.time;
-
+            if let Some(time) = config.time {
+                property_data.start_time = time
+            }
             if let Some(active) = config.active {
                 property_data.active = active as u8
             }

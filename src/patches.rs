@@ -15488,7 +15488,7 @@ fn build_and_run_patches<'r>(
             ] {
                 let timer_config = TimerConfig {
                     id: timer_id,
-                    time: 0.5,
+                    time: Some(0.5),
                     active: Some(true),
                     looping: Some(true),
                     start_immediately: Some(true),

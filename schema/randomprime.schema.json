@@ -3769,7 +3769,8 @@
                             "time": {
                                 "description": "Start time in seconds.",
                                 "type": "number",
-                                "minimum": 0.0
+                                "minimum": 0.0,
+                                "default": 1.0
                             },
                             "maxRandomAdd": {
                                 "description": "Used apply random offset to the timer each time it resets.",
@@ -3788,8 +3789,7 @@
                             }
                         },
                         "required": [
-                            "id",
-                            "time"
+                            "id"
                         ],
                         "additionalProperties": false
                     }
