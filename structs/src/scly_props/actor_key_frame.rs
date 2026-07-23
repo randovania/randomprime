@@ -10,12 +10,12 @@ pub struct ActorKeyFrame<'r> {
     pub prop_count: u32,
 
     pub name: CStr<'r>,
-    pub animation_id: u32,
-    pub looping: u8,
-    pub lifetime: f32,
+    pub animation_index: u32,
+    pub loop_: u8,
+    pub loop_duration: f32,
     pub active: u8,
-    pub fade_out: f32,
-    pub total_playback: f32,
+    pub fade_out: u32,
+    pub playback_rate: f32,
 }
 
 use crate::impl_active;

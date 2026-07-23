@@ -30,6 +30,7 @@
                     "timers": [
                         {
                             "id": 111176, // [Timer] Close Door
+                            "name": "Close Door",
                             "time": 0.1,
                             "active": true,
                             "startImmediately": true
@@ -44,6 +45,7 @@
                     "triggers": [
                         {
                             "id": 1245502, // [Trigger] Vines Trigger
+                            "name": "Vines Trigger",
                             "position": [
                                 306.225616,
                                 -131.869919,
@@ -58,6 +60,7 @@
                         },
                         {
                             "id": 1245372, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "position": [
                                 278.391266,
                                 -103.053986,
@@ -71,6 +74,7 @@
                         },
                         {
                             "id": 1245734, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "position": [
                                 342.820282,
                                 -103.05558,
@@ -116,6 +120,7 @@
                     "specialFunctions": [
                         {
                             "id": 2883877, // [SpecialFunction] Sound Trigger Follow Water
+                            "name": "Sound Trigger Follow Water",
                             "type": "ObjectFollowObject"
                         }
                     ]
@@ -137,13 +142,13 @@
                     },
                     "specialFunctions": [
                         {
-                            "id": 2359300, // [SpecialFunction]
+                            "id": 2359300, // [SpecialFunction] dud
                             "type": "CinematicSkip"
                         }
                     ],
                     "relays": [
                         {
-                            "id": 2367430 // [Relay] End Intro Cinema
+                            "id": 2367430 // [Relay] dud
                         }
                     ]
                 },
@@ -152,10 +157,12 @@
                     "timers": [
                         {
                             "id": 1310979, // [Timer] Timer HUD
+                            "name": "Timer HUD",
                             "time": 0.025
                         },
                         {
                             "id": 1310978, // [Timer] Timer Jingle
+                            "name": "Timer Jingle",
                             "time": 0.001
                         }
                     ]
@@ -210,6 +217,7 @@
                     "relays": [
                         {
                             "id": 131092, // [Relay] Allow Replay
+                            "name": "Allow Replay",
                             "layer": 5,
                             "active": false
                         }
@@ -217,6 +225,7 @@
                     "timers": [
                         {
                             "id": 132989, // [Timer] Disallow Replay
+                            "name": "Disallow Replay",
                             "time": 1.5,
                             "layer": 5
                         }
@@ -224,6 +233,7 @@
                     "triggers": [
                         {
                             "id": 131078, // [Trigger] Trigger - Load 00s Connect
+                            "name": "Trigger - Load 00s Connect",
                             "position": [
                                 135.338852,
                                 76.633369,
@@ -256,16 +266,6 @@
                             "position": [236.726593, -48.492104, 32.689095]
                         }
                     }
-                },
-                "Ruined Shrine": {
-                    "removeConnections": [
-                        {
-                            "senderId": 589944, // [Beetle] GarBeetle
-                            "targetId": 600484, // [Timer] Timer - HUD memo
-                            "state": "ACTIVE",
-                            "message": "RESET_AND_START"
-                        }
-                    ]
                 },
                 "Sun Tower": {
                     "deleteIds": [
@@ -418,41 +418,49 @@
                     "relays": [
                         {
                             "id": 1900573, // [Relay] Box 1 Destroyed
+                            "name": "Box 1 Destroyed",
                             "layer": 2,
                             "active": false
                         },
                         {
                             "id": 1900575, // [Relay] Box 2 Destroyed
+                            "name": "Box 2 Destroyed",
                             "layer": 2,
                             "active": false
                         },
                         {
                             "id": 1900582, // [Relay] Box 3 Destroyed
+                            "name": "Box 3 Destroyed",
                             "layer": 2,
                             "active": false
                         },
                         {
                             "id": 1900583, // [Relay] Box 4 Destroyed
+                            "name": "Box 4 Destroyed",
                             "layer": 2,
                             "active": false
                         },
                         {
                             "id": 1900963, // [Relay] Allow Sun Tower Access Reload once Elevator is Finished
+                            "name": "Allow Sun Tower Access Reload once Elevator is Finished",
                             "active": false
                         },
                         {
-                            "id": 1900965 // [Relay] Reload Room Relay
+                            "id": 1900965, // [Relay] Reload Room Relay
+                            "name": "Reload Room Relay"
                         }
                     ],
                     "timers": [
                         {
                             "id": 1900867, // [Timer] Reload Room
+                            "name": "Reload Room",
                             "time": 0.1
                         }
                     ],
                     "triggers": [
                         {
                             "id": 1900959, // [Trigger] Reload Sun Tower Access - Upper
+                            "name": "Reload Sun Tower Access - Upper",
                             "position": [239.494904, 344.350586, 71.36792],
                             "scale": [20.0, 21.5, 0.5],
                             "active": false,
@@ -460,6 +468,7 @@
                         },
                         {
                             "id": 1900966, // [Trigger] Reload Sun Tower Access - Lower
+                            "name": "Reload Sun Tower Access - Lower",
                             "position": [239.494904, 344.350586, 49.0],
                             "scale": [20.0, 21.5, 0.5],
                             "active": false,
@@ -662,12 +671,14 @@
                     "triggers": [
                         {
                             "id": 2293796, // [Trigger] From Flaahgra - Load Sun Tower
+                            "name": "From Flaahgra - Load Sun Tower",
                             "position": [284.127441, 263.15799, 80.98233],
                             "scale": [20.0, 1.0, 12.0],
                             "active": false
                         },
                         {
                             "id": 2293797, // [Trigger] From Flaahgra - Load Flaahgra
+                            "name": "From Flaahgra - Load Flaahgra",
                             "position": [284.127441, 252.29686, 80.98233],
                             "scale": [20.0, 1.0, 12.0],
                             "active": false
@@ -678,6 +689,7 @@
                     "triggers": [
                         {
                             "id": 786526, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "scale": [10.0, 20.0, 8.0]
                         }
                     ]
@@ -710,6 +722,7 @@
                     "triggers": [
                         {
                             "id": 3145739, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "active": false,
                             "position": [
                                 272.64975,
@@ -778,6 +791,7 @@
                     "specialFunctions": [
                         {
                             "id": 917522, // [SpecialFunction] Sheegoth Mover
+                            "name": "Sheegoth Mover",
                             "type": "ObjectFollowObject",
                             "active": false
                         }
@@ -785,12 +799,14 @@
                     "timers": [
                         {
                             "id": 917516, // [Timer] Sheegoth Move Delay
+                            "name": "Sheegoth Move Delay",
                             "time": 2.984
                         }
                     ],
                     "triggers": [
                         {
                             "id": 917542, // [Trigger] Trigger Lower Pickup
+                            "name": "Trigger Lower Pickup",
                             "position": [
                                 -401.693207,
                                 -172.594421,
@@ -799,6 +815,7 @@
                         },
                         {
                             "id": 917519, // [Trigger] Sheegoth Trigger
+                            "name": "Sheegoth Trigger",
                             "position": [
                                 -403.054199,
                                 -172.594421,
@@ -815,12 +832,14 @@
                     "relays": [
                         {
                             "id": 917521, // [Relay] Sheegoth Mover Relay
+                            "name": "Sheegoth Mover Relay",
                             "active": false
                         }
                     ],
                     "waypoints": [
                         {
                             "id": 917517, // [Waypoint] Sheegoth Reposition
+                            "name": "Sheegoth Reposition",
                             "position": [
                                 -389.461609,
                                 -172.501587,
@@ -895,12 +914,14 @@
                     "timers": [
                         {
                             "id": 720906, // [Timer] Delete Right Blocks
+                            "name": "Delete Right Blocks",
                             "time": 0.001,
                             "layer": 1,
                             "startImmediately": true
                         },
                         {
                             "id": 720905, // [Timer] Delete Left Blocks
+                            "name": "Delete Left Blocks",
                             "time": 0.001,
                             "layer": 2,
                             "startImmediately": true
@@ -909,12 +930,14 @@
                     "specialFunctions": [
                         {
                             "id": 720904, // [SpecialFunction] Right Row Destroyed
+                            "name": "Right Row Destroyed",
                             "type": "ScriptLayerController",
                             "layerChangeLayerId": 1,
                             "layerChangeRoomId": 2574619068
                         },
                         {
                             "id": 720903, // [SpecialFunction] Left Row Destroyed
+                            "name": "Left Row Destroyed",
                             "type": "ScriptLayerController",
                             "layerChangeLayerId": 2,
                             "layerChangeRoomId": 2574619068
@@ -926,6 +949,7 @@
                     "cameraFilterKeyframes": [
                         {
                             "id": 524657, // [CameraFilterKeyframe] Camera Filter Keyframe WideScreen
+                            "name": "Camera Filter Keyframe WideScreen",
                             "color": [0, 0, 0, 1],
                             "filterIndex": 1,
                             "filterType": "Multiply",
@@ -933,6 +957,7 @@
                         },
                         {
                             "id": 524816, // [CameraFilterKeyframe] Camera Filter Keyframe
+                            "name": "Camera Filter Keyframe",
                             "color": [0, 0, 0, 1],
                             "filterIndex": 1,
                             "filterType": "Multiply",
@@ -982,6 +1007,7 @@
                     "triggers": [
                         {
                             "id": 3555917, // [Trigger] Activate Reposition
+                            "name": "Activate Reposition",
                             "position": [
                                 -8.342122,
                                 -802.716248,
@@ -995,6 +1021,7 @@
                         },
                         {
                             "id": 2556922, // [Trigger] Trigger - Fallen Tower - outside_hole_fixed_inc
+                            "name": "Trigger - Fallen Tower - outside_hole_fixed_inc",
                             "position": [
                                 -6.468899,
                                 -814.076294,
@@ -1010,6 +1037,7 @@
                     "spawnPoints": [
                         {
                             "id": 3556929, // [SpawnPoint] Softlock Prevention
+                            "name": "Softlock Prevention",
                             "active": false,
                             "position": [
                                 -6.084717,
@@ -1028,6 +1056,7 @@
                     "triggers": [
                         {
                             "id": 2228515, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "position": [
                                 179.948746,
                                 -959.346985,
@@ -1046,6 +1075,7 @@
                     "triggers": [
                         {
                             "id": 3473432, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "position": [
                                 334.078766,
                                 -1189.679688,
@@ -1064,10 +1094,12 @@
                     "timers": [
                         {
                             "id": 600310, // [Timer] Timer HUD
+                            "name": "Timer HUD",
                             "time": 0.025
                         },
                         {
                             "id": 600309, // [Timer] Timer Jingle
+                            "name": "Timer Jingle",
                             "time": 0.001
                         }
                     ]
@@ -1175,7 +1207,8 @@
                     ],
                     "relays": [
                         {
-                            "id": 1999925 // [Relay] Better Observatory Activation
+                            "id": 1999925, // [Relay] Better Observatory Activation
+                            "name": "Better Observatory Activation"
                         }
                     ]
                 },
@@ -1280,6 +1313,7 @@
                     "timers": [
                         {
                             "id": 131095, // [Timer] Deactivate Ridley
+                            "name": "Deactivate Ridley",
                             "time": 0.001,
                             "active": true,
                             "startImmediately": true
@@ -1550,6 +1584,7 @@
                     "cameraWaypoints": [
                         {
                             "id": 2621463, // [CameraWaypoint] Item Target
+                            "name": "Item Target",
                             "layer": 1,
                             "position": [52.230732, -997.426697, 54.213894]
                         }
@@ -1557,6 +1592,7 @@
                     "triggers": [
                         {
                             "id": 2622140, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "active": false,
                             "position": [81.294876, -997.477783, 52.713493],
                             "scale": [20.0, 40.0, 4.0]
@@ -1565,6 +1601,7 @@
                     "specialFunctions": [
                         {
                             "id": 2621455, // [SpecialFunction] Research Entrance 1st Pass Fog Layer
+                            "name": "Research Entrance 1st Pass Fog Layer",
                             "type": "ScriptLayerController",
                             "layerChangeRoomId": 351383175,
                             "layerChangeLayerId": 7
@@ -1616,6 +1653,7 @@
                     "distanceFogs": [
                         {
                             "id": 1311344, // [DistanceFog] Distance Fog_firstpass
+                            "name": "Distance Fog_firstpass",
                             "layer": 7
                         }
                     ]
@@ -1635,6 +1673,7 @@
                     "timers": [
                         {
                             "id": 983121, // [Timer] Timer - Water Going Down Time
+                            "name": "Timer - Water Going Down Time",
                             "time": 15.0
                         }
                     ]
@@ -1644,10 +1683,12 @@
                     "timers": [
                         {
                             "id": 3604515, // [Timer] Timer HUD
+                            "name": "Timer HUD",
                             "time": 0.025
                         },
                         {
                             "id": 3604514, // [Timer] Timer Jingle
+                            "name": "Timer Jingle",
                             "time": 0.001
                         }
                     ]
@@ -1949,6 +1990,7 @@
                     "spawnPoints": [
                         {
                             "id": 1049962, // [SpawnPoint] Spawn point
+                            "name": "Spawn point",
                             "position": [
                                 -367.80719,
                                 24.507858,
@@ -1965,14 +2007,17 @@
                     "relays": [
                         {
                             "id": 2048598, // [Relay] Play Teleporter Sounds
+                            "name": "Play Teleporter Sounds",
                             "active": false
                         },
                         {
                             "id": 1048599, // [Relay] Stop Teleporter Sounds
+                            "name": "Stop Teleporter Sounds",
                             "active": false
                         },
                         {
                             "id": 1048614, // [Relay] Progress + Ridley Cutscene Skip
+                            "name": "Progress + Ridley Cutscene Skip",
                             "active": false
                         }
                     ]
@@ -1989,6 +2034,7 @@
                     "triggers": [
                         {
                             "id": 524318, // [Trigger] Trigger_DoorOpen (Overgrown Cavern)
+                            "name": "Trigger_DoorOpen (Overgrown Cavern)",
                             "position": [
                                 -238.743713,
                                 466.984558,
@@ -2002,6 +2048,7 @@
                         },
                         {
                             "id": 524684, // [Trigger] Trigger_DoorOpen (Waterfall Cavern)
+                            "name": "Trigger_DoorOpen (Waterfall Cavern)",
                             "position": [
                                 -105.137741,
                                 554.561218,
@@ -2069,6 +2116,7 @@
                     "timers": [
                         {
                             "id": 111111, // [Timer] Ship Sounds Activator
+                            "name": "Ship Sounds Activator",
                             "time": 0.02,
                             "startImmediately": true
                         }
@@ -2100,6 +2148,7 @@
                     "triggers": [
                         {
                             "id": 983113, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "position": [
                                 -659.227417,
                                 310.424774,
@@ -2113,6 +2162,7 @@
                         },
                         {
                             "id": 983267, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "position": [
                                 -694.973267,
                                 339.468536,
@@ -2150,6 +2200,7 @@
                     "triggers": [
                         {
                             "id": 393401, // [Trigger] Trigger_DoorOpen (Canyon Cavern)
+                            "name": "Trigger_DoorOpen (Canyon Cavern)",
                             "position": [
                                 -469.325409,
                                 331.966278,
@@ -2163,6 +2214,7 @@
                         },
                         {
                             "id": 393407, // [Trigger] Trigger_DoorOpen (Transport Tunnel A)
+                            "name": "Trigger_DoorOpen (Transport Tunnel A)",
                             "position": [
                                 -528.989136,
                                 403.330994,
@@ -2311,6 +2363,7 @@
                     "triggers": [
                         {
                             "id": 2031951, // [Trigger] New Save Station Load Trigger
+                            "name": "New Save Station Load Trigger",
                             "active": true,
                             "position": [
                                 -73.027214,
@@ -2325,6 +2378,7 @@
                         },
                         {
                             "id": 2032463, // [Trigger] New Elite Quarters Access Load Trigger
+                            "name": "New Elite Quarters Access Load Trigger",
                             "active": true,
                             "position": [
                                 -78.581497,
@@ -2433,6 +2487,7 @@
                     "triggers": [
                         {
                             "id": 459954, // [Trigger] Trigger -activate trooper
+                            "name": "Trigger -activate trooper",
                             "position": [
                                 -15.26812,
                                 20.186085,
@@ -2505,6 +2560,7 @@
                     "triggers": [
                         {
                             "id": 1179905, // [Trigger] Load Elite Control
+                            "name": "Load Elite Control",
                             "active": true,
                             "position": [
                                 25.16172,
@@ -2519,6 +2575,7 @@
                         },
                         {
                             "id": 1179906, // [Trigger] Load Omega Research
+                            "name": "Load Omega Research",
                             "active": true,
                             "position": [
                                 42.751381,
@@ -2542,10 +2599,12 @@
                     "timers": [
                         {
                             "id": 918089, // [Timer] Timer HUD
+                            "name": "Timer HUD",
                             "time": 0.025
                         },
                         {
                             "id": 918088, // [Timer] Timer Jingle
+                            "name": "Timer Jingle",
                             "time": 0.001
                         }
                     ]
@@ -2571,6 +2630,7 @@
                     "timers": [
                         {
                             "id": 1310791, // [Timer] Platform Activate Delay
+                            "name": "Platform Activate Delay",
                             "time": 5.5
                         }
                     ]
@@ -2686,12 +2746,14 @@
                     "timers": [
                         {
                             "id": 262158, // [Timer] Delete West
+                            "name": "Delete West",
                             "time": 0.001,
                             "layer": 5,
                             "startImmediately": true
                         },
                         {
                             "id": 262159, // [Timer] Delete East
+                            "name": "Delete East",
                             "time": 0.001,
                             "layer": 6,
                             "startImmediately": true
@@ -2702,6 +2764,7 @@
                     "triggers": [
                         {
                             "id": 1508012, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "position": [
                                 437.994446,
                                 -1042.127319,
@@ -2736,6 +2799,7 @@
                     "triggers": [
                         {
                             "id": 1638562, // [Trigger] Trigger to 10_over1alavaarea
+                            "name": "Trigger to 10_over1alavaarea",
                             "position": [
                                 367.652466,
                                 -980.958923,
@@ -2749,6 +2813,7 @@
                         },
                         {
                             "id": 1638561, // [Trigger] Trigger to 00_lava_elev_ice_d
+                            "name": "Trigger to 00_lava_elev_ice_d",
                             "position": [
                                 367.652466,
                                 -976.237122,
@@ -2767,6 +2832,7 @@
                     "triggers": [
                         {
                             "id": 1114156, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "active": false,
                             "position": [
                                 359.223602,
@@ -2781,6 +2847,7 @@
                         },
                         {
                             "id": 1114162, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "active": false,
                             "position": [
                                 309.048279,
@@ -2799,6 +2866,7 @@
                     "triggers": [
                         {
                             "id": 720905, // [Trigger] Trigger_DoorOpen
+                            "name": "Trigger_DoorOpen",
                             "scale": [20.0, 10.0, 10.0]
                         }
                     ]
@@ -2833,6 +2901,7 @@
                     "triggers": [
                         {
                             "id": 689826, // [Trigger] Destroy Energy Balls
+                            "name": "Destroy Energy Balls",
                             "active": false,
                             "position": [
                                 7.918359,
@@ -2869,6 +2938,7 @@
                     "triggers": [
                         {
                             "id": 624291, // [Trigger] Destroy Energy Balls
+                            "name": "Destroy Energy Balls",
                             "active": false,
                             "position": [
                                 -22.108036,
@@ -2905,6 +2975,7 @@
                     "triggers": [
                         {
                             "id": 558758, // [Trigger] Destroy Energy Balls
+                            "name": "Destroy Energy Balls",
                             "active": false,
                             "position": [
                                 -22.069084,
