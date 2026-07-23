@@ -63,6 +63,13 @@ Randomprime stores its own data in each memory-card save slot. The game serializ
 
 The block layout is defined in `dol_patches.rs` (the `SAVE_SCHEMA_*` constants). Because the offsets are fixed, instances with different game configuration can still read each other's randomprime save data. All randomprime custom save blocks start with "RPSV" and a layout version number. Custom patches should early-exit if a save slot is missing this magic header or the version is unexpected.
 
+### Save-owned invariant
+
+The 128-byte front region is **save-owned data**: the `CGameState` constructor zeroes it, and thereafter only the feature owning each field mutates it. `PutTo` and the load constructor round-trip it untouched. Two lifecycle zones:
+
+- The **identity block** (magic/version/uuid/save_name, `[0, SAVE_SCHEMA_SIZE)`) is stamped once at save birth by `patch_save_uuid_stamp`. The stamp is guarded on the magic already being present, so re-saving neither re-derives `save_name`/version from the current ISO's config nor clobbers runtime-owned fields. A per-`PutTo` stamp would forbid any such field in the region.
+- Fields in the free tail (the `completion` counter at offset 60 and its `completion_max` denominator at offset 64) are **not** stamped. The constructor's zeroing gives them a 0 start, and their owning feature mutates them in place.
+
 ## References
 
 - [PowerPC 750CL ISA](https://fail0verflow.com/media/files/ppc_750cl.pdf) - Instruction encoding, condition registers, ABI

@@ -496,12 +496,6 @@ fn patch_custom_items(
         } else {
             (0xe4, 0x2b0, 0x828)
         };
-    let (probability_offset, life_time_offset) =
-        if [Version::Pal, Version::NtscJ].contains(&version) {
-            (0x274, 0x27c)
-        } else {
-            (0x264, 0x26c)
-        };
     let init_power_up_sym = symbol_addr!(
         "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
         version
@@ -534,21 +528,6 @@ fn patch_custom_items(
             mr           r14, r5;
             lis          r15, {power_up_max_values_sym}@h;
             addi         r15, r15, {power_up_max_values_sym}@l;
-            lwz          r4, 0x14(r1);
-            lwz          r3, {life_time_offset}(r4);
-            cmpwi        r3, 0;
-            lhz          r3, {probability_offset}(r4);
-            bne          check_custom_item;
-            cmpwi        r3, 0x42c8;
-            bne          check_custom_item;
-            li           r3, {PickupType::PowerSuit.kind()};
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r31, r0;
-            addi         r3, r3, 0x28;
-            lwz          r4, 0x4(r3);
-            addi         r4, r4, 1;
-            stw          r4, 0x4(r3);
-        check_custom_item:
             cmpwi        r29, {PickupType::ArtifactOfNewborn.kind()};
             ble          continue_init_power_up;
             cmpwi        r29, {PickupType::Nothing.kind()};
@@ -3348,28 +3327,32 @@ fn patch_inventory_gates(
 // ============================================================================
 //  RANDOMPRIME SAVE-SLOT PERSISTENT DATA - SCHEMA (single source of truth)
 // ============================================================================
-// randomprime stores its own data in CGameState's dead FRONT region. Its first serialized member
-// is a hard-coded 128-byte array (count at CGameState+0x0, inline data at +0x4), written as the
-// first 128 bytes of every save regardless of content. PutTo writes it and the load ctor reads it
-// back; nothing else touches it (verified against the NTSC 0-00 disassembly and metaforce), so we
-// overwrite it with our schema. (A tail placement was tried first but rich saves can serialize
-// almost to the buffer end and clobber it - see patch_save_overflow_guard.)
+// randomprime overwrites the 128-byte inline array that is CGameState's first serialized member
+// (count at CGameState+0x0, data at +0x4). PutTo writes it and the load ctor reads it back;
+// nothing else touches it (verified against the NTSC 0-00 disassembly and metaforce). A tail
+// placement was tried first but rich saves can serialize into it - see patch_save_overflow_guard.
 //
-// The constants below are the single source of truth: build_save_schema_block and the PPC
-// trampolines (stamp / block / name) all derive their offsets from them, and the compile-time
-// asserts fail the build if the block stops fitting. See doc/dol-patching.md.
+// These constants are the single source of truth for build_save_schema_block and the PPC
+// trampolines; the compile-time asserts fail the build if a field stops fitting. See
+// doc/dol-patching.md.
 //
-//   off  size  field      notes
-//   0    4     magic      SAVE_SCHEMA_MAGIC ("RPSV"); absent => not our save
-//   4    4     version    SAVE_SCHEMA_VERSION (current = 1)
-//   8    16    uuid       instance id; all-zero default
-//   24   36    save_name  big-endian UTF-16, null-terminated (<= 17 chars)
-//   60   68    (unused)   free front-region tail; future fields grow the block here (bump version)
+//   off  size  field           notes
+//   0    4     magic           SAVE_SCHEMA_MAGIC ("RPSV"); absent => not our save
+//   4    4     version         SAVE_SCHEMA_VERSION
+//   8    16    uuid            instance id; all-zero default
+//   24   36    save_name       big-endian UTF-16, null-terminated (<= 17 chars)
+//   60   4     completion      collected-location counter (qolGeneral completion percent)
+//   64   4     completion_max  denominator captured at save birth, so a slot's percent is stable
+//                              across instances with a different completionPercentMax
+//   68   60    (unused)        future fields grow here (bump version)
+//
+// The identity block [0, SAVE_SCHEMA_SIZE) is stamped once at save birth (patch_save_uuid_stamp).
+// The completion fields sit outside it: both are ctor-zeroed and mutated only at runtime (by the
+// completion patches), so an older save reads 0 there and no version gate is needed.
 //
 // Reads use fixed offsets independent of CPlayerState width / itemMaxCapacity, so instances with
-// different configs read each other's data. PutTo entry stamps the block (patch_save_uuid_stamp),
-// StartGame gates loads on magic+uuid (patch_save_uuid_block), and the file-select renders
-// save_name (patch_save_name).
+// different configs read each other's data. StartGame gates loads on magic+uuid
+// (patch_save_uuid_block), and the file-select renders save_name (patch_save_name).
 
 // Smallest save buffer across versions (NTSC-U / K = 0x3ac = 940; PAL and NTSC-J over-allocate).
 // Hard cap the runtime overflow guard (patch_save_overflow_guard) checks total content against.
@@ -3388,18 +3371,27 @@ const SAVE_SCHEMA_OFFSET: i32 = 0; // == buffer offset; front starts at 0
 const SAVE_FRONT_UNUSED: i32 = SAVE_FRONT_SIZE - (SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE); // 68
 
 const SAVE_SCHEMA_MAGIC: u32 = 0x5250_5356; // "RPSV"
-const SAVE_SCHEMA_VERSION: u32 = 1;
+const SAVE_SCHEMA_VERSION: u32 = 2;
 
 // Field offsets within the block.
 const SAVE_F_MAGIC: usize = 0;
 const SAVE_F_VERSION: usize = 4;
 const SAVE_F_UUID: usize = 8;
 const SAVE_F_NAME: usize = 24;
+// Outside the stamped identity block (>= SAVE_SCHEMA_SIZE) so re-saves don't clobber them.
+const SAVE_F_COMPLETION: usize = 60;
+const SAVE_F_COMPLETION_MAX: usize = 64;
 
 // Absolute buffer offsets (block start + field), used by the trampolines.
 const SAVE_OFF_MAGIC: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_MAGIC as i32;
 const SAVE_OFF_UUID: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_UUID as i32;
 const SAVE_OFF_NAME: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_NAME as i32;
+const SAVE_OFF_COMPLETION: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_COMPLETION as i32;
+const SAVE_OFF_COMPLETION_MAX: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_COMPLETION_MAX as i32;
+// Completion fields within the live CGameState object.
+const SAVE_COMPLETION_MEMBER_OFF: i32 = SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION as i32; // 0x40
+const SAVE_COMPLETION_MAX_MEMBER_OFF: i32 =
+    SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION_MAX as i32; // 0x44
 
 const UUID_BYTES: usize = 16;
 
@@ -3427,6 +3419,18 @@ const _: () = assert!(
 const _: () = assert!(
     SAVE_F_UUID + UUID_BYTES <= SAVE_F_NAME,
     "uuid field overlaps save_name"
+);
+const _: () = assert!(
+    SAVE_F_NAME + SAVE_NAME_WORDS * 4 <= SAVE_F_COMPLETION,
+    "completion counter overlaps the uuid/name identity fields"
+);
+const _: () = assert!(
+    SAVE_F_COMPLETION + 4 <= SAVE_F_COMPLETION_MAX,
+    "completion counter overlaps completion_max"
+);
+const _: () = assert!(
+    SAVE_F_COMPLETION_MAX + 4 <= SAVE_FRONT_SIZE as usize,
+    "completion fields overflow CGameState's dead front region"
 );
 const _: () = assert!((SAVE_NAME_MAX_CHARS + 1) <= SAVE_NAME_WORDS * 2);
 const _: () =
@@ -3562,6 +3566,9 @@ fn reserve_save_uuid_data(
 // Stamp the schema block into CGameState's front-region member on PutTo entry, into the LIVE
 // object (not the output buffer). PutTo's own unmodified serialization loop then writes those
 // bytes to buffer offset 0 moments later.
+//
+// Stamp-once: skip the copy when magic is already present. Re-stamping every PutTo would clobber
+// runtime-owned fields (the completion counter) and re-derive save_name from the current ISO.
 fn patch_save_uuid_stamp(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3582,8 +3589,13 @@ fn patch_save_uuid_stamp(
 
     let putto_orig = dol_patcher.read_u32(putto)?;
     emitter.emit_and_patch(dol_patcher, putto, false, |cave_addr| {
-        // r3 = CGameState* (this); use r6/r9/r12 as scratch.
+        // r3 = CGameState* (this); r0/r5/r6/r9/r12 volatile scratch.
         ppcasm!(cave_addr, {
+            lwz   r0, { SAVE_FRONT_DATA_MEMBER_OFF + SAVE_OFF_MAGIC }(r3);
+            lis   r5, { (SAVE_SCHEMA_MAGIC >> 16) as i32 };
+            ori   r5, r5, { (SAVE_SCHEMA_MAGIC & 0xffff) as i32 };
+            cmplw r0, r5;
+            beq   already_stamped;   // already born, don't re-stamp
             addi  r12, r3, { SAVE_FRONT_DATA_MEMBER_OFF + SAVE_SCHEMA_OFFSET }; // front-region base
             lis   r9, { (block_addr >> 16) as i32 };
             ori   r9, r9, { (block_addr & 0xffff) as i32 };
@@ -3596,6 +3608,7 @@ fn patch_save_uuid_stamp(
             addi  r6, r6, -1;
             cmpwi r6, 0;
             bne   stamp_loop;
+        already_stamped:
             .long putto_orig;        // displaced prologue
             b     { putto + 4 };
         })
@@ -3775,6 +3788,212 @@ fn patch_save_name(
         } else {
             name_tramp!(r25, r26)
         }
+    })?;
+
+    Ok(())
+}
+
+// ============================================================================
+//  COMPLETION PERCENT (qolGeneral) - redefine "completion" as collected locations
+// ============================================================================
+// Completion = collected locations / completionPercentMax, replacing retail's inventory-based
+// percent (meaningless once starting items / totals / multiworld decouple inventory from locations).
+//
+//   P1  GetTotalPickupCount         -> completionPercentMax       (live denominator)
+//   P2  CalculateItemCollectionRate -> live gpGameState counter   (live numerator)
+//   P3  LoadGameFileState preview   -> a slot's own counter and denominator, from its raw buffer
+//   P4  CScriptPickup::Touch        -> bump the counter (and stamp the denominator) on a collection
+//
+// P2 ignores its CPlayerState `this` and always returns the live counter, wrong only for the
+// save-slot preview (it deserializes a temp CPlayerState per slot); P3 fixes that one callsite. A
+// slot stores its own completionPercentMax so its percent stays fixed when a different instance
+// (a different completionPercentMax) previews it. The fields live in the save-owned front region
+// (SAVE_F_COMPLETION / SAVE_F_COMPLETION_MAX); see the save-schema header.
+//
+// All six versions are supported. P1/P2/P4 are the same shape everywhere; only P3 and a few struct
+// offsets vary (see the CompletionLayout table). See agent/completion-versions.md for the recon.
+
+// How LoadGameFileState renders the preview percent - the two shapes P3 must handle.
+enum CompletionPreview {
+    // NTSC-U family + Korean compute it inline: `bl CalcRate; mulli r0,rN,100; divw r0,r0,r30`.
+    // P3 replaces the call (returning the slot's counter) and overrides r30, the denominator, with
+    // the slot's stored max. r30 is dead after the divide on every inline version.
+    Inline { rate_call_off: u32 },
+    // PAL / NTSC-J refactor it into a helper whose return value is stored straight into the
+    // preview. P3 replaces the `bl <helper>` and returns counter*100/max itself (0 when max==0).
+    Helper { call_off: u32 },
+}
+
+// Per-version hook offsets. P1/P2 need only symbol addresses; these pin the P3/P4 hook sites and
+// the CScriptPickup fields P4 reads (that class shifts +0x10 on 1.02/PAL/NTSC-J).
+struct CompletionLayout {
+    preview: CompletionPreview,
+    // P3: r1-relative frame slot of the CMemoryInStream's stable base ptr (this-slot + CInputStream
+    // ptr member 0x10); 0x20 on every version.
+    stream_base_off: i32,
+    // P4: offset within CScriptPickup::Touch of the instruction after `bl IncrPickUp`.
+    touch_incr_hook_off: u32,
+    // P4: CScriptPickup::x26c_lifeTime and the x28c bitfield byte (bit 0x80 = generated).
+    pickup_lifetime_off: i32,
+    pickup_generated_off: i32,
+}
+
+fn completion_layout(version: Version) -> Option<CompletionLayout> {
+    use CompletionPreview::*;
+    let (preview, touch_incr_hook_off, pickup_lifetime_off, pickup_generated_off) = match version {
+        Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscK => (
+            Inline {
+                rate_call_off: 0x11c,
+            },
+            0x23c,
+            0x26c,
+            0x28c,
+        ),
+        Version::NtscU0_02 => (
+            Inline {
+                rate_call_off: 0x11c,
+            },
+            0x23c,
+            0x27c,
+            0x29c,
+        ),
+        Version::Pal | Version::NtscJ => (Helper { call_off: 0x110 }, 0x204, 0x27c, 0x29c),
+        Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy => return None,
+    };
+    Some(CompletionLayout {
+        preview,
+        stream_base_off: 0x20,
+        touch_incr_hook_off,
+        pickup_lifetime_off,
+        pickup_generated_off,
+    })
+}
+
+fn patch_completion_percent(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    if !config.qol_general {
+        return Ok(());
+    }
+    let Some(layout) = completion_layout(version) else {
+        return Ok(());
+    };
+    // All four hooks form one feature; if any required symbol is missing, install nothing.
+    let (Some(total_count), Some(calc_rate), Some(load_state), Some(touch), Some(game_state_ptr)) = (
+        symbol_addr_opt!("GetTotalPickupCount__12CPlayerStateCFv", version),
+        symbol_addr_opt!("CalculateItemCollectionRate__12CPlayerStateCFv", version),
+        symbol_addr_opt!("LoadGameFileState__10CGameStateFPCv", version),
+        symbol_addr_opt!("Touch__13CScriptPickupFR6CActorR13CStateManager", version),
+        symbol_addr_opt!("gpGameState", version),
+    ) else {
+        return Ok(());
+    };
+
+    // Validated to fit a positive 16-bit `li` immediate (see patch_config).
+    let max = config.completion_percent_max as i32;
+    let gpgs_hi = (game_state_ptr >> 16) as i32;
+    let gpgs_lo = (game_state_ptr & 0xffff) as i32;
+
+    // P1: retail is exactly `li r3, 99; blr` (8 bytes), so the replacement must stay 2 instrs -
+    // hence the <= 0x7fff cap on max.
+    dol_patcher.ppcasm_patch(&ppcasm!(total_count, {
+        li  r3, { max };
+        blr;
+    }))?;
+
+    // P2: live counter at gpGameState+0x40, ignoring `this`. Null-safe before a game state exists.
+    dol_patcher.ppcasm_patch(&ppcasm!(calc_rate, {
+        lis    r4, { gpgs_hi };
+        ori    r4, r4, { gpgs_lo };
+        lwz    r3, 0x0(r4);          // r3 = CGameState*
+        cmplwi r3, 0;
+        beq    calc_rate_zero;
+        lwz    r3, { SAVE_COMPLETION_MEMBER_OFF }(r3);
+        blr;
+    calc_rate_zero:
+        li     r3, 0;
+        blr;
+    }))?;
+
+    // P3: the CMemoryInStream keeps a stable base pointer at a fixed frame slot, from which both
+    // hooks read the previewed slot's stored counter and max.
+    let stream_base_off = layout.stream_base_off;
+    match layout.preview {
+        // Inline: replace `bl CalcRate` with a stub returning the slot's counter, and overwrite the
+        // dead r30 with the slot's max so the untouched `mulli;divw` divides by it
+        CompletionPreview::Inline { rate_call_off } => {
+            let rate_call = load_state + rate_call_off;
+            emitter.emit_and_patch(dol_patcher, rate_call, true, |cave_addr| {
+                ppcasm!(cave_addr, {
+                    lwz    r4, { stream_base_off }(r1);
+                    lwz    r5, { SAVE_OFF_COMPLETION_MAX }(r4);
+                    cmplwi r5, 0;
+                    beq    keep_denom;
+                    mr     r30, r5;
+                keep_denom:
+                    lwz    r3, { SAVE_OFF_COMPLETION }(r4);
+                    blr;
+                })
+                .encoded_bytes()
+            })?;
+        }
+        CompletionPreview::Helper { call_off } => {
+            let helper_call = load_state + call_off;
+            emitter.emit_and_patch(dol_patcher, helper_call, true, |cave_addr| {
+                ppcasm!(cave_addr, {
+                    lwz    r4, { stream_base_off }(r1);
+                    lwz    r5, { SAVE_OFF_COMPLETION_MAX }(r4);
+                    lwz    r3, { SAVE_OFF_COMPLETION }(r4);
+                    cmplwi r5, 0;
+                    beq    helper_zero;
+                    mulli  r3, r3, 100;
+                    divw   r3, r3, r5;
+                    blr;
+                helper_zero:
+                    li     r3, 0;
+                    blr;
+                })
+                .encoded_bytes()
+            })?;
+        }
+    }
+
+    // P4: hooked after `bl IncrPickUp`, outside the `capacity > 0` block so maxIncrease:0 and
+    // HealthRefill locations still count. Counts only static world pickups: lifeTime == 0 AND not
+    // runtime-generated; enemy/crate drops fail one or both tests. Also stamps the slot's
+    // denominator here, so any save with a nonzero counter carries the matching max (P3).
+    let touch_hook = touch + layout.touch_incr_hook_off;
+    let touch_ret = touch_hook + 4;
+    let lifetime_off = layout.pickup_lifetime_off;
+    let generated_off = layout.pickup_generated_off;
+    let touch_orig = dol_patcher.read_u32(touch_hook)?; // lhz r0, 0x8(r29)
+    emitter.emit_and_patch(dol_patcher, touch_hook, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            // r29 = CScriptPickup* (live); r11/r12 volatile scratch.
+            lwz    r12, { lifetime_off }(r29); // lifeTime; +0.0 encodes as 0
+            cmplwi r12, 0;
+            bne    incr_done;
+            lbz    r12, { generated_off }(r29);
+            andi   r12, r12, 0x80;     // generated bit
+            bne    incr_done;
+            lis    r11, { gpgs_hi };
+            ori    r11, r11, { gpgs_lo };
+            lwz    r12, 0x0(r11);
+            cmplwi r12, 0;
+            beq    incr_done;
+            lwz    r11, { SAVE_COMPLETION_MEMBER_OFF }(r12);
+            addi   r11, r11, 1;
+            stw    r11, { SAVE_COMPLETION_MEMBER_OFF }(r12);
+            li     r11, { max };
+            stw    r11, { SAVE_COMPLETION_MAX_MEMBER_OFF }(r12);
+        incr_done:
+            .long touch_orig;          // displaced: lhz r0, 0x8(r29)
+            b      { touch_ret };
+        })
+        .encoded_bytes()
     })?;
 
     Ok(())
@@ -4219,6 +4438,7 @@ pub fn patch_dol(
     patch_save_uuid_stamp(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
     patch_save_uuid_block(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
     patch_save_name(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
+    patch_completion_percent(&mut dol_patcher, &mut emitter, version, config)?;
     // Unconditional: protects save integrity. Only the verbose report is gated on os_diagnostics.
     patch_save_overflow_guard(
         &mut dol_patcher,
