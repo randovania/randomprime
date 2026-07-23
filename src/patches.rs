@@ -53,8 +53,11 @@ use crate::{
     starting_items::StartingItems,
     structs::LightLayer,
     txtr_conversions::{
-        cmpr_compress, cmpr_decompress, huerotate_in_place, huerotate_matrix,
-        GRAVITY_SUIT_TEXTURES, PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, VARIA_SUIT_TEXTURES,
+        cmpr_compress, cmpr_decompress, huerotate_in_place, huerotate_matrix, whiten_in_place,
+        FUSION_GRAVITY_SUIT_TEXTURES, FUSION_PHAZON_BALL_TEXTURES, FUSION_PHAZON_SUIT_TEXTURES,
+        FUSION_POWER_SUIT_TEXTURES, FUSION_VARIA_SUIT_TEXTURES, GRAVITY_SUIT_TEXTURES,
+        PHAZON_SPIDER_BALL_TEXTURES,
+        PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, SHIP_TEXTURES, VARIA_SUIT_TEXTURES,
     },
     GcDiscLookupExtensions,
 };
@@ -4222,6 +4225,74 @@ fn add_map_pickup_icon_txtr(file: &mut structs::FstEntryFile) -> Result<(), Stri
     );
     res.compressed = false;
     cursor.insert_after(iter::once(res));
+    Ok(())
+}
+
+struct SharedSuitTexture {
+    original: ResourceInfo,
+    cmdls: &'static [ResourceInfo],
+    copy: ResId<res_id::TXTR>,
+}
+
+// power_head_chest_incan is the power suit's chest glow, reused by the varia
+// suit. Create a copy and update the varia CMDLs so they can be recolored independently
+const SHARED_SUIT_TEXTURES: &[SharedSuitTexture] = &[SharedSuitTexture {
+    original: resource_info!("power_head_chest_incan.TXTR"),
+    cmdls: &[
+        resource_info!("variasuit_high_rez_bound.CMDL"),
+        resource_info!("NoARAM/Varia.CMDL"),
+        resource_info!("Varia_split_2.CMDL"),
+    ],
+    copy: custom_asset_ids::VARIA_HEAD_CHEST_INCAN_TXTR,
+}];
+
+fn append_suit_texture_copy(
+    file: &mut structs::FstEntryFile,
+    original_id: u32,
+    copy_id: u32,
+) -> Result<(), String> {
+    let pak = match file {
+        structs::FstEntryFile::Pak(pak) => pak,
+        _ => return Ok(()),
+    };
+
+    let copy = pak
+        .resources
+        .iter()
+        .find(|res| res.file_id == original_id && res.fourcc() == b"TXTR".into())
+        .map(|res| res.into_owned());
+    let mut copy = match copy {
+        Some(copy) => copy,
+        None => return Ok(()),
+    };
+    copy.file_id = copy_id;
+
+    let mut cursor = pak.resources.cursor();
+    while cursor.cursor_advancer().peek().is_some() {}
+    cursor.insert_after(iter::once(copy));
+    Ok(())
+}
+
+fn repoint_cmdl_texture(
+    res: &mut structs::Resource,
+    original_id: u32,
+    copy_id: ResId<res_id::TXTR>,
+) -> Result<(), String> {
+    let cmdl_bytes = crate::ResourceData::new(res).decompress().into_owned();
+    let mut cmdl = Reader::new(&cmdl_bytes[..]).read::<structs::Cmdl>(());
+
+    for material_set in cmdl.material_sets.as_mut_vec() {
+        for texture_id in material_set.texture_ids.as_mut_vec() {
+            if texture_id.to_u32() == original_id {
+                *texture_id = copy_id;
+            }
+        }
+    }
+
+    let mut new_bytes = vec![];
+    cmdl.write_to(&mut new_bytes).unwrap();
+    res.kind = structs::ResourceKind::External(new_bytes, b"CMDL".into());
+    res.compressed = false;
     Ok(())
 }
 
@@ -17700,27 +17771,86 @@ fn build_and_run_patches<'r>(
         );
     }
 
-    if config.suit_colors.is_some() {
-        let suit_colors = config.suit_colors.as_ref().unwrap();
-        let mut suit_textures = Vec::new();
-        let mut angles = Vec::new();
+    if let Some(suit_colors) = config.suit_colors.as_ref() {
+        let ship_angle = [suit_colors.power_deg, suit_colors.varia_deg]
+            .into_iter()
+            .flatten()
+            .find(|deg| deg % 360 != 0);
+        let mut suit_lists: Vec<(Vec<ResourceInfo>, Option<i16>)> = [
+            (POWER_SUIT_TEXTURES, suit_colors.power_deg),
+            (FUSION_POWER_SUIT_TEXTURES, suit_colors.power_deg),
+            (VARIA_SUIT_TEXTURES, suit_colors.varia_deg),
+            (FUSION_VARIA_SUIT_TEXTURES, suit_colors.varia_deg),
+            (GRAVITY_SUIT_TEXTURES, suit_colors.gravity_deg),
+            (FUSION_GRAVITY_SUIT_TEXTURES, suit_colors.gravity_deg),
+            (PHAZON_SUIT_TEXTURES, suit_colors.phazon_deg),
+            (FUSION_PHAZON_SUIT_TEXTURES, suit_colors.phazon_deg),
+            (SHIP_TEXTURES, ship_angle),
+        ]
+        .into_iter()
+        .map(|(textures, angle)| (textures.to_vec(), angle))
+        .collect();
 
-        if suit_colors.power_deg.is_some() {
-            suit_textures.push(POWER_SUIT_TEXTURES);
-            angles.push(suit_colors.power_deg.unwrap());
+        if config.rainbow_phazon_ball {
+            let ball_ids: HashSet<u32> = PHAZON_SPIDER_BALL_TEXTURES
+                .iter()
+                .map(|t| t.res_id)
+                .collect();
+            for (textures, _) in suit_lists.iter_mut() {
+                textures.retain(|t| !ball_ids.contains(&t.res_id));
+            }
         }
-        if suit_colors.varia_deg.is_some() {
-            suit_textures.push(VARIA_SUIT_TEXTURES);
-            angles.push(suit_colors.varia_deg.unwrap());
+
+        // Give the second suit sharing a texture its own recolorable copy
+        let normalize = |deg: Option<i16>| deg.unwrap_or(0).rem_euclid(360);
+        for shared in SHARED_SUIT_TEXTURES {
+            let owner_angle = suit_lists
+                .iter()
+                .find(|(textures, _)| textures.iter().any(|t| t.res_id == shared.original.res_id))
+                .map(|(_, angle)| normalize(*angle))
+                .unwrap_or(0);
+
+            let mut owner_pending = true;
+            let mut duplicated = false;
+            for (textures, angle) in suit_lists.iter_mut() {
+                if !textures.iter().any(|t| t.res_id == shared.original.res_id) {
+                    continue;
+                }
+                if owner_pending {
+                    owner_pending = false;
+                    continue;
+                }
+                if normalize(*angle) == owner_angle {
+                    continue;
+                }
+                for t in textures.iter_mut() {
+                    if t.res_id == shared.original.res_id {
+                        t.res_id = shared.copy.to_u32();
+                        t.paks = shared.original.paks;
+                    }
+                }
+                duplicated = true;
+            }
+
+            if !duplicated {
+                continue;
+            }
+
+            let original_id = shared.original.res_id;
+            let copy = shared.copy;
+            for pak_name in shared.original.paks {
+                patcher.add_file_patch(pak_name, move |file| {
+                    append_suit_texture_copy(file, original_id, copy.to_u32())
+                });
+            }
+            for cmdl in shared.cmdls {
+                patcher.add_resource_patch((*cmdl).into(), move |res| {
+                    repoint_cmdl_texture(res, original_id, copy)
+                });
+            }
         }
-        if suit_colors.gravity_deg.is_some() {
-            suit_textures.push(GRAVITY_SUIT_TEXTURES);
-            angles.push(suit_colors.gravity_deg.unwrap());
-        }
-        if suit_colors.phazon_deg.is_some() {
-            suit_textures.push(PHAZON_SUIT_TEXTURES);
-            angles.push(suit_colors.phazon_deg.unwrap());
-        }
+
+        let mut rotated_ids = HashSet::new();
 
         let mut complained: bool = false;
         if !Path::new(&config.cache_dir).is_dir() {
@@ -17735,8 +17865,11 @@ fn build_and_run_patches<'r>(
                 }
             }
         }
-        for i in 0..suit_textures.len() {
-            let angle = angles[i] % 360;
+        for (suit_textures, angle) in &suit_lists {
+            let angle = match *angle {
+                Some(angle) => angle % 360,
+                None => continue,
+            };
             if angle == 0 {
                 continue;
             }
@@ -17759,7 +17892,10 @@ fn build_and_run_patches<'r>(
             }
 
             let matrix = huerotate_matrix(angle);
-            for texture in suit_textures[i] {
+            for texture in suit_textures {
+                if !rotated_ids.insert(texture.res_id) {
+                    continue;
+                }
                 patcher.add_resource_patch((*texture).into(), move |res| {
                     let res_data;
                     let data;
@@ -17830,6 +17966,53 @@ fn build_and_run_patches<'r>(
                     Ok(())
                 })
             }
+        }
+    }
+
+    if config.rainbow_phazon_ball {
+        for texture in PHAZON_SPIDER_BALL_TEXTURES
+            .iter()
+            .chain(FUSION_PHAZON_BALL_TEXTURES)
+        {
+            let brightness_percent = if FUSION_PHAZON_BALL_TEXTURES.contains(texture) {
+                95
+            } else {
+                15
+            };
+            patcher.add_resource_patch((*texture).into(), move |res| {
+                let res_data;
+                let data;
+                let mut txtr: structs::Txtr = match &res.kind {
+                    structs::ResourceKind::Unknown(_, _) => {
+                        res_data = crate::ResourceData::new(res);
+                        data = res_data.decompress().into_owned();
+                        let mut reader = Reader::new(&data[..]);
+                        reader.read(())
+                    }
+                    structs::ResourceKind::External(_, _) => {
+                        res_data = crate::ResourceData::new_external(res);
+                        data = res_data.decompress().into_owned();
+                        let mut reader = Reader::new(&data[..]);
+                        reader.read(())
+                    }
+                    _ => panic!("Unsupported resource kind for blackening."),
+                };
+                let mut w = txtr.width as usize;
+                let mut h = txtr.height as usize;
+                for mipmap in txtr.pixel_data.as_mut_vec() {
+                    let mut decompressed_bytes = vec![0u8; w * h * 4];
+                    cmpr_decompress(&mipmap.as_mut_vec()[..], h, w, &mut decompressed_bytes[..]);
+                    whiten_in_place(&mut decompressed_bytes[..], brightness_percent);
+                    cmpr_compress(&decompressed_bytes[..], w, h, &mut mipmap.as_mut_vec()[..]);
+                    w /= 2;
+                    h /= 2;
+                }
+                let mut bytes = vec![];
+                txtr.write_to(&mut bytes).unwrap();
+                res.kind = structs::ResourceKind::External(bytes, b"TXTR".into());
+                res.compressed = false;
+                Ok(())
+            });
         }
     }
 

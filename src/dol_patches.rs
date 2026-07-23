@@ -2171,6 +2171,228 @@ fn patch_gameplay_tweaks(
     Ok(())
 }
 
+fn patch_ball_glow_normalized(
+    dol_patcher: &mut DolPatcher<'_>,
+    version: Version,
+    config: &PatchConfig,
+    rainbow_ball: bool,
+) -> Result<(), String> {
+    let (power, gravity, varia, phazon) = config
+        .suit_colors
+        .as_ref()
+        .map(|s| {
+            (
+                s.power_deg.unwrap_or(0),
+                s.gravity_deg.unwrap_or(0),
+                s.varia_deg.unwrap_or(0),
+                s.phazon_deg.unwrap_or(0),
+            )
+        })
+        .unwrap_or((0, 0, 0, 0));
+
+    // Retail contents of each glow table (9 slots x RGB), preserved verbatim.
+    let retail: [[u8; 27]; 7] = [
+        // skBallInnerGlowColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
+            0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
+        ],
+        // BallGlowColors
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
+            0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        ],
+        // BallTransFlashColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
+            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+        ],
+        // BallAuxGlowColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
+            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+        ],
+        // BallSwooshColors
+        [
+            0xc2, 0x8f, 0x17, 0x70, 0xd4, 0xff, 0x6a, 0xff, 0x8a, 0x3d, 0x4d, 0xff, 0xc0, 0x00,
+            0x00, 0x00, 0xbe, 0xdc, 0xdf, 0xff, 0x00, 0xc4, 0x9e, 0xff, 0xff, 0x9a, 0x22,
+        ],
+        // BallSwooshColorsCharged
+        [
+            0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0x80,
+            0x20, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00,
+        ],
+        // BallSwooshColorsJaggy
+        [
+            0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xd5,
+            0x19, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00,
+        ],
+    ];
+
+    // Owning suit of each color slot, all keeping their retail color and rotated by the owner's deg:
+    // idx0 Power, idx1 Varia non-spider, idx2 Varia spider, idx3 Gravity, idx4 Phazon. Fusion slots:
+    // idx5 Power+F, idx6 Varia+F, idx7 Gravity+F, idx8 Phazon+F.
+    let slot_deg = [
+        power, varia, varia, gravity, phazon, power, varia, gravity, phazon,
+    ];
+
+    let addrs = [
+        symbol_addr!("skBallInnerGlowColors", version),
+        symbol_addr!("BallGlowColors", version),
+        symbol_addr!("BallTransFlashColors", version),
+        symbol_addr!("BallAuxGlowColors", version),
+        symbol_addr!("BallSwooshColors", version),
+        symbol_addr!("BallSwooshColorsCharged", version),
+        symbol_addr!("BallSwooshColorsJaggy", version),
+    ];
+    for (addr, base) in addrs.iter().zip(retail.iter()) {
+        let mut table = *base;
+        for (slot, &deg) in slot_deg.iter().enumerate() {
+            let deg = deg.rem_euclid(360);
+            if deg == 0 {
+                continue;
+            }
+            let rgb = huerotate_color(
+                huerotate_matrix(deg as f32),
+                table[slot * 3],
+                table[slot * 3 + 1],
+                table[slot * 3 + 2],
+            );
+            table[slot * 3..slot * 3 + 3].copy_from_slice(&rgb);
+        }
+        if rainbow_ball {
+            // Phazon slot 4 and fusion-phazon slot 8: match patch_phazon_ball_rainbow's counter-0 red.
+            table[12..15].copy_from_slice(&[0xff, 0x00, 0x00]);
+            table[24..27].copy_from_slice(&[0xff, 0x00, 0x00]);
+        }
+        dol_patcher.patch(*addr, table.to_vec().into())?;
+    }
+
+    // Re-point the glow-index tables (unsymbolized skMorphBallModelTables members, uint[8] BE),
+    // indexed by modelIdx = suitRaw (Power, Gravity, Varia, Phazon); fusion adds 4. Each suit gets a
+    // single color across spider/non-spider except Varia, which keeps its two retail colors.
+    // Non-spider: Power->0, Gravity->3, Varia->1, Phazon->4.
+    // Spider:     Power->0, Gravity->3, Varia->2, Phazon->4.
+    let pack = |idx: [u32; 8]| -> Vec<u8> { idx.iter().flat_map(|i| i.to_be_bytes()).collect() };
+    let glow_colors = symbol_addr!("BallGlowColors", version);
+    dol_patcher.patch(glow_colors - 0x40, pack([0, 3, 2, 4, 5, 7, 6, 8]).into())?; // x180 spider
+    dol_patcher.patch(glow_colors - 0x20, pack([0, 3, 1, 4, 5, 7, 6, 8]).into())?; // x1a0 non-spider
+
+    Ok(())
+}
+
+fn patch_phazon_ball_rainbow(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let counter = emitter.emit_addressed(dol_patcher, |_addr| vec![0u8; 4])?;
+    let hook = symbol_addr!("Update__10CMorphBallFfR13CStateManager", version);
+    let ret = hook + 4;
+    let displaced = dol_patcher.read_u32(hook)?;
+
+    let slot4_base = symbol_addr!("BallGlowColors", version) + 0xc;
+    let tramp = emitter.emit_addressed(dol_patcher, |addr| {
+        ppcasm!(addr, {
+                stwu    r1, -0x30(r1);
+                stw     r3, 0x28(r1);
+                stw     r4, 0x24(r1);
+                stw     r5, 0x20(r1);
+                stw     r6, 0x1c(r1);
+                stw     r7, 0x18(r1);
+                stw     r8, 0x14(r1);
+                stw     r9, 0x10(r1);
+                stw     r10, 0x0c(r1);
+                stw     r11, 0x08(r1);
+                lis     r3, {counter}@h;
+                addi    r3, r3, {counter}@l;
+                lwz     r5, 0x0(r3);
+                rlwinm  r6, r5, 24, 8, 31;
+                rlwinm  r7, r5, 0, 24, 31;
+                li      r4, 255;
+                subf    r8, r7, r4;
+                cmpwi   r6, 0;
+                beq     reg0;
+                cmpwi   r6, 1;
+                beq     reg1;
+                cmpwi   r6, 2;
+                beq     reg2;
+                cmpwi   r6, 3;
+                beq     reg3;
+                cmpwi   r6, 4;
+                beq     reg4;
+                li      r9, 255;
+                li      r10, 0;
+                mr      r11, r8;
+                b       store;
+            reg0:
+                li      r9, 255;
+                mr      r10, r7;
+                li      r11, 0;
+                b       store;
+            reg1:
+                mr      r9, r8;
+                li      r10, 255;
+                li      r11, 0;
+                b       store;
+            reg2:
+                li      r9, 0;
+                li      r10, 255;
+                mr      r11, r7;
+                b       store;
+            reg3:
+                li      r9, 0;
+                mr      r10, r8;
+                li      r11, 255;
+                b       store;
+            reg4:
+                mr      r9, r7;
+                li      r10, 0;
+                li      r11, 255;
+            store:
+                lis     r3, {slot4_base}@h;
+                addi    r3, r3, {slot4_base}@l;
+                li      r4, 7;
+            storelp:
+                stb     r9, 0x0(r3);
+                stb     r10, 0x1(r3);
+                stb     r11, 0x2(r3);
+                stb     r9, 0xc(r3);
+                stb     r10, 0xd(r3);
+                stb     r11, 0xe(r3);
+                addi    r3, r3, 0x1c;
+                addi    r4, r4, -1;
+                cmpwi   r4, 0;
+                bne     storelp;
+                addi    r5, r5, 1;
+                cmpwi   r5, 1536;
+                blt     savec;
+                addi    r5, r5, -1536;
+            savec:
+                lis     r3, {counter}@h;
+                addi    r3, r3, {counter}@l;
+                stw     r5, 0x0(r3);
+                lwz     r3, 0x28(r1);
+                lwz     r4, 0x24(r1);
+                lwz     r5, 0x20(r1);
+                lwz     r6, 0x1c(r1);
+                lwz     r7, 0x18(r1);
+                lwz     r8, 0x14(r1);
+                lwz     r9, 0x10(r1);
+                lwz     r10, 0x0c(r1);
+                lwz     r11, 0x08(r1);
+                addi    r1, r1, 0x30;
+                .long   displaced;
+                b       {ret};
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(hook, {
+        b { tramp };
+    }))?;
+    Ok(())
+}
+
 fn patch_cosmetic(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -2178,6 +2400,12 @@ fn patch_cosmetic(
     config: &PatchConfig,
 ) -> Result<(), String> {
     let remove_ball_color = config.ctwk_config.morph_ball_size.unwrap_or(1.0) < 0.999;
+    let rainbow_ball = config.rainbow_phazon_ball
+        && !remove_ball_color
+        && matches!(
+            version,
+            Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscU0_02
+        );
 
     if remove_ball_color {
         let colors = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
@@ -2206,75 +2434,12 @@ fn patch_cosmetic(
             colors.clone().into(),
         )?;
         dol_patcher.patch(symbol_addr!("BallGlowColors", version), colors.into())?;
-    } else if let Some(suit_colors) = config.suit_colors.as_ref() {
-        let mut colors: Vec<Vec<u8>> = vec![
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
-                0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
-            ],
-            vec![
-                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
-                0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ],
-            vec![
-                0xC2, 0x8F, 0x17, 0x70, 0xD4, 0xFF, 0x6A, 0xFF, 0x8A, 0x3D, 0x4D, 0xFF, 0xC0, 0x00,
-                0x00, 0x00, 0xBE, 0xDC, 0xDF, 0xFF, 0x00, 0xC4, 0x9E, 0xFF, 0xFF, 0x9A, 0x22,
-            ],
-            vec![
-                0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xD5,
-                0x19, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00,
-            ],
-            vec![
-                0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0x80,
-                0x20, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00,
-            ],
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ],
-        ];
-        for color in colors.iter_mut() {
-            for j in 0..9 {
-                let angle = if [0].contains(&j) && suit_colors.power_deg.is_some() {
-                    suit_colors.power_deg.unwrap()
-                } else if [1, 2].contains(&j) && suit_colors.varia_deg.is_some() {
-                    suit_colors.varia_deg.unwrap()
-                } else if [3].contains(&j) && suit_colors.gravity_deg.is_some() {
-                    suit_colors.gravity_deg.unwrap()
-                } else if [4].contains(&j) && suit_colors.phazon_deg.is_some() {
-                    suit_colors.phazon_deg.unwrap()
-                } else {
-                    0
-                };
-                let angle = angle % 360;
-                if angle == 0 {
-                    continue;
-                }
-                let matrix = huerotate_matrix(angle as f32);
-                let r_idx = j * 3;
-                let new_rgb =
-                    huerotate_color(matrix, color[r_idx], color[r_idx + 1], color[r_idx + 2]);
-                color[r_idx] = new_rgb[0];
-                color[r_idx + 1] = new_rgb[1];
-                color[r_idx + 2] = new_rgb[2];
-            }
-        }
-        let addrs = [
-            symbol_addr!("skBallInnerGlowColors", version),
-            symbol_addr!("BallAuxGlowColors", version),
-            symbol_addr!("BallTransFlashColors", version),
-            symbol_addr!("BallSwooshColors", version),
-            symbol_addr!("BallSwooshColorsJaggy", version),
-            symbol_addr!("BallSwooshColorsCharged", version),
-            symbol_addr!("BallGlowColors", version),
-        ];
-        for (addr, color) in addrs.iter().zip(colors.into_iter()) {
-            dol_patcher.patch(*addr, color.into())?;
-        }
+    } else {
+        patch_ball_glow_normalized(dol_patcher, version, config, rainbow_ball)?;
+    }
+
+    if rainbow_ball {
+        patch_phazon_ball_rainbow(dol_patcher, emitter, version)?;
     }
 
     if config.qol_cosmetic {

@@ -70,6 +70,8 @@ pub const GRAVITY_SUIT_TEXTURES: &[ResourceInfo] = &[
     resource_info!("f_varia_head_incan.TXTR"),
     resource_info!("f_varia_arms.TXTR"),
     resource_info!("f_varia_arms_incan.TXTR"),
+    resource_info!("f_varia_reflected.TXTR"),
+    resource_info!("power_reflected_l_blue.TXTR"),
     // Low poly TestAnim/GravitySuit.CMDL
     resource_info!("349AD971.TXTR"),
     resource_info!("A082D0BF.TXTR"),
@@ -126,29 +128,91 @@ pub const PHAZON_SUIT_TEXTURES: &[ResourceInfo] = &[
     resource_info!("06CE2C16.TXTR"),
 ];
 
+// Full-detail phazon spider ball only: body TestAnim/Node1_0.CMDL (SamusPhazonBallANCS) and glass
+// shell TestAnim/SamusPhazonBallGlassCMDL.CMDL. Excludes the low-poly transition texture so the
+// morph/unmorph transition keeps its stock look.
+pub const PHAZON_SPIDER_BALL_TEXTURES: &[ResourceInfo] = &[
+    resource_info!("8B105F2E.TXTR"),
+    resource_info!("2F1AC0DD.TXTR"),
+    resource_info!("8BF681E5.TXTR"),
+    resource_info!("51F20A44.TXTR"),
+    resource_info!("D3889172.TXTR"),
+    resource_info!("0B3DBDB4.TXTR"),
+];
+
+pub const FUSION_PHAZON_BALL_TEXTURES: &[ResourceInfo] = &[
+    resource_info!("B1986E4B.TXTR"),
+    resource_info!("D1CD17F3.TXTR"),
+];
+
 // Fusion morph ball ANCS TestAnim/Fusion_Ball.ANCS
 pub const FUSION_POWER_SUIT_TEXTURES: &[ResourceInfo] = &[
     // High res Characters/Samus/cooked/fusion_suit_high_rez_bound.CMDL
-    // Low poly TestAnim/FusionSuit.CMDL
-    // Left arm SamusGun/Fusion.CMDL
+    // Left arm SamusGun/Fusion.CMDL (torso + arms_legs)
+    resource_info!("fusion_head_chest.TXTR"),
+    resource_info!("fusion_torso.TXTR"),
+    resource_info!("fusion_arms_legs.TXTR"),
+    // Low poly morph/unmorph transition TestAnim/BallTransitions FusionSuit.CMDL
+    resource_info!("100032C8.TXTR"),
+    resource_info!("67C7C1EB.TXTR"),
+    resource_info!("848EC21E.TXTR"),
+    // Morph ball shell - SamusFusionBallANCS MS0 / SamusBallFusionLowPolyCMDL MS0
+    resource_info!("917987E9.TXTR"),
+    resource_info!("EC97CF37.TXTR"),
 ];
 
 pub const FUSION_VARIA_SUIT_TEXTURES: &[ResourceInfo] = &[
     // High res Characters/Samus/cooked/fusion_varia_high_rez_bound.CMDL
-    // Low poly TestAnim/Fusion_Varia.CMDL
-    // Left arm SamusGun/FusionV.CMDL
+    // Left arm SamusGun/FusionV.CMDL (torso + arms_legs)
+    resource_info!("fusion_varia_head_chest.TXTR"),
+    resource_info!("fusion_varia_torso.TXTR"),
+    resource_info!("fusion_varia_arms_legs.TXTR"),
+    // Low poly morph/unmorph transition TestAnim/BallTransitions Fusion_Varia.CMDL
+    resource_info!("986278F4.TXTR"),
+    resource_info!("B809E769.TXTR"),
+    resource_info!("DE5D5172.TXTR"),
+    // Morph ball shell - SamusFusionBallANCS MS1 / SamusBallFusionLowPolyCMDL MS1
+    resource_info!("424EC5F7.TXTR"),
+    resource_info!("A092956F.TXTR"),
 ];
 
 pub const FUSION_GRAVITY_SUIT_TEXTURES: &[ResourceInfo] = &[
     // High res Characters/Samus/cooked/fusion_gravity_high_rez_bound.CMDL
-    // Low poly TestAnim/Fusion_Gravity.CMDL
-    // Left arm SamusGun/FusionG.CMDL
+    // Left arm SamusGun/FusionG.CMDL (torso + arms_legs)
+    resource_info!("fusion_gravity_head_chest.TXTR"),
+    resource_info!("fusion_gravity_torso.TXTR"),
+    resource_info!("fusion_gravity_arms_legs.TXTR"),
+    // Low poly morph/unmorph transition TestAnim/BallTransitions Fusion_Gravity.CMDL
+    resource_info!("06AE8EEA.TXTR"),
+    resource_info!("AA522481.TXTR"),
+    resource_info!("F1E13711.TXTR"),
+    // Morph ball shell - SamusFusionBallANCS MS2 / SamusBallFusionLowPolyCMDL MS2
+    resource_info!("62D5C2D0.TXTR"),
+    resource_info!("31E36774.TXTR"),
 ];
 
 pub const FUSION_PHAZON_SUIT_TEXTURES: &[ResourceInfo] = &[
     // High res Characters/Samus/cooked/fusion_phazon_high_rez_bound.CMDL
-    // Low poly TestAnim/Fusion_Phazon.CMDL
-    // Left arm SamusGun/FusionP.CMDL
+    // Left arm SamusGun/FusionP.CMDL (torso + arms_legs)
+    resource_info!("fusion_phazon_head_chest.TXTR"),
+    resource_info!("fusion_phazon_torso.TXTR"),
+    resource_info!("fusion_phazon_arms_legs.TXTR"),
+    // Low poly morph/unmorph transition TestAnim/BallTransitions Fusion_Phazon.CMDL
+    resource_info!("3A3B3B2E.TXTR"),
+    resource_info!("6BE50A0D.TXTR"),
+    resource_info!("D09DA9D4.TXTR"),
+    // Morph ball shell - SamusFusionBallANCS MS3 / SamusBallFusionLowPolyCMDL MS3
+    resource_info!("B1986E4B.TXTR"),
+    resource_info!("D1CD17F3.TXTR"),
+];
+
+pub const SHIP_TEXTURES: &[ResourceInfo] = &[
+    resource_info!("ship_hatch.TXTR"),
+    resource_info!("ship_top_front.TXTR"),
+    resource_info!("ship_top_front_incan.TXTR"),
+    resource_info!("ship_top_rear.TXTR"),
+    resource_info!("ship_bottom.TXTR"),
+    resource_info!("ship_bottom_incan.TXTR"),
 ];
 
 struct CmprPixelIter {
@@ -248,6 +312,16 @@ pub fn huerotate_color(matrix: [f32; 9], r: u8, g: u8, b: u8) -> [u8; 3] {
         (matrix[3] * r + matrix[4] * g + matrix[5] * b).clamp(0.0, 255.0) as u8,
         (matrix[6] * r + matrix[7] * g + matrix[8] * b).clamp(0.0, 255.0) as u8,
     ]
+}
+
+pub fn whiten_in_place(image: &mut [u8], brightness_percent: u16) {
+    for pixel in image.chunks_exact_mut(4) {
+        let value = pixel[0].max(pixel[1]).max(pixel[2]);
+        let value = (u16::from(value) * brightness_percent / 100) as u8;
+        pixel[0] = value;
+        pixel[1] = value;
+        pixel[2] = value;
+    }
 }
 
 // Adapted from image-rs

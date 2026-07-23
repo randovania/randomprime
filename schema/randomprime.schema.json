@@ -157,7 +157,7 @@
                     "default": false
                 },
                 "suitColors": {
-                    "description": "Change the colors of the in-game suits by rotating their values along the color wheel. (This currently does not apply to Fusion Suit)",
+                    "description": "Change the colors of the in-game suits by rotating their values along the color wheel.",
                     "type": "object",
                     "properties": {
                         "powerDeg": {
@@ -190,6 +190,11 @@
                 },
                 "forceFusion": {
                     "description": "If true, force fusion suit to be enabled by default and stay on after system resets",
+                    "type": "boolean",
+                    "default": false
+                },
+                "rainbowPhazonBall": {
+                    "description": "If true, the color of Phazon Morph Ball cycles through the color spectrum indefinitely. Phazon Spider Ball texture is desaturated to avoid clashing colors. NTSC-U only (0-00, 0-01, 0-02).",
                     "type": "boolean",
                     "default": false
                 },
