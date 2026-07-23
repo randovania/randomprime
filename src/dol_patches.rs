@@ -3207,27 +3207,31 @@ fn patch_inventory_gates(
         .encoded_bytes()
     })?;
 
-    // Hide the targeting reticle in the fake combat visor.
+    // Hide the combat targeting reticle in the fake combat visor but not the grapple icon
     let target_reticle_draw = symbol_addr!(
         "Draw__22CCompoundTargetReticleCFRC13CStateManagerb",
         version
     );
-    let orig = dol_patcher.read_u32(target_reticle_draw)?;
-    emitter.emit_and_patch(dol_patcher, target_reticle_draw, false, |addr| {
+    let lockon_branch_site = target_reticle_draw + 0x88;
+    let run_lockon_groups = target_reticle_draw + 0x90;
+    let skip_lockon_groups = target_reticle_draw + 0xc0;
+    emitter.emit_and_patch(dol_patcher, lockon_branch_site, false, |addr| {
         ppcasm!(addr, {
-                // r3 = CCompoundTargetReticle*, r4 = CStateManager&, r5 = hideLockon
-                lwz     r11, 0x8b8(r4);
+                // r29 = CCompoundTargetReticle*, r30 = CStateManager&, r31 = hideLockon
+                rlwinm. r0, r31, 0, 24, 31; // displaced retail hideLockon test (clrlwi.)
+                bne     skip_lockon;
+                lwz     r11, 0x8b8(r30);
                 lwz     r11, 0x0(r11);      // CPlayerState*
                 lwz     r12, 0x14(r11);     // current visor
                 cmplwi  r12, 0;             // combat
-                bne     visor_owned;
+                bne     run_lockon;
                 lwz     r12, 0xb4(r11);     // combat visor item capacity
                 cmplwi  r12, 0;
-                bne     visor_owned;
-                blr;                        // fake combat visor; draw no reticle
-            visor_owned:
-                .long orig;                 // displaced first instruction
-                b       { target_reticle_draw + 4 };
+                bne     run_lockon;
+            skip_lockon:
+                b       { skip_lockon_groups };  // fake combat visor: grapple only
+            run_lockon:
+                b       { run_lockon_groups };
         })
         .encoded_bytes()
     })?;
@@ -3253,35 +3257,66 @@ fn patch_inventory_gates(
     );
     let orig = dol_patcher.read_u32(orbit_callsite)?;
     emitter.emit_and_patch(dol_patcher, orbit_callsite, false, |addr| {
-        ppcasm!(addr, {
-                // r3 = targetable visor flags, r4 = CPlayerState*, r31 = actor;
-                // reached only when the current visor is combat
-                lwz     r0, 0xb4(r4);       // combat visor item capacity
-                cmplwi  r0, 0;
-                beq     combat_unowned;
-            run_flag_test:
-                .long orig;                 // displaced combat targetable flag test
-                b       { orbit_resume };
-            combat_unowned:
-                stwu    r1, -0x20(r1);
-                mflr    r0;
-                stw     r0, 0x24(r1);
-                stw     r3, 0x8(r1);
-                stw     r4, 0xc(r1);
-                mr      r4, r31;
-                addi    r3, r1, 0x10;       // 8 byte TCastToPtr temp
-                bl      { tcast_grapple };
-                lwz     r12, 0x4(r3);       // cast result
-                lwz     r3, 0x8(r1);
-                lwz     r4, 0xc(r1);
-                lwz     r0, 0x24(r1);
-                mtlr    r0;
-                addi    r1, r1, 0x20;
-                cmplwi  r12, 0;
-                bne     run_flag_test;      // grapple point: retail validation
-                b       { orbit_block };    // PlayerNotReadyToTarget
-        })
-        .encoded_bytes()
+        if pal_like {
+            ppcasm!(addr, {
+                    // r3 = targetable visor flags, r4 = CPlayerState*, r31 = actor;
+                    // reached only when the current visor is combat
+                    lwz     r0, 0xb4(r4);       // combat visor item capacity
+                    cmplwi  r0, 0;
+                    beq     combat_unowned;
+                run_flag_test:
+                    .long orig;                 // displaced combat targetable flag test
+                    b       { orbit_resume };
+                combat_unowned:
+                    stwu    r1, -0x20(r1);
+                    mflr    r0;
+                    stw     r0, 0x24(r1);
+                    stw     r3, 0x8(r1);
+                    stw     r4, 0xc(r1);
+                    mr      r3, r31;            // CEntity* in
+                    bl      { tcast_grapple };
+                    mr      r12, r3;            // cast result returned in r3
+                    lwz     r3, 0x8(r1);
+                    lwz     r4, 0xc(r1);
+                    lwz     r0, 0x24(r1);
+                    mtlr    r0;
+                    addi    r1, r1, 0x20;
+                    cmplwi  r12, 0;
+                    bne     run_flag_test;      // grapple point: retail validation
+                    b       { orbit_block };    // PlayerNotReadyToTarget
+            })
+            .encoded_bytes()
+        } else {
+            ppcasm!(addr, {
+                    // r3 = targetable visor flags, r4 = CPlayerState*, r31 = actor;
+                    // reached only when the current visor is combat
+                    lwz     r0, 0xb4(r4);       // combat visor item capacity
+                    cmplwi  r0, 0;
+                    beq     combat_unowned;
+                run_flag_test:
+                    .long orig;                 // displaced combat targetable flag test
+                    b       { orbit_resume };
+                combat_unowned:
+                    stwu    r1, -0x20(r1);
+                    mflr    r0;
+                    stw     r0, 0x24(r1);
+                    stw     r3, 0x8(r1);
+                    stw     r4, 0xc(r1);
+                    mr      r4, r31;
+                    addi    r3, r1, 0x10;       // 8 byte TCastToPtr temp
+                    bl      { tcast_grapple };
+                    lwz     r12, 0x4(r3);       // cast result
+                    lwz     r3, 0x8(r1);
+                    lwz     r4, 0xc(r1);
+                    lwz     r0, 0x24(r1);
+                    mtlr    r0;
+                    addi    r1, r1, 0x20;
+                    cmplwi  r12, 0;
+                    bne     run_flag_test;      // grapple point: retail validation
+                    b       { orbit_block };    // PlayerNotReadyToTarget
+            })
+            .encoded_bytes()
+        }
     })?;
 
     // The fake combat visor lives in the None state, which retail skips entirely:
