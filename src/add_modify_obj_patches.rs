@@ -685,7 +685,10 @@ pub fn patch_add_special_fn(
     config: SpecialFunctionConfig,
 ) -> Result<(), String> {
     let default_string_param = "".to_string();
-    let string_param = config.string_param.as_ref().unwrap_or(&default_string_param);
+    let string_param = config
+        .string_param
+        .as_ref()
+        .unwrap_or(&default_string_param);
     let string_param = string_to_cstr(string_param.clone());
     let default_name = "randomprime SpecialFunction".to_string();
     let name = config.name.as_ref().unwrap_or(&default_name);
@@ -1363,43 +1366,43 @@ pub fn patch_add_bomb_slot<'r>(
                     default_animation: 0xFFFFFFFF,
                 },
                 actor_params: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(),
-                        unknown4: 1,
-                        world_lighting: 3,
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 1,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                        make_lights: 1,
+                        use_world_lighting: 3,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(), // None
                     },
-                    xray_cmdl: ResId::invalid(),    // None
-                    xray_cskr: ResId::invalid(),    // None
-                    thermal_cmdl: ResId::invalid(), // None
-                    thermal_cskr: ResId::invalid(), // None
+                    xray_model: ResId::invalid(),    // None
+                    xray_skin: ResId::invalid(),     // None
+                    thermal_model: ResId::invalid(), // None
+                    thermal_skin: ResId::invalid(),  // None
 
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
 
-                    visor_params: structs::scly_structs::VisorParameters {
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 0,
                         visor_mask: 15, // Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 0,
-                    unknown3: 0,
-                    unknown4: 0,
-                    unknown5: 1.0,
+                    thermal_hot: 0,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 0,
+                    thermal_damage_magnitude: 1.0,
                 },
 
                 speed: 1.0,
@@ -1446,43 +1449,43 @@ pub fn patch_add_bomb_slot<'r>(
                     default_animation: 0xFFFFFFFF, // -1
                 },
                 actor_parameters: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(),
-                        unknown4: 1,
-                        world_lighting: 3,
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 1,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                        make_lights: 1,
+                        use_world_lighting: 3,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(), // None
                     },
-                    xray_cmdl: ResId::invalid(),    // None
-                    xray_cskr: ResId::invalid(),    // None
-                    thermal_cmdl: ResId::invalid(), // None
-                    thermal_cskr: ResId::invalid(), // None
+                    xray_model: ResId::invalid(),    // None
+                    xray_skin: ResId::invalid(),     // None
+                    thermal_model: ResId::invalid(), // None
+                    thermal_skin: ResId::invalid(),  // None
 
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
 
-                    visor_params: structs::scly_structs::VisorParameters {
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 0,
                         visor_mask: 15, // Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 1,
-                    unknown3: 0,
-                    unknown4: 0,
-                    unknown5: 1.0,
+                    thermal_hot: 1,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 0,
+                    thermal_damage_magnitude: 1.0,
                 },
                 is_loop: 1,
                 immovable: 1,
@@ -1604,7 +1607,7 @@ pub fn patch_add_bomb_slot<'r>(
                 color_txtr: ResId::invalid(),
                 lock_on: 0,
                 active: 0,
-                visor_params: structs::scly_structs::VisorParameters {
+                visor_parameters: structs::scly_structs::VisorParameters {
                     unknown0: 0,
                     target_passthrough: 0,
                     visor_mask: 15, // Combat|Scan|Thermal|XRay
@@ -2903,43 +2906,43 @@ pub fn patch_add_platform<'r>(
                     default_animation: 0xFFFFFFFF,
                 },
                 actor_params: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(),
-                        unknown4: 1,
-                        world_lighting: 1,
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 1,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                        make_lights: 1,
+                        use_world_lighting: 1,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(), // None
                     },
-                    xray_cmdl: ResId::invalid(),    // None
-                    xray_cskr: ResId::invalid(),    // None
-                    thermal_cmdl: ResId::invalid(), // None
-                    thermal_cskr: ResId::invalid(), // None
+                    xray_model: ResId::invalid(),    // None
+                    xray_skin: ResId::invalid(),     // None
+                    thermal_model: ResId::invalid(), // None
+                    thermal_skin: ResId::invalid(),  // None
 
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
 
-                    visor_params: structs::scly_structs::VisorParameters {
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 0,
                         visor_mask: 15, // Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 1,
-                    unknown3: 0,
-                    unknown4: 0,
-                    unknown5: 1.0,
+                    thermal_hot: 1,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 0,
+                    thermal_damage_magnitude: 1.0,
                 },
 
                 speed: 5.0,
@@ -3025,43 +3028,43 @@ pub fn patch_add_platform<'r>(
                         default_animation: 0xFFFFFFFF,
                     },
                     actor_params: structs::scly_structs::ActorParameters {
-                        light_params: structs::scly_structs::LightParameters {
-                            unknown0: 1,
-                            unknown1: 1.0,
-                            shadow_tessellation: 0,
-                            unknown2: 1.0,
-                            unknown3: 20.0,
-                            color: [1.0, 1.0, 1.0, 1.0].into(),
-                            unknown4: 1,
-                            world_lighting: 1,
+                        light_parameters: structs::scly_structs::LightParameters {
+                            cast_shadow: 1,
+                            shadow_scale: 1.0,
+                            tessellation: 0,
+                            shadow_alpha: 1.0,
+                            max_shadow_height: 20.0,
+                            ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                            make_lights: 1,
+                            use_world_lighting: 1,
                             light_recalculation: 1,
-                            unknown5: [0.0, 0.0, 0.0].into(),
-                            unknown6: 4,
-                            unknown7: 4,
-                            unknown8: 0,
-                            light_layer_id: 0,
+                            lightning_position: [0.0, 0.0, 0.0].into(),
+                            num_dynamic_lights: 4,
+                            num_area_lights: 4,
+                            ignore_ambient_lightning: 0,
+                            use_light_set: 0,
                         },
-                        scan_params: structs::scly_structs::ScannableParameters {
+                        scan_parameters: structs::scly_structs::ScannableParameters {
                             scan: ResId::invalid(), // None
                         },
-                        xray_cmdl: ResId::invalid(),    // None
-                        xray_cskr: ResId::invalid(),    // None
-                        thermal_cmdl: ResId::invalid(), // None
-                        thermal_cskr: ResId::invalid(), // None
+                        xray_model: ResId::invalid(),    // None
+                        xray_skin: ResId::invalid(),     // None
+                        thermal_model: ResId::invalid(), // None
+                        thermal_skin: ResId::invalid(),  // None
 
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        unknown2: 1.0,
+                        use_global_render_time: 1,
+                        fade_in_time: 1.0,
+                        fade_out_time: 1.0,
 
-                        visor_params: structs::scly_structs::VisorParameters {
+                        visor_parameters: structs::scly_structs::VisorParameters {
                             unknown0: 0,
                             target_passthrough: 0,
                             visor_mask: 15, // Combat|Scan|Thermal|XRay
                         },
-                        enable_thermal_heat: 1,
-                        unknown3: 0,
-                        unknown4: 0,
-                        unknown5: 1.0,
+                        thermal_hot: 1,
+                        force_render_unsorted: 0,
+                        no_sort_thermal: 0,
+                        thermal_damage_magnitude: 1.0,
                     },
 
                     speed: 5.0,
@@ -3488,43 +3491,43 @@ pub fn add_block(
                 default_animation: 0xFFFFFFFF, // -1
             },
             actor_parameters: structs::scly_structs::ActorParameters {
-                light_params: structs::scly_structs::LightParameters {
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    shadow_tessellation: 0,
-                    unknown2: 1.0,
-                    unknown3: 20.0,
-                    color: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown4: 1,
-                    world_lighting: 1,
+                light_parameters: structs::scly_structs::LightParameters {
+                    cast_shadow: 1,
+                    shadow_scale: 1.0,
+                    tessellation: 0,
+                    shadow_alpha: 1.0,
+                    max_shadow_height: 20.0,
+                    ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    make_lights: 1,
+                    use_world_lighting: 1,
                     light_recalculation: 1,
-                    unknown5: [0.0, 0.0, 0.0].into(),
-                    unknown6: 4,
-                    unknown7: 4,
-                    unknown8: 0,
-                    light_layer_id: 0,
+                    lightning_position: [0.0, 0.0, 0.0].into(),
+                    num_dynamic_lights: 4,
+                    num_area_lights: 4,
+                    ignore_ambient_lightning: 0,
+                    use_light_set: 0,
                 },
-                scan_params: structs::scly_structs::ScannableParameters {
+                scan_parameters: structs::scly_structs::ScannableParameters {
                     scan: ResId::invalid(), // None
                 },
-                xray_cmdl: ResId::invalid(),    // None
-                xray_cskr: ResId::invalid(),    // None
-                thermal_cmdl: ResId::invalid(), // None
-                thermal_cskr: ResId::invalid(), // None
+                xray_model: ResId::invalid(),    // None
+                xray_skin: ResId::invalid(),     // None
+                thermal_model: ResId::invalid(), // None
+                thermal_skin: ResId::invalid(),  // None
 
-                unknown0: 1,
-                unknown1: 1.0,
-                unknown2: 1.0,
+                use_global_render_time: 1,
+                fade_in_time: 1.0,
+                fade_out_time: 1.0,
 
-                visor_params: structs::scly_structs::VisorParameters {
+                visor_parameters: structs::scly_structs::VisorParameters {
                     unknown0: 0,
                     target_passthrough: 0,
                     visor_mask: 15, // Combat|Scan|Thermal|XRay
                 },
-                enable_thermal_heat: thermal_hot as u8,
-                unknown3: 0,
-                unknown4: 0,
-                unknown5: 1.0,
+                thermal_hot: thermal_hot as u8,
+                force_render_unsorted: 0,
+                no_sort_thermal: 0,
+                thermal_damage_magnitude: 1.0,
             },
             is_loop: 1,
             immovable: 1,
@@ -3640,43 +3643,43 @@ pub fn patch_lock_on_point<'r>(
                     default_animation: 0xFFFFFFFF,
                 },
                 actor_parameters: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(),
-                        unknown4: 1,
-                        world_lighting: 1,
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 1,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                        make_lights: 1,
+                        use_world_lighting: 1,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(), // None
                     },
-                    xray_cmdl: ResId::invalid(),    // None
-                    xray_cskr: ResId::invalid(),    // None
-                    thermal_cmdl: ResId::invalid(), // None
-                    thermal_cskr: ResId::invalid(), // None
+                    xray_model: ResId::invalid(),    // None
+                    xray_skin: ResId::invalid(),     // None
+                    thermal_model: ResId::invalid(), // None
+                    thermal_skin: ResId::invalid(),  // None
 
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
 
-                    visor_params: structs::scly_structs::VisorParameters {
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 1,
                         visor_mask: 15, // Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 1,
-                    unknown3: 0,
-                    unknown4: 0,
-                    unknown5: 1.0,
+                    thermal_hot: 1,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 0,
+                    thermal_damage_magnitude: 1.0,
                 },
                 is_loop: 1,
                 immovable: 1,
@@ -3849,7 +3852,7 @@ pub fn patch_lock_on_point<'r>(
                     color_txtr: ResId::invalid(),
                     lock_on: 1,
                     active: config.active2.unwrap_or(true) as u8,
-                    visor_params: structs::scly_structs::VisorParameters {
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 0,
                         visor_mask: 15, // Combat|Scan|Thermal|XRay
