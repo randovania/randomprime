@@ -1,7 +1,7 @@
 use reader_writer::FourCC;
 pub use resource_info_table_macro::resource_info;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ResourceInfo {
     pub long_name: &'static str,
     pub short_name: Option<&'static str>,

@@ -323,6 +323,10 @@ pub mod custom_asset_ids {
         // Ice trap assets
         ICE_TRAP_ANCS: ANCS,
 
+        // Suit recolor: private copies of textures the retail game shares
+        // between two suits, so each can be recolored independently.
+        VARIA_HEAD_CHEST_INCAN_TXTR: TXTR,
+
         // Strings to use if none are specified
         DEFAULT_PICKUP_SCAN_STRGS: STRG,
         DEFAULT_PICKUP_SCANS: SCAN = DEFAULT_PICKUP_SCAN_STRGS.to_u32() + 50,

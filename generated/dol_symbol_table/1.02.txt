@@ -1203,6 +1203,8 @@
 0x80091788 GetComboFireAmmoPeriod__12CPlayerStateCFv
 0x800917a0 GetMissileCostForAltAttack__12CPlayerStateCFv
 0x800917b8 CalculateItemCollectionRate__12CPlayerStateFv
+0x800917b8 CalculateItemCollectionRate__12CPlayerStateCFv
+0x80091a30 GetTotalPickupCount__12CPlayerStateCFv
 0x80091a38 SetIsFusionEnabled__12CPlayerStateFb
 0x80091a48 GetIsFusionEnabled__12CPlayerStateFv
 0x80091a60 GetCurrentSuit__12CPlayerStateFv
@@ -8552,6 +8554,7 @@
 0x805a9cd4 g_MainStringTable
 0x805a9cd8 g_Main
 0x805a9ce0 g_GameState
+0x805a9ce0 gpGameState
 0x805aaedc skDefaultHudFadeInSpeed__7CPlayer
 0x805aaf00 g_maxPhazonLagBeforeDamaging
 0x805ab8ec g_EtankCapacity

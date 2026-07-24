@@ -496,12 +496,6 @@ fn patch_custom_items(
         } else {
             (0xe4, 0x2b0, 0x828)
         };
-    let (probability_offset, life_time_offset) =
-        if [Version::Pal, Version::NtscJ].contains(&version) {
-            (0x274, 0x27c)
-        } else {
-            (0x264, 0x26c)
-        };
     let init_power_up_sym = symbol_addr!(
         "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
         version
@@ -534,21 +528,6 @@ fn patch_custom_items(
             mr           r14, r5;
             lis          r15, {power_up_max_values_sym}@h;
             addi         r15, r15, {power_up_max_values_sym}@l;
-            lwz          r4, 0x14(r1);
-            lwz          r3, {life_time_offset}(r4);
-            cmpwi        r3, 0;
-            lhz          r3, {probability_offset}(r4);
-            bne          check_custom_item;
-            cmpwi        r3, 0x42c8;
-            bne          check_custom_item;
-            li           r3, {PickupType::PowerSuit.kind()};
-            rlwinm       r0, r3, 0x3, 0x0, 0x1c;
-            add          r3, r31, r0;
-            addi         r3, r3, 0x28;
-            lwz          r4, 0x4(r3);
-            addi         r4, r4, 1;
-            stw          r4, 0x4(r3);
-        check_custom_item:
             cmpwi        r29, {PickupType::ArtifactOfNewborn.kind()};
             ble          continue_init_power_up;
             cmpwi        r29, {PickupType::Nothing.kind()};
@@ -1669,6 +1648,219 @@ fn patch_inflate_buffer_oom_recover(
     Ok(())
 }
 
+// Teach beetles to respect reset on all versions and expand
+// reset functionality to clear velocity and and attack timers
+fn patch_beetle_reset(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    #[derive(Clone, Copy)]
+    struct BeetleFieldOffsets {
+        reset_flag: u32,
+        vertical_movement: u32,
+        state_prog: u32,
+        anim_time_rem: u32,
+        avg_attack_time: u32,
+        attack_delay: u32,
+    }
+    const BEETLE_OFF_EARLY: BeetleFieldOffsets = BeetleFieldOffsets {
+        reset_flag: 0x838,
+        vertical_movement: 0x328,
+        state_prog: 0x568,
+        anim_time_rem: 0x5a8,
+        avg_attack_time: 0x304,
+        attack_delay: 0x814,
+    };
+    const BEETLE_OFF_SHIFTED: BeetleFieldOffsets = BeetleFieldOffsets {
+        reset_flag: 0x848,
+        vertical_movement: 0x338,
+        state_prog: 0x578,
+        anim_time_rem: 0x5b8,
+        avg_attack_time: 0x314,
+        attack_delay: 0x824,
+    };
+
+    enum BeetleWiring {
+        Port {
+            reset_jt_entry: u32,
+            accept_tail: u32,
+            solid_gate: u32,
+            gen_update_end: u32,
+            deliver_cmd: u32,
+            body_state_cmd_vt: u32,
+        },
+        NativeAbort {
+            abort_hook: u32,
+        },
+    }
+
+    let (off, wiring) = match version {
+        Version::NtscU0_00 => (
+            BEETLE_OFF_EARLY,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803dfb84,
+                accept_tail: 0x800e79fc,
+                solid_gate: 0x800e7560,
+                gen_update_end: 0x800e77d4,
+                deliver_cmd: 0x801317b8,
+                body_state_cmd_vt: 0x803daa68,
+            },
+        ),
+        Version::NtscU0_01 => (
+            BEETLE_OFF_EARLY,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803dfd64,
+                accept_tail: 0x800e7a78,
+                solid_gate: 0x800e75dc,
+                gen_update_end: 0x800e7850,
+                deliver_cmd: 0x80131834,
+                body_state_cmd_vt: 0x803dac48,
+            },
+        ),
+        Version::NtscK => (
+            BEETLE_OFF_EARLY,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803dfc84,
+                accept_tail: 0x800e7a70,
+                solid_gate: 0x800e75d4,
+                gen_update_end: 0x800e7848,
+                deliver_cmd: 0x8013182c,
+                body_state_cmd_vt: 0,
+            },
+        ),
+        Version::NtscU0_02 => (
+            BEETLE_OFF_SHIFTED,
+            BeetleWiring::Port {
+                reset_jt_entry: 0x803e0c44,
+                accept_tail: 0x800e7f80,
+                solid_gate: 0x800e7ae4,
+                gen_update_end: 0x800e7d58,
+                deliver_cmd: 0x80131f9c,
+                body_state_cmd_vt: 0,
+            },
+        ),
+        Version::NtscJ => (
+            BEETLE_OFF_SHIFTED,
+            BeetleWiring::NativeAbort {
+                abort_hook: 0x800e066c,
+            },
+        ),
+        Version::Pal => (
+            BEETLE_OFF_SHIFTED,
+            BeetleWiring::NativeAbort {
+                abort_hook: 0x800df594,
+            },
+        ),
+        _ => return Ok(()),
+    };
+
+    let reset_flag = off.reset_flag;
+    let vertical_movement = off.vertical_movement;
+    let state_prog = off.state_prog;
+    let anim_time_rem = off.anim_time_rem;
+    let avg_attack_time = off.avg_attack_time;
+    let attack_delay = off.attack_delay;
+
+    match wiring {
+        BeetleWiring::Port {
+            reset_jt_entry,
+            accept_tail,
+            solid_gate,
+            gen_update_end,
+            deliver_cmd,
+            body_state_cmd_vt,
+        } => {
+            let jt = dol_patcher.read_u32(reset_jt_entry)?;
+            if jt != accept_tail {
+                return Err(format!(
+                    "patch_beetle_reset: Reset jumptable entry {reset_jt_entry:#010x} = {jt:#010x}, expected forward tail {accept_tail:#010x}"
+                ));
+            }
+            let gate = dol_patcher.read_u32(solid_gate)?;
+            let expect_gate = 0xc03c0000 | anim_time_rem; // lfs f1, anim_time_rem(r28)
+            if gate != expect_gate {
+                return Err(format!(
+                    "patch_beetle_reset: has-Solid gate {solid_gate:#010x} = {gate:#010x}, expected `lfs f1,{anim_time_rem:#x}(r28)` {expect_gate:#010x}"
+                ));
+            }
+            let solid_gate_resume = solid_gate + 4;
+
+            let reset_cave = emitter.emit_addressed(dol_patcher, |addr| {
+                ppcasm!(addr, {
+                    lbz     r0, { reset_flag }(r27);
+                    ori     r0, r0, 0x10;
+                    stb     r0, { reset_flag }(r27);
+                    b       { accept_tail };
+                })
+                .encoded_bytes()
+            })?;
+            dol_patcher.ppcasm_patch(&ppcasm!(reset_jt_entry, {
+                .long reset_cave;
+            }))?;
+
+            let generate_cave = emitter.emit_addressed(dol_patcher, |addr| {
+                ppcasm!(addr, {
+                    lbz     r0, { reset_flag }(r28);
+                    andi    r0, r0, 0x10;
+                    bne     { addr + 0x14 };
+                    lfs     f1, { anim_time_rem }(r28);
+                    b       { solid_gate_resume };
+                    lbz     r0, { vertical_movement }(r28);
+                    andi    r0, r0, 0xbf;
+                    stb     r0, { vertical_movement }(r28);
+                    lwz     r0, { avg_attack_time }(r28);
+                    stw     r0, { attack_delay }(r28);
+                    li      r0, 4;
+                    stw     r0, { state_prog }(r28);
+                    stwu    r1, -0x10(r1);
+                    lis     r4, { body_state_cmd_vt }@h;
+                    addi    r4, r4, { body_state_cmd_vt }@l;
+                    stw     r4, 0x8(r1);
+                    li      r0, 0xc;
+                    stw     r0, 0xc(r1);
+                    addi    r4, r1, 0x8;
+                    addi    r3, r31, 0x4;
+                    bl      { deliver_cmd };
+                    addi    r1, r1, 0x10;
+                    b       { gen_update_end };
+                })
+                .encoded_bytes()
+            })?;
+            dol_patcher.ppcasm_patch(&ppcasm!(solid_gate, {
+                b { generate_cave };
+            }))?;
+        }
+        BeetleWiring::NativeAbort { abort_hook } => {
+            let hook = dol_patcher.read_u32(abort_hook)?;
+            if hook != 0x38000004 {
+                return Err(format!(
+                    "patch_beetle_reset: native abort hook {abort_hook:#010x} = {hook:#010x}, expected `li r0,4` 0x38000004"
+                ));
+            }
+            let abort_hook_next = abort_hook + 4;
+
+            let enhance_cave = emitter.emit_addressed(dol_patcher, |addr| {
+                ppcasm!(addr, {
+                    lbz     r0, { vertical_movement }(r28);
+                    andi    r0, r0, 0xbf;
+                    stb     r0, { vertical_movement }(r28);
+                    lwz     r0, { avg_attack_time }(r28);
+                    stw     r0, { attack_delay }(r28);
+                    li      r0, 4;
+                    b       { abort_hook_next };
+                })
+                .encoded_bytes()
+            })?;
+            dol_patcher.ppcasm_patch(&ppcasm!(abort_hook, {
+                b { enhance_cave };
+            }))?;
+        }
+    }
+
+    Ok(())
+}
+
 fn patch_meta(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -1676,6 +1868,14 @@ fn patch_meta(
     config: &PatchConfig,
 ) -> Result<(), String> {
     patch_rel_loader(dol_patcher, emitter, version)?;
+
+    if matches!(
+        config.qol_cutscenes,
+        crate::patch_config::CutsceneMode::Skippable
+            | crate::patch_config::CutsceneMode::SkippableCompetitive
+    ) {
+        patch_beetle_reset(dol_patcher, emitter, version)?;
+    }
 
     {
         let build_info_address: u32 = match version {
@@ -2171,6 +2371,228 @@ fn patch_gameplay_tweaks(
     Ok(())
 }
 
+fn patch_ball_glow_normalized(
+    dol_patcher: &mut DolPatcher<'_>,
+    version: Version,
+    config: &PatchConfig,
+    rainbow_ball: bool,
+) -> Result<(), String> {
+    let (power, gravity, varia, phazon) = config
+        .suit_colors
+        .as_ref()
+        .map(|s| {
+            (
+                s.power_deg.unwrap_or(0),
+                s.gravity_deg.unwrap_or(0),
+                s.varia_deg.unwrap_or(0),
+                s.phazon_deg.unwrap_or(0),
+            )
+        })
+        .unwrap_or((0, 0, 0, 0));
+
+    // Retail contents of each glow table (9 slots x RGB), preserved verbatim.
+    let retail: [[u8; 27]; 7] = [
+        // skBallInnerGlowColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
+            0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
+        ],
+        // BallGlowColors
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
+            0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        ],
+        // BallTransFlashColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
+            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+        ],
+        // BallAuxGlowColors
+        [
+            0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
+            0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
+        ],
+        // BallSwooshColors
+        [
+            0xc2, 0x8f, 0x17, 0x70, 0xd4, 0xff, 0x6a, 0xff, 0x8a, 0x3d, 0x4d, 0xff, 0xc0, 0x00,
+            0x00, 0x00, 0xbe, 0xdc, 0xdf, 0xff, 0x00, 0xc4, 0x9e, 0xff, 0xff, 0x9a, 0x22,
+        ],
+        // BallSwooshColorsCharged
+        [
+            0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0x80,
+            0x20, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00, 0xff, 0xe6, 0x00,
+        ],
+        // BallSwooshColorsJaggy
+        [
+            0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xd5,
+            0x19, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00, 0xff, 0xcc, 0x00,
+        ],
+    ];
+
+    // Owning suit of each color slot, all keeping their retail color and rotated by the owner's deg:
+    // idx0 Power, idx1 Varia non-spider, idx2 Varia spider, idx3 Gravity, idx4 Phazon. Fusion slots:
+    // idx5 Power+F, idx6 Varia+F, idx7 Gravity+F, idx8 Phazon+F.
+    let slot_deg = [
+        power, varia, varia, gravity, phazon, power, varia, gravity, phazon,
+    ];
+
+    let addrs = [
+        symbol_addr!("skBallInnerGlowColors", version),
+        symbol_addr!("BallGlowColors", version),
+        symbol_addr!("BallTransFlashColors", version),
+        symbol_addr!("BallAuxGlowColors", version),
+        symbol_addr!("BallSwooshColors", version),
+        symbol_addr!("BallSwooshColorsCharged", version),
+        symbol_addr!("BallSwooshColorsJaggy", version),
+    ];
+    for (addr, base) in addrs.iter().zip(retail.iter()) {
+        let mut table = *base;
+        for (slot, &deg) in slot_deg.iter().enumerate() {
+            let deg = deg.rem_euclid(360);
+            if deg == 0 {
+                continue;
+            }
+            let rgb = huerotate_color(
+                huerotate_matrix(deg as f32),
+                table[slot * 3],
+                table[slot * 3 + 1],
+                table[slot * 3 + 2],
+            );
+            table[slot * 3..slot * 3 + 3].copy_from_slice(&rgb);
+        }
+        if rainbow_ball {
+            // Phazon slot 4 and fusion-phazon slot 8: match patch_phazon_ball_rainbow's counter-0 red.
+            table[12..15].copy_from_slice(&[0xff, 0x00, 0x00]);
+            table[24..27].copy_from_slice(&[0xff, 0x00, 0x00]);
+        }
+        dol_patcher.patch(*addr, table.to_vec().into())?;
+    }
+
+    // Re-point the glow-index tables (unsymbolized skMorphBallModelTables members, uint[8] BE),
+    // indexed by modelIdx = suitRaw (Power, Gravity, Varia, Phazon); fusion adds 4. Each suit gets a
+    // single color across spider/non-spider except Varia, which keeps its two retail colors.
+    // Non-spider: Power->0, Gravity->3, Varia->1, Phazon->4.
+    // Spider:     Power->0, Gravity->3, Varia->2, Phazon->4.
+    let pack = |idx: [u32; 8]| -> Vec<u8> { idx.iter().flat_map(|i| i.to_be_bytes()).collect() };
+    let glow_colors = symbol_addr!("BallGlowColors", version);
+    dol_patcher.patch(glow_colors - 0x40, pack([0, 3, 2, 4, 5, 7, 6, 8]).into())?; // x180 spider
+    dol_patcher.patch(glow_colors - 0x20, pack([0, 3, 1, 4, 5, 7, 6, 8]).into())?; // x1a0 non-spider
+
+    Ok(())
+}
+
+fn patch_phazon_ball_rainbow(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let counter = emitter.emit_addressed(dol_patcher, |_addr| vec![0u8; 4])?;
+    let hook = symbol_addr!("Update__10CMorphBallFfR13CStateManager", version);
+    let ret = hook + 4;
+    let displaced = dol_patcher.read_u32(hook)?;
+
+    let slot4_base = symbol_addr!("BallGlowColors", version) + 0xc;
+    let tramp = emitter.emit_addressed(dol_patcher, |addr| {
+        ppcasm!(addr, {
+                stwu    r1, -0x30(r1);
+                stw     r3, 0x28(r1);
+                stw     r4, 0x24(r1);
+                stw     r5, 0x20(r1);
+                stw     r6, 0x1c(r1);
+                stw     r7, 0x18(r1);
+                stw     r8, 0x14(r1);
+                stw     r9, 0x10(r1);
+                stw     r10, 0x0c(r1);
+                stw     r11, 0x08(r1);
+                lis     r3, {counter}@h;
+                addi    r3, r3, {counter}@l;
+                lwz     r5, 0x0(r3);
+                rlwinm  r6, r5, 24, 8, 31;
+                rlwinm  r7, r5, 0, 24, 31;
+                li      r4, 255;
+                subf    r8, r7, r4;
+                cmpwi   r6, 0;
+                beq     reg0;
+                cmpwi   r6, 1;
+                beq     reg1;
+                cmpwi   r6, 2;
+                beq     reg2;
+                cmpwi   r6, 3;
+                beq     reg3;
+                cmpwi   r6, 4;
+                beq     reg4;
+                li      r9, 255;
+                li      r10, 0;
+                mr      r11, r8;
+                b       store;
+            reg0:
+                li      r9, 255;
+                mr      r10, r7;
+                li      r11, 0;
+                b       store;
+            reg1:
+                mr      r9, r8;
+                li      r10, 255;
+                li      r11, 0;
+                b       store;
+            reg2:
+                li      r9, 0;
+                li      r10, 255;
+                mr      r11, r7;
+                b       store;
+            reg3:
+                li      r9, 0;
+                mr      r10, r8;
+                li      r11, 255;
+                b       store;
+            reg4:
+                mr      r9, r7;
+                li      r10, 0;
+                li      r11, 255;
+            store:
+                lis     r3, {slot4_base}@h;
+                addi    r3, r3, {slot4_base}@l;
+                li      r4, 7;
+            storelp:
+                stb     r9, 0x0(r3);
+                stb     r10, 0x1(r3);
+                stb     r11, 0x2(r3);
+                stb     r9, 0xc(r3);
+                stb     r10, 0xd(r3);
+                stb     r11, 0xe(r3);
+                addi    r3, r3, 0x1c;
+                addi    r4, r4, -1;
+                cmpwi   r4, 0;
+                bne     storelp;
+                addi    r5, r5, 1;
+                cmpwi   r5, 1536;
+                blt     savec;
+                addi    r5, r5, -1536;
+            savec:
+                lis     r3, {counter}@h;
+                addi    r3, r3, {counter}@l;
+                stw     r5, 0x0(r3);
+                lwz     r3, 0x28(r1);
+                lwz     r4, 0x24(r1);
+                lwz     r5, 0x20(r1);
+                lwz     r6, 0x1c(r1);
+                lwz     r7, 0x18(r1);
+                lwz     r8, 0x14(r1);
+                lwz     r9, 0x10(r1);
+                lwz     r10, 0x0c(r1);
+                lwz     r11, 0x08(r1);
+                addi    r1, r1, 0x30;
+                .long   displaced;
+                b       {ret};
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(hook, {
+        b { tramp };
+    }))?;
+    Ok(())
+}
+
 fn patch_cosmetic(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -2178,6 +2600,12 @@ fn patch_cosmetic(
     config: &PatchConfig,
 ) -> Result<(), String> {
     let remove_ball_color = config.ctwk_config.morph_ball_size.unwrap_or(1.0) < 0.999;
+    let rainbow_ball = config.rainbow_phazon_ball
+        && !remove_ball_color
+        && matches!(
+            version,
+            Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscU0_02
+        );
 
     if remove_ball_color {
         let colors = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
@@ -2206,75 +2634,12 @@ fn patch_cosmetic(
             colors.clone().into(),
         )?;
         dol_patcher.patch(symbol_addr!("BallGlowColors", version), colors.into())?;
-    } else if let Some(suit_colors) = config.suit_colors.as_ref() {
-        let mut colors: Vec<Vec<u8>> = vec![
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x80,
-                0x80, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0x60, 0x33, 0xff, 0xfb, 0x98, 0x21,
-            ],
-            vec![
-                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xd5,
-                0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            ],
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x60, 0xff, 0x90, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ],
-            vec![
-                0xC2, 0x8F, 0x17, 0x70, 0xD4, 0xFF, 0x6A, 0xFF, 0x8A, 0x3D, 0x4D, 0xFF, 0xC0, 0x00,
-                0x00, 0x00, 0xBE, 0xDC, 0xDF, 0xFF, 0x00, 0xC4, 0x9E, 0xFF, 0xFF, 0x9A, 0x22,
-            ],
-            vec![
-                0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xD5,
-                0x19, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00, 0xFF, 0xCC, 0x00,
-            ],
-            vec![
-                0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0x80,
-                0x20, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00, 0xFF, 0xE6, 0x00,
-            ],
-            vec![
-                0xc2, 0x7e, 0x10, 0x66, 0xc4, 0xff, 0x6c, 0xff, 0x61, 0x33, 0x33, 0xff, 0xff, 0x20,
-                0x20, 0x00, 0x9d, 0xb6, 0xd3, 0xf1, 0x00, 0xa6, 0x86, 0xd8, 0xfb, 0x98, 0x21,
-            ],
-        ];
-        for color in colors.iter_mut() {
-            for j in 0..9 {
-                let angle = if [0].contains(&j) && suit_colors.power_deg.is_some() {
-                    suit_colors.power_deg.unwrap()
-                } else if [1, 2].contains(&j) && suit_colors.varia_deg.is_some() {
-                    suit_colors.varia_deg.unwrap()
-                } else if [3].contains(&j) && suit_colors.gravity_deg.is_some() {
-                    suit_colors.gravity_deg.unwrap()
-                } else if [4].contains(&j) && suit_colors.phazon_deg.is_some() {
-                    suit_colors.phazon_deg.unwrap()
-                } else {
-                    0
-                };
-                let angle = angle % 360;
-                if angle == 0 {
-                    continue;
-                }
-                let matrix = huerotate_matrix(angle as f32);
-                let r_idx = j * 3;
-                let new_rgb =
-                    huerotate_color(matrix, color[r_idx], color[r_idx + 1], color[r_idx + 2]);
-                color[r_idx] = new_rgb[0];
-                color[r_idx + 1] = new_rgb[1];
-                color[r_idx + 2] = new_rgb[2];
-            }
-        }
-        let addrs = [
-            symbol_addr!("skBallInnerGlowColors", version),
-            symbol_addr!("BallAuxGlowColors", version),
-            symbol_addr!("BallTransFlashColors", version),
-            symbol_addr!("BallSwooshColors", version),
-            symbol_addr!("BallSwooshColorsJaggy", version),
-            symbol_addr!("BallSwooshColorsCharged", version),
-            symbol_addr!("BallGlowColors", version),
-        ];
-        for (addr, color) in addrs.iter().zip(colors.into_iter()) {
-            dol_patcher.patch(*addr, color.into())?;
-        }
+    } else {
+        patch_ball_glow_normalized(dol_patcher, version, config, rainbow_ball)?;
+    }
+
+    if rainbow_ball {
+        patch_phazon_ball_rainbow(dol_patcher, emitter, version)?;
     }
 
     if config.qol_cosmetic {
@@ -3063,27 +3428,31 @@ fn patch_inventory_gates(
         .encoded_bytes()
     })?;
 
-    // Hide the targeting reticle in the fake combat visor.
+    // Hide the combat targeting reticle in the fake combat visor but not the grapple icon
     let target_reticle_draw = symbol_addr!(
         "Draw__22CCompoundTargetReticleCFRC13CStateManagerb",
         version
     );
-    let orig = dol_patcher.read_u32(target_reticle_draw)?;
-    emitter.emit_and_patch(dol_patcher, target_reticle_draw, false, |addr| {
+    let lockon_branch_site = target_reticle_draw + 0x88;
+    let run_lockon_groups = target_reticle_draw + 0x90;
+    let skip_lockon_groups = target_reticle_draw + 0xc0;
+    emitter.emit_and_patch(dol_patcher, lockon_branch_site, false, |addr| {
         ppcasm!(addr, {
-                // r3 = CCompoundTargetReticle*, r4 = CStateManager&, r5 = hideLockon
-                lwz     r11, 0x8b8(r4);
+                // r29 = CCompoundTargetReticle*, r30 = CStateManager&, r31 = hideLockon
+                rlwinm. r0, r31, 0, 24, 31; // displaced retail hideLockon test (clrlwi.)
+                bne     skip_lockon;
+                lwz     r11, 0x8b8(r30);
                 lwz     r11, 0x0(r11);      // CPlayerState*
                 lwz     r12, 0x14(r11);     // current visor
                 cmplwi  r12, 0;             // combat
-                bne     visor_owned;
+                bne     run_lockon;
                 lwz     r12, 0xb4(r11);     // combat visor item capacity
                 cmplwi  r12, 0;
-                bne     visor_owned;
-                blr;                        // fake combat visor; draw no reticle
-            visor_owned:
-                .long orig;                 // displaced first instruction
-                b       { target_reticle_draw + 4 };
+                bne     run_lockon;
+            skip_lockon:
+                b       { skip_lockon_groups };  // fake combat visor: grapple only
+            run_lockon:
+                b       { run_lockon_groups };
         })
         .encoded_bytes()
     })?;
@@ -3109,35 +3478,66 @@ fn patch_inventory_gates(
     );
     let orig = dol_patcher.read_u32(orbit_callsite)?;
     emitter.emit_and_patch(dol_patcher, orbit_callsite, false, |addr| {
-        ppcasm!(addr, {
-                // r3 = targetable visor flags, r4 = CPlayerState*, r31 = actor;
-                // reached only when the current visor is combat
-                lwz     r0, 0xb4(r4);       // combat visor item capacity
-                cmplwi  r0, 0;
-                beq     combat_unowned;
-            run_flag_test:
-                .long orig;                 // displaced combat targetable flag test
-                b       { orbit_resume };
-            combat_unowned:
-                stwu    r1, -0x20(r1);
-                mflr    r0;
-                stw     r0, 0x24(r1);
-                stw     r3, 0x8(r1);
-                stw     r4, 0xc(r1);
-                mr      r4, r31;
-                addi    r3, r1, 0x10;       // 8 byte TCastToPtr temp
-                bl      { tcast_grapple };
-                lwz     r12, 0x4(r3);       // cast result
-                lwz     r3, 0x8(r1);
-                lwz     r4, 0xc(r1);
-                lwz     r0, 0x24(r1);
-                mtlr    r0;
-                addi    r1, r1, 0x20;
-                cmplwi  r12, 0;
-                bne     run_flag_test;      // grapple point: retail validation
-                b       { orbit_block };    // PlayerNotReadyToTarget
-        })
-        .encoded_bytes()
+        if pal_like {
+            ppcasm!(addr, {
+                    // r3 = targetable visor flags, r4 = CPlayerState*, r31 = actor;
+                    // reached only when the current visor is combat
+                    lwz     r0, 0xb4(r4);       // combat visor item capacity
+                    cmplwi  r0, 0;
+                    beq     combat_unowned;
+                run_flag_test:
+                    .long orig;                 // displaced combat targetable flag test
+                    b       { orbit_resume };
+                combat_unowned:
+                    stwu    r1, -0x20(r1);
+                    mflr    r0;
+                    stw     r0, 0x24(r1);
+                    stw     r3, 0x8(r1);
+                    stw     r4, 0xc(r1);
+                    mr      r3, r31;            // CEntity* in
+                    bl      { tcast_grapple };
+                    mr      r12, r3;            // cast result returned in r3
+                    lwz     r3, 0x8(r1);
+                    lwz     r4, 0xc(r1);
+                    lwz     r0, 0x24(r1);
+                    mtlr    r0;
+                    addi    r1, r1, 0x20;
+                    cmplwi  r12, 0;
+                    bne     run_flag_test;      // grapple point: retail validation
+                    b       { orbit_block };    // PlayerNotReadyToTarget
+            })
+            .encoded_bytes()
+        } else {
+            ppcasm!(addr, {
+                    // r3 = targetable visor flags, r4 = CPlayerState*, r31 = actor;
+                    // reached only when the current visor is combat
+                    lwz     r0, 0xb4(r4);       // combat visor item capacity
+                    cmplwi  r0, 0;
+                    beq     combat_unowned;
+                run_flag_test:
+                    .long orig;                 // displaced combat targetable flag test
+                    b       { orbit_resume };
+                combat_unowned:
+                    stwu    r1, -0x20(r1);
+                    mflr    r0;
+                    stw     r0, 0x24(r1);
+                    stw     r3, 0x8(r1);
+                    stw     r4, 0xc(r1);
+                    mr      r4, r31;
+                    addi    r3, r1, 0x10;       // 8 byte TCastToPtr temp
+                    bl      { tcast_grapple };
+                    lwz     r12, 0x4(r3);       // cast result
+                    lwz     r3, 0x8(r1);
+                    lwz     r4, 0xc(r1);
+                    lwz     r0, 0x24(r1);
+                    mtlr    r0;
+                    addi    r1, r1, 0x20;
+                    cmplwi  r12, 0;
+                    bne     run_flag_test;      // grapple point: retail validation
+                    b       { orbit_block };    // PlayerNotReadyToTarget
+            })
+            .encoded_bytes()
+        }
     })?;
 
     // The fake combat visor lives in the None state, which retail skips entirely:
@@ -3183,28 +3583,32 @@ fn patch_inventory_gates(
 // ============================================================================
 //  RANDOMPRIME SAVE-SLOT PERSISTENT DATA - SCHEMA (single source of truth)
 // ============================================================================
-// randomprime stores its own data in CGameState's dead FRONT region. Its first serialized member
-// is a hard-coded 128-byte array (count at CGameState+0x0, inline data at +0x4), written as the
-// first 128 bytes of every save regardless of content. PutTo writes it and the load ctor reads it
-// back; nothing else touches it (verified against the NTSC 0-00 disassembly and metaforce), so we
-// overwrite it with our schema. (A tail placement was tried first but rich saves can serialize
-// almost to the buffer end and clobber it - see patch_save_overflow_guard.)
+// randomprime overwrites the 128-byte inline array that is CGameState's first serialized member
+// (count at CGameState+0x0, data at +0x4). PutTo writes it and the load ctor reads it back;
+// nothing else touches it (verified against the NTSC 0-00 disassembly and metaforce). A tail
+// placement was tried first but rich saves can serialize into it - see patch_save_overflow_guard.
 //
-// The constants below are the single source of truth: build_save_schema_block and the PPC
-// trampolines (stamp / block / name) all derive their offsets from them, and the compile-time
-// asserts fail the build if the block stops fitting. See doc/dol-patching.md.
+// These constants are the single source of truth for build_save_schema_block and the PPC
+// trampolines; the compile-time asserts fail the build if a field stops fitting. See
+// doc/dol-patching.md.
 //
-//   off  size  field      notes
-//   0    4     magic      SAVE_SCHEMA_MAGIC ("RPSV"); absent => not our save
-//   4    4     version    SAVE_SCHEMA_VERSION (current = 1)
-//   8    16    uuid       instance id; all-zero default
-//   24   36    save_name  big-endian UTF-16, null-terminated (<= 17 chars)
-//   60   68    (unused)   free front-region tail; future fields grow the block here (bump version)
+//   off  size  field           notes
+//   0    4     magic           SAVE_SCHEMA_MAGIC ("RPSV"); absent => not our save
+//   4    4     version         SAVE_SCHEMA_VERSION
+//   8    16    uuid            instance id; all-zero default
+//   24   36    save_name       big-endian UTF-16, null-terminated (<= 17 chars)
+//   60   4     completion      collected-location counter (qolGeneral completion percent)
+//   64   4     completion_max  denominator captured at save birth, so a slot's percent is stable
+//                              across instances with a different completionPercentMax
+//   68   60    (unused)        future fields grow here (bump version)
+//
+// The identity block [0, SAVE_SCHEMA_SIZE) is stamped once at save birth (patch_save_uuid_stamp).
+// The completion fields sit outside it: both are ctor-zeroed and mutated only at runtime (by the
+// completion patches), so an older save reads 0 there and no version gate is needed.
 //
 // Reads use fixed offsets independent of CPlayerState width / itemMaxCapacity, so instances with
-// different configs read each other's data. PutTo entry stamps the block (patch_save_uuid_stamp),
-// StartGame gates loads on magic+uuid (patch_save_uuid_block), and the file-select renders
-// save_name (patch_save_name).
+// different configs read each other's data. StartGame gates loads on magic+uuid
+// (patch_save_uuid_block), and the file-select renders save_name (patch_save_name).
 
 // Smallest save buffer across versions (NTSC-U / K = 0x3ac = 940; PAL and NTSC-J over-allocate).
 // Hard cap the runtime overflow guard (patch_save_overflow_guard) checks total content against.
@@ -3223,18 +3627,27 @@ const SAVE_SCHEMA_OFFSET: i32 = 0; // == buffer offset; front starts at 0
 const SAVE_FRONT_UNUSED: i32 = SAVE_FRONT_SIZE - (SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE); // 68
 
 const SAVE_SCHEMA_MAGIC: u32 = 0x5250_5356; // "RPSV"
-const SAVE_SCHEMA_VERSION: u32 = 1;
+const SAVE_SCHEMA_VERSION: u32 = 2;
 
 // Field offsets within the block.
 const SAVE_F_MAGIC: usize = 0;
 const SAVE_F_VERSION: usize = 4;
 const SAVE_F_UUID: usize = 8;
 const SAVE_F_NAME: usize = 24;
+// Outside the stamped identity block (>= SAVE_SCHEMA_SIZE) so re-saves don't clobber them.
+const SAVE_F_COMPLETION: usize = 60;
+const SAVE_F_COMPLETION_MAX: usize = 64;
 
 // Absolute buffer offsets (block start + field), used by the trampolines.
 const SAVE_OFF_MAGIC: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_MAGIC as i32;
 const SAVE_OFF_UUID: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_UUID as i32;
 const SAVE_OFF_NAME: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_NAME as i32;
+const SAVE_OFF_COMPLETION: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_COMPLETION as i32;
+const SAVE_OFF_COMPLETION_MAX: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_COMPLETION_MAX as i32;
+// Completion fields within the live CGameState object.
+const SAVE_COMPLETION_MEMBER_OFF: i32 = SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION as i32; // 0x40
+const SAVE_COMPLETION_MAX_MEMBER_OFF: i32 =
+    SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION_MAX as i32; // 0x44
 
 const UUID_BYTES: usize = 16;
 
@@ -3262,6 +3675,18 @@ const _: () = assert!(
 const _: () = assert!(
     SAVE_F_UUID + UUID_BYTES <= SAVE_F_NAME,
     "uuid field overlaps save_name"
+);
+const _: () = assert!(
+    SAVE_F_NAME + SAVE_NAME_WORDS * 4 <= SAVE_F_COMPLETION,
+    "completion counter overlaps the uuid/name identity fields"
+);
+const _: () = assert!(
+    SAVE_F_COMPLETION + 4 <= SAVE_F_COMPLETION_MAX,
+    "completion counter overlaps completion_max"
+);
+const _: () = assert!(
+    SAVE_F_COMPLETION_MAX + 4 <= SAVE_FRONT_SIZE as usize,
+    "completion fields overflow CGameState's dead front region"
 );
 const _: () = assert!((SAVE_NAME_MAX_CHARS + 1) <= SAVE_NAME_WORDS * 2);
 const _: () =
@@ -3397,6 +3822,9 @@ fn reserve_save_uuid_data(
 // Stamp the schema block into CGameState's front-region member on PutTo entry, into the LIVE
 // object (not the output buffer). PutTo's own unmodified serialization loop then writes those
 // bytes to buffer offset 0 moments later.
+//
+// Stamp-once: skip the copy when magic is already present. Re-stamping every PutTo would clobber
+// runtime-owned fields (the completion counter) and re-derive save_name from the current ISO.
 fn patch_save_uuid_stamp(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3417,8 +3845,13 @@ fn patch_save_uuid_stamp(
 
     let putto_orig = dol_patcher.read_u32(putto)?;
     emitter.emit_and_patch(dol_patcher, putto, false, |cave_addr| {
-        // r3 = CGameState* (this); use r6/r9/r12 as scratch.
+        // r3 = CGameState* (this); r0/r5/r6/r9/r12 volatile scratch.
         ppcasm!(cave_addr, {
+            lwz   r0, { SAVE_FRONT_DATA_MEMBER_OFF + SAVE_OFF_MAGIC }(r3);
+            lis   r5, { (SAVE_SCHEMA_MAGIC >> 16) as i32 };
+            ori   r5, r5, { (SAVE_SCHEMA_MAGIC & 0xffff) as i32 };
+            cmplw r0, r5;
+            beq   already_stamped;   // already born, don't re-stamp
             addi  r12, r3, { SAVE_FRONT_DATA_MEMBER_OFF + SAVE_SCHEMA_OFFSET }; // front-region base
             lis   r9, { (block_addr >> 16) as i32 };
             ori   r9, r9, { (block_addr & 0xffff) as i32 };
@@ -3431,6 +3864,7 @@ fn patch_save_uuid_stamp(
             addi  r6, r6, -1;
             cmpwi r6, 0;
             bne   stamp_loop;
+        already_stamped:
             .long putto_orig;        // displaced prologue
             b     { putto + 4 };
         })
@@ -3610,6 +4044,212 @@ fn patch_save_name(
         } else {
             name_tramp!(r25, r26)
         }
+    })?;
+
+    Ok(())
+}
+
+// ============================================================================
+//  COMPLETION PERCENT (qolGeneral) - redefine "completion" as collected locations
+// ============================================================================
+// Completion = collected locations / completionPercentMax, replacing retail's inventory-based
+// percent (meaningless once starting items / totals / multiworld decouple inventory from locations).
+//
+//   P1  GetTotalPickupCount         -> completionPercentMax       (live denominator)
+//   P2  CalculateItemCollectionRate -> live gpGameState counter   (live numerator)
+//   P3  LoadGameFileState preview   -> a slot's own counter and denominator, from its raw buffer
+//   P4  CScriptPickup::Touch        -> bump the counter (and stamp the denominator) on a collection
+//
+// P2 ignores its CPlayerState `this` and always returns the live counter, wrong only for the
+// save-slot preview (it deserializes a temp CPlayerState per slot); P3 fixes that one callsite. A
+// slot stores its own completionPercentMax so its percent stays fixed when a different instance
+// (a different completionPercentMax) previews it. The fields live in the save-owned front region
+// (SAVE_F_COMPLETION / SAVE_F_COMPLETION_MAX); see the save-schema header.
+//
+// All six versions are supported. P1/P2/P4 are the same shape everywhere; only P3 and a few struct
+// offsets vary (see the CompletionLayout table). See agent/completion-versions.md for the recon.
+
+// How LoadGameFileState renders the preview percent - the two shapes P3 must handle.
+enum CompletionPreview {
+    // NTSC-U family + Korean compute it inline: `bl CalcRate; mulli r0,rN,100; divw r0,r0,r30`.
+    // P3 replaces the call (returning the slot's counter) and overrides r30, the denominator, with
+    // the slot's stored max. r30 is dead after the divide on every inline version.
+    Inline { rate_call_off: u32 },
+    // PAL / NTSC-J refactor it into a helper whose return value is stored straight into the
+    // preview. P3 replaces the `bl <helper>` and returns counter*100/max itself (0 when max==0).
+    Helper { call_off: u32 },
+}
+
+// Per-version hook offsets. P1/P2 need only symbol addresses; these pin the P3/P4 hook sites and
+// the CScriptPickup fields P4 reads (that class shifts +0x10 on 1.02/PAL/NTSC-J).
+struct CompletionLayout {
+    preview: CompletionPreview,
+    // P3: r1-relative frame slot of the CMemoryInStream's stable base ptr (this-slot + CInputStream
+    // ptr member 0x10); 0x20 on every version.
+    stream_base_off: i32,
+    // P4: offset within CScriptPickup::Touch of the instruction after `bl IncrPickUp`.
+    touch_incr_hook_off: u32,
+    // P4: CScriptPickup::x26c_lifeTime and the x28c bitfield byte (bit 0x80 = generated).
+    pickup_lifetime_off: i32,
+    pickup_generated_off: i32,
+}
+
+fn completion_layout(version: Version) -> Option<CompletionLayout> {
+    use CompletionPreview::*;
+    let (preview, touch_incr_hook_off, pickup_lifetime_off, pickup_generated_off) = match version {
+        Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscK => (
+            Inline {
+                rate_call_off: 0x11c,
+            },
+            0x23c,
+            0x26c,
+            0x28c,
+        ),
+        Version::NtscU0_02 => (
+            Inline {
+                rate_call_off: 0x11c,
+            },
+            0x23c,
+            0x27c,
+            0x29c,
+        ),
+        Version::Pal | Version::NtscJ => (Helper { call_off: 0x110 }, 0x204, 0x27c, 0x29c),
+        Version::NtscUTrilogy | Version::NtscJTrilogy | Version::PalTrilogy => return None,
+    };
+    Some(CompletionLayout {
+        preview,
+        stream_base_off: 0x20,
+        touch_incr_hook_off,
+        pickup_lifetime_off,
+        pickup_generated_off,
+    })
+}
+
+fn patch_completion_percent(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    if !config.qol_general {
+        return Ok(());
+    }
+    let Some(layout) = completion_layout(version) else {
+        return Ok(());
+    };
+    // All four hooks form one feature; if any required symbol is missing, install nothing.
+    let (Some(total_count), Some(calc_rate), Some(load_state), Some(touch), Some(game_state_ptr)) = (
+        symbol_addr_opt!("GetTotalPickupCount__12CPlayerStateCFv", version),
+        symbol_addr_opt!("CalculateItemCollectionRate__12CPlayerStateCFv", version),
+        symbol_addr_opt!("LoadGameFileState__10CGameStateFPCv", version),
+        symbol_addr_opt!("Touch__13CScriptPickupFR6CActorR13CStateManager", version),
+        symbol_addr_opt!("gpGameState", version),
+    ) else {
+        return Ok(());
+    };
+
+    // Validated to fit a positive 16-bit `li` immediate (see patch_config).
+    let max = config.completion_percent_max as i32;
+    let gpgs_hi = (game_state_ptr >> 16) as i32;
+    let gpgs_lo = (game_state_ptr & 0xffff) as i32;
+
+    // P1: retail is exactly `li r3, 99; blr` (8 bytes), so the replacement must stay 2 instrs -
+    // hence the <= 0x7fff cap on max.
+    dol_patcher.ppcasm_patch(&ppcasm!(total_count, {
+        li  r3, { max };
+        blr;
+    }))?;
+
+    // P2: live counter at gpGameState+0x40, ignoring `this`. Null-safe before a game state exists.
+    dol_patcher.ppcasm_patch(&ppcasm!(calc_rate, {
+        lis    r4, { gpgs_hi };
+        ori    r4, r4, { gpgs_lo };
+        lwz    r3, 0x0(r4);          // r3 = CGameState*
+        cmplwi r3, 0;
+        beq    calc_rate_zero;
+        lwz    r3, { SAVE_COMPLETION_MEMBER_OFF }(r3);
+        blr;
+    calc_rate_zero:
+        li     r3, 0;
+        blr;
+    }))?;
+
+    // P3: the CMemoryInStream keeps a stable base pointer at a fixed frame slot, from which both
+    // hooks read the previewed slot's stored counter and max.
+    let stream_base_off = layout.stream_base_off;
+    match layout.preview {
+        // Inline: replace `bl CalcRate` with a stub returning the slot's counter, and overwrite the
+        // dead r30 with the slot's max so the untouched `mulli;divw` divides by it
+        CompletionPreview::Inline { rate_call_off } => {
+            let rate_call = load_state + rate_call_off;
+            emitter.emit_and_patch(dol_patcher, rate_call, true, |cave_addr| {
+                ppcasm!(cave_addr, {
+                    lwz    r4, { stream_base_off }(r1);
+                    lwz    r5, { SAVE_OFF_COMPLETION_MAX }(r4);
+                    cmplwi r5, 0;
+                    beq    keep_denom;
+                    mr     r30, r5;
+                keep_denom:
+                    lwz    r3, { SAVE_OFF_COMPLETION }(r4);
+                    blr;
+                })
+                .encoded_bytes()
+            })?;
+        }
+        CompletionPreview::Helper { call_off } => {
+            let helper_call = load_state + call_off;
+            emitter.emit_and_patch(dol_patcher, helper_call, true, |cave_addr| {
+                ppcasm!(cave_addr, {
+                    lwz    r4, { stream_base_off }(r1);
+                    lwz    r5, { SAVE_OFF_COMPLETION_MAX }(r4);
+                    lwz    r3, { SAVE_OFF_COMPLETION }(r4);
+                    cmplwi r5, 0;
+                    beq    helper_zero;
+                    mulli  r3, r3, 100;
+                    divw   r3, r3, r5;
+                    blr;
+                helper_zero:
+                    li     r3, 0;
+                    blr;
+                })
+                .encoded_bytes()
+            })?;
+        }
+    }
+
+    // P4: hooked after `bl IncrPickUp`, outside the `capacity > 0` block so maxIncrease:0 and
+    // HealthRefill locations still count. Counts only static world pickups: lifeTime == 0 AND not
+    // runtime-generated; enemy/crate drops fail one or both tests. Also stamps the slot's
+    // denominator here, so any save with a nonzero counter carries the matching max (P3).
+    let touch_hook = touch + layout.touch_incr_hook_off;
+    let touch_ret = touch_hook + 4;
+    let lifetime_off = layout.pickup_lifetime_off;
+    let generated_off = layout.pickup_generated_off;
+    let touch_orig = dol_patcher.read_u32(touch_hook)?; // lhz r0, 0x8(r29)
+    emitter.emit_and_patch(dol_patcher, touch_hook, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            // r29 = CScriptPickup* (live); r11/r12 volatile scratch.
+            lwz    r12, { lifetime_off }(r29); // lifeTime; +0.0 encodes as 0
+            cmplwi r12, 0;
+            bne    incr_done;
+            lbz    r12, { generated_off }(r29);
+            andi   r12, r12, 0x80;     // generated bit
+            bne    incr_done;
+            lis    r11, { gpgs_hi };
+            ori    r11, r11, { gpgs_lo };
+            lwz    r12, 0x0(r11);
+            cmplwi r12, 0;
+            beq    incr_done;
+            lwz    r11, { SAVE_COMPLETION_MEMBER_OFF }(r12);
+            addi   r11, r11, 1;
+            stw    r11, { SAVE_COMPLETION_MEMBER_OFF }(r12);
+            li     r11, { max };
+            stw    r11, { SAVE_COMPLETION_MAX_MEMBER_OFF }(r12);
+        incr_done:
+            .long touch_orig;          // displaced: lhz r0, 0x8(r29)
+            b      { touch_ret };
+        })
+        .encoded_bytes()
     })?;
 
     Ok(())
@@ -4054,6 +4694,7 @@ pub fn patch_dol(
     patch_save_uuid_stamp(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
     patch_save_uuid_block(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
     patch_save_name(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;
+    patch_completion_percent(&mut dol_patcher, &mut emitter, version, config)?;
     // Unconditional: protects save integrity. Only the verbose report is gated on os_diagnostics.
     patch_save_overflow_guard(
         &mut dol_patcher,

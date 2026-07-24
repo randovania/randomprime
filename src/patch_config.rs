@@ -106,6 +106,19 @@ pub struct PickupConfig {
     pub invisible_and_silent: Option<bool>,
     pub thermal_only: Option<bool>,
     pub scale: Option<[f32; 3]>,
+    pub contribute_to_completion: Option<bool>,
+}
+
+impl PickupConfig {
+    pub fn contributes_to_completion(&self) -> bool {
+        if let Some(contribute_to_completion) = self.contribute_to_completion {
+            contribute_to_completion
+        } else {
+            let pickup_type = PickupType::from_str(&self.pickup_type);
+            let respawn = self.respawn.unwrap_or(false);
+            pickup_type != PickupType::Nothing && !respawn
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -1128,7 +1141,7 @@ pub struct TimerConfig {
     pub layer: Option<u32>,
     pub name: Option<String>,
     pub active: Option<bool>,
-    pub time: f32,
+    pub time: Option<f32>,
     pub max_random_add: Option<f32>,
     pub looping: Option<bool>,
     pub start_immediately: Option<bool>,
@@ -1526,6 +1539,7 @@ pub struct PatchConfig {
     pub automatic_crash_screen: bool,
     pub os_diagnostics: bool,
     pub etank_capacity: u32,
+    pub completion_percent_max: u32,
     pub shuffle_pickup_position: bool,
     pub shuffle_pickup_pos_all_rooms: bool,
     pub remove_vanilla_blast_shields: bool,
@@ -1563,6 +1577,7 @@ pub struct PatchConfig {
     pub default_game_options: Option<DefaultGameOptions>,
     pub suit_colors: Option<SuitColors>,
     pub force_fusion: bool,
+    pub rainbow_phazon_ball: bool,
     pub cache_dir: String,
 
     pub quickplay: bool,
@@ -1599,6 +1614,7 @@ struct Preferences {
     default_game_options: Option<DefaultGameOptions>,
     suit_colors: Option<SuitColors>,
     force_fusion: Option<bool>,
+    rainbow_phazon_ball: Option<bool>,
     cache_dir: Option<String>,
 
     qol_game_breaking: Option<bool>,
@@ -1658,6 +1674,7 @@ struct GameConfig {
     door_open_mode: Option<DoorOpenMode>,
 
     etank_capacity: Option<u32>,
+    completion_percent_max: Option<u32>,
     item_max_capacity: Option<HashMap<String, u32>>,
     missile_costs: Option<HashMap<String, u32>>,
 
@@ -2523,6 +2540,23 @@ impl PatchConfigPrivate {
             .preferences
             .qol_general
             .unwrap_or(!force_vanilla_layout);
+
+        // Must be >= 1 (the DOL patches divide by it) and <= 0x7fff to fit the P1 patch's single
+        // `li` immediate over the retail 8-byte GetTotalPickupCount function.
+        let completion_percent_max = self.game_config.completion_percent_max.unwrap_or_else(|| {
+            let contributing = self
+                .level_data
+                .values()
+                .flat_map(|level| level.rooms.values())
+                .filter_map(|room| room.pickups.as_ref())
+                .flatten()
+                .filter(|pickup| pickup.contributes_to_completion())
+                .count();
+            (contributing as u32).max(1)
+        });
+        if !(1..=0x7fff).contains(&completion_percent_max) {
+            panic!("completionPercentMax must be between 1 and 32767");
+        }
         let qol_cutscenes = match self
             .preferences
             .qol_cutscenes
@@ -2785,6 +2819,7 @@ impl PatchConfigPrivate {
             flaahgra_music_files,
             suit_colors: self.preferences.suit_colors.clone(),
             force_fusion: self.preferences.force_fusion.unwrap_or(false),
+            rainbow_phazon_ball: self.preferences.rainbow_phazon_ball.unwrap_or(false),
             cache_dir: self
                 .preferences
                 .cache_dir
@@ -2856,6 +2891,7 @@ impl PatchConfigPrivate {
             starting_beam,
 
             etank_capacity: self.game_config.etank_capacity.unwrap_or(100),
+            completion_percent_max,
             item_max_capacity,
             missile_costs,
 
