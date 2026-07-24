@@ -226,6 +226,7 @@ pub enum PlatformType {
 pub struct PlatformConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub position: [f32; 3],
     pub rotation: Option<[f32; 3]>,
@@ -392,6 +393,7 @@ pub enum DamageType {
 pub struct TriggerConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub position: Option<[f32; 3]>,
     pub scale: Option<[f32; 3]>,
@@ -406,7 +408,7 @@ pub struct TriggerConfig {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum SpecialFunctionType {
-    What = 0,
+    None = 0,
     #[serde(alias = "playerFollowLocator", alias = "PLAYERFOLLOWLOCATOR")]
     PlayerFollowLocator,
     #[serde(alias = "spinnerController", alias = "SPINNERCONTROLLER")]
@@ -424,7 +426,7 @@ pub enum SpecialFunctionType {
     #[serde(alias = "introBossRingController", alias = "INTROBOSSRINGCONTROLLER")]
     IntroBossRingController,
     #[serde(alias = "viewFrustumTest", alias = "VIEWFRUSTUMTEST")]
-    ViewFrustumTest,
+    ViewFrustumTester,
     #[serde(alias = "shotSpinnerController", alias = "SHOTSPINNERCONTROLLER")]
     ShotSpinnerController,
     #[serde(alias = "escapeSequence", alias = "ESCAPESEQUENCE")]
@@ -471,6 +473,14 @@ pub enum SpecialFunctionType {
     FusionRelay,
     #[serde(alias = "weaponSwitch", alias = "WEAPONSWITCH")]
     WeaponSwitch,
+    #[serde(alias = "fogVolume", alias = "FOGVOLUME")]
+    FogVolume,
+    #[serde(alias = "radialDamage", alias = "RADIALDAMAGE")]
+    RadialDamage,
+    #[serde(alias = "envFxDensityController", alias = "ENVFXDENSITYCONTROLLER")]
+    EnvFxDensityController,
+    #[serde(alias = "rumbleEffect", alias = "RUMBLEEFFECT")]
+    RumbleEffect,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -479,28 +489,29 @@ pub struct SpecialFunctionConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
 
+    pub name: Option<String>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
 
     #[serde(alias = "type")]
     pub type_: SpecialFunctionType,
 
-    pub unknown1: Option<String>,
-    pub unknown2: Option<f32>,
-    pub unknown3: Option<f32>,
-    pub unknown4: Option<f32>,
+    pub string_param: Option<String>,
+    pub value_param: Option<f32>,
+    pub value_param2: Option<f32>,
+    pub value_param3: Option<f32>,
 
     pub layer_change_room_id: Option<u32>,
     pub layer_change_layer_id: Option<u32>,
     pub item_id: Option<String>,
 
     pub active: Option<bool>,
-    pub unknown6: Option<f32>,
+    pub value_param4: Option<f32>,
 
     // "Used by SpinnerController"
-    pub spinner1: Option<u32>,
-    pub spinner2: Option<u32>,
-    pub spinner3: Option<u32>,
+    pub sound1: Option<u32>,
+    pub sound2: Option<u32>,
+    pub sound3: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -508,11 +519,13 @@ pub struct SpecialFunctionConfig {
 pub struct ActorRotateConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
-    pub rotation: [f32; 3],
-    pub time_scale: f32,
-    pub update_actors: bool,
-    pub update_on_creation: bool,
-    pub update_active: bool,
+    pub name: Option<String>,
+    #[serde(alias = "rotation_offset")]
+    pub rotation: Option<[f32; 3]>,
+    pub time_scale: Option<f32>,
+    pub update_actors: Option<bool>,
+    pub update_on_register: Option<bool>,
+    pub active: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -520,6 +533,7 @@ pub struct ActorRotateConfig {
 pub struct StreamedAudioConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub audio_file_name: String,
     pub no_stop_on_deactivate: Option<bool>,
@@ -566,6 +580,7 @@ pub struct EditObjConfig {
 pub struct FogConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub mode: Option<u32>,
     pub explicit: Option<bool>,
@@ -615,6 +630,7 @@ pub struct RepositionConfig {
 pub struct HudmemoConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub text: Option<String>,
     pub message_time: Option<f32>,
@@ -626,6 +642,7 @@ pub struct HudmemoConfig {
 pub struct WaypointConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
     pub active: Option<bool>,
@@ -645,6 +662,7 @@ pub struct WaypointConfig {
 pub struct CounterConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub start_value: Option<u32>,
     pub max_value: Option<u32>,
@@ -656,6 +674,7 @@ pub struct CounterConfig {
 pub struct SwitchConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub open: Option<bool>,
     pub auto_close: Option<bool>,
@@ -666,6 +685,7 @@ pub struct SwitchConfig {
 pub struct PlayerHintConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub priority: Option<u32>,
     pub unknown1: Option<bool>,
@@ -773,6 +793,7 @@ pub enum ControllerActionType {
 pub struct ControllerActionConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
 
     pub action: ControllerActionType,
@@ -785,6 +806,7 @@ pub struct ControllerActionConfig {
 pub struct CameraConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
     pub active: Option<bool>,
@@ -806,6 +828,7 @@ pub struct CameraConfig {
 pub struct CameraWaypointConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
     pub active: Option<bool>,
@@ -847,6 +870,7 @@ pub enum FilterShape {
 pub struct CameraFilterKeyframeConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
 
     pub filter_type: FilterType,
@@ -879,6 +903,7 @@ pub enum EBallCameraBehaviour {
 pub struct NewCameraHintConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
     pub active: Option<bool>,
@@ -939,6 +964,7 @@ pub struct NewCameraHintConfig {
 pub struct CameraHintTriggerConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
@@ -952,6 +978,7 @@ pub struct CameraHintTriggerConfig {
 pub struct BallTriggerConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub position: Option<[f32; 3]>,
     pub scale: Option<[f32; 3]>,
     pub active: Option<bool>,
@@ -976,6 +1003,7 @@ pub enum InitialSplinePosition {
 pub struct PathCameraConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub position: Option<[f32; 3]>,
     pub rotation: Option<[f32; 3]>,
     pub active: Option<bool>,
@@ -1102,6 +1130,7 @@ pub struct ConnectionConfig {
 pub struct RelayConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
 }
 
@@ -1110,6 +1139,7 @@ pub struct RelayConfig {
 pub struct TimerConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub time: Option<f32>,
     pub max_random_add: Option<f32>,
@@ -1117,17 +1147,25 @@ pub struct TimerConfig {
     pub start_immediately: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum FadeOut {
+    Zero = 0,
+    One,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ActorKeyFrameConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
-    pub animation_id: u32,
-    pub looping: bool,
-    pub lifetime: f32,
-    pub fade_out: f32,
-    pub total_playback: f32,
+    pub animation_index: Option<u32>,
+    pub loop_: Option<bool>,
+    pub loop_duration: Option<f32>,
+    pub fade_out: Option<FadeOut>,
+    pub playback_rate: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1135,6 +1173,7 @@ pub struct ActorKeyFrameConfig {
 pub struct SpawnPointConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub position: [f32; 3],
     pub rotation: Option<[f32; 3]>,
@@ -1148,6 +1187,7 @@ pub struct SpawnPointConfig {
 pub struct WorldLightFaderConfig {
     pub id: u32,
     pub layer: Option<u32>,
+    pub name: Option<String>,
     pub active: Option<bool>,
     pub faded_light_level: Option<f32>,
     pub fade_speed: Option<f32>,

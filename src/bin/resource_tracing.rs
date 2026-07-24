@@ -75,11 +75,11 @@ impl<'r> ResourceDb<'r> {
                 Some(pickup.ancs.node_index),
             ),
             (
-                ResourceKey::from(pickup.actor_params.scan_params.scan),
+                ResourceKey::from(pickup.actor_params.scan_parameters.scan),
                 None,
             ),
-            (ResourceKey::from(pickup.actor_params.xray_cmdl), None),
-            (ResourceKey::from(pickup.actor_params.xray_cskr), None),
+            (ResourceKey::from(pickup.actor_params.xray_model), None),
+            (ResourceKey::from(pickup.actor_params.xray_skin), None),
             (ResourceKey::from(pickup.part), None),
         ];
         let mut result = HashSet::new();
@@ -1370,7 +1370,7 @@ fn main() {
                     // so skip those for the pickup_table
                     if (pickup_model == PickupModel::Missile
                         || pickup_model == PickupModel::EnergyTank)
-                        && pickup.actor_params.scan_params.scan == 0xFFFFFFFF
+                        && pickup.actor_params.scan_parameters.scan == 0xFFFFFFFF
                     {
                         continue;
                     }

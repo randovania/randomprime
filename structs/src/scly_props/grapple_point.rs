@@ -5,23 +5,23 @@ use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone, PartialEq)]
-pub struct GrappleParams {
+pub struct GrappleParameters {
     #[auto_struct(expect = 12)]
     prop_count: u32,
 
-    pub unknown1: f32,
-    pub unknown2: f32,
-    pub unknown3: f32,
-    pub unknown4: f32,
-    pub unknown5: f32,
-    pub unknown6: f32,
-    pub unknown7: f32,
-    pub unknown8: f32,
-    pub unknown9: f32,
-    pub unknown10: f32,
-    pub unknown11: f32,
+    pub grapple_length: f32,
+    pub grapple_attach_length: f32,
+    pub grapple_spring_constant: f32,
+    pub grapple_spring_length: f32,
+    pub grapple_spring_tardis: f32,
+    pub swing_force: f32,
+    pub swing_max_force: f32,
+    pub swing_arc_angle: f32,
+    pub swing_turn_angle: f32,
+    pub swing_camera_pitch: f32,
+    pub swing_camera_max_pitch: f32,
 
-    pub disable_turning: u8,
+    pub constrain_to_axis: u8,
 }
 
 #[auto_struct(Readable, Writable)]
@@ -37,7 +37,7 @@ pub struct GrapplePoint<'r> {
 
     pub active: u8,
 
-    pub grapple_params: GrappleParams,
+    pub grapple_parameters: GrappleParameters,
 }
 
 use crate::{impl_active, impl_position, impl_rotation};

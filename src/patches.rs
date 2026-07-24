@@ -56,8 +56,8 @@ use crate::{
         cmpr_compress, cmpr_decompress, huerotate_in_place, huerotate_matrix, whiten_in_place,
         FUSION_GRAVITY_SUIT_TEXTURES, FUSION_PHAZON_BALL_TEXTURES, FUSION_PHAZON_SUIT_TEXTURES,
         FUSION_POWER_SUIT_TEXTURES, FUSION_VARIA_SUIT_TEXTURES, GRAVITY_SUIT_TEXTURES,
-        PHAZON_SPIDER_BALL_TEXTURES,
-        PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, SHIP_TEXTURES, VARIA_SUIT_TEXTURES,
+        PHAZON_SPIDER_BALL_TEXTURES, PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, SHIP_TEXTURES,
+        VARIA_SUIT_TEXTURES,
     },
     GcDiscLookupExtensions,
 };
@@ -388,7 +388,7 @@ fn is_door_lock(obj: &structs::SclyObject) -> bool {
         false // non-actors are never door locks
     } else {
         let _actor = actor.unwrap();
-        _actor.cmdl == 0x5391EDB6 || _actor.cmdl == 0x6E5D6796 // door locks are indentified by their model (check for both horizontal and vertical variants)
+        _actor.static_model == 0x5391EDB6 || _actor.static_model == 0x6E5D6796 // door locks are indentified by their model (check for both horizontal and vertical variants)
     }
 }
 
@@ -626,7 +626,7 @@ fn patch_remove_blast_shield(
                 continue;
             }
 
-            if actor.cmdl.to_u32() == BlastShieldType::Missile.cmdl().to_u32() {
+            if actor.static_model.to_u32() == BlastShieldType::Missile.cmdl().to_u32() {
                 actor.active = 0;
                 actor.position[2] -= 100.0;
             }
@@ -859,7 +859,7 @@ fn patch_door<'r>(
             .and_then(|obj| obj.property_data.as_actor_mut())
             .unwrap();
 
-        let is_vertical = DoorType::from_cmdl(&door_shield.cmdl.to_u32()).is_vertical();
+        let is_vertical = DoorType::from_cmdl(&door_shield.static_model.to_u32()).is_vertical();
 
         let blast_shield_type = blast_shield_type.as_ref().unwrap();
 
@@ -867,10 +867,8 @@ fn patch_door<'r>(
         let mut rotation: GenericArray<f32, U3>;
         let scale: GenericArray<f32, U3>;
 
-        // CollisionBox
-        let scan_offset: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
-        // CollisionOffset
-        let hitbox: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
+        let collision_box: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
+        let collision_offset: GenericArray<f32, U3> = [0.0, 0.0, 0.0].into();
 
         let door_rotation = door_loc.door_rotation.unwrap();
         let mut is_ceiling = false;
@@ -1019,69 +1017,69 @@ fn patch_door<'r>(
                 position,
                 rotation,
                 scale,
-                hitbox,
-                scan_offset,
-                unknown1: 1.0, // mass
-                unknown2: 0.0, // momentum
+                collision_box,
+                collision_offset,
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 1.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: blast_shield_type.vulnerability(),
-                cmdl: blast_shield_type.cmdl(),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: blast_shield_type.cmdl(),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(),
                     node_index: 0,
                     default_animation: 0xFFFFFFFF,
                 },
-                actor_params: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
-                        unknown4: 1,
-                        world_lighting: 1,
+                actor_parameters: structs::scly_structs::ActorParameters {
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 1,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
+                        make_lights: 1,
+                        use_world_lighting: 1,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(),
                     },
-                    xray_cmdl: ResId::invalid(),
-                    xray_cskr: ResId::invalid(),
-                    thermal_cmdl: ResId::invalid(),
-                    thermal_cskr: ResId::invalid(),
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
-                    visor_params: structs::scly_structs::VisorParameters {
+                    xray_model: ResId::invalid(),
+                    xray_skin: ResId::invalid(),
+                    thermal_model: ResId::invalid(),
+                    thermal_skin: ResId::invalid(),
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 1,
                         visor_mask: 15, // Visor Flags : Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 0,
-                    unknown3: 0,
-                    unknown4: 0,
-                    unknown5: 1.0,
+                    thermal_hot: 0,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 0,
+                    thermal_damage_magnitude: 1.0,
                 },
-                looping: 1,
-                snow: 1, // immovable
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 1, // immovable
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 0,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 0,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             })),
         };
 
@@ -1362,7 +1360,7 @@ fn patch_door<'r>(
                 color_txtr: ResId::invalid(),
                 lock_on: lock_on as u8,
                 active: 1,
-                visor_params: structs::scly_structs::VisorParameters {
+                visor_parameters: structs::scly_structs::VisorParameters {
                     unknown0: 0,
                     target_passthrough: 1,
                     visor_mask: 15, // Combat|Scan|Thermal|XRay
@@ -1625,21 +1623,21 @@ fn patch_door<'r>(
                         thermal_visor_visible: 1,
                         xray_visor_visible: 1,
                         die_when_systems_done: 0,
-                        light_params: structs::scly_structs::LightParameters {
-                            unknown0: 1,
-                            unknown1: 1.0,
-                            shadow_tessellation: 0,
-                            unknown2: 1.0,
-                            unknown3: 20.0,
-                            color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
-                            unknown4: 0,
-                            world_lighting: 1,
+                        light_parameters: structs::scly_structs::LightParameters {
+                            cast_shadow: 1,
+                            shadow_scale: 1.0,
+                            tessellation: 0,
+                            shadow_alpha: 1.0,
+                            max_shadow_height: 20.0,
+                            ambient_color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
+                            make_lights: 0,
+                            use_world_lighting: 1,
                             light_recalculation: 1,
-                            unknown5: [0.0, 0.0, 0.0].into(),
-                            unknown6: 4,
-                            unknown7: 4,
-                            unknown8: 0,
-                            light_layer_id: 0,
+                            lightning_position: [0.0, 0.0, 0.0].into(),
+                            num_dynamic_lights: 4,
+                            num_area_lights: 4,
+                            ignore_ambient_lightning: 0,
+                            use_light_set: 0,
                         },
                     }
                     .into(),
@@ -1815,7 +1813,7 @@ fn patch_door<'r>(
                 .find(|obj| obj.instance_id == door_shield_location.instance_id)
                 .and_then(|obj| obj.property_data.as_actor_mut())
                 .unwrap();
-            door_shield.cmdl = _door_type.shield_cmdl();
+            door_shield.static_model = _door_type.shield_cmdl();
         }
 
         // Add scan point
@@ -1850,7 +1848,7 @@ fn patch_door<'r>(
                 door.scan_offset[2] = 1.0;
             }
 
-            door.actor_params.scan_params.scan = _door_type.scan();
+            door.actor_params.scan_parameters.scan = _door_type.scan();
         }
     }
 
@@ -1864,7 +1862,7 @@ fn patch_door<'r>(
                     structs::Actor::OBJECT_TYPE => {
                         let id = obj.instance_id;
                         let obj = obj.property_data.as_actor().unwrap();
-                        let cmdl = obj.cmdl.to_u32();
+                        let cmdl = obj.static_model.to_u32();
 
                         obj.active != 0 || // remove inactive
                                 !this_near_that(obj.position.into(), position.into()) || // ...and within 3 units
@@ -2103,7 +2101,7 @@ fn patch_door<'r>(
             let mut new_door_shield = door_shield.clone();
             let new_door_shield_data = new_door_shield.property_data.as_actor_mut().unwrap();
             new_door_shield.instance_id = door_shield_id;
-            new_door_shield_data.cmdl = door_type_after_open.shield_cmdl();
+            new_door_shield_data.static_model = door_type_after_open.shield_cmdl();
             new_door_shield_data.active = 1;
             layers[0].objects.as_mut_vec().push(new_door_shield);
         }
@@ -2636,10 +2634,10 @@ fn patch_add_item<'r>(
         pickup_model_data.part = ResId::invalid();
         pickup_model_data.ancs.node_index = extern_model.as_ref().unwrap().character;
         pickup_model_data.ancs.default_animation = 0;
-        pickup_model_data.actor_params.xray_cmdl = ResId::invalid();
-        pickup_model_data.actor_params.xray_cskr = ResId::invalid();
-        pickup_model_data.actor_params.thermal_cmdl = ResId::invalid();
-        pickup_model_data.actor_params.thermal_cskr = ResId::invalid();
+        pickup_model_data.actor_params.xray_model = ResId::invalid();
+        pickup_model_data.actor_params.xray_skin = ResId::invalid();
+        pickup_model_data.actor_params.thermal_model = ResId::invalid();
+        pickup_model_data.actor_params.thermal_skin = ResId::invalid();
     }
 
     let respawn = pickup_config.respawn.unwrap_or(false);
@@ -2836,7 +2834,7 @@ fn patch_add_item<'r>(
     };
 
     // set the scan file id //
-    pickup.actor_params.scan_params.scan = scan_id;
+    pickup.actor_params.scan_parameters.scan = scan_id;
 
     let pickup_obj_id = match pickup_config.id {
         Some(id) => id,
@@ -3102,18 +3100,18 @@ fn patch_add_item<'r>(
                 position: [0., 0., 0.].into(),
                 rotation: [0., 0., 0.].into(),
                 type_: 16, // layer change
-                unknown0: b"\0".as_cstr(),
-                unknown1: 0.,
-                unknown2: 0.,
-                unknown3: 0.,
+                string_param: b"\0".as_cstr(),
+                value_param: 0.,
+                value_param2: 0.,
+                value_param3: 0.,
                 layer_change_room_id: room_id,
                 layer_change_layer_id: new_layer_idx as u32,
                 item_id: 0,
                 active: 1,
-                unknown5: 0.,
-                unknown6: 0xFFFFFFFF,
-                unknown7: 0xFFFFFFFF,
-                unknown8: 0xFFFFFFFF,
+                value_param4: 0.,
+                sound1: 0xFFFFFFFF,
+                sound2: 0xFFFFFFFF,
+                sound3: 0xFFFFFFFF,
             })),
         };
 
@@ -3320,18 +3318,18 @@ fn patch_superheated_room(
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 18,
-            unknown0: b"\0".as_cstr(),
-            unknown1: heat_damage_per_sec,
-            unknown2: 0.0,
-            unknown3: 0.0,
+            string_param: b"\0".as_cstr(),
+            value_param: heat_damage_per_sec,
+            value_param2: 0.0,
+            value_param3: 0.0,
             layer_change_room_id: 4294967295,
             layer_change_layer_id: 4294967295,
             item_id: 0,
             active: 1,
-            unknown5: 0.0,
-            unknown6: 4294967295,
-            unknown7: 4294967295,
-            unknown8: 4294967295,
+            value_param4: 0.0,
+            sound1: 4294967295,
+            sound2: 4294967295,
+            sound3: 4294967295,
         })),
     };
 
@@ -3921,7 +3919,7 @@ fn patch_remove_tangle_weed_scan_point(
         for obj in layer.objects.as_mut_vec().iter_mut() {
             if tangle_weed_ids.contains(&obj.instance_id) {
                 let tangle_weed = obj.property_data.as_snake_weed_swarm_mut().unwrap();
-                tangle_weed.actor_params.scan_params.scan = ResId::invalid();
+                tangle_weed.actor_params.scan_parameters.scan = ResId::invalid();
             }
         }
     }
@@ -4002,69 +4000,69 @@ fn patch_add_scan_actor<'r>(
                 position: position.into(),
                 rotation: [0.0, 90.0, rotation].into(),
                 scale: [1.0, 1.0, 1.0].into(),
-                hitbox: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
-                unknown1: 1.0, // mass
-                unknown2: 0.0, // momentum
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 5.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Disabled.vulnerability(),
-                cmdl: ResId::invalid(),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: ResId::invalid(),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::<res_id::ANCS>::new(0x98dab29c), // Scanholo.ANCS
                     node_index: 0,
                     default_animation: 0,
                 },
-                actor_params: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 0,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
-                        unknown4: 0,
-                        world_lighting: 0,
+                actor_parameters: structs::scly_structs::ActorParameters {
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 0,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
+                        make_lights: 0,
+                        use_world_lighting: 0,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(),
                     },
-                    xray_cmdl: ResId::invalid(),
-                    xray_cskr: ResId::invalid(),
-                    thermal_cmdl: ResId::invalid(),
-                    thermal_cskr: ResId::invalid(),
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
-                    visor_params: structs::scly_structs::VisorParameters {
+                    xray_model: ResId::invalid(),
+                    xray_skin: ResId::invalid(),
+                    thermal_model: ResId::invalid(),
+                    thermal_skin: ResId::invalid(),
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 0,
                         visor_mask: 15, // Visor Flags : Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 1,
-                    unknown3: 0,
-                    unknown4: 0,
-                    unknown5: 1.0,
+                    thermal_hot: 1,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 0,
+                    thermal_damage_magnitude: 1.0,
                 },
-                looping: 1,
-                snow: 0, // immovable
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 0, // immovable
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 0,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 0,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             })),
         });
 
@@ -4448,10 +4446,10 @@ fn modify_pickups_in_mrea<'r>(
         pickup_model_data.part = ResId::invalid();
         pickup_model_data.ancs.node_index = extern_model.as_ref().unwrap().character;
         pickup_model_data.ancs.default_animation = 0;
-        pickup_model_data.actor_params.xray_cmdl = ResId::invalid();
-        pickup_model_data.actor_params.xray_cskr = ResId::invalid();
-        pickup_model_data.actor_params.thermal_cmdl = ResId::invalid();
-        pickup_model_data.actor_params.thermal_cskr = ResId::invalid();
+        pickup_model_data.actor_params.xray_model = ResId::invalid();
+        pickup_model_data.actor_params.xray_skin = ResId::invalid();
+        pickup_model_data.actor_params.thermal_model = ResId::invalid();
+        pickup_model_data.actor_params.thermal_skin = ResId::invalid();
     }
 
     // Add hudmemo string as dependency to room //
@@ -4959,7 +4957,7 @@ fn modify_pickups_in_mrea<'r>(
                 // Also the ice in ruins west
                 if obj_id == 0x0017016E || obj_id == 0x0017016F || obj_id == 0x00092738 {
                     let actor = obj.property_data.as_actor_mut().unwrap();
-                    actor.actor_params.visor_params.target_passthrough = 1;
+                    actor.actor_parameters.visor_parameters.target_passthrough = 1;
                 } else if obj.property_data.is_point_of_interest() {
                     let poi = obj.property_data.as_point_of_interest_mut().unwrap();
                     if (
@@ -5139,9 +5137,9 @@ fn update_pickup(
     };
 
     // Should we use non-default scan id? //
-    pickup.actor_params.scan_params.scan = scan_id;
+    pickup.actor_params.scan_parameters.scan = scan_id;
 
-    (position, pickup.actor_params.scan_params.scan)
+    (position, pickup.actor_params.scan_parameters.scan)
 }
 
 fn update_hudmemo(
@@ -5735,18 +5733,18 @@ fn patch_sunchamber_cutscene_hack(
                     position: [271.656, 54.095, 62.225].into(),
                     rotation: [0.0, 0.0, 180.0].into(),
                     type_: SpecialFunctionType::ObjectFollowLocator as u32,
-                    unknown0: b"Head_1\0".as_cstr(),
-                    unknown1: 0.0,
-                    unknown2: 0.0,
-                    unknown3: 0.0,
+                    string_param: b"Head_1\0".as_cstr(),
+                    value_param: 0.0,
+                    value_param2: 0.0,
+                    value_param3: 0.0,
                     layer_change_room_id: 0xFFFFFFFF,
                     layer_change_layer_id: 0xFFFFFFFF,
                     item_id: 0,
                     active: 0,
-                    unknown5: 0.0,
-                    unknown6: 0xFFFFFFFF,
-                    unknown7: 0xFFFFFFFF,
-                    unknown8: 0xFFFFFFFF,
+                    value_param4: 0.0,
+                    sound1: 0xFFFFFFFF,
+                    sound2: 0xFFFFFFFF,
+                    sound3: 0xFFFFFFFF,
                 }
                 .into(),
                 connections: vec![
@@ -5772,18 +5770,18 @@ fn patch_sunchamber_cutscene_hack(
                     position: [270.656, 54.095, 62.225].into(),
                     rotation: [0.0, 0.0, 180.0].into(),
                     type_: SpecialFunctionType::ObjectFollowLocator as u32,
-                    unknown0: b"Head_1\0".as_cstr(),
-                    unknown1: 0.0,
-                    unknown2: 0.0,
-                    unknown3: 0.0,
+                    string_param: b"Head_1\0".as_cstr(),
+                    value_param: 0.0,
+                    value_param2: 0.0,
+                    value_param3: 0.0,
                     layer_change_room_id: 0xFFFFFFFF,
                     layer_change_layer_id: 0xFFFFFFFF,
                     item_id: 0,
                     active: 0,
-                    unknown5: 0.0,
-                    unknown6: 0xFFFFFFFF,
-                    unknown7: 0xFFFFFFFF,
-                    unknown8: 0xFFFFFFFF,
+                    value_param4: 0.0,
+                    sound1: 0xFFFFFFFF,
+                    sound2: 0xFFFFFFFF,
+                    sound3: 0xFFFFFFFF,
                 }
                 .into(),
                 connections: vec![
@@ -5961,50 +5959,50 @@ fn patch_artifact_temple_pillar(
             position: [-373.276_15, 32.820946, -34.278522].into(),
             rotation: [0.0, 0.0, -179.732_71].into(),
             scale: [1.0, 1.0, 1.0].into(),
-            extent: [1.0, 1.0, 1.0].into(),          // CollisionBox
-            scan_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
+            collision_box: [1.0, 1.0, 1.0].into(), // CollisionBox
+            collision_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
             cmdl: ResId::<res_id::CMDL>::new(0xFB87262C),
-            ancs: structs::scly_structs::AncsProp {
+            animation_parameters: structs::scly_structs::AncsProp {
                 file_id: ResId::invalid(), // None
                 node_index: 0,
                 default_animation: 0xFFFFFFFF, // -1
             },
-            actor_params: structs::scly_structs::ActorParameters {
-                light_params: structs::scly_structs::LightParameters {
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    shadow_tessellation: 0,
-                    unknown2: 1.0,
-                    unknown3: 20.0,
-                    color: [1.0, 1.0, 1.0, 1.0].into(),
-                    unknown4: 1,
-                    world_lighting: 2,
+            actor_parameters: structs::scly_structs::ActorParameters {
+                light_parameters: structs::scly_structs::LightParameters {
+                    cast_shadow: 1,
+                    shadow_scale: 1.0,
+                    tessellation: 0,
+                    shadow_alpha: 1.0,
+                    max_shadow_height: 20.0,
+                    ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                    make_lights: 1,
+                    use_world_lighting: 2,
                     light_recalculation: 1,
-                    unknown5: [0.0, 0.0, 0.0].into(),
-                    unknown6: 4,
-                    unknown7: 4,
-                    unknown8: 1,
-                    light_layer_id: 0,
+                    lightning_position: [0.0, 0.0, 0.0].into(),
+                    num_dynamic_lights: 4,
+                    num_area_lights: 4,
+                    ignore_ambient_lightning: 1,
+                    use_light_set: 0,
                 },
-                scan_params: structs::scly_structs::ScannableParameters {
+                scan_parameters: structs::scly_structs::ScannableParameters {
                     scan: ResId::invalid(), // None
                 },
-                xray_cmdl: ResId::invalid(),    // None
-                xray_cskr: ResId::invalid(),    // None
-                thermal_cmdl: ResId::invalid(), // None
-                thermal_cskr: ResId::invalid(), // None
-                unknown0: 1,
-                unknown1: 2.0,
-                unknown2: 2.0,
-                visor_params: structs::scly_structs::VisorParameters {
+                xray_model: ResId::invalid(),    // None
+                xray_skin: ResId::invalid(),     // None
+                thermal_model: ResId::invalid(), // None
+                thermal_skin: ResId::invalid(),  // None
+                use_global_render_time: 1,
+                fade_in_time: 2.0,
+                fade_out_time: 2.0,
+                visor_parameters: structs::scly_structs::VisorParameters {
                     unknown0: 0,
                     target_passthrough: 0,
                     visor_mask: 15, // Combat|Scan|Thermal|XRay
                 },
-                enable_thermal_heat: 0,
-                unknown3: 0,
-                unknown4: 0,
-                unknown5: 1.0,
+                thermal_hot: 0,
+                force_render_unsorted: 0,
+                no_sort_thermal: 0,
+                thermal_damage_magnitude: 1.0,
             },
             speed: 1.0,
             active: 0,
@@ -6046,10 +6044,10 @@ fn patch_artifact_temple_pillar(
                 },
             },
             detect_collision: 0,
-            unknown4: 1.0,
-            unknown5: 0,
-            unknown6: 200,
-            unknown7: 20,
+            xray_alpha: 1.0,
+            rain_splashes: 0,
+            max_rain_splashes: 200,
+            rain_gen_rate: 20,
         }
         .into(),
         connections: vec![].into(),
@@ -6076,18 +6074,18 @@ fn patch_add_cutscene_skip_fn(
             position: [0.0, 0.0, 0.0].into(),
             rotation: [0.0, 0.0, 0.0].into(),
             type_: 15, // cinematic skip
-            unknown0: b"\0".as_cstr(),
-            unknown1: 0.0,
-            unknown2: 0.0,
-            unknown3: 0.0,
+            string_param: b"\0".as_cstr(),
+            value_param: 0.0,
+            value_param2: 0.0,
+            value_param3: 0.0,
             layer_change_room_id: 0,
             layer_change_layer_id: 0,
             item_id: 0,
             active: 1,
-            unknown5: 0.0,
-            unknown6: 0xFFFFFFFF,
-            unknown7: 0xFFFFFFFF,
-            unknown8: 0xFFFFFFFF,
+            value_param4: 0.0,
+            sound1: 0xFFFFFFFF,
+            sound2: 0xFFFFFFFF,
+            sound3: 0xFFFFFFFF,
         }
         .into(),
         connections: vec![].into(),
@@ -6450,7 +6448,7 @@ fn patch_ambient_lighting(
 //                 thermal_visor_visible: 1,
 //                 xray_visor_visible: 1,
 //                 die_when_systems_done: 0,
-//                 light_params: structs::scly_structs::LightParameters {
+//                 light_parameters: structs::scly_structs::LightParameters {
 //                     unknown0: 1,
 //                     unknown1: 1.0,
 //                     shadow_tessellation: 0,
@@ -6464,7 +6462,7 @@ fn patch_ambient_lighting(
 //                     unknown6: 4,
 //                     unknown7: 4,
 //                     unknown8: 0,
-//                     light_layer_id: 0
+//                     use_light_set: 0
 //                 },
 //             }.into(),
 //             connections: vec![].into()
@@ -7225,7 +7223,7 @@ fn patch_research_lab_hydra_barrier(
         .find(|obj| obj.instance_id == 202965810)
         .unwrap();
     let actor = obj.property_data.as_actor_mut().unwrap();
-    actor.actor_params.visor_params.target_passthrough = 1;
+    actor.actor_parameters.visor_parameters.target_passthrough = 1;
     Ok(())
 }
 
@@ -7530,7 +7528,7 @@ fn make_main_plaza_locked_door_two_ways(
                 color_txtr: DoorType::Blue.color_txtr(),
                 lock_on: 0,
                 active: 1,
-                visor_params: structs::scly_structs::VisorParameters {
+                visor_parameters: structs::scly_structs::VisorParameters {
                     unknown0: 0,
                     target_passthrough: 0,
                     visor_mask: 15, // Combat|Scan|Thermal|XRay
@@ -7627,71 +7625,71 @@ fn make_main_plaza_locked_door_two_ways(
                 position: [151.951_19, 86.462_58, 24.503178].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
                 scale: [1.0, 1.0, 1.0].into(),
-                hitbox: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
-                unknown1: 1.0,
-                unknown2: 0.0,
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 5.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Blue.vulnerability(),
-                cmdl: DoorType::Blue.shield_cmdl(),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: DoorType::Blue.shield_cmdl(),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(), // None
                     node_index: 0,
                     default_animation: 0xFFFFFFFF, // -1
                 },
-                actor_params: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(),
-                        unknown4: 1,
-                        world_lighting: 1,
+                actor_parameters: structs::scly_structs::ActorParameters {
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 1,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                        make_lights: 1,
+                        use_world_lighting: 1,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(), // None
                     },
-                    xray_cmdl: ResId::invalid(),    // None
-                    xray_cskr: ResId::invalid(),    // None
-                    thermal_cmdl: ResId::invalid(), // None
-                    thermal_cskr: ResId::invalid(), // None
+                    xray_model: ResId::invalid(),    // None
+                    xray_skin: ResId::invalid(),     // None
+                    thermal_model: ResId::invalid(), // None
+                    thermal_skin: ResId::invalid(),  // None
 
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
 
-                    visor_params: structs::scly_structs::VisorParameters {
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 0,
                         visor_mask: 15, // Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 1,
-                    unknown3: 0,
-                    unknown4: 1,
-                    unknown5: 1.0,
+                    thermal_hot: 1,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 1,
+                    thermal_damage_magnitude: 1.0,
                 },
-                looping: 1,
-                snow: 1,
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 1,
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 1,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 1,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             }
             .into(),
             connections: vec![].into(),
@@ -8430,7 +8428,7 @@ fn patch_backwards_lower_mines_mqb(
         .find(|obj| obj.instance_id & 0x00FFFFFF == 0x001F0018)
         .unwrap();
     let actor = obj.property_data.as_actor_mut().unwrap();
-    actor.actor_params.visor_params.target_passthrough = 1;
+    actor.actor_parameters.visor_parameters.target_passthrough = 1;
     Ok(())
 }
 
@@ -8481,7 +8479,7 @@ fn patch_backwards_lower_mines_elite_control(
         .find(|obj| obj.instance_id & 0x00FFFFFF == 0x00100086)
         .unwrap();
     let actor = obj.property_data.as_actor_mut().unwrap();
-    actor.actor_params.visor_params.target_passthrough = 1;
+    actor.actor_parameters.visor_parameters.target_passthrough = 1;
     Ok(())
 }
 
@@ -8761,18 +8759,18 @@ fn patch_add_pb_refill(
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 29, // power bomb station
-            unknown0: b"\0".as_cstr(),
-            unknown1: 0.0,
-            unknown2: 0.0,
-            unknown3: 0.0,
+            string_param: b"\0".as_cstr(),
+            value_param: 0.0,
+            value_param2: 0.0,
+            value_param3: 0.0,
             layer_change_room_id: 0xFFFFFFFF,
             layer_change_layer_id: 0xFFFFFFFF,
             item_id: 0,
             active: 1,
-            unknown5: 0.0,
-            unknown6: 0xFFFFFFFF,
-            unknown7: 0xFFFFFFFF,
-            unknown8: 0xFFFFFFFF,
+            value_param4: 0.0,
+            sound1: 0xFFFFFFFF,
+            sound2: 0xFFFFFFFF,
+            sound3: 0xFFFFFFFF,
         }
         .into(),
         connections: vec![].into(),
@@ -9134,7 +9132,7 @@ fn patch_remove_cutscenes(
                 // central dynamo collision blocker
                 // the power bomb rock collision should not extend beyond the door
                 let actor = obj.property_data.as_actor_mut().unwrap();
-                actor.hitbox[1] = 0.4;
+                actor.collision_box[1] = 0.4;
                 actor.position[1] -= 0.8;
             } else if obj_id == 0x0002023E {
                 // main plaza turn crane left relay
@@ -10060,7 +10058,7 @@ fn patch_heat_damage_per_sec(patcher: &mut PrimePatcher<'_, '_>, heat_damage_per
                 .iter_mut()
                 .filter_map(|obj| obj.property_data.as_special_function_mut())
                 .filter(|sf| sf.type_ == 18) // Is Area Damage function
-                .for_each(|sf| sf.unknown1 = heat_damage_per_sec);
+                .for_each(|sf| sf.value_param = heat_damage_per_sec);
             Ok(())
         });
     }
@@ -11558,71 +11556,71 @@ fn patch_final_boss_permadeath<'r>(
                 position: [52.0, -298.0, -375.5].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
                 scale: [1.0, 1.0, 1.0].into(),
-                hitbox: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
-                unknown1: 1.0,
-                unknown2: 0.0,
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
+                mass: 1.0,
+                gravity: 0.0,
                 health_info: structs::scly_structs::HealthInfo {
                     health: 5.0,
                     knockback_resistance: 1.0,
                 },
                 damage_vulnerability: DoorType::Blue.vulnerability(),
-                cmdl: ResId::<res_id::CMDL>::new(0x12771AF0),
-                ancs: structs::scly_structs::AncsProp {
+                static_model: ResId::<res_id::CMDL>::new(0x12771AF0),
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(), // None
                     node_index: 0,
                     default_animation: 0xFFFFFFFF, // -1
                 },
-                actor_params: structs::scly_structs::ActorParameters {
-                    light_params: structs::scly_structs::LightParameters {
-                        unknown0: 1,
-                        unknown1: 1.0,
-                        shadow_tessellation: 0,
-                        unknown2: 1.0,
-                        unknown3: 20.0,
-                        color: [1.0, 1.0, 1.0, 1.0].into(),
-                        unknown4: 1,
-                        world_lighting: 1,
+                actor_parameters: structs::scly_structs::ActorParameters {
+                    light_parameters: structs::scly_structs::LightParameters {
+                        cast_shadow: 1,
+                        shadow_scale: 1.0,
+                        tessellation: 0,
+                        shadow_alpha: 1.0,
+                        max_shadow_height: 20.0,
+                        ambient_color: [1.0, 1.0, 1.0, 1.0].into(),
+                        make_lights: 1,
+                        use_world_lighting: 1,
                         light_recalculation: 1,
-                        unknown5: [0.0, 0.0, 0.0].into(),
-                        unknown6: 4,
-                        unknown7: 4,
-                        unknown8: 0,
-                        light_layer_id: 0,
+                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        num_dynamic_lights: 4,
+                        num_area_lights: 4,
+                        ignore_ambient_lightning: 0,
+                        use_light_set: 0,
                     },
-                    scan_params: structs::scly_structs::ScannableParameters {
+                    scan_parameters: structs::scly_structs::ScannableParameters {
                         scan: ResId::invalid(), // None
                     },
-                    xray_cmdl: ResId::invalid(),    // None
-                    xray_cskr: ResId::invalid(),    // None
-                    thermal_cmdl: ResId::invalid(), // None
-                    thermal_cskr: ResId::invalid(), // None
+                    xray_model: ResId::invalid(),    // None
+                    xray_skin: ResId::invalid(),     // None
+                    thermal_model: ResId::invalid(), // None
+                    thermal_skin: ResId::invalid(),  // None
 
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    unknown2: 1.0,
+                    use_global_render_time: 1,
+                    fade_in_time: 1.0,
+                    fade_out_time: 1.0,
 
-                    visor_params: structs::scly_structs::VisorParameters {
+                    visor_parameters: structs::scly_structs::VisorParameters {
                         unknown0: 0,
                         target_passthrough: 0,
                         visor_mask: 15, // Combat|Scan|Thermal|XRay
                     },
-                    enable_thermal_heat: 1,
-                    unknown3: 0,
-                    unknown4: 1,
-                    unknown5: 1.0,
+                    thermal_hot: 1,
+                    force_render_unsorted: 0,
+                    no_sort_thermal: 1,
+                    thermal_damage_magnitude: 1.0,
                 },
-                looping: 1,
-                snow: 1,
-                solid: 0,
-                camera_passthrough: 0,
+                is_loop: 1,
+                immovable: 1,
+                is_solid: 0,
+                is_camera_through: 0,
                 active: 1,
-                unknown8: 0,
-                unknown9: 1.0,
-                unknown10: 0,
-                unknown11: 0,
-                unknown12: 0,
-                unknown13: 0,
+                render_texture_set: 0,
+                xray_alpha: 1.0,
+                thermal_visible_through_geometry: 0,
+                draws_shadow: 0,
+                scale_animation: 0,
+                material_flag_54: 0,
             }
             .into(),
             connections: vec![].into(),
@@ -12115,7 +12113,7 @@ fn is_blast_shield(obj: &structs::SclyObject) -> bool {
     if !obj.property_data.is_actor() {
         return false;
     }
-    obj.property_data.as_actor().unwrap().cmdl == 0xEFDFFB8C
+    obj.property_data.as_actor().unwrap().static_model == 0xEFDFFB8C
 }
 
 fn is_blast_shield_poi(obj: &structs::SclyObject) -> bool {
@@ -12656,7 +12654,7 @@ fn patch_modify_dock<'r>(
 
                 if scan.is_some() {
                     let (scan_id, _) = scan.unwrap();
-                    door.actor_params.scan_params.scan = scan_id;
+                    door.actor_params.scan_parameters.scan = scan_id;
                 }
                 break;
             }
@@ -15488,6 +15486,7 @@ fn build_and_run_patches<'r>(
             ] {
                 let timer_config = TimerConfig {
                     id: timer_id,
+                    name: None,
                     time: Some(0.5),
                     active: Some(true),
                     looping: Some(true),
@@ -16016,7 +16015,7 @@ fn build_and_run_patches<'r>(
                                 patcher.add_scly_patch(
                                     (pak_name.as_bytes(), room_info.room_id.to_u32()),
                                     move |ps, area| {
-                                        patch_add_actor_key_frame(
+                                        patch_add_actor_keyframe(
                                             ps,
                                             area,
                                             actor_key_frame_config.clone(),
@@ -17277,6 +17276,7 @@ fn build_and_run_patches<'r>(
                             platform_type: Some(PlatformType::Metal),
                             position: [43.0, -194.0, -44.0],
                             id: None,
+                            name: None,
                             alt_platform: None,
                             rotation: None,
                             xray_only: None,
@@ -17298,6 +17298,7 @@ fn build_and_run_patches<'r>(
                             platform_type: Some(PlatformType::Metal),
                             position: [39.0, -186.0, -41.0],
                             id: None,
+                            name: None,
                             alt_platform: None,
                             rotation: None,
                             xray_only: None,
@@ -17319,6 +17320,7 @@ fn build_and_run_patches<'r>(
                             platform_type: Some(PlatformType::Metal),
                             position: [36.0, -181.0, -39.0],
                             id: None,
+                            name: None,
                             alt_platform: None,
                             rotation: None,
                             xray_only: None,
@@ -17340,6 +17342,7 @@ fn build_and_run_patches<'r>(
                             platform_type: Some(PlatformType::Metal),
                             position: [36.0, -192.0, -39.0],
                             id: None,
+                            name: None,
                             alt_platform: None,
                             rotation: None,
                             xray_only: None,
@@ -18290,7 +18293,7 @@ fn patch_slot_cover<'a>(
                             TypeVulnerability::Reflect as u32;
                         match cover {
                             BombSlotCover::Wave => {
-                                actor.cmdl = ResId::<res_id::CMDL>::new(WAVE_CMDL_ID);
+                                actor.static_model = ResId::<res_id::CMDL>::new(WAVE_CMDL_ID);
                                 actor.damage_vulnerability.wave =
                                     TypeVulnerability::DirectNormal as u32;
                                 actor.damage_vulnerability.charged_beams.wave =
@@ -18299,7 +18302,7 @@ fn patch_slot_cover<'a>(
                                     TypeVulnerability::DirectNormal as u32;
                             }
                             BombSlotCover::Ice => {
-                                actor.cmdl = ResId::<res_id::CMDL>::new(ICE_CMDL_ID);
+                                actor.static_model = ResId::<res_id::CMDL>::new(ICE_CMDL_ID);
                                 actor.damage_vulnerability.ice =
                                     TypeVulnerability::DirectNormal as u32;
                                 actor.damage_vulnerability.charged_beams.ice =
@@ -18308,7 +18311,7 @@ fn patch_slot_cover<'a>(
                                     TypeVulnerability::DirectNormal as u32;
                             }
                             BombSlotCover::Plasma => {
-                                actor.cmdl = ResId::<res_id::CMDL>::new(PLASMA_CMDL_ID);
+                                actor.static_model = ResId::<res_id::CMDL>::new(PLASMA_CMDL_ID);
                                 actor.damage_vulnerability.plasma =
                                     TypeVulnerability::DirectNormal as u32;
                                 actor.damage_vulnerability.charged_beams.plasma =
@@ -18502,10 +18505,10 @@ fn patch_elite_research_door_lock<'r>(
             position: [21.35, 166.275_13, 51.825].into(),
             rotation: [0.0, 0.0, 0.0].into(),
             scale: [1.45, 1.45, 1.45].into(),
-            hitbox: [1.75, 5.0, 5.0].into(),
-            scan_offset: [0.0, 0.0, 0.0].into(),
-            unknown1: 1.0, // mass
-            unknown2: 0.0, // momentum
+            collision_box: [1.75, 5.0, 5.0].into(),
+            collision_offset: [0.0, 0.0, 0.0].into(),
+            mass: 1.0,
+            gravity: 0.0,
             health_info: structs::scly_structs::HealthInfo {
                 health: 5.0,
                 knockback_resistance: 1.0,
@@ -18545,60 +18548,60 @@ fn patch_elite_research_door_lock<'r>(
                     phazon: structs::scly_structs::TypeVulnerability::Reflect as u32,
                 },
             },
-            cmdl: ResId::new(0x6E5D6796),
-            ancs: structs::scly_structs::AncsProp {
+            static_model: ResId::new(0x6E5D6796),
+            animation_parameters: structs::scly_structs::AncsProp {
                 file_id: ResId::invalid(),
                 node_index: 0,
                 default_animation: 0xFFFFFFFF,
             },
-            actor_params: structs::scly_structs::ActorParameters {
-                light_params: structs::scly_structs::LightParameters {
-                    unknown0: 1,
-                    unknown1: 1.0,
-                    shadow_tessellation: 0,
-                    unknown2: 1.0,
-                    unknown3: 20.0,
-                    color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
-                    unknown4: 1,
-                    world_lighting: 1,
+            actor_parameters: structs::scly_structs::ActorParameters {
+                light_parameters: structs::scly_structs::LightParameters {
+                    cast_shadow: 1,
+                    shadow_scale: 1.0,
+                    tessellation: 0,
+                    shadow_alpha: 1.0,
+                    max_shadow_height: 20.0,
+                    ambient_color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
+                    make_lights: 1,
+                    use_world_lighting: 1,
                     light_recalculation: 1,
-                    unknown5: [0.0, 0.0, 0.0].into(),
-                    unknown6: 4,
-                    unknown7: 4,
-                    unknown8: 0,
-                    light_layer_id: 0,
+                    lightning_position: [0.0, 0.0, 0.0].into(),
+                    num_dynamic_lights: 4,
+                    num_area_lights: 4,
+                    ignore_ambient_lightning: 0,
+                    use_light_set: 0,
                 },
-                scan_params: structs::scly_structs::ScannableParameters {
+                scan_parameters: structs::scly_structs::ScannableParameters {
                     scan: ResId::invalid(),
                 },
-                xray_cmdl: ResId::invalid(),
-                xray_cskr: ResId::invalid(),
-                thermal_cmdl: ResId::invalid(),
-                thermal_cskr: ResId::invalid(),
-                unknown0: 1,
-                unknown1: 1.0,
-                unknown2: 1.0,
-                visor_params: structs::scly_structs::VisorParameters {
+                xray_model: ResId::invalid(),
+                xray_skin: ResId::invalid(),
+                thermal_model: ResId::invalid(),
+                thermal_skin: ResId::invalid(),
+                use_global_render_time: 1,
+                fade_in_time: 1.0,
+                fade_out_time: 1.0,
+                visor_parameters: structs::scly_structs::VisorParameters {
                     unknown0: 0,
                     target_passthrough: 1,
                     visor_mask: 15, // Visor Flags : Combat|Scan|Thermal|XRay
                 },
-                enable_thermal_heat: 0,
-                unknown3: 0,
-                unknown4: 0,
-                unknown5: 1.0,
+                thermal_hot: 0,
+                force_render_unsorted: 0,
+                no_sort_thermal: 0,
+                thermal_damage_magnitude: 1.0,
             },
-            looping: 1,
-            snow: 1, // immovable
-            solid: 1,
-            camera_passthrough: 0,
+            is_loop: 1,
+            immovable: 1,
+            is_solid: 1,
+            is_camera_through: 0,
             active: 0,
-            unknown8: 0,
-            unknown9: 1.0,
-            unknown10: 0,
-            unknown11: 0,
-            unknown12: 0,
-            unknown13: 0,
+            render_texture_set: 0,
+            xray_alpha: 1.0,
+            thermal_visible_through_geometry: 0,
+            draws_shadow: 0,
+            scale_animation: 0,
+            material_flag_54: 0,
         })),
     };
 

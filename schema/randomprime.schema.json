@@ -3251,6 +3251,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Platform"
+                            },
                             "active": {
                                 "description": "Default active state of the platform.",
                                 "type": "boolean",
@@ -3562,6 +3566,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime HUDMemo"
+                            },
                             "active": {
                                 "description": "Default active state of the hudmemo.",
                                 "type": "boolean",
@@ -3734,6 +3742,10 @@
                             "id": {
                                 "$ref": "#/$defs/addModifyId"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Relay"
+                            },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
@@ -3760,6 +3772,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Timer"
                             },
                             "active": {
                                 "description": "Default active state of the timer.",
@@ -3795,7 +3811,7 @@
                     }
                 },
                 "actorKeyframes": {
-                    "description": "",
+                    "description": "Used to make any object with animation parameters in it play a desired animation",
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -3806,35 +3822,45 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime ActorKeyframe"
+                            },
                             "active": {
                                 "type": "boolean",
                                 "default": true
                             },
-                            "animationId": {
+                            "animationIndex": {
                                 "type": "integer",
                                 "minimum": 0,
-                                "maximum": 4294967295
+                                "maximum": 2147483647,
+                                "default": 0
                             },
-                            "looping": {
-                                "type": "boolean"
+                            "loop": {
+                                "type": "boolean",
+                                "default": false
                             },
-                            "lifetime": {
-                                "type": "number"
+                            "loopDuration": {
+                                "type": "number",
+                                "default": 0.0,
+                                "maximum": 1000000.0
                             },
                             "fadeOut": {
-                                "type": "number"
+                                "type": "string",
+                                "enum": [
+                                    "Zero",
+                                    "One"
+                                ],
+                                "default": "Zero"
                             },
-                            "totalPlayback": {
-                                "type": "number"
+                            "playbackRate": {
+                                "type": "number",
+                                "default": 1.0,
+                                "maximum": 1000000.0
                             }
                         },
                         "required": [
-                            "id",
-                            "animationId",
-                            "looping",
-                            "lifetime",
-                            "fadeOut",
-                            "totalPlayback"
+                            "id"
                         ],
                         "additionalProperties": false
                     }
@@ -3850,6 +3876,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime SpawnPoint"
                             },
                             "active": {
                                 "description": "Default active state of the spawn point.",
@@ -3902,6 +3932,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Trigger"
                             },
                             "active": {
                                 "description": "Default activate state of the trigger",
@@ -3979,6 +4013,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime SpecialFunction"
+                            },
                             "position": {
                                 "$ref": "#/$defs/vector3",
                                 "default": [
@@ -3998,7 +4036,7 @@
                             "type": {
                                 "type": "string",
                                 "enum": [
-                                    "What",
+                                    "None",
                                     "PlayerFollowLocator",
                                     "SpinnerController",
                                     "ObjectFollowLocator",
@@ -4007,7 +4045,7 @@
                                     "MapStation",
                                     "SaveStation",
                                     "IntroBossRingController",
-                                    "ViewFrustumTest",
+                                    "ViewFrustumTester",
                                     "ShotSpinnerController",
                                     "EscapeSequence",
                                     "BossEnergyBar",
@@ -4030,22 +4068,26 @@
                                     "PowerBombStation",
                                     "Ending",
                                     "FusionRelay",
-                                    "WeaponSwitch"
+                                    "WeaponSwitch",
+                                    "FogVolume",
+                                    "RadialDamage",
+                                    "EnvFxDensityController",
+                                    "RumbleEffect"
                                 ]
                             },
-                            "unknown1": {
+                            "stringParam": {
                                 "type": "string",
                                 "default": ""
                             },
-                            "unknown2": {
+                            "valueParam": {
                                 "type": "number",
                                 "default": 0.0
                             },
-                            "unknown3": {
+                            "valueParam2": {
                                 "type": "number",
                                 "default": 0.0
                             },
-                            "unknown4": {
+                            "valueParam3": {
                                 "type": "number",
                                 "default": 0.0
                             },
@@ -4077,23 +4119,23 @@
                                 "type": "boolean",
                                 "default": true
                             },
-                            "unknown6": {
+                            "valueParam4": {
                                 "type": "number",
                                 "default": 0.0
                             },
-                            "spinner1": {
+                            "sound1": {
                                 "type": "integer",
                                 "minimum": 0,
                                 "maximum": 4294967295,
                                 "default": 4294967295
                             },
-                            "spinner2": {
+                            "sound2": {
                                 "type": "integer",
                                 "minimum": 0,
                                 "maximum": 4294967295,
                                 "default": 4294967295
                             },
-                            "spinner3": {
+                            "sound3": {
                                 "type": "integer",
                                 "minimum": 0,
                                 "maximum": 4294967295,
@@ -4117,6 +4159,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime StreamedAudio"
                             },
                             "active": {
                                 "type": "boolean",
@@ -4172,33 +4218,42 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
-                            "rotation": {
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime ActorRotate"
+                            },
+                            "rotationOffset": {
                                 "description": "The amount to rotate relative to the object's rotation",
-                                "$ref": "#/$defs/vector3"
+                                "$ref": "#/$defs/vector3",
+                                "default": [
+                                    0.0,
+                                    0.0,
+                                    0.0
+                                ]
                             },
                             "timeScale": {
-                                "description": "The amount of time it takes to rotate the distances specified by `\"rotation\"`",
-                                "type": "number"
+                                "description": "The amount of time it takes to rotate the distances specified by `\"rotationOffset\"`",
+                                "type": "number",
+                                "default": 1.0
                             },
                             "updateActors": {
                                 "description": "If true, the rotation is applied repeatedly",
-                                "type": "boolean"
+                                "type": "boolean",
+                                "default": false
                             },
-                            "updateOnCreation": {
+                            "updateOnRegister": {
                                 "description": "If true, start applying rotation immediately. Otherwise, apply rotation when `\"ACTION\"` message is received",
-                                "type": "boolean"
+                                "type": "boolean",
+                                "default": false
                             },
-                            "updateActive": {
+                            "Active": {
                                 "description": "The default active state of this object",
-                                "type": "boolean"
+                                "type": "boolean",
+                                "default": true
                             }
                         },
                         "required": [
-                            "rotation",
-                            "timeScale",
-                            "updateActors",
-                            "updateOnCreation",
-                            "updateActive"
+                            "id"
                         ],
                         "additionalProperties": false
                     }
@@ -4214,6 +4269,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Waypoint"
                             },
                             "active": {
                                 "description": "Default active state of the waypoint.",
@@ -4309,6 +4368,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Counter"
+                            },
                             "active": {
                                 "description": "Default active state of the counter.",
                                 "type": "boolean",
@@ -4352,6 +4415,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Switch"
+                            },
                             "active": {
                                 "description": "Default active state of the switch.",
                                 "type": "boolean",
@@ -4385,6 +4452,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime PlayerHint"
                             },
                             "active": {
                                 "description": "Default active state of the playerhint.",
@@ -4475,6 +4546,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime DistanceFog"
                             },
                             "active": {
                                 "description": "Default active state of the distanceFog object.",
@@ -4630,6 +4705,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime ControllerAction"
+                            },
                             "active": {
                                 "description": "Default active state of the ControllerAction object.",
                                 "type": "boolean",
@@ -4777,6 +4856,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime WorldLightFader"
+                            },
                             "active": {
                                 "description": "Default active state of the worldLightFader.",
                                 "type": "boolean",
@@ -4810,6 +4893,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime Camera"
                             },
                             "position": {
                                 "description": "The position of the camera. Will get overridden if specified a CAMERA_PATH.",
@@ -4909,6 +4996,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime CameraWaypoint"
+                            },
                             "position": {
                                 "description": "The position of the CameraWaypoint.",
                                 "$ref": "#/$defs/vector3",
@@ -4965,8 +5056,12 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime CameraFilterKeyframe"
+                            },
                             "active": {
-                                "description": "Default active state of the ControllerAction object.",
+                                "description": "Default active state of the CameraFilterKeyframe object.",
                                 "type": "boolean",
                                 "default": true
                             },
@@ -5064,6 +5159,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime CameraHint"
                             },
                             "position": {
                                 "description": "The position of the CameraHint.",
@@ -5347,6 +5446,10 @@
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
                             },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime CameraHintTrigger"
+                            },
                             "active": {
                                 "description": "Default activate state of the trigger",
                                 "type": "boolean",
@@ -5407,6 +5510,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime BallTrigger"
                             },
                             "position": {
                                 "description": "Position of the ball trigger.",
@@ -5479,6 +5586,10 @@
                             },
                             "layer": {
                                 "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime PathCamera"
                             },
                             "position": {
                                 "description": "Position of the object.",

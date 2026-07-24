@@ -36,7 +36,7 @@ pub struct Effect<'r> {
     pub xray_visor_visible: u8,
     pub die_when_systems_done: u8,
 
-    pub light_params: LightParameters,
+    pub light_parameters: LightParameters,
 }
 
 use crate::{impl_active, impl_position, impl_rotation, impl_scale};

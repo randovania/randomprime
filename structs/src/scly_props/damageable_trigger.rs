@@ -29,7 +29,7 @@ pub struct DamageableTrigger<'r> {
     pub lock_on: u8,
     pub active: u8,
 
-    pub visor_params: VisorParameters,
+    pub visor_parameters: VisorParameters,
 }
 
 use crate::{impl_active, impl_position, impl_scale};
