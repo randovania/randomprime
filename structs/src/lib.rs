@@ -51,7 +51,7 @@ pub mod scly_props {
     pub mod path_camera;
     pub mod pickup;
     pub mod pickup_generator;
-    pub mod platorm;
+    pub mod platform;
     pub mod player_actor;
     pub mod player_hint;
     pub mod point_of_interest;
@@ -192,7 +192,7 @@ pub mod scly_props {
         metroid_beta::*, metroid_prime_relay::*, metroidprimestage1::*, metroidprimestage2::*,
         midi::*, new_camera_shaker::*, new_intro_boss::*, oculus::*, omega_pirate::*, parasite::*,
         path_camera::*, phazon_healing_nodule::*, phazon_pool::*, pickup::*, pickup_generator::*,
-        platorm::*, player_actor::*, player_hint::*, player_state_change::*, point_of_interest::*,
+        platform::*, player_actor::*, player_hint::*, player_state_change::*, point_of_interest::*,
         puddle_spore::*, puddle_toad_gamma::*, puffer::*, radial_damage::*, random_relay::*,
         relay::*, repulsor::*, ridley::*, ridley_v1::*, ridley_v2::*, ripper::*, ripple::*,
         room_acoustics::*, rumble_effect::*, save_station::*, script_beam::*, seedling::*,
@@ -248,7 +248,7 @@ pub use scly_props::{
     metroid::*, metroid_alpha::*, metroid_beta::*, metroid_prime_relay::*, metroidprimestage1::*,
     metroidprimestage2::*, midi::*, new_camera_shaker::*, new_intro_boss::*, oculus::*,
     omega_pirate::*, parasite::*, path_camera::*, phazon_healing_nodule::*, phazon_pool::*,
-    pickup::*, pickup_generator::*, platorm::*, player_actor::*, player_hint::*,
+    pickup::*, pickup_generator::*, platform::*, player_actor::*, player_hint::*,
     player_state_change::*, point_of_interest::*, puddle_spore::*, puddle_toad_gamma::*, puffer::*,
     radial_damage::*, random_relay::*, relay::*, repulsor::*, ridley::*, ridley_v1::*,
     ridley_v2::*, ripper::*, ripple::*, room_acoustics::*, rumble_effect::*, save_station::*,

@@ -1355,17 +1355,17 @@ pub fn patch_add_bomb_slot<'r>(
                 position: config.position.into(),
                 rotation: config.rotation.into(),
                 scale: [1.034, 1.0, 1.034].into(),
-                extent: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
 
                 cmdl: ResId::<res_id::CMDL>::new(0x3852C9CF),
 
-                ancs: structs::scly_structs::AncsProp {
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(),
                     node_index: 0,
                     default_animation: 0xFFFFFFFF,
                 },
-                actor_params: structs::scly_structs::ActorParameters {
+                actor_parameters: structs::scly_structs::ActorParameters {
                     light_parameters: structs::scly_structs::LightParameters {
                         cast_shadow: 1,
                         shadow_scale: 1.0,
@@ -1417,10 +1417,10 @@ pub fn patch_add_bomb_slot<'r>(
                 damage_vulnerability: DoorType::Disabled.vulnerability(),
 
                 detect_collision: 0,
-                unknown4: 1.0,
-                unknown5: 0,
-                unknown6: 200,
-                unknown7: 20,
+                xray_alpha: 1.0,
+                rain_splashes: 0,
+                max_rain_splashes: 200,
+                rain_gen_rate: 20,
             }
             .into(),
             connections: vec![].into(),
@@ -2896,16 +2896,16 @@ pub fn patch_add_platform<'r>(
                 position: config.position.into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: scale.into(),
-                extent: [0.0, 0.0, 0.0].into(),
-                scan_offset: [0.0, 0.0, 0.0].into(),
+                collision_box: [0.0, 0.0, 0.0].into(),
+                collision_offset: [0.0, 0.0, 0.0].into(),
 
                 cmdl,
-                ancs: structs::scly_structs::AncsProp {
+                animation_parameters: structs::scly_structs::AncsProp {
                     file_id: ResId::invalid(),
                     node_index: 0,
                     default_animation: 0xFFFFFFFF,
                 },
-                actor_params: structs::scly_structs::ActorParameters {
+                actor_parameters: structs::scly_structs::ActorParameters {
                     light_parameters: structs::scly_structs::LightParameters {
                         cast_shadow: 1,
                         shadow_scale: 1.0,
@@ -2957,10 +2957,10 @@ pub fn patch_add_platform<'r>(
                 damage_vulnerability: vulnerability.clone(),
 
                 detect_collision: 0,
-                unknown4: 1.0,
-                unknown5: 0,
-                unknown6: 200,
-                unknown7: 20,
+                xray_alpha: 1.0,
+                rain_splashes: 0,
+                max_rain_splashes: 200,
+                rain_gen_rate: 20,
             }
         };
     }
@@ -3017,17 +3017,17 @@ pub fn patch_add_platform<'r>(
                     position: config.position.into(),
                     rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                     scale: [1.0, 1.0, 1.0].into(),
-                    extent: [0.0, 0.0, 0.0].into(),
-                    scan_offset: [0.0, 0.0, 0.0].into(),
+                    collision_box: [0.0, 0.0, 0.0].into(),
+                    collision_offset: [0.0, 0.0, 0.0].into(),
 
                     cmdl: ResId::<res_id::CMDL>::new(0x133336F4),
 
-                    ancs: structs::scly_structs::AncsProp {
+                    animation_parameters: structs::scly_structs::AncsProp {
                         file_id: ResId::invalid(),
                         node_index: 0,
                         default_animation: 0xFFFFFFFF,
                     },
-                    actor_params: structs::scly_structs::ActorParameters {
+                    actor_parameters: structs::scly_structs::ActorParameters {
                         light_parameters: structs::scly_structs::LightParameters {
                             cast_shadow: 1,
                             shadow_scale: 1.0,
@@ -3079,10 +3079,10 @@ pub fn patch_add_platform<'r>(
                     damage_vulnerability: vulnerability.clone(),
 
                     detect_collision: 0,
-                    unknown4: 1.0,
-                    unknown5: 0,
-                    unknown6: 200,
-                    unknown7: 20,
+                    xray_alpha: 1.0,
+                    rain_splashes: 0,
+                    max_rain_splashes: 200,
+                    rain_gen_rate: 20,
                 }
                 .into(),
                 connections: vec![
@@ -3708,20 +3708,20 @@ pub fn patch_lock_on_point<'r>(
                     position: [position[0], position[1], position[2] - 0.5].into(),
                     rotation: [0.0, -0.0, 0.0].into(),
                     active: 1,
-                    grapple_params: structs::GrappleParams {
-                        unknown1: 10.0,
-                        unknown2: 10.0,
-                        unknown3: 1.0,
-                        unknown4: 1.0,
-                        unknown5: 1.0,
-                        unknown6: 1.0,
-                        unknown7: 1.0,
-                        unknown8: 45.0,
-                        unknown9: 90.0,
-                        unknown10: 0.0,
-                        unknown11: 0.0,
+                    grapple_parameters: structs::GrappleParameters {
+                        grapple_length: 10.0,
+                        grapple_attach_length: 10.0,
+                        grapple_spring_constant: 1.0,
+                        grapple_spring_length: 1.0,
+                        grapple_spring_tardis: 1.0,
+                        swing_force: 1.0,
+                        swing_max_force: 1.0,
+                        swing_arc_angle: 45.0,
+                        swing_turn_angle: 90.0,
+                        swing_camera_pitch: 0.0,
+                        swing_camera_max_pitch: 0.0,
 
-                        disable_turning: 0,
+                        constrain_to_axis: 0,
                     },
                 }
                 .into(),

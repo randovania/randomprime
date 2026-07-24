@@ -5876,15 +5876,15 @@ fn patch_artifact_temple_pillar(
             position: [-373.276_15, 32.820946, -34.278522].into(),
             rotation: [0.0, 0.0, -179.732_71].into(),
             scale: [1.0, 1.0, 1.0].into(),
-            extent: [1.0, 1.0, 1.0].into(),          // CollisionBox
-            scan_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
+            collision_box: [1.0, 1.0, 1.0].into(),          // CollisionBox
+            collision_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
             cmdl: ResId::<res_id::CMDL>::new(0xFB87262C),
-            ancs: structs::scly_structs::AncsProp {
+            animation_parameters: structs::scly_structs::AncsProp {
                 file_id: ResId::invalid(), // None
                 node_index: 0,
                 default_animation: 0xFFFFFFFF, // -1
             },
-            actor_params: structs::scly_structs::ActorParameters {
+            actor_parameters: structs::scly_structs::ActorParameters {
                 light_parameters: structs::scly_structs::LightParameters {
                     cast_shadow: 1,
                     shadow_scale: 1.0,
@@ -5961,10 +5961,10 @@ fn patch_artifact_temple_pillar(
                 },
             },
             detect_collision: 0,
-            unknown4: 1.0,
-            unknown5: 0,
-            unknown6: 200,
-            unknown7: 20,
+            xray_alpha: 1.0,
+            rain_splashes: 0,
+            max_rain_splashes: 200,
+            rain_gen_rate: 20,
         }
         .into(),
         connections: vec![].into(),
