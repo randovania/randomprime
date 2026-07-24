@@ -56,8 +56,8 @@ use crate::{
         cmpr_compress, cmpr_decompress, huerotate_in_place, huerotate_matrix, whiten_in_place,
         FUSION_GRAVITY_SUIT_TEXTURES, FUSION_PHAZON_BALL_TEXTURES, FUSION_PHAZON_SUIT_TEXTURES,
         FUSION_POWER_SUIT_TEXTURES, FUSION_VARIA_SUIT_TEXTURES, GRAVITY_SUIT_TEXTURES,
-        PHAZON_SPIDER_BALL_TEXTURES,
-        PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, SHIP_TEXTURES, VARIA_SUIT_TEXTURES,
+        PHAZON_SPIDER_BALL_TEXTURES, PHAZON_SUIT_TEXTURES, POWER_SUIT_TEXTURES, SHIP_TEXTURES,
+        VARIA_SUIT_TEXTURES,
     },
     GcDiscLookupExtensions,
 };
@@ -5959,7 +5959,7 @@ fn patch_artifact_temple_pillar(
             position: [-373.276_15, 32.820946, -34.278522].into(),
             rotation: [0.0, 0.0, -179.732_71].into(),
             scale: [1.0, 1.0, 1.0].into(),
-            collision_box: [1.0, 1.0, 1.0].into(),          // CollisionBox
+            collision_box: [1.0, 1.0, 1.0].into(), // CollisionBox
             collision_offset: [0.0, 0.0, -5000.0].into(), // CollisionOffset
             cmdl: ResId::<res_id::CMDL>::new(0xFB87262C),
             animation_parameters: structs::scly_structs::AncsProp {
