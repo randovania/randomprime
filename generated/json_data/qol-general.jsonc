@@ -2743,6 +2743,22 @@
                             "message": "DEACTIVATE"
                         }
                     ],
+                    "specialFunctions": [
+                        {
+                            "id": 262188, // [SpecialFunction] West Bomb Block Destroyed
+                            "name": "West Bomb Block Destroyed",
+                            "type": "ScriptLayerController",
+                            "layerChangeRoomId": 299743116,
+                            "layerChangeLayerId": 5
+                        },
+                        {
+                            "id": 262189, // [SpecialFunction] East Bomb Block Destroyed
+                            "name": "East Bomb Block Destroyed",
+                            "type": "ScriptLayerController",
+                            "layerChangeRoomId": 299743116,
+                            "layerChangeLayerId": 6
+                        }
+                    ],
                     "timers": [
                         {
                             "id": 262158, // [Timer] Delete West

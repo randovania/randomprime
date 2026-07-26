@@ -10,11 +10,12 @@ use crate::{
     patch_config::{
         ActorKeyFrameConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig,
         CameraConfig, CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
-        ControllerActionConfig, CounterConfig, DamageType, FadeOut, FogConfig, GenericTexture,
-        HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig, PathCameraConfig,
-        PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig, RelayConfig,
-        SpawnPointConfig, SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig, TimerConfig,
-        TriggerConfig, WaterConfig, WaypointConfig, WorldLightFaderConfig,
+        ControllerActionConfig, CounterConfig, DamageType, FadeOut, FilterShape, FilterType,
+        FogConfig, GenericTexture, HudmemoConfig, InitialSplinePosition, LockOnPoint,
+        NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType, PlayerActorConfig,
+        PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
+        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
+        WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -146,14 +147,14 @@ pub fn patch_add_streamed_audio(
     area: &mut mlvl_wrapper::MlvlArea,
     config: StreamedAudioConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime StreamedAudio".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::StreamedAudio {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime StreamedAudio".to_string()),
+                ),
                 active: config.active.unwrap_or(true) as u8,
                 audio_file_name: string_to_cstr(config.audio_file_name),
                 no_stop_on_deactivate: config.no_stop_on_deactivate.unwrap_or(true) as u8,
@@ -173,8 +174,8 @@ pub fn patch_add_streamed_audio(
             property_data.audio_file_name = string_to_cstr(config.audio_file_name);
             property_data.is_music = config.is_music as u8;
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -377,14 +378,14 @@ pub fn patch_add_actor_keyframe(
     area: &mut mlvl_wrapper::MlvlArea,
     config: ActorKeyFrameConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime ActorKeyframe".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::ActorKeyFrame {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime ActorKeyframe".to_string()),
+                ),
                 active: config.active.unwrap_or(true) as u8,
                 animation_index: config.animation_index.unwrap_or(0),
                 loop_: config.loop_.unwrap_or(false) as u8,
@@ -399,8 +400,8 @@ pub fn patch_add_actor_keyframe(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_actor_keyframe_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -438,14 +439,10 @@ pub fn patch_add_timer(
     area: &mut mlvl_wrapper::MlvlArea,
     config: TimerConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Timer".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::Timer {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Timer".to_string())),
                 start_time: config.time.unwrap_or(1.0),
                 max_random_add: config.max_random_add.unwrap_or(0.0),
                 looping: config.looping.unwrap_or(false) as u8,
@@ -459,8 +456,8 @@ pub fn patch_add_timer(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_timer_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(time) = config.time {
                 property_data.start_time = time
@@ -488,14 +485,10 @@ pub fn patch_add_relay(
     area: &mut mlvl_wrapper::MlvlArea,
     config: RelayConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Relay".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::Relay {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Relay".to_string())),
                 active: config.active.unwrap_or(true) as u8,
             }
         };
@@ -504,8 +497,8 @@ pub fn patch_add_relay(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_relay_mut().unwrap();
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -521,13 +514,14 @@ pub fn patch_add_spawn_point(
     area: &mut mlvl_wrapper::MlvlArea,
     config: SpawnPointConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime SpawnPoint".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     let spawn_point = {
         let mut spawn_point = structs::SpawnPoint {
-            name: name.clone(),
+            name: string_to_cstr(
+                config
+                    .name
+                    .clone()
+                    .unwrap_or("randomprime SpawnPoint".to_string()),
+            ),
             position: config.position.into(),
             rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
             power: 0,
@@ -586,8 +580,8 @@ pub fn patch_add_spawn_point(
             if let Some(items) = config.items.as_ref() {
                 items.update_spawn_point(property_data);
             }
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -612,14 +606,10 @@ pub fn patch_add_trigger(
     area: &mut mlvl_wrapper::MlvlArea,
     config: TriggerConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Trigger".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::Trigger {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Trigger".to_string())),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: config.scale.unwrap_or([5.0, 5.0, 5.0]).into(),
                 damage_info: structs::scly_structs::DamageInfo {
@@ -641,8 +631,8 @@ pub fn patch_add_trigger(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_trigger_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -685,15 +675,6 @@ pub fn patch_add_special_fn(
     area: &mut mlvl_wrapper::MlvlArea,
     config: SpecialFunctionConfig,
 ) -> Result<(), String> {
-    let default_string_param = "".to_string();
-    let string_param = config
-        .string_param
-        .as_ref()
-        .unwrap_or(&default_string_param);
-    let string_param = string_to_cstr(string_param.clone());
-    let default_name = "randomprime SpecialFunction".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
     let pickup_type = match config.item_id.as_ref() {
         Some(item_id) => PickupType::from_str(item_id),
         None => PickupType::PowerBeam,
@@ -703,11 +684,15 @@ pub fn patch_add_special_fn(
     macro_rules! new {
         () => {
             structs::SpecialFunction {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime SpecialFunction".to_string()),
+                ),
                 position: config.position.unwrap_or_default().into(),
                 rotation: config.rotation.unwrap_or_default().into(),
                 type_: config.type_ as u32,
-                string_param,
+                string_param: string_to_cstr(config.string_param.unwrap_or("".to_string())),
                 value_param: config.value_param.unwrap_or_default(),
                 value_param2: config.value_param2.unwrap_or_default(),
                 value_param3: config.value_param3.unwrap_or_default(),
@@ -729,8 +714,8 @@ pub fn patch_add_special_fn(
 
             property_data.type_ = config.type_ as u32;
 
-            if let Some(_) = config.value_param.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -738,8 +723,8 @@ pub fn patch_add_special_fn(
             if let Some(rotation) = config.rotation {
                 property_data.rotation = rotation.into()
             }
-            if let Some(_) = config.value_param.as_ref() {
-                property_data.string_param = string_param
+            if let Some(string_param) = config.string_param {
+                property_data.string_param = string_to_cstr(string_param)
             }
             if let Some(value_param) = config.value_param {
                 property_data.value_param = value_param
@@ -787,9 +772,6 @@ pub fn patch_add_hudmemo<'r>(
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     strg_id: Option<ResId<res_id::STRG>>,
 ) -> Result<(), String> {
-    let default_name = "randomprime HUDMemo".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
     let memo_type = match config.modal.unwrap_or(false) {
         false => 0,
         true => 1,
@@ -798,7 +780,7 @@ pub fn patch_add_hudmemo<'r>(
     macro_rules! new {
         () => {
             structs::HudMemo {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime HUDMemo".to_string())),
                 first_message_timer: config.message_time.unwrap_or(4.0),
                 unknown: 1,
                 memo_type,
@@ -816,8 +798,8 @@ pub fn patch_add_hudmemo<'r>(
                 property_data.memo_type = memo_type;
             }
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(strg_id) = strg_id {
                 property_data.strg = strg_id
@@ -844,14 +826,10 @@ pub fn patch_add_actor_rotate_fn(
     area: &mut mlvl_wrapper::MlvlArea,
     config: ActorRotateConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime ActorRotate".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::ActorRotate {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime ActorRotate".to_string())),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 time_scale: config.time_scale.unwrap_or(1.0),
                 update_actors: config.update_actors.unwrap_or(false) as u8,
@@ -865,8 +843,8 @@ pub fn patch_add_actor_rotate_fn(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_actor_rotate_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(rotation) = config.rotation {
                 property_data.rotation = rotation.into()
@@ -894,14 +872,10 @@ pub fn patch_add_waypoint(
     area: &mut mlvl_wrapper::MlvlArea,
     config: WaypointConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Waypoint".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::Waypoint {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Waypoint".to_string())),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -921,8 +895,9 @@ pub fn patch_add_waypoint(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_waypoint_mut().unwrap();
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -971,14 +946,10 @@ pub fn patch_add_counter(
     area: &mut mlvl_wrapper::MlvlArea,
     config: CounterConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Counter".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::Counter {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Counter".to_string())),
                 start_value: config.start_value.unwrap_or(0),
                 max_value: config.max_value.unwrap_or(1),
                 auto_reset: config.auto_reset.unwrap_or(false) as u8,
@@ -990,8 +961,9 @@ pub fn patch_add_counter(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_counter_mut().unwrap();
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(start_value) = config.start_value {
                 property_data.start_value = start_value
@@ -1016,14 +988,10 @@ pub fn patch_add_switch(
     area: &mut mlvl_wrapper::MlvlArea,
     config: SwitchConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Switch".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::Switch {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Switch".to_string())),
                 active: config.active.unwrap_or(true) as u8,
                 open: config.open.unwrap_or(false) as u8,
                 auto_close: config.auto_close.unwrap_or(false) as u8,
@@ -1034,8 +1002,9 @@ pub fn patch_add_switch(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_switch_mut().unwrap();
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -1057,14 +1026,10 @@ pub fn patch_add_player_hint(
     area: &mut mlvl_wrapper::MlvlArea,
     config: PlayerHintConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime PlayerHint".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::PlayerHint {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime PlayerHint".to_string())),
 
                 position: [0.0, 0.0, 0.0].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
@@ -1098,8 +1063,9 @@ pub fn patch_add_player_hint(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_player_hint_mut().unwrap();
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -1163,14 +1129,10 @@ pub fn patch_add_distance_fogs(
     area: &mut mlvl_wrapper::MlvlArea,
     config: FogConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime DistanceFog".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::DistanceFog {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime DistanceFog".to_string())),
                 mode: config.mode.unwrap_or(1),
                 color: config.color.unwrap_or([0.8, 0.8, 0.9, 0.0]).into(),
                 range: config.range.unwrap_or([30.0, 40.0]).into(),
@@ -1185,8 +1147,9 @@ pub fn patch_add_distance_fogs(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_distance_fog_mut().unwrap();
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(mode) = config.mode {
                 property_data.mode = mode
@@ -1790,14 +1753,14 @@ pub fn patch_add_world_light_fader(
     area: &mut mlvl_wrapper::MlvlArea,
     config: WorldLightFaderConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime WorldLightFader".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::WorldLightFader {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime WorldLightFader".to_string()),
+                ),
                 active: config.active.unwrap_or(true) as u8,
                 faded_light_level: config.faded_light_level.unwrap_or(0.2),
                 fade_speed: config.fade_speed.unwrap_or(0.25),
@@ -1808,8 +1771,9 @@ pub fn patch_add_world_light_fader(
     macro_rules! update {
         ($obj:expr) => {
             let property_data = $obj.property_data.as_world_light_fader_mut().unwrap();
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -1838,14 +1802,14 @@ pub fn patch_add_controller_action(
     area: &mut mlvl_wrapper::MlvlArea,
     config: ControllerActionConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime ControllerAction".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::ControllerAction {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime ControllerAction".to_string()),
+                ),
                 active: config.active.unwrap_or(true) as u8,
                 action: config.action as u32,
                 one_shot: config.one_shot.unwrap_or(false) as u8,
@@ -1859,8 +1823,8 @@ pub fn patch_add_controller_action(
 
             property_data.action = config.action as u32;
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
@@ -1886,14 +1850,10 @@ pub fn patch_add_camera(
     area: &mut mlvl_wrapper::MlvlArea,
     config: CameraConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Camera".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::Camera {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Camera".to_string())),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(false) as u8,
@@ -1916,8 +1876,8 @@ pub fn patch_add_camera(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_camera_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -1972,14 +1932,14 @@ pub fn patch_add_camera_waypoint(
     area: &mut mlvl_wrapper::MlvlArea,
     config: CameraWaypointConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime CameraWaypoint".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::CameraWaypoint {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime CameraWaypoint".to_string()),
+                ),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -1993,8 +1953,8 @@ pub fn patch_add_camera_waypoint(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_camera_waypoint_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -2029,17 +1989,17 @@ pub fn patch_add_camera_filter_keyframe(
     area: &mut mlvl_wrapper::MlvlArea,
     config: CameraFilterKeyframeConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime CameraFilterKeyframe".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::CameraFilterKeyframe {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime CameraFilterKeyframe".to_string()),
+                ),
                 active: config.active.unwrap_or(true) as u8,
-                filter_type: config.filter_type as u32,
-                filter_shape: config.filter_shape as u32,
+                filter_type: config.filter_type.unwrap_or(FilterType::Multiply) as u32,
+                filter_shape: config.filter_shape.unwrap_or(FilterShape::CinemaBars) as u32,
                 filter_index: config.filter_index.unwrap_or(0) as u32,
                 filter_group: config.filter_group.unwrap_or(0) as u32,
                 color: config.color.unwrap_or([0.0, 0.0, 0.0, 1.0]).into(),
@@ -2054,14 +2014,17 @@ pub fn patch_add_camera_filter_keyframe(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_camera_filter_keyframe_mut().unwrap();
 
-            property_data.filter_type = config.filter_type as u32;
-            property_data.filter_shape = config.filter_shape as u32;
-
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(active) = config.active {
                 property_data.active = active as u8
+            }
+            if let Some(filter_type) = config.filter_type {
+                property_data.filter_type = filter_type as u32
+            }
+            if let Some(filter_shape) = config.filter_shape {
+                property_data.filter_shape = filter_shape as u32
             }
             if let Some(filter_index) = config.filter_index {
                 property_data.filter_index = filter_index as u32
@@ -2100,14 +2063,10 @@ pub fn patch_add_new_camera_hint(
     area: &mut mlvl_wrapper::MlvlArea,
     config: NewCameraHintConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime CameraHint".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::CameraHint {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime CameraHint".to_string())),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -2223,8 +2182,8 @@ pub fn patch_add_new_camera_hint(
 
             property_data.behavior = config.behaviour as u32;
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -2406,14 +2365,14 @@ pub fn patch_add_camera_hint_trigger(
     area: &mut mlvl_wrapper::MlvlArea,
     config: CameraHintTriggerConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime CameraHintTrigger".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::CameraHintTrigger {
-                name,
+                name: string_to_cstr(
+                    config
+                        .name
+                        .unwrap_or("randomprime CameraHintTrigger".to_string()),
+                ),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: config.scale.unwrap_or([5.0, 5.0, 5.0]).into(),
@@ -2428,8 +2387,8 @@ pub fn patch_add_camera_hint_trigger(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_camera_hint_trigger_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -2562,14 +2521,10 @@ pub fn patch_add_ball_trigger(
     area: &mut mlvl_wrapper::MlvlArea,
     config: BallTriggerConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime BallTrigger".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::BallTrigger {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime BallTrigger".to_string())),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: config.scale.unwrap_or([1.0, 1.0, 1.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -2586,8 +2541,8 @@ pub fn patch_add_ball_trigger(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_ball_trigger_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -2625,14 +2580,10 @@ pub fn patch_add_path_camera(
     area: &mut mlvl_wrapper::MlvlArea,
     config: PathCameraConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime PathCamera".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
-
     macro_rules! new {
         () => {
             structs::PathCamera {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime PathCamera".to_string())),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -2664,8 +2615,8 @@ pub fn patch_add_path_camera(
         ($obj:expr) => {
             let property_data = $obj.property_data.as_path_camera_mut().unwrap();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(position) = config.position {
                 property_data.position = position.into()
@@ -2724,9 +2675,6 @@ pub fn patch_add_platform<'r>(
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     config: PlatformConfig,
 ) -> Result<(), String> {
-    let default_name = "randomprime Platform".to_string();
-    let name = config.name.as_ref().unwrap_or(&default_name);
-    let name = string_to_cstr(name.clone());
     let platform_type = {
         match config.platform_type {
             Some(platform_type) => platform_type,
@@ -2892,7 +2840,7 @@ pub fn patch_add_platform<'r>(
     macro_rules! new {
         () => {
             structs::Platform {
-                name,
+                name: string_to_cstr(config.name.unwrap_or("randomprime Platform".to_string())),
 
                 position: config.position.into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
@@ -2977,8 +2925,8 @@ pub fn patch_add_platform<'r>(
 
             property_data.position = config.position.into();
 
-            if let Some(_) = config.active.as_ref() {
-                property_data.name = name
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
             }
             if let Some(rotation) = config.rotation {
                 property_data.rotation = rotation.into();
@@ -3013,7 +2961,12 @@ pub fn patch_add_platform<'r>(
             structs::SclyObject {
                 instance_id: damaged_block_id,
                 property_data: structs::Platform {
-                    name: name.clone(),
+                    name: string_to_cstr(
+                        config
+                            .name
+                            .clone()
+                            .unwrap_or("randomprime Platform".to_string()),
+                    ),
 
                     position: config.position.into(),
                     rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),

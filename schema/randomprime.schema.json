@@ -5141,9 +5141,7 @@
                             }
                         },
                         "required": [
-                            "id",
-                            "filterType",
-                            "filterShape"
+                            "id"
                         ],
                         "additionalProperties": false
                     }

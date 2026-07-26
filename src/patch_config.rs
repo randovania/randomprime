@@ -872,10 +872,8 @@ pub struct CameraFilterKeyframeConfig {
     pub layer: Option<u32>,
     pub name: Option<String>,
     pub active: Option<bool>,
-
-    pub filter_type: FilterType,
-    pub filter_shape: FilterShape,
-
+    pub filter_type: Option<FilterType>,
+    pub filter_shape: Option<FilterShape>,
     pub filter_index: Option<u32>,
     pub filter_group: Option<u32>,
     pub fade_in_time: Option<f32>,
