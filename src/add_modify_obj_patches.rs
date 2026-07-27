@@ -10,12 +10,11 @@ use crate::{
     patch_config::{
         ActorKeyframeConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig,
         CameraConfig, CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
-        ControllerActionConfig, CounterConfig, DamageType, FilterShape, FilterType,
-        FogConfig, GenericTexture, HudmemoConfig, InitialSplinePosition, LockOnPoint,
-        NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType, PlayerActorConfig,
-        PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
-        StreamedAudioConfig, SwitchConfig, TimerConfig, TriggerConfig, WaterConfig, WaypointConfig,
-        WorldLightFaderConfig,
+        ControllerActionConfig, CounterConfig, DamageType, FilterShape, FilterType, FogConfig,
+        GenericTexture, HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig,
+        PathCameraConfig, PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig,
+        RelayConfig, SpawnPointConfig, SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig,
+        TimerConfig, TriggerConfig, WaterConfig, WaypointConfig, WorldLightFaderConfig,
     },
     patcher::PatcherState,
     patches::{string_to_cstr, WaterType},
@@ -144,7 +143,9 @@ macro_rules! add_edit_obj_helper {
 
 macro_rules! resolve_name {
     ($name:expr, $type:ident) => {
-        string_to_cstr($name.unwrap_or_else(|| concat!("randomprime ", stringify!($type)).to_string()))
+        string_to_cstr(
+            $name.unwrap_or_else(|| concat!("randomprime ", stringify!($type)).to_string()),
+        )
     };
 }
 

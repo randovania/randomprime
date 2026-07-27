@@ -2632,7 +2632,8 @@ fn patch_add_item<'r>(
         pickup_model_data.animation_parameters.file_id =
             ResId::<res_id::ANCS>::new(extern_model.as_ref().unwrap().ancs);
         pickup_model_data.part = ResId::invalid();
-        pickup_model_data.animation_parameters.node_index = extern_model.as_ref().unwrap().character;
+        pickup_model_data.animation_parameters.node_index =
+            extern_model.as_ref().unwrap().character;
         pickup_model_data.animation_parameters.default_animation = 0;
         pickup_model_data.actor_parameters.xray_model = ResId::invalid();
         pickup_model_data.actor_parameters.xray_skin = ResId::invalid();
@@ -4444,7 +4445,8 @@ fn modify_pickups_in_mrea<'r>(
         pickup_model_data.animation_parameters.file_id =
             ResId::<res_id::ANCS>::new(extern_model.as_ref().unwrap().ancs);
         pickup_model_data.part = ResId::invalid();
-        pickup_model_data.animation_parameters.node_index = extern_model.as_ref().unwrap().character;
+        pickup_model_data.animation_parameters.node_index =
+            extern_model.as_ref().unwrap().character;
         pickup_model_data.animation_parameters.default_animation = 0;
         pickup_model_data.actor_parameters.xray_model = ResId::invalid();
         pickup_model_data.actor_parameters.xray_skin = ResId::invalid();
@@ -7738,7 +7740,8 @@ fn make_main_plaza_locked_door_two_ways(
         .find(|obj| obj.instance_id == door_id)
         .and_then(|obj| obj.property_data.as_door_mut())
         .unwrap();
-    locked_door.animation_parameters.file_id = resource_info!("newmetroiddoor.ANCS").try_into().unwrap();
+    locked_door.animation_parameters.file_id =
+        resource_info!("newmetroiddoor.ANCS").try_into().unwrap();
     locked_door.animation_parameters.default_animation = 2;
     locked_door.projectiles_collide = 0;
 
@@ -12324,8 +12327,9 @@ fn patch_add_dock_teleport<'r>(
 
         door_rotation = door.rotation;
         is_frigate_door = door.animation_parameters.file_id == 0xfafb5784;
-        is_ceiling_door =
-            door.animation_parameters.file_id == 0xf57dd484 && door_rotation[0] > -90.0 && door_rotation[0] < 90.0;
+        is_ceiling_door = door.animation_parameters.file_id == 0xf57dd484
+            && door_rotation[0] > -90.0
+            && door_rotation[0] < 90.0;
         is_floor_door = door.animation_parameters.file_id == 0xf57dd484
             && door_rotation[0] < -90.0
             && door_rotation[0] > -270.0;
