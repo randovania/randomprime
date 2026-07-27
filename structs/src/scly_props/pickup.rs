@@ -18,8 +18,8 @@ pub struct Pickup<'r> {
     pub position: GenericArray<f32, U3>,
     pub rotation: GenericArray<f32, U3>,
     pub scale: GenericArray<f32, U3>,
-    pub hitbox: GenericArray<f32, U3>,
-    pub scan_offset: GenericArray<f32, U3>,
+    pub collision_box: GenericArray<f32, U3>,
+    pub collision_offset: GenericArray<f32, U3>,
 
     pub kind: u32,
 
@@ -31,8 +31,8 @@ pub struct Pickup<'r> {
     pub fade_in_timer: f32,
 
     pub cmdl: ResId<CMDL>,
-    pub ancs: AncsProp,
-    pub actor_params: ActorParameters,
+    pub animation_parameters: AncsProp,
+    pub actor_parameters: ActorParameters,
 
     pub active: u8,
     pub spawn_delay: f32,

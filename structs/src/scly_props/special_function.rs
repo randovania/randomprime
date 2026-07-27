@@ -16,22 +16,22 @@ pub struct SpecialFunction<'r> {
 
     pub type_: u32,
 
-    pub unknown0: CStr<'r>,
-    pub unknown1: f32,
-    pub unknown2: f32,
-    pub unknown3: f32,
+    pub string_param: CStr<'r>,
+    pub value_param: f32,
+    pub value_param2: f32,
+    pub value_param3: f32,
 
     pub layer_change_room_id: u32,
     pub layer_change_layer_id: u32,
     pub item_id: u32,
 
     pub active: u8,
-    pub unknown5: f32,
+    pub value_param4: f32,
 
     // "Used by SpinnerController"
-    pub unknown6: u32,
-    pub unknown7: u32,
-    pub unknown8: u32,
+    pub sound1: u32,
+    pub sound2: u32,
+    pub sound3: u32,
 }
 
 use crate::{impl_active, impl_position, impl_rotation};
@@ -49,18 +49,18 @@ impl<'r> SpecialFunction<'r> {
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 16,
-            unknown0: b"\0".as_cstr(),
-            unknown1: 0.,
-            unknown2: 0.,
-            unknown3: 0.,
+            string_param: b"\0".as_cstr(),
+            value_param: 0.,
+            value_param2: 0.,
+            value_param3: 0.,
             layer_change_room_id: room_id,
             layer_change_layer_id: layer_num,
             item_id: 0,
             active: 1,
-            unknown5: 0.,
-            unknown6: 0xFFFFFFFF,
-            unknown7: 0xFFFFFFFF,
-            unknown8: 0xFFFFFFFF,
+            value_param4: 0.,
+            sound1: 0xFFFFFFFF,
+            sound2: 0xFFFFFFFF,
+            sound3: 0xFFFFFFFF,
         }
     }
 
@@ -70,18 +70,18 @@ impl<'r> SpecialFunction<'r> {
             position: [0., 0., 0.].into(),
             rotation: [0., 0., 0.].into(),
             type_: 33,
-            unknown0: b"\0".as_cstr(),
-            unknown1: 0.,
-            unknown2: 0.,
-            unknown3: 0.,
+            string_param: b"\0".as_cstr(),
+            value_param: 0.,
+            value_param2: 0.,
+            value_param3: 0.,
             layer_change_room_id: 0,
             layer_change_layer_id: u32::MAX,
             item_id: 0,
             active: 1,
-            unknown5: 0.,
-            unknown6: 0xFFFFFFFF,
-            unknown7: 0xFFFFFFFF,
-            unknown8: 0xFFFFFFFF,
+            value_param4: 0.,
+            sound1: 0xFFFFFFFF,
+            sound2: 0xFFFFFFFF,
+            sound3: 0xFFFFFFFF,
         }
     }
 }

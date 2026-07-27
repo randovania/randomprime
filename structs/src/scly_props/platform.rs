@@ -18,12 +18,12 @@ pub struct Platform<'r> {
     pub position: GenericArray<f32, U3>,
     pub rotation: GenericArray<f32, U3>,
     pub scale: GenericArray<f32, U3>,
-    pub extent: GenericArray<f32, U3>, // hitbox?
-    pub scan_offset: GenericArray<f32, U3>,
+    pub collision_box: GenericArray<f32, U3>, // hitbox?
+    pub collision_offset: GenericArray<f32, U3>,
 
     pub cmdl: ResId<CMDL>,
-    pub ancs: AncsProp,
-    pub actor_params: ActorParameters,
+    pub animation_parameters: AncsProp,
+    pub actor_parameters: ActorParameters,
 
     pub speed: f32,
     pub active: u8,
@@ -38,10 +38,10 @@ pub struct Platform<'r> {
     // - if this is set to 1, then the platform will slide around the player and fall off of the waypoint path (and it will wander aimlessly)
     pub detect_collision: u8,
 
-    pub unknown4: f32,
-    pub unknown5: u8,
-    pub unknown6: u32,
-    pub unknown7: u32,
+    pub xray_alpha: f32,
+    pub rain_splashes: u8,
+    pub max_rain_splashes: u32,
+    pub rain_gen_rate: u32,
 }
 
 use crate::{impl_active, impl_position, impl_rotation, impl_scale};

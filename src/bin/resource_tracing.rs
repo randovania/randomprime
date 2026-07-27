@@ -71,15 +71,15 @@ impl<'r> ResourceDb<'r> {
         let base_resources = [
             (ResourceKey::from(pickup.cmdl), None),
             (
-                ResourceKey::from(pickup.ancs.file_id),
-                Some(pickup.ancs.node_index),
+                ResourceKey::from(pickup.animation_parameters.file_id),
+                Some(pickup.animation_parameters.node_index),
             ),
             (
-                ResourceKey::from(pickup.actor_params.scan_params.scan),
+                ResourceKey::from(pickup.actor_parameters.scan_parameters.scan),
                 None,
             ),
-            (ResourceKey::from(pickup.actor_params.xray_cmdl), None),
-            (ResourceKey::from(pickup.actor_params.xray_cskr), None),
+            (ResourceKey::from(pickup.actor_parameters.xray_model), None),
+            (ResourceKey::from(pickup.actor_parameters.xray_skin), None),
             (ResourceKey::from(pickup.part), None),
         ];
         let mut result = HashSet::new();
@@ -363,7 +363,7 @@ fn extract_pickup_data<'r>(
 
     if pickup.kind == 23 {
         pickup.cmdl = custom_asset_ids::PHAZON_SUIT_CMDL;
-        pickup.ancs.file_id = custom_asset_ids::PHAZON_SUIT_ANCS;
+        pickup.animation_parameters.file_id = custom_asset_ids::PHAZON_SUIT_ANCS;
     }
 
     let mut bytes = vec![];
@@ -722,7 +722,7 @@ fn create_nothing(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         nothing_pickup.max_increase = 0;
         nothing_pickup.curr_increase = 0;
         nothing_pickup.cmdl = custom_asset_ids::NOTHING_CMDL;
-        nothing_pickup.ancs.file_id = custom_asset_ids::NOTHING_ANCS;
+        nothing_pickup.animation_parameters.file_id = custom_asset_ids::NOTHING_ANCS;
         nothing_pickup.part = ResId::<res_id::PART>::invalid();
         nothing_pickup.write_to(&mut nothing_bytes).unwrap();
     }
@@ -761,7 +761,7 @@ fn create_zoomer(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         pickup.max_increase = 0;
         pickup.curr_increase = 0;
         pickup.cmdl = custom_asset_ids::ZOOMER_CMDL;
-        pickup.ancs.file_id = custom_asset_ids::ZOOMER_ANCS;
+        pickup.animation_parameters.file_id = custom_asset_ids::ZOOMER_ANCS;
         pickup.part = ResId::<res_id::PART>::invalid();
         pickup.write_to(&mut bytes).unwrap();
     }
@@ -800,7 +800,7 @@ fn create_cog(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         pickup.max_increase = 0;
         pickup.curr_increase = 0;
         pickup.cmdl = custom_asset_ids::COG_CMDL;
-        pickup.ancs.file_id = custom_asset_ids::COG_ANCS;
+        pickup.animation_parameters.file_id = custom_asset_ids::COG_ANCS;
         pickup.part = ResId::<res_id::PART>::invalid();
         pickup.write_to(&mut bytes).unwrap();
     }
@@ -839,7 +839,7 @@ fn create_gamecube(pickup_table: &mut HashMap<PickupModel, PickupData>) {
         pickup.max_increase = 0;
         pickup.curr_increase = 0;
         pickup.cmdl = custom_asset_ids::RANDOVANIA_GAMECUBE_CMDL;
-        pickup.ancs.file_id = custom_asset_ids::RANDOVANIA_GAMECUBE_ANCS;
+        pickup.animation_parameters.file_id = custom_asset_ids::RANDOVANIA_GAMECUBE_ANCS;
         pickup.part = ResId::<res_id::PART>::invalid();
         pickup.write_to(&mut bytes).unwrap();
     }
@@ -877,7 +877,7 @@ fn create_shiny_missile(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             .clone();
         shiny_missile.name = Cow::Borrowed(c"Shiny Missile");
         shiny_missile.cmdl = custom_asset_ids::SHINY_MISSILE_CMDL;
-        shiny_missile.ancs.file_id = custom_asset_ids::SHINY_MISSILE_ANCS;
+        shiny_missile.animation_parameters.file_id = custom_asset_ids::SHINY_MISSILE_ANCS;
         shiny_missile.write_to(&mut shiny_missile_bytes).unwrap();
     }
 
@@ -930,7 +930,7 @@ fn create_thermal_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             .clone();
         visor.name = Cow::Borrowed(c"Thermal Visor");
         visor.cmdl = custom_asset_ids::THERMAL_CMDL;
-        visor.ancs.file_id = custom_asset_ids::THERMAL_ANCS;
+        visor.animation_parameters.file_id = custom_asset_ids::THERMAL_ANCS;
         visor.write_to(&mut bytes).unwrap();
     }
 
@@ -973,7 +973,7 @@ fn create_xray_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             .clone();
         visor.name = Cow::Borrowed(c"X-Ray Visor");
         visor.cmdl = custom_asset_ids::XRAY_CMDL;
-        visor.ancs.file_id = custom_asset_ids::XRAY_ANCS;
+        visor.animation_parameters.file_id = custom_asset_ids::XRAY_ANCS;
         visor.write_to(&mut bytes).unwrap();
     }
 
@@ -1016,7 +1016,7 @@ fn create_flamethrower(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             .clone();
         pickup.name = Cow::Borrowed(c"Flamethrower");
         pickup.cmdl = custom_asset_ids::FLAMETHROWER_PICKUP_CMDL;
-        pickup.ancs.file_id = custom_asset_ids::FLAMETHROWER_PICKUP_ANCS;
+        pickup.animation_parameters.file_id = custom_asset_ids::FLAMETHROWER_PICKUP_ANCS;
         pickup.write_to(&mut bytes).unwrap();
     }
 
@@ -1065,7 +1065,7 @@ fn create_combat_visor(pickup_table: &mut HashMap<PickupModel, PickupData>) {
             .clone();
         visor.name = Cow::Borrowed(c"Combat Visor");
         visor.cmdl = custom_asset_ids::COMBAT_CMDL;
-        visor.ancs.file_id = custom_asset_ids::COMBAT_ANCS;
+        visor.animation_parameters.file_id = custom_asset_ids::COMBAT_ANCS;
         visor.write_to(&mut bytes).unwrap();
     }
 
@@ -1370,7 +1370,7 @@ fn main() {
                     // so skip those for the pickup_table
                     if (pickup_model == PickupModel::Missile
                         || pickup_model == PickupModel::EnergyTank)
-                        && pickup.actor_params.scan_params.scan == 0xFFFFFFFF
+                        && pickup.actor_parameters.scan_parameters.scan == 0xFFFFFFFF
                     {
                         continue;
                     }

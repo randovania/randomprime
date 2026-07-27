@@ -5,21 +5,21 @@ use crate::SclyPropertyData;
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone, PartialEq)]
-pub struct ActorKeyFrame<'r> {
+pub struct ActorKeyframe<'r> {
     #[auto_struct(expect = 7)]
     pub prop_count: u32,
 
     pub name: CStr<'r>,
-    pub animation_id: u32,
-    pub looping: u8,
-    pub lifetime: f32,
+    pub animation_index: u32,
+    pub loop_: u8,
+    pub loop_duration: f32,
     pub active: u8,
-    pub fade_out: f32,
-    pub total_playback: f32,
+    pub fade_out: u32,
+    pub playback_rate: f32,
 }
 
 use crate::impl_active;
-impl SclyPropertyData for ActorKeyFrame<'_> {
+impl SclyPropertyData for ActorKeyframe<'_> {
     const OBJECT_TYPE: u8 = 0x1D;
     impl_active!();
 }

@@ -18,17 +18,17 @@ pub struct Door<'r> {
     pub rotation: GenericArray<f32, U3>,
     pub scale: GenericArray<f32, U3>,
 
-    pub ancs: AncsProp,
-    pub actor_params: ActorParameters,
+    pub animation_parameters: AncsProp,
+    pub actor_parameters: ActorParameters,
 
-    pub scan_offset: GenericArray<f32, U3>,
+    pub orbit_position: GenericArray<f32, U3>,
     pub collision_size: GenericArray<f32, U3>,
     pub collision_offset: GenericArray<f32, U3>,
 
     pub active: u8,
     pub open: u8,
     pub projectiles_collide: u8,
-    pub open_close_animation_len: f32,
+    pub animation_length: f32,
     pub is_morphball_door: u8,
 }
 

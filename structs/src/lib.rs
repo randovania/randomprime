@@ -29,7 +29,7 @@ mod txtr;
 pub mod scly_props {
     // http://www.metroid2002.com/retromodding/wiki/User:Parax0/Sandbox
     pub mod actor;
-    pub mod actor_key_frame;
+    pub mod actor_keyframe;
     pub mod actor_rotate;
     pub mod ball_trigger;
     pub mod camera;
@@ -51,7 +51,7 @@ pub mod scly_props {
     pub mod path_camera;
     pub mod pickup;
     pub mod pickup_generator;
-    pub mod platorm;
+    pub mod platform;
     pub mod player_actor;
     pub mod player_hint;
     pub mod point_of_interest;
@@ -176,7 +176,7 @@ pub mod scly_props {
     // bosses
     pub use self::beetle::*;
     pub use self::{
-        actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ai_keyframe::*,
+        actor::*, actor_contraption::*, actor_keyframe::*, actor_rotate::*, ai_keyframe::*,
         ambient_ai::*, area_attributes::*, atomic_alpha::*, atomic_beta::*, babygoth::*,
         ball_trigger::*, bloodflower::*, burrower::*, camera::*, camera_blur_keyframe::*,
         camera_filter_keyframe::*, camera_hint::*, camera_hint_trigger::*, camera_pitch_volume::*,
@@ -192,7 +192,7 @@ pub mod scly_props {
         metroid_beta::*, metroid_prime_relay::*, metroidprimestage1::*, metroidprimestage2::*,
         midi::*, new_camera_shaker::*, new_intro_boss::*, oculus::*, omega_pirate::*, parasite::*,
         path_camera::*, phazon_healing_nodule::*, phazon_pool::*, pickup::*, pickup_generator::*,
-        platorm::*, player_actor::*, player_hint::*, player_state_change::*, point_of_interest::*,
+        platform::*, player_actor::*, player_hint::*, player_state_change::*, point_of_interest::*,
         puddle_spore::*, puddle_toad_gamma::*, puffer::*, radial_damage::*, random_relay::*,
         relay::*, repulsor::*, ridley::*, ridley_v1::*, ridley_v2::*, ripper::*, ripple::*,
         room_acoustics::*, rumble_effect::*, save_station::*, script_beam::*, seedling::*,
@@ -233,7 +233,7 @@ pub use scly_props::ai_jump_point::*;
 // bosses
 pub use scly_props::beetle::*;
 pub use scly_props::{
-    actor::*, actor_contraption::*, actor_key_frame::*, actor_rotate::*, ai_keyframe::*,
+    actor::*, actor_contraption::*, actor_keyframe::*, actor_rotate::*, ai_keyframe::*,
     ambient_ai::*, area_attributes::*, atomic_alpha::*, atomic_beta::*, babygoth::*,
     ball_trigger::*, bloodflower::*, burrower::*, camera::*, camera_blur_keyframe::*,
     camera_filter_keyframe::*, camera_hint::*, camera_hint_trigger::*, camera_pitch_volume::*,
@@ -248,7 +248,7 @@ pub use scly_props::{
     metroid::*, metroid_alpha::*, metroid_beta::*, metroid_prime_relay::*, metroidprimestage1::*,
     metroidprimestage2::*, midi::*, new_camera_shaker::*, new_intro_boss::*, oculus::*,
     omega_pirate::*, parasite::*, path_camera::*, phazon_healing_nodule::*, phazon_pool::*,
-    pickup::*, pickup_generator::*, platorm::*, player_actor::*, player_hint::*,
+    pickup::*, pickup_generator::*, platform::*, player_actor::*, player_hint::*,
     player_state_change::*, point_of_interest::*, puddle_spore::*, puddle_toad_gamma::*, puffer::*,
     radial_damage::*, random_relay::*, relay::*, repulsor::*, ridley::*, ridley_v1::*,
     ridley_v2::*, ripper::*, ripple::*, room_acoustics::*, rumble_effect::*, save_station::*,

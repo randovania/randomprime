@@ -19,7 +19,7 @@ pub struct SnakeWeedSwarm<'r> {
 
     pub active: u8,
     pub ancs: AncsProp,
-    pub actor_params: ActorParameters,
+    pub actor_parameters: ActorParameters,
 
     pub unknown0: f32,
     pub unknown1: f32,

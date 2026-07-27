@@ -109,6 +109,14 @@
                         600282, // [HUDMemo] HUDMemo - need boost to use ramp
                         600284, // [HUDMemo] HUDMemo - need boost to use ramp 2
                         600279 // [Trigger] Trigger - boost hint
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 589944, // [Beetle] GarBeetle
+                            "targetId": 600484, // [Timer] Timer - HUD memo
+                            "state": "ACTIVE",
+                            "message": "RESET_AND_START"
+                        }
                     ]
                 },
                 "Sun Tower": {
