@@ -14,7 +14,7 @@ pub struct ActorKeyframe<'r> {
     pub loop_: u8,
     pub loop_duration: f32,
     pub active: u8,
-    pub fade_out: u8,
+    pub fade_out: u32,
     pub playback_rate: f32,
 }
 

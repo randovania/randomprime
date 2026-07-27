@@ -1154,7 +1154,7 @@ pub struct ActorKeyframeConfig {
     pub animation_index: Option<u32>,
     pub loop_: Option<bool>,
     pub loop_duration: Option<f32>,
-    pub fade_out: Option<bool>,
+    pub fade_out: Option<u32>,
     pub playback_rate: Option<f32>,
 }
 

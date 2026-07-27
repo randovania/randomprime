@@ -388,7 +388,7 @@ pub fn patch_add_actor_keyframe(
                 animation_index: config.animation_index.unwrap_or(0),
                 loop_: config.loop_.unwrap_or(false) as u8,
                 loop_duration: config.loop_duration.unwrap_or(0.0),
-                fade_out: config.fade_out.unwrap_or(false) as u8,
+                fade_out: config.fade_out.unwrap_or(0) as u32,
                 playback_rate: config.playback_rate.unwrap_or(1.0),
             }
         };
@@ -414,7 +414,7 @@ pub fn patch_add_actor_keyframe(
                 property_data.loop_duration = loop_duration as f32
             }
             if let Some(fade_out) = config.fade_out {
-                property_data.fade_out = fade_out as u8
+                property_data.fade_out = fade_out as u32
             }
             if let Some(playback_rate) = config.playback_rate {
                 property_data.playback_rate = playback_rate as f32

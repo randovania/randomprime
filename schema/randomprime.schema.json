@@ -3846,12 +3846,10 @@
                                 "maximum": 1000000.0
                             },
                             "fadeOut": {
-                                "type": "string",
-                                "enum": [
-                                    "Zero",
-                                    "One"
-                                ],
-                                "default": "Zero"
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1,
+                                "default": 0
                             },
                             "playbackRate": {
                                 "type": "number",
