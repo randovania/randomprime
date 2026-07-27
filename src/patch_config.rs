@@ -408,7 +408,7 @@ pub struct TriggerConfig {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum SpecialFunctionType {
-    None = 0,
+    What = 0,
     #[serde(alias = "playerFollowLocator", alias = "PLAYERFOLLOWLOCATOR")]
     PlayerFollowLocator,
     #[serde(alias = "spinnerController", alias = "SPINNERCONTROLLER")]
@@ -447,8 +447,8 @@ pub enum SpecialFunctionType {
     AreaDamage,
     #[serde(alias = "objectFollowObject", alias = "OBJECTFOLLOWOBJECT")]
     ObjectFollowObject,
-    #[serde(alias = "hintSystem", alias = "HINTSYSTEM")]
-    HintSystem,
+    #[serde(alias = "redundantHintSystem", alias = "REDUNDANTHINTSYSTEM")]
+    RedundantHintSystem,
     #[serde(alias = "dropBomb", alias = "DROPBOMB")]
     DropBomb,
     #[serde(alias = "scaleActor", alias = "SCALEACTOR")]
@@ -474,7 +474,7 @@ pub enum SpecialFunctionType {
     #[serde(alias = "weaponSwitch", alias = "WEAPONSWITCH")]
     WeaponSwitch,
     #[serde(alias = "fogVolume", alias = "FOGVOLUME")]
-    FogVolume,
+    FogVolume = 47,
     #[serde(alias = "radialDamage", alias = "RADIALDAMAGE")]
     RadialDamage,
     #[serde(alias = "envFxDensityController", alias = "ENVFXDENSITYCONTROLLER")]
@@ -520,7 +520,7 @@ pub struct ActorRotateConfig {
     pub id: Option<u32>,
     pub layer: Option<u32>,
     pub name: Option<String>,
-    #[serde(alias = "rotation_offset")]
+    #[serde(alias = "rotationOffset")]
     pub rotation: Option<[f32; 3]>,
     pub time_scale: Option<f32>,
     pub update_actors: Option<bool>,
@@ -1144,17 +1144,9 @@ pub struct TimerConfig {
     pub looping: Option<bool>,
     pub start_immediately: Option<bool>,
 }
-
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub enum FadeOut {
-    Zero = 0,
-    One,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ActorKeyFrameConfig {
+pub struct ActorKeyframeConfig {
     pub id: u32,
     pub layer: Option<u32>,
     pub name: Option<String>,
@@ -1162,7 +1154,7 @@ pub struct ActorKeyFrameConfig {
     pub animation_index: Option<u32>,
     pub loop_: Option<bool>,
     pub loop_duration: Option<f32>,
-    pub fade_out: Option<FadeOut>,
+    pub fade_out: Option<bool>,
     pub playback_rate: Option<f32>,
 }
 
@@ -1227,7 +1219,7 @@ pub struct RoomConfig {
     pub relays: Option<Vec<RelayConfig>>,
     pub cutscene_skip_fns: Option<Vec<u32>>, // instance id of new special function
     pub timers: Option<Vec<TimerConfig>>,
-    pub actor_keyframes: Option<Vec<ActorKeyFrameConfig>>,
+    pub actor_keyframes: Option<Vec<ActorKeyframeConfig>>,
     pub spawn_points: Option<Vec<SpawnPointConfig>>,
     pub triggers: Option<Vec<TriggerConfig>>,
     pub special_functions: Option<Vec<SpecialFunctionConfig>>,

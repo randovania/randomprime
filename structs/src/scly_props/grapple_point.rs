@@ -1,28 +1,7 @@
 use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
-use crate::SclyPropertyData;
-
-#[auto_struct(Readable, Writable)]
-#[derive(Debug, Clone, PartialEq)]
-pub struct GrappleParameters {
-    #[auto_struct(expect = 12)]
-    prop_count: u32,
-
-    pub grapple_length: f32,
-    pub grapple_attach_length: f32,
-    pub grapple_spring_constant: f32,
-    pub grapple_spring_length: f32,
-    pub grapple_spring_tardis: f32,
-    pub swing_force: f32,
-    pub swing_max_force: f32,
-    pub swing_arc_angle: f32,
-    pub swing_turn_angle: f32,
-    pub swing_camera_pitch: f32,
-    pub swing_camera_max_pitch: f32,
-
-    pub constrain_to_axis: u8,
-}
+use crate::{SclyPropertyData, scly_props::structs::GrappleParameters};
 
 #[auto_struct(Readable, Writable)]
 #[derive(Debug, Clone, PartialEq)]

@@ -5,12 +5,24 @@ use crate::{res_id::*, ResId};
 
 #[auto_struct(Readable, Writable, FixedSize)]
 #[derive(Debug, Clone, PartialEq)]
+
 pub struct GrappleParameters {
     #[auto_struct(expect = 12)]
     prop_count: u32,
 
-    pub unknowns: GenericArray<f32, U11>,
-    pub disable_turning: u8,
+    pub grapple_length: f32,
+    pub grapple_attach_length: f32,
+    pub grapple_spring_constant: f32,
+    pub grapple_spring_length: f32,
+    pub grapple_spring_tardis: f32,
+    pub swing_force: f32,
+    pub swing_max_force: f32,
+    pub swing_arc_angle: f32,
+    pub swing_turn_angle: f32,
+    pub swing_camera_pitch: f32,
+    pub swing_camera_max_pitch: f32,
+
+    pub constrain_to_axis: u8,
 }
 
 #[auto_struct(Readable, Writable, FixedSize)]
@@ -70,10 +82,10 @@ pub struct LightParameters {
     pub make_lights: u8,
     pub use_world_lighting: u32,
     pub light_recalculation: u32,
-    pub lightning_position: GenericArray<f32, U3>,
+    pub lighting_position: GenericArray<f32, U3>,
     pub num_dynamic_lights: u32,
     pub num_area_lights: u32,
-    pub ignore_ambient_lightning: u8,
+    pub ignore_ambient_lighting: u8,
     pub use_light_set: u32,
 }
 

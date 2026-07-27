@@ -8,9 +8,9 @@ use crate::{
     door_meta::DoorType,
     mlvl_wrapper,
     patch_config::{
-        ActorKeyFrameConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig,
+        ActorKeyframeConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig,
         CameraConfig, CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
-        ControllerActionConfig, CounterConfig, DamageType, FadeOut, FilterShape, FilterType,
+        ControllerActionConfig, CounterConfig, DamageType, FilterShape, FilterType,
         FogConfig, GenericTexture, HudmemoConfig, InitialSplinePosition, LockOnPoint,
         NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType, PlayerActorConfig,
         PlayerHintConfig, RelayConfig, SpawnPointConfig, SpecialFunctionConfig,
@@ -142,6 +142,12 @@ macro_rules! add_edit_obj_helper {
     };
 }
 
+macro_rules! resolve_name {
+    ($name:expr, $type:ident) => {
+        string_to_cstr($name.unwrap_or_else(|| concat!("randomprime ", stringify!($type)).to_string()))
+    };
+}
+
 pub fn patch_add_streamed_audio(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
@@ -150,11 +156,7 @@ pub fn patch_add_streamed_audio(
     macro_rules! new {
         () => {
             structs::StreamedAudio {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime StreamedAudio".to_string()),
-                ),
+                name: resolve_name!(config.name, StreamedAudio),
                 active: config.active.unwrap_or(true) as u8,
                 audio_file_name: string_to_cstr(config.audio_file_name),
                 no_stop_on_deactivate: config.no_stop_on_deactivate.unwrap_or(true) as u8,
@@ -376,21 +378,17 @@ pub fn patch_add_liquid<'r>(
 pub fn patch_add_actor_keyframe(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea,
-    config: ActorKeyFrameConfig,
+    config: ActorKeyframeConfig,
 ) -> Result<(), String> {
     macro_rules! new {
         () => {
-            structs::ActorKeyFrame {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime ActorKeyframe".to_string()),
-                ),
+            structs::ActorKeyframe {
+                name: resolve_name!(config.name, ActorKeyframe),
                 active: config.active.unwrap_or(true) as u8,
                 animation_index: config.animation_index.unwrap_or(0),
                 loop_: config.loop_.unwrap_or(false) as u8,
                 loop_duration: config.loop_duration.unwrap_or(0.0),
-                fade_out: config.fade_out.unwrap_or(FadeOut::Zero) as u32,
+                fade_out: config.fade_out.unwrap_or(false) as u8,
                 playback_rate: config.playback_rate.unwrap_or(1.0),
             }
         };
@@ -416,7 +414,7 @@ pub fn patch_add_actor_keyframe(
                 property_data.loop_duration = loop_duration as f32
             }
             if let Some(fade_out) = config.fade_out {
-                property_data.fade_out = fade_out as u32
+                property_data.fade_out = fade_out as u8
             }
             if let Some(playback_rate) = config.playback_rate {
                 property_data.playback_rate = playback_rate as f32
@@ -428,7 +426,7 @@ pub fn patch_add_actor_keyframe(
         area,
         Some(config.id),
         config.layer,
-        ActorKeyFrame,
+        ActorKeyframe,
         new,
         update
     );
@@ -442,7 +440,7 @@ pub fn patch_add_timer(
     macro_rules! new {
         () => {
             structs::Timer {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Timer".to_string())),
+                name: resolve_name!(config.name, Timer),
                 start_time: config.time.unwrap_or(1.0),
                 max_random_add: config.max_random_add.unwrap_or(0.0),
                 looping: config.looping.unwrap_or(false) as u8,
@@ -488,7 +486,7 @@ pub fn patch_add_relay(
     macro_rules! new {
         () => {
             structs::Relay {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Relay".to_string())),
+                name: resolve_name!(config.name, Relay),
                 active: config.active.unwrap_or(true) as u8,
             }
         };
@@ -516,12 +514,7 @@ pub fn patch_add_spawn_point(
 ) -> Result<(), String> {
     let spawn_point = {
         let mut spawn_point = structs::SpawnPoint {
-            name: string_to_cstr(
-                config
-                    .name
-                    .clone()
-                    .unwrap_or("randomprime SpawnPoint".to_string()),
-            ),
+            name: resolve_name!(config.name.clone(), SpawnPoint),
             position: config.position.into(),
             rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
             power: 0,
@@ -609,7 +602,7 @@ pub fn patch_add_trigger(
     macro_rules! new {
         () => {
             structs::Trigger {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Trigger".to_string())),
+                name: resolve_name!(config.name, Trigger),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: config.scale.unwrap_or([5.0, 5.0, 5.0]).into(),
                 damage_info: structs::scly_structs::DamageInfo {
@@ -684,11 +677,7 @@ pub fn patch_add_special_fn(
     macro_rules! new {
         () => {
             structs::SpecialFunction {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime SpecialFunction".to_string()),
-                ),
+                name: resolve_name!(config.name, SpecialFunction),
                 position: config.position.unwrap_or_default().into(),
                 rotation: config.rotation.unwrap_or_default().into(),
                 type_: config.type_ as u32,
@@ -780,7 +769,7 @@ pub fn patch_add_hudmemo<'r>(
     macro_rules! new {
         () => {
             structs::HudMemo {
-                name: string_to_cstr(config.name.unwrap_or("randomprime HUDMemo".to_string())),
+                name: resolve_name!(config.name, HudMemo),
                 first_message_timer: config.message_time.unwrap_or(4.0),
                 unknown: 1,
                 memo_type,
@@ -829,7 +818,7 @@ pub fn patch_add_actor_rotate_fn(
     macro_rules! new {
         () => {
             structs::ActorRotate {
-                name: string_to_cstr(config.name.unwrap_or("randomprime ActorRotate".to_string())),
+                name: resolve_name!(config.name, ActorRotate),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 time_scale: config.time_scale.unwrap_or(1.0),
                 update_actors: config.update_actors.unwrap_or(false) as u8,
@@ -875,7 +864,7 @@ pub fn patch_add_waypoint(
     macro_rules! new {
         () => {
             structs::Waypoint {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Waypoint".to_string())),
+                name: resolve_name!(config.name, Waypoint),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -949,7 +938,7 @@ pub fn patch_add_counter(
     macro_rules! new {
         () => {
             structs::Counter {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Counter".to_string())),
+                name: resolve_name!(config.name, Counter),
                 start_value: config.start_value.unwrap_or(0),
                 max_value: config.max_value.unwrap_or(1),
                 auto_reset: config.auto_reset.unwrap_or(false) as u8,
@@ -991,7 +980,7 @@ pub fn patch_add_switch(
     macro_rules! new {
         () => {
             structs::Switch {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Switch".to_string())),
+                name: resolve_name!(config.name, Switch),
                 active: config.active.unwrap_or(true) as u8,
                 open: config.open.unwrap_or(false) as u8,
                 auto_close: config.auto_close.unwrap_or(false) as u8,
@@ -1029,7 +1018,7 @@ pub fn patch_add_player_hint(
     macro_rules! new {
         () => {
             structs::PlayerHint {
-                name: string_to_cstr(config.name.unwrap_or("randomprime PlayerHint".to_string())),
+                name: resolve_name!(config.name, PlayerHint),
 
                 position: [0.0, 0.0, 0.0].into(),
                 rotation: [0.0, 0.0, 0.0].into(),
@@ -1132,7 +1121,7 @@ pub fn patch_add_distance_fogs(
     macro_rules! new {
         () => {
             structs::DistanceFog {
-                name: string_to_cstr(config.name.unwrap_or("randomprime DistanceFog".to_string())),
+                name: resolve_name!(config.name, DistanceFog),
                 mode: config.mode.unwrap_or(1),
                 color: config.color.unwrap_or([0.8, 0.8, 0.9, 0.0]).into(),
                 range: config.range.unwrap_or([30.0, 40.0]).into(),
@@ -1340,10 +1329,10 @@ pub fn patch_add_bomb_slot<'r>(
                         make_lights: 1,
                         use_world_lighting: 3,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -1423,10 +1412,10 @@ pub fn patch_add_bomb_slot<'r>(
                         make_lights: 1,
                         use_world_lighting: 3,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -1756,11 +1745,7 @@ pub fn patch_add_world_light_fader(
     macro_rules! new {
         () => {
             structs::WorldLightFader {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime WorldLightFader".to_string()),
-                ),
+                name: resolve_name!(config.name, WorldLightFader),
                 active: config.active.unwrap_or(true) as u8,
                 faded_light_level: config.faded_light_level.unwrap_or(0.2),
                 fade_speed: config.fade_speed.unwrap_or(0.25),
@@ -1805,11 +1790,7 @@ pub fn patch_add_controller_action(
     macro_rules! new {
         () => {
             structs::ControllerAction {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime ControllerAction".to_string()),
-                ),
+                name: resolve_name!(config.name, ControllerAction),
                 active: config.active.unwrap_or(true) as u8,
                 action: config.action as u32,
                 one_shot: config.one_shot.unwrap_or(false) as u8,
@@ -1853,7 +1834,7 @@ pub fn patch_add_camera(
     macro_rules! new {
         () => {
             structs::Camera {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Camera".to_string())),
+                name: resolve_name!(config.name, Camera),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(false) as u8,
@@ -1935,11 +1916,7 @@ pub fn patch_add_camera_waypoint(
     macro_rules! new {
         () => {
             structs::CameraWaypoint {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime CameraWaypoint".to_string()),
-                ),
+                name: resolve_name!(config.name, CameraWaypoint),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -1992,11 +1969,7 @@ pub fn patch_add_camera_filter_keyframe(
     macro_rules! new {
         () => {
             structs::CameraFilterKeyframe {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime CameraFilterKeyframe".to_string()),
-                ),
+                name: resolve_name!(config.name, CameraFilterKeyframe),
                 active: config.active.unwrap_or(true) as u8,
                 filter_type: config.filter_type.unwrap_or(FilterType::Multiply) as u32,
                 filter_shape: config.filter_shape.unwrap_or(FilterShape::CinemaBars) as u32,
@@ -2066,7 +2039,7 @@ pub fn patch_add_new_camera_hint(
     macro_rules! new {
         () => {
             structs::CameraHint {
-                name: string_to_cstr(config.name.unwrap_or("randomprime CameraHint".to_string())),
+                name: resolve_name!(config.name, CameraHint),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -2368,11 +2341,7 @@ pub fn patch_add_camera_hint_trigger(
     macro_rules! new {
         () => {
             structs::CameraHintTrigger {
-                name: string_to_cstr(
-                    config
-                        .name
-                        .unwrap_or("randomprime CameraHintTrigger".to_string()),
-                ),
+                name: resolve_name!(config.name, CameraHintTrigger),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: config.scale.unwrap_or([5.0, 5.0, 5.0]).into(),
@@ -2524,7 +2493,7 @@ pub fn patch_add_ball_trigger(
     macro_rules! new {
         () => {
             structs::BallTrigger {
-                name: string_to_cstr(config.name.unwrap_or("randomprime BallTrigger".to_string())),
+                name: resolve_name!(config.name, BallTrigger),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 scale: config.scale.unwrap_or([1.0, 1.0, 1.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -2583,7 +2552,7 @@ pub fn patch_add_path_camera(
     macro_rules! new {
         () => {
             structs::PathCamera {
-                name: string_to_cstr(config.name.unwrap_or("randomprime PathCamera".to_string())),
+                name: resolve_name!(config.name, PathCamera),
                 position: config.position.unwrap_or([0.0, 0.0, 0.0]).into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
                 active: config.active.unwrap_or(true) as u8,
@@ -2840,7 +2809,7 @@ pub fn patch_add_platform<'r>(
     macro_rules! new {
         () => {
             structs::Platform {
-                name: string_to_cstr(config.name.unwrap_or("randomprime Platform".to_string())),
+                name: resolve_name!(config.name, Platform),
 
                 position: config.position.into(),
                 rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
@@ -2865,10 +2834,10 @@ pub fn patch_add_platform<'r>(
                         make_lights: 1,
                         use_world_lighting: 1,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -2961,12 +2930,7 @@ pub fn patch_add_platform<'r>(
             structs::SclyObject {
                 instance_id: damaged_block_id,
                 property_data: structs::Platform {
-                    name: string_to_cstr(
-                        config
-                            .name
-                            .clone()
-                            .unwrap_or("randomprime Platform".to_string()),
-                    ),
+                    name: resolve_name!(config.name.clone(), Platform),
 
                     position: config.position.into(),
                     rotation: config.rotation.unwrap_or([0.0, 0.0, 0.0]).into(),
@@ -2992,10 +2956,10 @@ pub fn patch_add_platform<'r>(
                             make_lights: 1,
                             use_world_lighting: 1,
                             light_recalculation: 1,
-                            lightning_position: [0.0, 0.0, 0.0].into(),
+                            lighting_position: [0.0, 0.0, 0.0].into(),
                             num_dynamic_lights: 4,
                             num_area_lights: 4,
-                            ignore_ambient_lightning: 0,
+                            ignore_ambient_lighting: 0,
                             use_light_set: 0,
                         },
                         scan_parameters: structs::scly_structs::ScannableParameters {
@@ -3455,10 +3419,10 @@ pub fn add_block(
                     make_lights: 1,
                     use_world_lighting: 1,
                     light_recalculation: 1,
-                    lightning_position: [0.0, 0.0, 0.0].into(),
+                    lighting_position: [0.0, 0.0, 0.0].into(),
                     num_dynamic_lights: 4,
                     num_area_lights: 4,
-                    ignore_ambient_lightning: 0,
+                    ignore_ambient_lighting: 0,
                     use_light_set: 0,
                 },
                 scan_parameters: structs::scly_structs::ScannableParameters {
@@ -3607,10 +3571,10 @@ pub fn patch_lock_on_point<'r>(
                         make_lights: 1,
                         use_world_lighting: 1,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -3662,7 +3626,7 @@ pub fn patch_lock_on_point<'r>(
                     position: [position[0], position[1], position[2] - 0.5].into(),
                     rotation: [0.0, -0.0, 0.0].into(),
                     active: 1,
-                    grapple_parameters: structs::GrappleParameters {
+                    grapple_parameters: structs::scly_props::structs::GrappleParameters {
                         grapple_length: 10.0,
                         grapple_attach_length: 10.0,
                         grapple_spring_constant: 1.0,

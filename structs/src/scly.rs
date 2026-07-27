@@ -742,7 +742,7 @@ build_scly_property!(
     is_actor,
     as_actor,
     as_actor_mut,
-    ActorKeyFrame,
+    ActorKeyframe,
     is_actor_keyframe,
     as_actor_keyframe,
     as_actor_keyframe_mut,

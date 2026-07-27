@@ -1043,10 +1043,10 @@ fn patch_door<'r>(
                         make_lights: 1,
                         use_world_lighting: 1,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -1633,10 +1633,10 @@ fn patch_door<'r>(
                             make_lights: 0,
                             use_world_lighting: 1,
                             light_recalculation: 1,
-                            lightning_position: [0.0, 0.0, 0.0].into(),
+                            lighting_position: [0.0, 0.0, 0.0].into(),
                             num_dynamic_lights: 4,
                             num_area_lights: 4,
-                            ignore_ambient_lightning: 0,
+                            ignore_ambient_lighting: 0,
                             use_light_set: 0,
                         },
                     }
@@ -1826,29 +1826,29 @@ fn patch_door<'r>(
                 .and_then(|obj| obj.property_data.as_door_mut())
                 .unwrap();
 
-            let is_ceiling_door = door.ancs.file_id == 0xf57dd484
+            let is_ceiling_door = door.animation_parameters.file_id == 0xf57dd484
                 && door.rotation[0] > -90.0
                 && door.rotation[0] < 90.0;
-            let is_floor_door = door.ancs.file_id == 0xf57dd484
+            let is_floor_door = door.animation_parameters.file_id == 0xf57dd484
                 && door.rotation[0] < -90.0
                 && door.rotation[0] > -270.0;
             let is_morphball_door = door.is_morphball_door != 0;
 
             if is_ceiling_door {
-                door.scan_offset[0] = 0.0;
-                door.scan_offset[1] = 0.0;
-                door.scan_offset[2] = -2.5;
+                door.orbit_position[0] = 0.0;
+                door.orbit_position[1] = 0.0;
+                door.orbit_position[2] = -2.5;
             } else if is_floor_door {
-                door.scan_offset[0] = 0.0;
-                door.scan_offset[1] = 0.0;
-                door.scan_offset[2] = 2.5;
+                door.orbit_position[0] = 0.0;
+                door.orbit_position[1] = 0.0;
+                door.orbit_position[2] = 2.5;
             } else if is_morphball_door {
-                door.scan_offset[0] = 0.0;
-                door.scan_offset[1] = 0.0;
-                door.scan_offset[2] = 1.0;
+                door.orbit_position[0] = 0.0;
+                door.orbit_position[1] = 0.0;
+                door.orbit_position[2] = 1.0;
             }
 
-            door.actor_params.scan_parameters.scan = _door_type.scan();
+            door.actor_parameters.scan_parameters.scan = _door_type.scan();
         }
     }
 
@@ -2629,15 +2629,15 @@ fn patch_add_item<'r>(
         pickup_model_data.scale[1] *= scale;
         pickup_model_data.scale[2] *= scale;
         pickup_model_data.cmdl = ResId::<res_id::CMDL>::new(extern_model.as_ref().unwrap().cmdl);
-        pickup_model_data.ancs.file_id =
+        pickup_model_data.animation_parameters.file_id =
             ResId::<res_id::ANCS>::new(extern_model.as_ref().unwrap().ancs);
         pickup_model_data.part = ResId::invalid();
-        pickup_model_data.ancs.node_index = extern_model.as_ref().unwrap().character;
-        pickup_model_data.ancs.default_animation = 0;
-        pickup_model_data.actor_params.xray_model = ResId::invalid();
-        pickup_model_data.actor_params.xray_skin = ResId::invalid();
-        pickup_model_data.actor_params.thermal_model = ResId::invalid();
-        pickup_model_data.actor_params.thermal_skin = ResId::invalid();
+        pickup_model_data.animation_parameters.node_index = extern_model.as_ref().unwrap().character;
+        pickup_model_data.animation_parameters.default_animation = 0;
+        pickup_model_data.actor_parameters.xray_model = ResId::invalid();
+        pickup_model_data.actor_parameters.xray_skin = ResId::invalid();
+        pickup_model_data.actor_parameters.thermal_model = ResId::invalid();
+        pickup_model_data.actor_parameters.thermal_skin = ResId::invalid();
     }
 
     let respawn = pickup_config.respawn.unwrap_or(false);
@@ -2775,7 +2775,7 @@ fn patch_add_item<'r>(
         }
     };
 
-    let mut scan_offset = pickup_model_data.scan_offset;
+    let mut collision_offset = pickup_model_data.collision_offset;
 
     // If this is the echoes missile expansion model, compensate for the Z offset
     let json_pickup_name = pickup_config
@@ -2787,7 +2787,7 @@ fn patch_add_item<'r>(
         || json_pickup_name.contains("prime2_UnlimitedMissiles")
     {
         pickup_position[2] -= 1.2;
-        scan_offset[2] += 1.2;
+        collision_offset[2] += 1.2;
     }
 
     let mut scale = pickup_model_data.scale;
@@ -2806,8 +2806,8 @@ fn patch_add_item<'r>(
         name: b"customItem\0".as_cstr(),
         position: pickup_position.into(),
         rotation: [0.0, 0.0, 0.0].into(),
-        hitbox: pickup_model_data.hitbox,
-        scan_offset,
+        collision_box: pickup_model_data.collision_box,
+        collision_offset,
         fade_in_timer: 0.0,
         spawn_delay: 0.0,
         disappear_timer: if pickup_config.contributes_to_completion() {
@@ -2828,13 +2828,13 @@ fn patch_add_item<'r>(
         // "What does this pickup look like?"
         scale,
         cmdl: pickup_model_data.cmdl,
-        ancs: pickup_model_data.ancs.clone(),
+        animation_parameters: pickup_model_data.animation_parameters.clone(),
         part: pickup_model_data.part,
-        actor_params: pickup_model_data.actor_params.clone(),
+        actor_parameters: pickup_model_data.actor_parameters.clone(),
     };
 
     // set the scan file id //
-    pickup.actor_params.scan_parameters.scan = scan_id;
+    pickup.actor_parameters.scan_parameters.scan = scan_id;
 
     let pickup_obj_id = match pickup_config.id {
         Some(id) => id,
@@ -3919,7 +3919,7 @@ fn patch_remove_tangle_weed_scan_point(
         for obj in layer.objects.as_mut_vec().iter_mut() {
             if tangle_weed_ids.contains(&obj.instance_id) {
                 let tangle_weed = obj.property_data.as_snake_weed_swarm_mut().unwrap();
-                tangle_weed.actor_params.scan_parameters.scan = ResId::invalid();
+                tangle_weed.actor_parameters.scan_parameters.scan = ResId::invalid();
             }
         }
     }
@@ -4026,10 +4026,10 @@ fn patch_add_scan_actor<'r>(
                         make_lights: 0,
                         use_world_lighting: 0,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -4441,15 +4441,15 @@ fn modify_pickups_in_mrea<'r>(
         pickup_model_data.scale[1] *= scale;
         pickup_model_data.scale[2] *= scale;
         pickup_model_data.cmdl = ResId::<res_id::CMDL>::new(extern_model.as_ref().unwrap().cmdl);
-        pickup_model_data.ancs.file_id =
+        pickup_model_data.animation_parameters.file_id =
             ResId::<res_id::ANCS>::new(extern_model.as_ref().unwrap().ancs);
         pickup_model_data.part = ResId::invalid();
-        pickup_model_data.ancs.node_index = extern_model.as_ref().unwrap().character;
-        pickup_model_data.ancs.default_animation = 0;
-        pickup_model_data.actor_params.xray_model = ResId::invalid();
-        pickup_model_data.actor_params.xray_skin = ResId::invalid();
-        pickup_model_data.actor_params.thermal_model = ResId::invalid();
-        pickup_model_data.actor_params.thermal_skin = ResId::invalid();
+        pickup_model_data.animation_parameters.node_index = extern_model.as_ref().unwrap().character;
+        pickup_model_data.animation_parameters.default_animation = 0;
+        pickup_model_data.actor_parameters.xray_model = ResId::invalid();
+        pickup_model_data.actor_parameters.xray_skin = ResId::invalid();
+        pickup_model_data.actor_parameters.thermal_model = ResId::invalid();
+        pickup_model_data.actor_parameters.thermal_skin = ResId::invalid();
     }
 
     // Add hudmemo string as dependency to room //
@@ -5074,10 +5074,10 @@ fn update_pickup(
         original_pickup.position[2] - (new_center[2] - original_center[2]),
     ];
 
-    let mut scan_offset = [
-        original_pickup.scan_offset[0] + (new_center[0] - original_center[0]),
-        original_pickup.scan_offset[1] + (new_center[1] - original_center[1]),
-        original_pickup.scan_offset[2] + (new_center[2] - original_center[2]),
+    let mut collision_offset = [
+        original_pickup.collision_offset[0] + (new_center[0] - original_center[0]),
+        original_pickup.collision_offset[1] + (new_center[1] - original_center[1]),
+        original_pickup.collision_offset[2] + (new_center[2] - original_center[2]),
     ];
 
     // If this is the echoes missile expansion model, compensate for the Z offset
@@ -5090,7 +5090,7 @@ fn update_pickup(
         || json_pickup_name.contains("prime2_UnlimitedMissiles")
     {
         position[2] -= 1.2;
-        scan_offset[2] += 1.2;
+        collision_offset[2] += 1.2;
     }
 
     let mut scale = pickup_model_data.scale;
@@ -5109,8 +5109,8 @@ fn update_pickup(
         name: original_pickup.name,
         position: position.into(),
         rotation: pickup_model_data.rotation,
-        hitbox: original_pickup.hitbox,
-        scan_offset: scan_offset.into(),
+        collision_box: original_pickup.collision_box,
+        collision_offset: collision_offset.into(),
         fade_in_timer: 0.0,
         spawn_delay: original_pickup.spawn_delay,
         disappear_timer: if pickup_config.contributes_to_completion() {
@@ -5131,15 +5131,15 @@ fn update_pickup(
         // "What does this pickup look like?"
         scale,
         cmdl: pickup_model_data.cmdl,
-        ancs: pickup_model_data.ancs.clone(),
+        animation_parameters: pickup_model_data.animation_parameters.clone(),
         part: pickup_model_data.part,
-        actor_params: pickup_model_data.actor_params.clone(),
+        actor_parameters: pickup_model_data.actor_parameters.clone(),
     };
 
     // Should we use non-default scan id? //
-    pickup.actor_params.scan_parameters.scan = scan_id;
+    pickup.actor_parameters.scan_parameters.scan = scan_id;
 
-    (position, pickup.actor_params.scan_parameters.scan)
+    (position, pickup.actor_parameters.scan_parameters.scan)
 }
 
 fn update_hudmemo(
@@ -5978,10 +5978,10 @@ fn patch_artifact_temple_pillar(
                     make_lights: 1,
                     use_world_lighting: 2,
                     light_recalculation: 1,
-                    lightning_position: [0.0, 0.0, 0.0].into(),
+                    lighting_position: [0.0, 0.0, 0.0].into(),
                     num_dynamic_lights: 4,
                     num_area_lights: 4,
-                    ignore_ambient_lightning: 1,
+                    ignore_ambient_lighting: 1,
                     use_light_set: 0,
                 },
                 scan_parameters: structs::scly_structs::ScannableParameters {
@@ -7651,10 +7651,10 @@ fn make_main_plaza_locked_door_two_ways(
                         make_lights: 1,
                         use_world_lighting: 1,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -7738,8 +7738,8 @@ fn make_main_plaza_locked_door_two_ways(
         .find(|obj| obj.instance_id == door_id)
         .and_then(|obj| obj.property_data.as_door_mut())
         .unwrap();
-    locked_door.ancs.file_id = resource_info!("newmetroiddoor.ANCS").try_into().unwrap();
-    locked_door.ancs.default_animation = 2;
+    locked_door.animation_parameters.file_id = resource_info!("newmetroiddoor.ANCS").try_into().unwrap();
+    locked_door.animation_parameters.default_animation = 2;
     locked_door.projectiles_collide = 0;
 
     let trigger_remove_scan_target_locked_door_and_etank = layer
@@ -9567,7 +9567,7 @@ fn patch_optimize_memory(
                         if cmdl_id != u32::MAX && cmdl_id != 0 {
                             set.insert((cmdl_id, FourCC::from_bytes(b"CMDL")));
                         }
-                        let ancs_id = pickup.ancs.file_id.to_u32();
+                        let ancs_id = pickup.animation_parameters.file_id.to_u32();
                         if ancs_id != u32::MAX && ancs_id != 0 {
                             set.insert((ancs_id, FourCC::from_bytes(b"ANCS")));
                         }
@@ -11582,10 +11582,10 @@ fn patch_final_boss_permadeath<'r>(
                         make_lights: 1,
                         use_world_lighting: 1,
                         light_recalculation: 1,
-                        lightning_position: [0.0, 0.0, 0.0].into(),
+                        lighting_position: [0.0, 0.0, 0.0].into(),
                         num_dynamic_lights: 4,
                         num_area_lights: 4,
-                        ignore_ambient_lightning: 0,
+                        ignore_ambient_lighting: 0,
                         use_light_set: 0,
                     },
                     scan_parameters: structs::scly_structs::ScannableParameters {
@@ -12323,13 +12323,13 @@ fn patch_add_dock_teleport<'r>(
         }
 
         door_rotation = door.rotation;
-        is_frigate_door = door.ancs.file_id == 0xfafb5784;
+        is_frigate_door = door.animation_parameters.file_id == 0xfafb5784;
         is_ceiling_door =
-            door.ancs.file_id == 0xf57dd484 && door_rotation[0] > -90.0 && door_rotation[0] < 90.0;
-        is_floor_door = door.ancs.file_id == 0xf57dd484
+            door.animation_parameters.file_id == 0xf57dd484 && door_rotation[0] > -90.0 && door_rotation[0] < 90.0;
+        is_floor_door = door.animation_parameters.file_id == 0xf57dd484
             && door_rotation[0] < -90.0
             && door_rotation[0] > -270.0;
-        is_square_frigate_door = door.ancs.file_id == 0x26CCCB48;
+        is_square_frigate_door = door.animation_parameters.file_id == 0x26CCCB48;
         is_morphball_door = door.is_morphball_door != 0;
     }
 
@@ -12630,31 +12630,31 @@ fn patch_modify_dock<'r>(
                 door_id = obj.instance_id;
 
                 let door = obj.property_data.as_door_mut().unwrap();
-                let is_ceiling_door = door.ancs.file_id == 0xf57dd484
+                let is_ceiling_door = door.animation_parameters.file_id == 0xf57dd484
                     && door.rotation[0] > -90.0
                     && door.rotation[0] < 90.0;
-                let is_floor_door = door.ancs.file_id == 0xf57dd484
+                let is_floor_door = door.animation_parameters.file_id == 0xf57dd484
                     && door.rotation[0] < -90.0
                     && door.rotation[0] > -270.0;
                 let is_morphball_door = door.is_morphball_door != 0;
 
                 if is_ceiling_door {
-                    door.scan_offset[0] = 0.0;
-                    door.scan_offset[1] = 0.0;
-                    door.scan_offset[2] = -2.5;
+                    door.orbit_position[0] = 0.0;
+                    door.orbit_position[1] = 0.0;
+                    door.orbit_position[2] = -2.5;
                 } else if is_floor_door {
-                    door.scan_offset[0] = 0.0;
-                    door.scan_offset[1] = 0.0;
-                    door.scan_offset[2] = 2.5;
+                    door.orbit_position[0] = 0.0;
+                    door.orbit_position[1] = 0.0;
+                    door.orbit_position[2] = 2.5;
                 } else if is_morphball_door {
-                    door.scan_offset[0] = 0.0;
-                    door.scan_offset[1] = 0.0;
-                    door.scan_offset[2] = 1.0;
+                    door.orbit_position[0] = 0.0;
+                    door.orbit_position[1] = 0.0;
+                    door.orbit_position[2] = 1.0;
                 }
 
                 if scan.is_some() {
                     let (scan_id, _) = scan.unwrap();
-                    door.actor_params.scan_parameters.scan = scan_id;
+                    door.actor_parameters.scan_parameters.scan = scan_id;
                 }
                 break;
             }
@@ -18565,10 +18565,10 @@ fn patch_elite_research_door_lock<'r>(
                     make_lights: 1,
                     use_world_lighting: 1,
                     light_recalculation: 1,
-                    lightning_position: [0.0, 0.0, 0.0].into(),
+                    lighting_position: [0.0, 0.0, 0.0].into(),
                     num_dynamic_lights: 4,
                     num_area_lights: 4,
-                    ignore_ambient_lightning: 0,
+                    ignore_ambient_lighting: 0,
                     use_light_set: 0,
                 },
                 scan_parameters: structs::scly_structs::ScannableParameters {
