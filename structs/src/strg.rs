@@ -7,6 +7,8 @@ static SUPPORTED_LANGUAGES: &[&[u8; 4]] = &[
     b"ENGL", b"DUTC", b"FREN", b"GERM", b"ITAL", b"JAPN", b"SPAN",
 ];
 
+pub static NON_JPN_LANGUAGES: &[&[u8; 4]] = &[b"ENGL", b"DUTC", b"FREN", b"GERM", b"ITAL", b"SPAN"];
+
 const EMPTY_STRING: &str = "\u{0}";
 const JPN_FONT_PREFIX: &str = "&line-extra-space=4;&font=C29C51F1;";
 
@@ -113,6 +115,52 @@ impl<'r> Strg<'r> {
                     }
                 }
             }
+        }
+    }
+
+    pub fn string_at(&self, index: usize, language: &[u8; 4]) -> Option<String> {
+        self.string_tables
+            .iter()
+            .find(|table| table.lang == language.into())?
+            .strings
+            .iter()
+            .nth(index)
+            .map(|string| string.into_owned().into_string())
+    }
+
+    pub fn set_string(&mut self, index: usize, string: &str, languages: Languages) {
+        self.edit_string_at(index, languages, |_| string.to_string());
+    }
+
+    // Keeps each language's own text and adds to it, for suffixes that read the same everywhere.
+    pub fn append_to_string(&mut self, index: usize, suffix: &str, languages: Languages) {
+        self.edit_string_at(index, languages, |string| {
+            format!(
+                "{}{}{}",
+                string.trim_end_matches('\u{0}'),
+                suffix,
+                EMPTY_STRING
+            )
+        });
+    }
+
+    fn edit_string_at(
+        &mut self,
+        index: usize,
+        languages: Languages,
+        edit: impl Fn(String) -> String,
+    ) {
+        let languages = match languages {
+            Languages::All => SUPPORTED_LANGUAGES,
+            Languages::Some(value) => value,
+        };
+
+        for table in self.string_tables.as_mut_vec().iter_mut() {
+            if !languages.contains(&table.lang.as_bytes()) {
+                continue;
+            }
+            let strings = table.strings.as_mut_vec();
+            strings[index] = edit(strings[index].clone().into_string()).into();
         }
     }
 
