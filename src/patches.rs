@@ -10488,17 +10488,10 @@ fn patch_credits(
         }
     }
     output = format!("{}{}", output, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\0");
-    if version == Version::NtscJ {
-        res.kind
-            .as_strg_mut()
-            .unwrap()
-            .add_strings_jpn_font(&[output.to_string()], front_end_languages(version));
-    } else {
-        res.kind
-            .as_strg_mut()
-            .unwrap()
-            .add_strings(&[output.to_string()], Languages::All);
-    }
+    res.kind
+        .as_strg_mut()
+        .unwrap()
+        .add_strings(&[output.to_string()], Languages::All);
 
     /* We are who we choose to be */
     /* https://mobile.twitter.com/ZoidCTF/status/1542699504041750528 */

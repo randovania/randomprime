@@ -75,16 +75,6 @@ impl<'r> Strg<'r> {
     }
 
     pub fn add_strings(&mut self, strings: &[String], languages: Languages) {
-        self.append_strings(strings, languages, "");
-    }
-
-    // The JP build renders with the Japanese font unless a string names another, so text meant to
-    // read as Latin has to say so itself.
-    pub fn add_strings_jpn_font(&mut self, strings: &[String], languages: Languages) {
-        self.append_strings(strings, languages, JPN_FONT_PREFIX);
-    }
-
-    fn append_strings(&mut self, strings: &[String], languages: Languages, prefix: &str) {
         let languages = match languages {
             Languages::All => SUPPORTED_LANGUAGES,
             Languages::Some(value) => value,
@@ -94,7 +84,7 @@ impl<'r> Strg<'r> {
             let selected = languages.contains(&table.lang.as_bytes());
             for string in strings.iter() {
                 let string = match selected {
-                    true => format!("{}{}", prefix, string),
+                    true => string.to_string(),
                     false => EMPTY_STRING.to_string(),
                 };
                 table.strings.as_mut_vec().push(string.into());
