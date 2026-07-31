@@ -10304,12 +10304,21 @@ fn patch_memorycard_strg(res: &mut structs::Resource, version: Version) -> Resul
     Ok(())
 }
 
+// Languages each version's front-end can be set to. The rest are filled in with empty strings so
+// every table stays the same length.
+fn front_end_languages(version: Version) -> Languages {
+    match version {
+        Version::NtscJ => Languages::Some(&[b"ENGL", b"JAPN"]),
+        Version::Pal => Languages::Some(&[b"ENGL", b"FREN", b"GERM", b"SPAN", b"ITAL"]),
+        _ => Languages::Some(&[b"ENGL"]),
+    }
+}
+
 fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> Result<(), String> {
+    let strg = res.kind.as_strg_mut().unwrap();
+
     if version == Version::NtscJ {
-        let strings_jpn = res
-            .kind
-            .as_strg_mut()
-            .unwrap()
+        let strings_jpn = strg
             .string_tables
             .as_mut_vec()
             .iter_mut()
@@ -10320,30 +10329,9 @@ fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> 
 
         let s = strings_jpn.get_mut(37).unwrap();
         *s = "&main-color=#FFFFFF;エクストラ\u{0}".to_string().into();
-        strings_jpn.push(format!("{}\0", msg).into());
     }
 
-    if version == Version::Pal {
-        for lang in [b"FREN", b"GERM", b"SPAN", b"ITAL"] {
-            let strings_pal = res
-                .kind
-                .as_strg_mut()
-                .unwrap()
-                .string_tables
-                .as_mut_vec()
-                .iter_mut()
-                .find(|table| table.lang == lang.into())
-                .unwrap()
-                .strings
-                .as_mut_vec();
-            strings_pal.push(format!("{}\0", msg).into());
-        }
-    }
-
-    let strings = res
-        .kind
-        .as_strg_mut()
-        .unwrap()
+    let strings = strg
         .string_tables
         .as_mut_vec()
         .iter_mut()
@@ -10357,7 +10345,8 @@ fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> 
         .find(|s| *s == "Metroid Fusion Connection Bonuses\u{0}")
         .unwrap();
     *s = "Extras\u{0}".to_string().into();
-    strings.push(format!("{}\0", msg).into());
+
+    strg.add_strings(&[format!("{}\0", msg)], front_end_languages(version));
 
     Ok(())
 }
@@ -10517,7 +10506,7 @@ fn patch_credits(
         res.kind
             .as_strg_mut()
             .unwrap()
-            .add_strings(&[output.to_string()], Languages::Some(&[b"ENGL", b"JAPN"]));
+            .add_strings_jpn_font(&[output.to_string()], front_end_languages(version));
     } else {
         res.kind
             .as_strg_mut()

@@ -7,6 +7,9 @@ static SUPPORTED_LANGUAGES: &[&[u8; 4]] = &[
     b"ENGL", b"DUTC", b"FREN", b"GERM", b"ITAL", b"JAPN", b"SPAN",
 ];
 
+const EMPTY_STRING: &str = "\u{0}";
+const JPN_FONT_PREFIX: &str = "&line-extra-space=4;&font=C29C51F1;";
+
 pub enum Languages {
     All,
     Some(&'static [&'static [u8; 4]]),
@@ -22,8 +25,17 @@ pub struct Strg<'r> {
 
     #[auto_struct(derive = string_tables.len() as u32)]
     lang_count: u32,
-    // TODO: It might be nice to have an assert that all the tables have the same length
-    #[auto_struct(derive = string_tables.iter().next().unwrap().strings.len() as u32)]
+
+    #[auto_struct(derive = {
+        let mut lengths = string_tables.iter().map(|table| table.strings.len());
+        let count = lengths.next().unwrap();
+        assert!(
+            lengths.all(|len| len == count),
+            "STRG language tables hold differing numbers of strings. Fix: Call `pad_string_tables after` \
+             appending to a subset of the languages"
+        );
+        count as u32
+    })]
     string_count: u32,
 
     #[auto_struct(derive_from_iter = string_tables.iter()
@@ -42,30 +54,48 @@ pub struct Strg<'r> {
 }
 
 impl<'r> Strg<'r> {
-    fn is_jpn_version(languages: &[&[u8; 4]]) -> bool {
-        languages.len() == 2
-            && languages.iter().any(|lang| *lang == b"ENGL")
-            && languages.iter().any(|lang| *lang == b"JAPN")
+    // Grow every language table to the length of the longest, so the file-wide string count in
+    // the header stays accurate. Only needed after pushing onto tables directly.
+    pub fn pad_string_tables(&mut self) {
+        let tables = self.string_tables.as_mut_vec();
+        let longest = tables
+            .iter()
+            .map(|table| table.strings.len())
+            .max()
+            .unwrap_or(0);
+
+        for table in tables.iter_mut() {
+            let strings = table.strings.as_mut_vec();
+            while strings.len() < longest {
+                strings.push(EMPTY_STRING.to_string().into());
+            }
+        }
     }
 
     pub fn add_strings(&mut self, strings: &[String], languages: Languages) {
+        self.append_strings(strings, languages, "");
+    }
+
+    // The JP build renders with the Japanese font unless a string names another, so text meant to
+    // read as Latin has to say so itself.
+    pub fn add_strings_jpn_font(&mut self, strings: &[String], languages: Languages) {
+        self.append_strings(strings, languages, JPN_FONT_PREFIX);
+    }
+
+    fn append_strings(&mut self, strings: &[String], languages: Languages, prefix: &str) {
         let languages = match languages {
             Languages::All => SUPPORTED_LANGUAGES,
             Languages::Some(value) => value,
         };
-        let is_jpn = Self::is_jpn_version(languages);
+
         for table in self.string_tables.as_mut_vec().iter_mut() {
-            if languages.contains(&table.lang.as_bytes()) {
-                for string in strings.iter() {
-                    if is_jpn {
-                        table
-                            .strings
-                            .as_mut_vec()
-                            .push(format!("&line-extra-space=4;&font=C29C51F1;{}", string).into());
-                    } else {
-                        table.strings.as_mut_vec().push(string.to_string().into());
-                    }
-                }
+            let selected = languages.contains(&table.lang.as_bytes());
+            for string in strings.iter() {
+                let string = match selected {
+                    true => format!("{}{}", prefix, string),
+                    false => EMPTY_STRING.to_string(),
+                };
+                table.strings.as_mut_vec().push(string.into());
             }
         }
     }
@@ -103,7 +133,7 @@ impl<'r> Strg<'r> {
     pub fn from_strings_jpn(strings: Vec<String>) -> Strg<'r> {
         let strings: LazyArray<LazyUtf16beStr> = strings
             .into_iter()
-            .map(|i| format!("&line-extra-space=4;&font=C29C51F1;{}", i).into())
+            .map(|i| format!("{}{}", JPN_FONT_PREFIX, i).into())
             .collect::<Vec<_>>()
             .into();
         Strg {
