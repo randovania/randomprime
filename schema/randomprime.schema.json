@@ -5781,6 +5781,7 @@
         "allRooms": {
             "type": "string",
             "enum": [
+                "Credits",
                 "Chozo Ruins:Antechamber",
                 "Chozo Ruins:Arboretum Access",
                 "Chozo Ruins:Arboretum",
