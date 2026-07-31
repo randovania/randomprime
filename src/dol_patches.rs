@@ -3605,11 +3605,11 @@ fn patch_inventory_gates(
 //   0    4     magic           SAVE_SCHEMA_MAGIC ("RPSV"); absent => not our save
 //   4    4     version         SAVE_SCHEMA_VERSION
 //   8    16    uuid            instance id; all-zero default
-//   24   36    save_name       big-endian UTF-16, null-terminated (<= 17 chars)
-//   60   4     completion      collected-location counter (qolGeneral completion percent)
-//   64   4     completion_max  denominator captured at save birth, so a slot's percent is stable
+//   24   52    save_name       big-endian UTF-16, null-terminated (<= 24 ASCII chars)
+//   76   4     completion      collected-location counter (qolGeneral completion percent)
+//   80   4     completion_max  denominator captured at save birth, so a slot's percent is stable
 //                              across instances with a different completionPercentMax
-//   68   60    (unused)        future fields grow here (bump version)
+//   84   44    (unused)        future fields grow here (bump version)
 //
 // The identity block [0, SAVE_SCHEMA_SIZE) is stamped once at save birth (patch_save_uuid_stamp).
 // The completion fields sit outside it: both are ctor-zeroed and mutated only at runtime (by the
@@ -3629,14 +3629,14 @@ const SAVE_FRONT_SIZE: i32 = 128;
 // CGameState member holding the front region's inline bytes.
 const SAVE_FRONT_DATA_MEMBER_OFF: i32 = 0x4;
 
-const SAVE_SCHEMA_SIZE: i32 = 60; // magic + version + uuid + save_name
+const SAVE_SCHEMA_SIZE: i32 = 76; // magic + version + uuid + save_name
 const SAVE_SCHEMA_OFFSET: i32 = 0; // == buffer offset; front starts at 0
 
 #[allow(dead_code)]
-const SAVE_FRONT_UNUSED: i32 = SAVE_FRONT_SIZE - (SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE); // 68
+const SAVE_FRONT_UNUSED: i32 = SAVE_FRONT_SIZE - (SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE); // 52
 
 const SAVE_SCHEMA_MAGIC: u32 = 0x5250_5356; // "RPSV"
-const SAVE_SCHEMA_VERSION: u32 = 2;
+const SAVE_SCHEMA_VERSION: u32 = 3;
 
 // Field offsets within the block.
 const SAVE_F_MAGIC: usize = 0;
@@ -3644,8 +3644,8 @@ const SAVE_F_VERSION: usize = 4;
 const SAVE_F_UUID: usize = 8;
 const SAVE_F_NAME: usize = 24;
 // Outside the stamped identity block (>= SAVE_SCHEMA_SIZE) so re-saves don't clobber them.
-const SAVE_F_COMPLETION: usize = 60;
-const SAVE_F_COMPLETION_MAX: usize = 64;
+const SAVE_F_COMPLETION: usize = 76;
+const SAVE_F_COMPLETION_MAX: usize = 80;
 
 // Absolute buffer offsets (block start + field), used by the trampolines.
 const SAVE_OFF_MAGIC: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_MAGIC as i32;
@@ -3654,18 +3654,19 @@ const SAVE_OFF_NAME: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_NAME as i32;
 const SAVE_OFF_COMPLETION: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_COMPLETION as i32;
 const SAVE_OFF_COMPLETION_MAX: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_COMPLETION_MAX as i32;
 // Completion fields within the live CGameState object.
-const SAVE_COMPLETION_MEMBER_OFF: i32 = SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION as i32; // 0x40
+const SAVE_COMPLETION_MEMBER_OFF: i32 = SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION as i32; // 0x50
 const SAVE_COMPLETION_MAX_MEMBER_OFF: i32 =
-    SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION_MAX as i32; // 0x44
+    SAVE_FRONT_DATA_MEMBER_OFF + SAVE_F_COMPLETION_MAX as i32; // 0x54
 
 const UUID_BYTES: usize = 16;
 
-// ASCII-only; 17 chars + null = 18 UTF-16 units = 9 words (2 big-endian units per word).
-const SAVE_NAME_WORDS: usize = 9;
-const SAVE_NAME_MAX_CHARS: usize = 17;
+// ASCII-only; 24 chars + null = 25 UTF-16 units = 13 words (2 big-endian units per word).
+const SAVE_NAME_WORDS: usize = 13;
+// Bounded by what the rescaled file-select row fits (patch_main_menu).
+const SAVE_NAME_MAX_CHARS: usize = 24;
 
 // Scratch stride per file-select row; must be a power of 2 and >= SAVE_NAME_WORDS*4 for the
-// slwi shift-6 row offset. 9*4=36 rounds up to 64 (2^6); the padding per row is never accessed.
+// slwi shift-6 row offset. 13*4=52 rounds up to 64 (2^6); the padding per row is never accessed.
 const SAVE_NAME_SCRATCH_STRIDE: usize = 64;
 // File-select rows. Each row's name is reassembled into its OWN scratch slot because wstring_l /
 // SetText store the pointer rather than copying, so a shared buffer would alias across rows.
@@ -3702,21 +3703,15 @@ const _: () =
     assert!(SAVE_NAME_WORDS * 4 <= SAVE_NAME_SCRATCH_STRIDE && SAVE_NAME_SCRATCH_STRIDE == 64);
 
 // Encode a saveName: null-terminated, zero-padded big-endian UTF-16 (two units per word).
-// Non-ASCII characters become '?'.
+// Non-ASCII input is rejected while parsing the config, so every char widens losslessly here.
 fn build_save_name_words(save_name: &str) -> Vec<u8> {
     let mut units: Vec<u16> = save_name
         .chars()
         .take(SAVE_NAME_MAX_CHARS)
-        .map(|ch| {
-            if ch.is_ascii() {
-                ch as u16
-            } else {
-                b'?' as u16
-            }
-        })
+        .map(|ch| ch as u16)
         .collect();
     units.push(0); // null terminator
-    units.resize(SAVE_NAME_WORDS * 2, 0); // zero-pad (and bound) to 32 code units
+    units.resize(SAVE_NAME_WORDS * 2, 0); // zero-pad (and bound) to 26 code units
     let mut bytes = Vec::with_capacity(SAVE_NAME_WORDS * 4);
     for unit in units {
         bytes.extend_from_slice(&unit.to_be_bytes());
