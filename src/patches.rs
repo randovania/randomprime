@@ -400,6 +400,14 @@ fn remove_door_locks(
     let layer = &mut scly.layers.as_mut_vec()[0];
     layer.objects.as_mut_vec().retain(|obj| !is_door_lock(obj)); // keep everything that isn't a door lock
 
+    // Also remove door lock deps
+    let deps_to_remove: Vec<u32> = vec![0x6E5D6796, 0x0D36FB59, 0xACADD83F];
+    for dep_array in area.mlvl_area.dependencies.deps.as_mut_vec() {
+        dep_array
+            .as_mut_vec()
+            .retain(|dep| !deps_to_remove.contains(&dep.asset_id));
+    }
+
     Ok(())
 }
 
@@ -13478,6 +13486,10 @@ fn patch_qol_game_breaking(
         patcher.add_scly_patch(
             resource_info!("19_hive_totem.MREA").into(),
             patch_hive_totem_boss_trigger_0_02,
+        );
+        patcher.add_scly_patch(
+            resource_info!("19_hive_totem.MREA").into(),
+            remove_door_locks,
         );
         patcher.add_scly_patch(
             resource_info!("04_mines_pillar.MREA").into(),
