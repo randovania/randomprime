@@ -2702,6 +2702,11 @@ impl PatchConfigPrivate {
             }
         };
 
+        let save_name = self.game_config.save_name.clone();
+        if let Some(name) = save_name.as_deref().filter(|name| !name.is_ascii()) {
+            Err(format!("saveName must be ASCII-only - '{}'", name))?;
+        }
+
         let phazon_damage_modifier = {
             let map_default_state_string = self
                 .game_config
@@ -2888,7 +2893,7 @@ impl PatchConfigPrivate {
             game_banner: self.game_config.game_banner.clone().unwrap_or_default(),
             comment: self.game_config.comment.clone().unwrap_or_default(),
             main_menu_message,
-            save_name: self.game_config.save_name.clone(),
+            save_name,
 
             credits_string,
             results_string,

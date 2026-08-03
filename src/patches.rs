@@ -10332,6 +10332,20 @@ fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> 
         Languages::Some(&[b"JAPN"]),
     );
 
+    // Lengthen the "empty" save slot dashes to account for the smaller font size
+    let mut replaced = 0;
+    for table in strg.string_tables.as_mut_vec() {
+        for string in table.strings.as_mut_vec() {
+            if *string == *"    -- -- -- -- -- --\u{0}" {
+                *string = "    -- -- -- -- -- -- -- -- --\u{0}".to_string().into();
+                replaced += 1;
+            }
+        }
+    }
+    if replaced == 0 {
+        return Err("Found no empty-slot world name in STRG_Main".to_string());
+    }
+
     strg.add_strings(&[format!("{}\0", msg)], front_end_languages(version));
 
     Ok(())
@@ -10348,6 +10362,36 @@ fn patch_no_hud(res: &mut structs::Resource) -> Result<(), String> {
 
 fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
     let frme = res.kind.as_frme_mut().unwrap();
+
+    // Shrink the font size of the save slot text and nudge it left a little
+
+    const SAVE_NAME_PANE_SCALE: f32 = 26.0 / 19.0;
+
+    let mut scaled = 0;
+    for widget in frme.widgets.as_mut_vec() {
+        if !widget.name.to_bytes().starts_with(b"textpane_world") {
+            continue;
+        }
+        let structs::FrmeWidgetKind::TextPane(textpane) = &mut widget.kind else {
+            continue;
+        };
+        textpane.block_extent[0] *= SAVE_NAME_PANE_SCALE;
+        textpane.block_extent[1] *= SAVE_NAME_PANE_SCALE;
+        if let Some(point_scale) = &mut textpane.jpn_point_scale {
+            point_scale[0] = (point_scale[0] as f32 * SAVE_NAME_PANE_SCALE) as u32;
+            point_scale[1] = (point_scale[1] as f32 * SAVE_NAME_PANE_SCALE) as u32;
+        }
+        widget.origin[0] -= 0.2; // ~4px; the frame's ortho camera spans 31.4 units across 640px
+        scaled += 1;
+    }
+
+    // Three rows, each with a drop-shadow twin that has to move with it or the shadow desyncs.
+    if scaled != 6 {
+        return Err(format!(
+            "Expected 6 world-name text panes, found {}",
+            scaled
+        ));
+    }
 
     let (jpn_font, jpn_point_scale) = if frme.version == 0 {
         (None, None)
