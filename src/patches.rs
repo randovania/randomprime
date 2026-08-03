@@ -10265,99 +10265,74 @@ fn patch_save_station_for_warp_to_start<'r>(
     Ok(())
 }
 
-fn patch_memorycard_strg(res: &mut structs::Resource, version: Version) -> Result<(), String> {
-    if version == Version::NtscJ {
-        let strings = res
-            .kind
-            .as_strg_mut()
-            .unwrap()
-            .string_tables
-            .as_mut_vec()
-            .iter_mut()
-            .find(|table| table.lang == b"JAPN".into())
-            .unwrap()
-            .strings
-            .as_mut_vec();
+// Both of these are the same index in every version, but the text they hold is localized, so the
+// only way to reach every language is by index. check_english_string guards the assumption.
+const SAVE_PROMPT_INDEX: usize = 8;
+const EXTRAS_MENU_INDEX: usize = 37;
 
-        let s = strings.get_mut(8).unwrap();
-        *s = "スロットAのメモリーカードに\nデータをセーブしますか？\n&image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; キーを押したまま、「いいえ」を選択して開始ルームにワープします。\u{0}".to_string().into();
-    } else {
-        let strings = res
-            .kind
-            .as_strg_mut()
-            .unwrap()
-            .string_tables
-            .as_mut_vec()
-            .iter_mut()
-            .find(|table| table.lang == b"ENGL".into())
-            .unwrap()
-            .strings
-            .as_mut_vec();
-
-        let s = strings
-            .iter_mut()
-            .find(|s| *s == "Save progress to Memory Card in Slot A?\u{0}")
-            .unwrap();
-        *s = "Save progress to Memory Card in Slot A?\nHold &image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; while choosing No to warp to starting room.\u{0}".to_string().into();
+fn check_english_string(strg: &structs::Strg, index: usize, expected: &str) -> Result<(), String> {
+    match strg.string_at(index, b"ENGL") {
+        Some(string) if string.starts_with(expected) => Ok(()),
+        found => Err(format!(
+            "Expected STRG index {} to start with {:?}, found {:?}",
+            index, expected, found
+        )),
     }
+}
+
+fn patch_memorycard_strg(res: &mut structs::Resource) -> Result<(), String> {
+    const WARP_HINT: &str = "\nHold &image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; while choosing No to warp to starting room.";
+    const WARP_HINT_JPN: &str = "\n&image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; キーを押したまま、「いいえ」を選択して開始ルームにワープします。";
+
+    let strg = res.kind.as_strg_mut().unwrap();
+    check_english_string(
+        strg,
+        SAVE_PROMPT_INDEX,
+        "Save progress to Memory Card in Slot A?",
+    )?;
+
+    strg.append_to_string(
+        SAVE_PROMPT_INDEX,
+        WARP_HINT,
+        Languages::Some(structs::NON_JPN_LANGUAGES),
+    );
+    strg.append_to_string(
+        SAVE_PROMPT_INDEX,
+        WARP_HINT_JPN,
+        Languages::Some(&[b"JAPN"]),
+    );
 
     Ok(())
 }
 
+// Languages each version's front-end can be set to. The rest are filled in with empty strings so
+// every table stays the same length.
+fn front_end_languages(version: Version) -> Languages {
+    match version {
+        Version::NtscJ => Languages::Some(&[b"ENGL", b"JAPN"]),
+        Version::Pal => Languages::Some(&[b"ENGL", b"FREN", b"GERM", b"SPAN", b"ITAL"]),
+        _ => Languages::Some(&[b"ENGL"]),
+    }
+}
+
 fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> Result<(), String> {
-    if version == Version::NtscJ {
-        let strings_jpn = res
-            .kind
-            .as_strg_mut()
-            .unwrap()
-            .string_tables
-            .as_mut_vec()
-            .iter_mut()
-            .find(|table| table.lang == b"JAPN".into())
-            .unwrap()
-            .strings
-            .as_mut_vec();
+    let strg = res.kind.as_strg_mut().unwrap();
+    check_english_string(strg, EXTRAS_MENU_INDEX, "Metroid Fusion Connection Bonuses")?;
 
-        let s = strings_jpn.get_mut(37).unwrap();
-        *s = "&main-color=#FFFFFF;エクストラ\u{0}".to_string().into();
-        strings_jpn.push(format!("{}\0", msg).into());
-    }
+    // Randomprime repurposes the GBA bonus menu, so its entry has to be renamed in every language
+    // the player can pick
+    strg.set_string(
+        EXTRAS_MENU_INDEX,
+        "Extras\u{0}",
+        Languages::Some(structs::NON_JPN_LANGUAGES),
+    );
+    strg.set_string(
+        EXTRAS_MENU_INDEX,
+        "&main-color=#FFFFFF;エクストラ\u{0}",
+        Languages::Some(&[b"JAPN"]),
+    );
 
-    if version == Version::Pal {
-        for lang in [b"FREN", b"GERM", b"SPAN", b"ITAL"] {
-            let strings_pal = res
-                .kind
-                .as_strg_mut()
-                .unwrap()
-                .string_tables
-                .as_mut_vec()
-                .iter_mut()
-                .find(|table| table.lang == lang.into())
-                .unwrap()
-                .strings
-                .as_mut_vec();
-            strings_pal.push(format!("{}\0", msg).into());
-        }
-    }
-
-    let strings = res
-        .kind
-        .as_strg_mut()
-        .unwrap()
-        .string_tables
-        .as_mut_vec()
-        .iter_mut()
-        .find(|table| table.lang == b"ENGL".into())
-        .unwrap()
-        .strings
-        .as_mut_vec();
-
-    let s = strings
-        .iter_mut()
-        .find(|s| *s == "Metroid Fusion Connection Bonuses\u{0}")
-        .unwrap();
-    *s = "Extras\u{0}".to_string().into();
-    strings.push(format!("{}\0", msg).into());
+    strg.add_strings(&[format!("{}\0", msg)], front_end_languages(version));
 
     Ok(())
 }
@@ -10513,17 +10488,10 @@ fn patch_credits(
         }
     }
     output = format!("{}{}", output, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\0");
-    if version == Version::NtscJ {
-        res.kind
-            .as_strg_mut()
-            .unwrap()
-            .add_strings(&[output.to_string()], Languages::Some(&[b"ENGL", b"JAPN"]));
-    } else {
-        res.kind
-            .as_strg_mut()
-            .unwrap()
-            .add_strings(&[output.to_string()], Languages::All);
-    }
+    res.kind
+        .as_strg_mut()
+        .unwrap()
+        .add_strings(&[output.to_string()], Languages::All);
 
     /* We are who we choose to be */
     /* https://mobile.twitter.com/ZoidCTF/status/1542699504041750528 */
@@ -18101,7 +18069,7 @@ fn build_and_run_patches<'r>(
 
         patcher.add_resource_patch(
             resource_info!("STRG_MemoryCard.STRG").into(), // 0x19C3F7F7
-            |res| patch_memorycard_strg(res, config.version),
+            patch_memorycard_strg,
         );
     }
 
