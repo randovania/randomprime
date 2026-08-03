@@ -161,6 +161,7 @@
                     "type": "object",
                     "properties": {
                         "powerDeg": {
+                            "description": "Hue rotation for the Power Suit. Also applied to Samus' gunship.",
                             "type": "integer",
                             "minimum": 0,
                             "exclusiveMaximum": 360,
