@@ -18586,7 +18586,7 @@ fn patch_elite_research_door_lock_0_02(
         .unwrap();
 
     let connections = obj.connections.as_mut_vec();
-    connections.retain(|conn| conn.target_object_id & 0xFFFFF != 0xD0517);
+    connections.retain(|conn| conn.target_object_id & 0xFFFFF != door_unlock_relay_id);
 
     Ok(())
 }
