@@ -226,6 +226,24 @@
                         }
                     ]
                 },
+                "Elite Research": {
+                    "removeConnections": [
+                        {
+                            "senderId": 851977, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 852800, // [Pickup] Artifact
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 851977, // [SpecialFunction] SpecialFunction Cinematic Skip
+                            "targetId": 853284, // [MemoryRelay] Memory Relay Artifact Post Elite
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        }
+                    ]
+                },
                 "Mine Security Station": {
                     "deleteIds": [
                         458753,
