@@ -400,6 +400,14 @@ fn remove_door_locks(
     let layer = &mut scly.layers.as_mut_vec()[0];
     layer.objects.as_mut_vec().retain(|obj| !is_door_lock(obj)); // keep everything that isn't a door lock
 
+    // Also remove door lock deps
+    let deps_to_remove: Vec<u32> = vec![0x6E5D6796, 0x0D36FB59, 0xACADD83F];
+    for dep_array in area.mlvl_area.dependencies.deps.as_mut_vec() {
+        dep_array
+            .as_mut_vec()
+            .retain(|dep| !deps_to_remove.contains(&dep.asset_id));
+    }
+
     Ok(())
 }
 
@@ -788,9 +796,9 @@ fn patch_door<'r>(
         sound_id = area.new_object_id_from_layer_id(0);
         streamed_audio_id = area.new_object_id_from_layer_id(0);
         shaker_id = area.new_object_id_from_layer_id(0);
-        blast_shield_instance_id = area.new_object_id_from_layer_id(0);
         effect_id = area.new_object_id_from_layer_id(0);
 
+        blast_shield_instance_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         timer_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         timer2_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
@@ -10257,99 +10265,88 @@ fn patch_save_station_for_warp_to_start<'r>(
     Ok(())
 }
 
-fn patch_memorycard_strg(res: &mut structs::Resource, version: Version) -> Result<(), String> {
-    if version == Version::NtscJ {
-        let strings = res
-            .kind
-            .as_strg_mut()
-            .unwrap()
-            .string_tables
-            .as_mut_vec()
-            .iter_mut()
-            .find(|table| table.lang == b"JAPN".into())
-            .unwrap()
-            .strings
-            .as_mut_vec();
+// Both of these are the same index in every version, but the text they hold is localized, so the
+// only way to reach every language is by index. check_english_string guards the assumption.
+const SAVE_PROMPT_INDEX: usize = 8;
+const EXTRAS_MENU_INDEX: usize = 37;
 
-        let s = strings.get_mut(8).unwrap();
-        *s = "スロットAのメモリーカードに\nデータをセーブしますか？\n&image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; キーを押したまま、「いいえ」を選択して開始ルームにワープします。\u{0}".to_string().into();
-    } else {
-        let strings = res
-            .kind
-            .as_strg_mut()
-            .unwrap()
-            .string_tables
-            .as_mut_vec()
-            .iter_mut()
-            .find(|table| table.lang == b"ENGL".into())
-            .unwrap()
-            .strings
-            .as_mut_vec();
-
-        let s = strings
-            .iter_mut()
-            .find(|s| *s == "Save progress to Memory Card in Slot A?\u{0}")
-            .unwrap();
-        *s = "Save progress to Memory Card in Slot A?\nHold &image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; while choosing No to warp to starting room.\u{0}".to_string().into();
+fn check_english_string(strg: &structs::Strg, index: usize, expected: &str) -> Result<(), String> {
+    match strg.string_at(index, b"ENGL") {
+        Some(string) if string.starts_with(expected) => Ok(()),
+        found => Err(format!(
+            "Expected STRG index {} to start with {:?}, found {:?}",
+            index, expected, found
+        )),
     }
+}
+
+fn patch_memorycard_strg(res: &mut structs::Resource) -> Result<(), String> {
+    const WARP_HINT: &str = "\nHold &image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; while choosing No to warp to starting room.";
+    const WARP_HINT_JPN: &str = "\n&image=SI,0.70,0.68,46434ED3; + &image=SI,0.70,0.68,08A2E4B9; キーを押したまま、「いいえ」を選択して開始ルームにワープします。";
+
+    let strg = res.kind.as_strg_mut().unwrap();
+    check_english_string(
+        strg,
+        SAVE_PROMPT_INDEX,
+        "Save progress to Memory Card in Slot A?",
+    )?;
+
+    strg.append_to_string(
+        SAVE_PROMPT_INDEX,
+        WARP_HINT,
+        Languages::Some(structs::NON_JPN_LANGUAGES),
+    );
+    strg.append_to_string(
+        SAVE_PROMPT_INDEX,
+        WARP_HINT_JPN,
+        Languages::Some(&[b"JAPN"]),
+    );
 
     Ok(())
 }
 
-fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> Result<(), String> {
-    if version == Version::NtscJ {
-        let strings_jpn = res
-            .kind
-            .as_strg_mut()
-            .unwrap()
-            .string_tables
-            .as_mut_vec()
-            .iter_mut()
-            .find(|table| table.lang == b"JAPN".into())
-            .unwrap()
-            .strings
-            .as_mut_vec();
-
-        let s = strings_jpn.get_mut(37).unwrap();
-        *s = "&main-color=#FFFFFF;エクストラ\u{0}".to_string().into();
-        strings_jpn.push(format!("{}\0", msg).into());
+// Languages each version's front-end can be set to. The rest are filled in with empty strings so
+// every table stays the same length.
+fn front_end_languages(version: Version) -> Languages {
+    match version {
+        Version::NtscJ => Languages::Some(&[b"ENGL", b"JAPN"]),
+        Version::Pal => Languages::Some(&[b"ENGL", b"FREN", b"GERM", b"SPAN", b"ITAL"]),
+        _ => Languages::Some(&[b"ENGL"]),
     }
+}
 
-    if version == Version::Pal {
-        for lang in [b"FREN", b"GERM", b"SPAN", b"ITAL"] {
-            let strings_pal = res
-                .kind
-                .as_strg_mut()
-                .unwrap()
-                .string_tables
-                .as_mut_vec()
-                .iter_mut()
-                .find(|table| table.lang == lang.into())
-                .unwrap()
-                .strings
-                .as_mut_vec();
-            strings_pal.push(format!("{}\0", msg).into());
+fn patch_main_strg(res: &mut structs::Resource, version: Version, msg: &str) -> Result<(), String> {
+    let strg = res.kind.as_strg_mut().unwrap();
+    check_english_string(strg, EXTRAS_MENU_INDEX, "Metroid Fusion Connection Bonuses")?;
+
+    // Randomprime repurposes the GBA bonus menu, so its entry has to be renamed in every language
+    // the player can pick
+    strg.set_string(
+        EXTRAS_MENU_INDEX,
+        "Extras\u{0}",
+        Languages::Some(structs::NON_JPN_LANGUAGES),
+    );
+    strg.set_string(
+        EXTRAS_MENU_INDEX,
+        "&main-color=#FFFFFF;エクストラ\u{0}",
+        Languages::Some(&[b"JAPN"]),
+    );
+
+    // Lengthen the "empty" save slot dashes to account for the smaller font size
+    let mut replaced = 0;
+    for table in strg.string_tables.as_mut_vec() {
+        for string in table.strings.as_mut_vec() {
+            if *string == *"    -- -- -- -- -- --\u{0}" {
+                *string = "    -- -- -- -- -- -- -- -- --\u{0}".to_string().into();
+                replaced += 1;
+            }
         }
     }
+    if replaced == 0 {
+        return Err("Found no empty-slot world name in STRG_Main".to_string());
+    }
 
-    let strings = res
-        .kind
-        .as_strg_mut()
-        .unwrap()
-        .string_tables
-        .as_mut_vec()
-        .iter_mut()
-        .find(|table| table.lang == b"ENGL".into())
-        .unwrap()
-        .strings
-        .as_mut_vec();
-
-    let s = strings
-        .iter_mut()
-        .find(|s| *s == "Metroid Fusion Connection Bonuses\u{0}")
-        .unwrap();
-    *s = "Extras\u{0}".to_string().into();
-    strings.push(format!("{}\0", msg).into());
+    strg.add_strings(&[format!("{}\0", msg)], front_end_languages(version));
 
     Ok(())
 }
@@ -10365,6 +10362,36 @@ fn patch_no_hud(res: &mut structs::Resource) -> Result<(), String> {
 
 fn patch_main_menu(res: &mut structs::Resource) -> Result<(), String> {
     let frme = res.kind.as_frme_mut().unwrap();
+
+    // Shrink the font size of the save slot text and nudge it left a little
+
+    const SAVE_NAME_PANE_SCALE: f32 = 26.0 / 19.0;
+
+    let mut scaled = 0;
+    for widget in frme.widgets.as_mut_vec() {
+        if !widget.name.to_bytes().starts_with(b"textpane_world") {
+            continue;
+        }
+        let structs::FrmeWidgetKind::TextPane(textpane) = &mut widget.kind else {
+            continue;
+        };
+        textpane.block_extent[0] *= SAVE_NAME_PANE_SCALE;
+        textpane.block_extent[1] *= SAVE_NAME_PANE_SCALE;
+        if let Some(point_scale) = &mut textpane.jpn_point_scale {
+            point_scale[0] = (point_scale[0] as f32 * SAVE_NAME_PANE_SCALE) as u32;
+            point_scale[1] = (point_scale[1] as f32 * SAVE_NAME_PANE_SCALE) as u32;
+        }
+        widget.origin[0] -= 0.2; // ~4px; the frame's ortho camera spans 31.4 units across 640px
+        scaled += 1;
+    }
+
+    // Three rows, each with a drop-shadow twin that has to move with it or the shadow desyncs.
+    if scaled != 6 {
+        return Err(format!(
+            "Expected 6 world-name text panes, found {}",
+            scaled
+        ));
+    }
 
     let (jpn_font, jpn_point_scale) = if frme.version == 0 {
         (None, None)
@@ -10505,17 +10532,10 @@ fn patch_credits(
         }
     }
     output = format!("{}{}", output, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\0");
-    if version == Version::NtscJ {
-        res.kind
-            .as_strg_mut()
-            .unwrap()
-            .add_strings(&[output.to_string()], Languages::Some(&[b"ENGL", b"JAPN"]));
-    } else {
-        res.kind
-            .as_strg_mut()
-            .unwrap()
-            .add_strings(&[output.to_string()], Languages::All);
-    }
+    res.kind
+        .as_strg_mut()
+        .unwrap()
+        .add_strings(&[output.to_string()], Languages::All);
 
     /* We are who we choose to be */
     /* https://mobile.twitter.com/ZoidCTF/status/1542699504041750528 */
@@ -13480,8 +13500,16 @@ fn patch_qol_game_breaking(
             patch_hive_totem_boss_trigger_0_02,
         );
         patcher.add_scly_patch(
+            resource_info!("19_hive_totem.MREA").into(),
+            remove_door_locks,
+        );
+        patcher.add_scly_patch(
             resource_info!("04_mines_pillar.MREA").into(),
             patch_ore_processing_door_lock_0_02,
+        );
+        patcher.add_scly_patch(
+            resource_info!("03_mines.MREA").into(),
+            patch_elite_research_door_lock_0_02,
         );
     }
     if version == Version::Pal
@@ -13518,6 +13546,16 @@ fn patch_qol_game_breaking(
         }
     }
 
+    if version == Version::NtscU0_00
+        || version == Version::NtscU0_01
+        || version == Version::NtscU0_02
+        || version == Version::NtscK
+    {
+        patcher.add_scly_patch(
+            resource_info!("03_mines.MREA").into(),
+            patch_elite_research_persistent_pickup,
+        );
+    }
     // softlocks
     patcher.add_scly_patch(
         resource_info!("22_Flaahgra.MREA").into(),
@@ -17489,10 +17527,6 @@ fn build_and_run_patches<'r>(
             player_size < 0.9,
         );
 
-        patcher.add_scly_patch(resource_info!("03_mines.MREA").into(), move |ps, area| {
-            patch_elite_research_door_lock(ps, area, game_resources)
-        });
-
         if boss_permadeath {
             patcher.add_scly_patch(
                 resource_info!("03f_crater.MREA").into(), // lair
@@ -18075,7 +18109,7 @@ fn build_and_run_patches<'r>(
 
         patcher.add_resource_patch(
             resource_info!("STRG_MemoryCard.STRG").into(), // 0x19C3F7F7
-            |res| patch_memorycard_strg(res, config.version),
+            patch_memorycard_strg,
         );
     }
 
@@ -18470,181 +18504,109 @@ fn patch_elite_research_platforms(
     Ok(())
 }
 
-fn patch_elite_research_door_lock<'r>(
+fn patch_elite_research_persistent_pickup(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
-    game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    area: &mut mlvl_wrapper::MlvlArea,
 ) -> Result<(), String> {
-    let deps = [
-        (0x6E5D6796, b"CMDL"),
-        (0x0D36FB59, b"TXTR"),
-        (0xACADD83F, b"TXTR"),
-    ];
-    let deps_iter = deps.iter().map(|&(file_id, fourcc)| Dependency {
-        asset_id: file_id,
-        asset_type: FourCC::from_bytes(fourcc),
-    });
-    area.add_dependencies(game_resources, 0, deps_iter);
+    // Add new layer for an auto-start Timer that will activate the pickup
+    area.add_layer(b"Pickup Active\0".as_cstr());
+    let pickup_active_layer = area.get_layer_id_from_name("Pickup Active");
 
-    // Must assign new object id here to keep borrow checker happy
-    let top_door_lock_id: u32 = area.new_object_id_from_layer_id(1);
-    let scly = area.mrea().scly_section_mut();
+    // Layer starts Inactive by Default
+    let flags = &mut area.layer_flags.flags;
+    *flags &= !(1 << 6);
 
-    let elite_pirate_id: u32 = 0x000D01A4;
-    let relay_disable_lock_id: u32 = 0x000D0407;
-    let artifact_id: u32 = 0x000D0340;
-    let bottom_door_lock_id: u32 = 0x000D0405;
-    let special_function_id: u32 = 0x000D04D1;
+    let special_fn_id = area.new_object_id_from_layer_id(0);
+    let pickup_timer_id = area.new_object_id_from_layer_name("Pickup Active");
+    let pickup_id = 0xD0340;
 
-    // Create lock for top door
-    let top_door_lock = structs::SclyObject {
-        instance_id: top_door_lock_id,
-        connections: vec![].into(),
-        property_data: SclyProperty::Actor(Box::new(structs::Actor {
-            name: b"Custom Blast Shield\0".as_cstr(),
-            position: [21.35, 166.275_13, 51.825].into(),
-            rotation: [0.0, 0.0, 0.0].into(),
-            scale: [1.45, 1.45, 1.45].into(),
-            collision_box: [1.75, 5.0, 5.0].into(),
-            collision_offset: [0.0, 0.0, 0.0].into(),
-            mass: 1.0,
-            gravity: 0.0,
-            health_info: structs::scly_structs::HealthInfo {
-                health: 5.0,
-                knockback_resistance: 1.0,
-            },
-            damage_vulnerability: structs::scly_structs::DamageVulnerability {
-                power: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                ice: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                wave: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                plasma: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                bomb: structs::scly_structs::TypeVulnerability::Immune as u32,
-                power_bomb: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                missile: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                boost_ball: structs::scly_structs::TypeVulnerability::Immune as u32,
-                phazon: structs::scly_structs::TypeVulnerability::Immune as u32,
-
-                enemy_weapon0: structs::scly_structs::TypeVulnerability::Immune as u32,
-                enemy_weapon1: structs::scly_structs::TypeVulnerability::Immune as u32,
-                enemy_weapon2: structs::scly_structs::TypeVulnerability::Immune as u32,
-                enemy_weapon3: structs::scly_structs::TypeVulnerability::Immune as u32,
-
-                unknown_weapon0: structs::scly_structs::TypeVulnerability::Immune as u32,
-                unknown_weapon1: structs::scly_structs::TypeVulnerability::Immune as u32,
-                unknown_weapon2: structs::scly_structs::TypeVulnerability::Immune as u32,
-
-                charged_beams: structs::scly_structs::ChargedBeams {
-                    power: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    ice: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    wave: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    plasma: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    phazon: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                },
-                beam_combos: structs::scly_structs::BeamCombos {
-                    power: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    ice: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    wave: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    plasma: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                    phazon: structs::scly_structs::TypeVulnerability::Reflect as u32,
-                },
-            },
-            static_model: ResId::new(0x6E5D6796),
-            animation_parameters: structs::scly_structs::AncsProp {
-                file_id: ResId::invalid(),
-                node_index: 0,
-                default_animation: 0xFFFFFFFF,
-            },
-            actor_parameters: structs::scly_structs::ActorParameters {
-                light_parameters: structs::scly_structs::LightParameters {
-                    cast_shadow: 1,
-                    shadow_scale: 1.0,
-                    tessellation: 0,
-                    shadow_alpha: 1.0,
-                    max_shadow_height: 20.0,
-                    ambient_color: [1.0, 1.0, 1.0, 1.0].into(), // RGBA
-                    make_lights: 1,
-                    use_world_lighting: 1,
-                    light_recalculation: 1,
-                    lighting_position: [0.0, 0.0, 0.0].into(),
-                    num_dynamic_lights: 4,
-                    num_area_lights: 4,
-                    ignore_ambient_lighting: 0,
-                    use_light_set: 0,
-                },
-                scan_parameters: structs::scly_structs::ScannableParameters {
-                    scan: ResId::invalid(),
-                },
-                xray_model: ResId::invalid(),
-                xray_skin: ResId::invalid(),
-                thermal_model: ResId::invalid(),
-                thermal_skin: ResId::invalid(),
-                use_global_render_time: 1,
-                fade_in_time: 1.0,
-                fade_out_time: 1.0,
-                visor_parameters: structs::scly_structs::VisorParameters {
-                    unknown0: 0,
-                    target_passthrough: 1,
-                    visor_mask: 15, // Visor Flags : Combat|Scan|Thermal|XRay
-                },
-                thermal_hot: 0,
-                force_render_unsorted: 0,
-                no_sort_thermal: 0,
-                thermal_damage_magnitude: 1.0,
-            },
-            is_loop: 1,
-            immovable: 1,
-            is_solid: 1,
-            is_camera_through: 0,
-            active: 0,
-            render_texture_set: 0,
-            xray_alpha: 1.0,
-            thermal_visible_through_geometry: 0,
-            draws_shadow: 0,
-            scale_animation: 0,
-            material_flag_54: 0,
-        })),
+    // Activate new layer when Phazon Elite dies
+    let connection = ConnectionConfig {
+        sender_id: 0xD01A4, // Phazon Elite
+        target_id: special_fn_id,
+        state: ConnectionState::DEAD,
+        message: ConnectionMsg::INCREMENT,
     };
+    patch_add_connection(area, &connection);
 
-    // Add to "3rd Pass Elite Bustout" layer
-    scly.layers.as_mut_vec()[1]
+    // Deactivate new layer when Pickup obtained
+    let connection = ConnectionConfig {
+        sender_id: pickup_id,
+        target_id: special_fn_id,
+        state: ConnectionState::ARRIVED,
+        message: ConnectionMsg::DECREMENT,
+    };
+    patch_add_connection(area, &connection);
+
+    let scly = area.mrea().scly_section_mut();
+    let layers = &mut scly.layers.as_mut_vec();
+
+    // This auto-start timer will activate the pickup on room load
+    layers[pickup_active_layer]
         .objects
         .as_mut_vec()
-        .push(top_door_lock);
-
-    // Adjust connections
-    for layer in scly.layers.as_mut_vec().iter_mut() {
-        for obj in layer.objects.as_mut_vec().iter_mut() {
-            // Remove bottom door unlock connection from Elite Pirate
-            if obj.instance_id & 0x00FFFFFF == relay_disable_lock_id & 0x00FFFFFF {
-                obj.connections.as_mut_vec().retain(|conn| {
-                    !conn.target_object_id & 0x00FFFFFF == elite_pirate_id & 0x00FFFFFF
-                });
-            };
-
-            // Add top and bottom door unlock connections to Artifact
-            if obj.instance_id & 0x00FFFFFF == artifact_id & 0x00FFFFFF {
-                obj.connections.as_mut_vec().push(structs::Connection {
-                    state: structs::ConnectionState::ARRIVED,
-                    message: structs::ConnectionMsg::DECREMENT,
-                    target_object_id: bottom_door_lock_id,
-                });
-                obj.connections.as_mut_vec().push(structs::Connection {
-                    state: structs::ConnectionState::ARRIVED,
-                    message: structs::ConnectionMsg::DECREMENT,
-                    target_object_id: top_door_lock_id,
-                });
-            };
-
-            // Add top door lock connection to "SpecialFunction PlayerInAreaRelay"
-            if obj.instance_id & 0x00FFFFFF == special_function_id & 0x00FFFFFF {
-                obj.connections.as_mut_vec().push(structs::Connection {
-                    state: structs::ConnectionState::ZERO,
-                    message: structs::ConnectionMsg::INCREMENT,
-                    target_object_id: top_door_lock_id,
-                });
+        .push(structs::SclyObject {
+            instance_id: pickup_timer_id,
+            property_data: structs::Timer {
+                name: b"Activate Pickup\0".as_cstr(),
+                start_time: 0.001,
+                max_random_add: 0.0,
+                looping: 0,
+                start_immediately: 1,
+                active: 1,
             }
-        }
-    }
+            .into(),
+            connections: vec![structs::Connection {
+                state: structs::ConnectionState::ZERO,
+                message: structs::ConnectionMsg::ACTIVATE,
+                target_object_id: pickup_id,
+            }]
+            .into(),
+        });
+
+    // Layer Controller
+    layers[0].objects.as_mut_vec().push(structs::SclyObject {
+        instance_id: special_fn_id,
+        property_data: structs::SpecialFunction::layer_change_fn(
+            b"[INC/DEC] Pickup Active\0".as_cstr(),
+            0xD3438CDA,
+            pickup_active_layer as u32,
+        )
+        .into(),
+        connections: vec![].into(),
+    });
+
+    Ok(())
+}
+
+fn patch_elite_research_door_lock_0_02(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+) -> Result<(), String> {
+    let phazon_elite_id = 0xD01A4;
+    let door_unlock_relay_id = 0xD0517;
+
+    // Unlock door and move platforms when Phazon Elite dies
+    let connection = ConnectionConfig {
+        sender_id: phazon_elite_id,
+        target_id: door_unlock_relay_id,
+        state: ConnectionState::DEAD,
+        message: ConnectionMsg::SET_TO_ZERO,
+    };
+    patch_add_connection(area, &connection);
+
+    let scly = area.mrea().scly_section_mut();
+    let layers = scly.layers.as_mut_vec();
+
+    // Don't fire that same relay again on collecting pickup
+    let obj = layers[0]
+        .objects
+        .iter_mut()
+        .find(|obj| obj.instance_id & 0xFFFFF == 0xD0340)
+        .unwrap();
+
+    let connections = obj.connections.as_mut_vec();
+    connections.retain(|conn| conn.target_object_id & 0xFFFFF != door_unlock_relay_id);
 
     Ok(())
 }
