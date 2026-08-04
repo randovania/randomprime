@@ -1648,6 +1648,46 @@ fn patch_inflate_buffer_oom_recover(
     Ok(())
 }
 
+// Patch ActorRotate to respect NEXT while a rotation is in progress by skipping from x44_currentTime
+// to x40_maxTime
+fn patch_actor_rotate_next(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    let (set_time_to_max_offset, epilogue_offset) = match version {
+        Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscU0_02 | Version::NtscK => {
+            (0x25c, 0x270)
+        }
+        Version::NtscJ | Version::Pal => (0x220, 0x234),
+        _ => return Ok(()),
+    };
+
+    let update_actors = symbol_addr!(
+        "UpdateActors__18CScriptActorRotateFbR13CStateManager",
+        version
+    );
+
+    let cave = emitter.emit_addressed(dol_patcher, |addr| {
+        ppcasm!(addr, {
+            lbz     r0, 0x58(r23);
+            andi    r0, r0, 0x80;
+            bne     { addr + 0x10 };
+            b       { update_actors + 0x28 };
+            cmpwi   r24, 0;
+            bne     { addr + 0x1c };
+            b       { update_actors + epilogue_offset };
+            b       { update_actors + set_time_to_max_offset };
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(update_actors + 0x1c, {
+        b { cave };
+    }))?;
+
+    Ok(())
+}
+
 // Teach beetles to respect reset on all versions and expand
 // reset functionality to clear velocity and and attack timers
 fn patch_beetle_reset(
@@ -1875,6 +1915,7 @@ fn patch_meta(
             | crate::patch_config::CutsceneMode::SkippableCompetitive
     ) {
         patch_beetle_reset(dol_patcher, emitter, version)?;
+        patch_actor_rotate_next(dol_patcher, emitter, version)?;
     }
 
     {
