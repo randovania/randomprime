@@ -796,9 +796,9 @@ fn patch_door<'r>(
         sound_id = area.new_object_id_from_layer_id(0);
         streamed_audio_id = area.new_object_id_from_layer_id(0);
         shaker_id = area.new_object_id_from_layer_id(0);
-        blast_shield_instance_id = area.new_object_id_from_layer_id(0);
         effect_id = area.new_object_id_from_layer_id(0);
 
+        blast_shield_instance_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         timer_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         timer2_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
         relay_id = area.new_object_id_from_layer_id(blast_shield_layer_idx);
