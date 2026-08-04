@@ -15252,6 +15252,7 @@
 0x803e82a0 __vt__25CRipperControlledPlatform
 0x803e87c8 __vt__18CScriptContraption
 0x803e88c8 __vt__18CScriptMemoryRelay
+0x803e8900 GameOptionsRegistry
 0x803e8a88 __vt__12CAtomicAlpha
 0x803e8e20 __vt__24CScriptCameraHintTrigger
 0x803e8e90 __vt__10CAmbientAI

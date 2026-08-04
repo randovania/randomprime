@@ -4438,6 +4438,7 @@
 0x802447c0 __ct__14COptionsScreenFRC13CStateManagerRC9CGuiFrameRC12CStringTable
 0x80244858 TryRestoreDefaults__12CGameOptionsFRC11CFinalInputiib
 0x80244a38 SetOption__12CGameOptionsF11EGameOptioni
+0x80244b74 GetOption__11CGameOptionF11EGameOption
 0x80244d30 SetColors__15CQuitGameScreenFv
 0x80245110 DoSelectionChange__15CQuitGameScreenFP14CGuiTableGroup
 0x80245154 DoAdvance__15CQuitGameScreenFP14CGuiTableGroup
@@ -8490,6 +8491,7 @@
 0x803e2580 strafes$687
 0x803e2598 runStrafes$822
 0x803e3c94 Case0_Switch_AcceptScriptMsg_CScriptSpecialFunction
+0x803e97e0 GameOptionsRegistry
 0x803ee928 mViewport__9CGraphics
 0x803ef4e0 fixed_tl
 0x803f04e0 fixed_td
@@ -8555,6 +8557,7 @@
 0x805a9cd8 g_Main
 0x805a9ce0 g_GameState
 0x805a9ce0 gpGameState
+0x805a9d9c gpTweakGuiColors
 0x805aaedc skDefaultHudFadeInSpeed__7CPlayer
 0x805aaf00 g_maxPhazonLagBeforeDamaging
 0x805ab8ec g_EtankCapacity
