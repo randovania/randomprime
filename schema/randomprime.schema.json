@@ -161,7 +161,6 @@
                     "type": "object",
                     "properties": {
                         "powerDeg": {
-                            "description": "Hue rotation for the Power Suit. Also applied to Samus' gunship.",
                             "type": "integer",
                             "minimum": 0,
                             "exclusiveMaximum": 360,
@@ -184,6 +183,12 @@
                             "minimum": 0,
                             "exclusiveMaximum": 360,
                             "default": 0
+                        },
+                        "gunshipDeg": {
+                            "description": "Affects the appearance of Samus' Gunship in Landing Site and game into/outro cutscenes. Defaults to `powerDeg` if not provided.",
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMaximum": 360
                         }
                     },
                     "required": [],
