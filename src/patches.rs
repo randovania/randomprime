@@ -17827,10 +17827,13 @@ fn build_and_run_patches<'r>(
     }
 
     if let Some(suit_colors) = config.suit_colors.as_ref() {
-        let ship_angle = [suit_colors.power_deg, suit_colors.varia_deg]
-            .into_iter()
-            .flatten()
-            .find(|deg| deg % 360 != 0);
+        // If unspecified, default gunship color to power suit color
+        let gunship_deg = if let Some(gunship_deg) = suit_colors.gunship_deg {
+            Some(gunship_deg)
+        } else {
+            suit_colors.power_deg
+        };
+
         let mut suit_lists: Vec<(Vec<ResourceInfo>, Option<i16>)> = [
             (POWER_SUIT_TEXTURES, suit_colors.power_deg),
             (FUSION_POWER_SUIT_TEXTURES, suit_colors.power_deg),
@@ -17840,7 +17843,7 @@ fn build_and_run_patches<'r>(
             (FUSION_GRAVITY_SUIT_TEXTURES, suit_colors.gravity_deg),
             (PHAZON_SUIT_TEXTURES, suit_colors.phazon_deg),
             (FUSION_PHAZON_SUIT_TEXTURES, suit_colors.phazon_deg),
-            (SHIP_TEXTURES, ship_angle),
+            (SHIP_TEXTURES, gunship_deg),
         ]
         .into_iter()
         .map(|(textures, angle)| (textures.to_vec(), angle))

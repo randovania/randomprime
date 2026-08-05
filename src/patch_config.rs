@@ -159,6 +159,7 @@ pub struct SuitColors {
     pub varia_deg: Option<i16>,
     pub gravity_deg: Option<i16>,
     pub phazon_deg: Option<i16>,
+    pub gunship_deg: Option<i16>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
