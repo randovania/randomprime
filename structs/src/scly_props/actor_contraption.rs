@@ -30,7 +30,9 @@ pub struct ActorContraption<'r> {
     pub active: u8,
 }
 
-use crate::{impl_active, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_active, impl_actor_scannable_parameters, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for ActorContraption<'_> {
     const OBJECT_TYPE: u8 = 0x6E;
 
@@ -38,6 +40,8 @@ impl SclyPropertyData for ActorContraption<'_> {
     impl_position!();
     impl_rotation!();
     impl_scale!();
+
+    impl_actor_scannable_parameters!(actor_params);
 
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 

@@ -34,13 +34,17 @@ pub struct OmegaPirate<'r> {
     pub dont_care4: GenericArray<u8, U22>,
 }
 
-use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_actor_scannable_parameters, impl_patterned_info, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for OmegaPirate<'_> {
     const OBJECT_TYPE: u8 = 0x86;
     impl_position!();
     impl_rotation!();
     impl_scale!();
     impl_patterned_info!();
+
+    impl_actor_scannable_parameters!(actor_params1, actor_params2);
 
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 

@@ -31,7 +31,9 @@ pub struct NewIntroBoss<'r> {
     pub textures: GenericArray<ResId<TXTR>, U2>,
 }
 
-use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_actor_scannable_parameters, impl_patterned_info, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for NewIntroBoss<'_> {
     const OBJECT_TYPE: u8 = 0x0E;
 
@@ -39,6 +41,8 @@ impl SclyPropertyData for NewIntroBoss<'_> {
     impl_rotation!();
     impl_scale!();
     impl_patterned_info!();
+
+    impl_actor_scannable_parameters!(actor_params);
 
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 

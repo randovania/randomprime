@@ -3719,6 +3719,47 @@
                                             "exclusiveMinimum": 0.0
                                         }
                                     }
+                                },
+                                "scannableParameters": {
+                                    "description": "Set the scan/logbook text for this object. If this object has more than one `ScannableParameters` (e.g. Flaahgra), all of them are replaced.",
+                                    "type": "object",
+                                    "properties": {
+                                        "logbookCategory": {
+                                            "description": "Which logbook category to file this entry under. If `None`, no logbook entry is created and `title` is unused.",
+                                            "enum": [
+                                                "None",
+                                                "PirateData",
+                                                "ChozoLore",
+                                                "Creatures",
+                                                "Research",
+                                                "Artifacts"
+                                            ],
+                                            "default": "None"
+                                        },
+                                        "title": {
+                                            "description": "The title used in the logbook.",
+                                            "type": "string"
+                                        },
+                                        "intro": {
+                                            "description": "The first page of the scan / first paragraph of the logbook entry.",
+                                            "type": "string"
+                                        },
+                                        "body": {
+                                            "description": "The main content of the scan/logbook entry.",
+                                            "type": "string"
+                                        },
+                                        "critical": {
+                                            "description": "If true, this scan point is styled differently (e.g. red instead of yellow).",
+                                            "type": "boolean",
+                                            "default": false
+                                        },
+                                        "slowScan": {
+                                            "description": "If true, this scan takes the longer of the game's two scan durations, as the vanilla Flaahgra, Thardus and Parasite Queen scans do.",
+                                            "type": "boolean",
+                                            "default": false
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 }
                             },
                             "additionalProperties": false

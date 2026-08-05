@@ -8,7 +8,9 @@ use reader_writer::{
 
 use crate::{
     scly_props,
-    scly_structs::{DamageInfo, DamageVulnerability, HealthInfo, PatternedInfo},
+    scly_structs::{
+        DamageInfo, DamageVulnerability, HealthInfo, PatternedInfo, ScannableParameters,
+    },
 };
 
 #[macro_export]
@@ -147,6 +149,40 @@ macro_rules! impl_patterned_info_with_auxillary {
 
         fn impl_set_health_infos(&mut self, x: Vec<HealthInfo>) {
             self.patterned_info.health_info = x[0].clone();
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_scannable_parameters {
+    ($($($field:ident).+),+ $(,)?) => {
+        const SUPPORTS_SCANNABLE_PARAMETERS: bool = true;
+
+        fn impl_get_scannable_parameters(&self) -> Vec<$crate::scly_structs::ScannableParameters> {
+            vec![$(self.$($field).+.clone()),+]
+        }
+
+        fn impl_set_scannable_parameters(&mut self, x: Vec<$crate::scly_structs::ScannableParameters>) {
+            let mut x = x.into_iter();
+            $(self.$($field).+ = x.next().unwrap();)+
+        }
+    };
+}
+
+/// Same as `impl_scannable_parameters!`, but for the far more common case of the
+/// `ScannableParameters` being reached through an `ActorParameters` field.
+#[macro_export]
+macro_rules! impl_actor_scannable_parameters {
+    ($($($field:ident).+),+ $(,)?) => {
+        const SUPPORTS_SCANNABLE_PARAMETERS: bool = true;
+
+        fn impl_get_scannable_parameters(&self) -> Vec<$crate::scly_structs::ScannableParameters> {
+            vec![$(self.$($field).+.scan_parameters.clone()),+]
+        }
+
+        fn impl_set_scannable_parameters(&mut self, x: Vec<$crate::scly_structs::ScannableParameters>) {
+            let mut x = x.into_iter();
+            $(self.$($field).+.scan_parameters = x.next().unwrap();)+
         }
     };
 }
@@ -609,6 +645,44 @@ macro_rules! build_scly_property {
                     $(
                         SclyProperty::$name(_) => {
                             self.$accessor_mut().unwrap().impl_set_health_infos(x);
+                        },
+                    )*
+                }
+            }
+
+            /* Scannable Parameters */
+
+            pub fn supports_scannable_parameters(&self) -> bool {
+                let object_type = self.object_type();
+                #[allow(unreachable_patterns)] // ridley throws a warning because we have both PAL and NTSC ridley definitions
+                match object_type {
+                    $(<scly_props::$name as SclyPropertyData>::OBJECT_TYPE => <scly_props::$name as SclyPropertyData>::SUPPORTS_SCANNABLE_PARAMETERS,)*
+                    _ => false,
+                }
+            }
+
+            pub fn get_scannable_parameters(&mut self) -> Vec<ScannableParameters>
+            {
+                self.guess_kind();
+                match *self {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support scannable parameters (get)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            let prop = self.$accessor();
+                            prop.unwrap().impl_get_scannable_parameters()
+                        },
+                    )*
+                }
+            }
+
+            pub fn set_scannable_parameters(&mut self, x: Vec<ScannableParameters>)
+            {
+                self.guess_kind();
+                match *self {
+                    SclyProperty::Unknown { object_type, .. } => panic!("0x{:X} doesn't support scannable parameters (set)", object_type),
+                    $(
+                        SclyProperty::$name(_) => {
+                            self.$accessor_mut().unwrap().impl_set_scannable_parameters(x);
                         },
                     )*
                 }
@@ -1413,6 +1487,23 @@ pub trait SclyPropertyData {
     fn impl_set_health_infos(&mut self, _: Vec<HealthInfo>) {
         panic!(
             "Script object type 0x{:X} does not implement the 'Vulnerabilities' property",
+            Self::OBJECT_TYPE
+        )
+    }
+
+    /* Scannable Parameters */
+    const SUPPORTS_SCANNABLE_PARAMETERS: bool = false;
+
+    fn impl_get_scannable_parameters(&self) -> Vec<ScannableParameters> {
+        panic!(
+            "Script object type 0x{:X} does not implement the 'Scannable Parameters' property",
+            Self::OBJECT_TYPE
+        )
+    }
+
+    fn impl_set_scannable_parameters(&mut self, _: Vec<ScannableParameters>) {
+        panic!(
+            "Script object type 0x{:X} does not implement the 'Scannable Parameters' property",
             Self::OBJECT_TYPE
         )
     }

@@ -28,11 +28,15 @@ pub struct Thardus<'r> {
     pub asset_ids2: GenericArray<u32, U6>,
 }
 
-use crate::{impl_patterned_info_with_auxillary, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_actor_scannable_parameters, impl_patterned_info_with_auxillary, impl_position,
+    impl_rotation, impl_scale,
+};
 impl SclyPropertyData for Thardus<'_> {
     const OBJECT_TYPE: u8 = 0x58;
     impl_position!();
     impl_rotation!();
     impl_scale!();
     impl_patterned_info_with_auxillary!();
+    impl_actor_scannable_parameters!(actor_parameters);
 }

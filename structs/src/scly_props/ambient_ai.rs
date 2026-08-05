@@ -2,7 +2,8 @@ use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
 use crate::{
-    impl_active, impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData,
+    impl_active, impl_actor_scannable_parameters, impl_position, impl_rotation, impl_scale,
+    scly_props::structs::*, SclyPropertyData,
 };
 
 #[auto_struct(Readable, Writable)]
@@ -22,13 +23,12 @@ pub struct AmbientAI<'r> {
     pub health_info: HealthInfo,
     pub damage_vulnerability: DamageVulnerability,
     pub animation_params: AnimationParameters,
+    pub actor_params: ActorParameters,
     pub alert_range: f32,
     pub impact_range: f32,
     pub alert_anim: u32,
     pub impact_anim: u32,
     pub active: u8,
-
-    pub dont_care: GenericArray<u8, U125>,
 }
 
 impl SclyPropertyData for AmbientAI<'_> {
@@ -37,6 +37,7 @@ impl SclyPropertyData for AmbientAI<'_> {
     impl_active!();
     impl_position!();
     impl_rotation!();
+    impl_actor_scannable_parameters!(actor_params);
     impl_scale!(); // TODO: scale should also affect collision extent and mass
 
     const SUPPORTS_VULNERABILITIES: bool = true;

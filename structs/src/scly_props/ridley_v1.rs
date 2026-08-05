@@ -60,13 +60,17 @@ pub struct RidleyV1<'r> {
     pub damage_info8: DamageInfo,
 }
 
-use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_actor_scannable_parameters, impl_patterned_info, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for RidleyV1<'_> {
     const OBJECT_TYPE: u8 = 0x7B;
     impl_position!();
     impl_rotation!();
     impl_scale!();
     impl_patterned_info!();
+
+    impl_actor_scannable_parameters!(actor_params);
 
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 

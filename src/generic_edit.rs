@@ -1,16 +1,24 @@
 use std::collections::HashMap;
 
-use reader_writer::CStrConversionExtension;
+use reader_writer::{CStrConversionExtension, FourCC};
+use structs::{res_id, Dependency, ResId};
 
 use crate::{
-    door_meta::DoorType, mlvl_wrapper, patch_config::EditObjConfig, patcher::PatcherState,
+    door_meta::DoorType,
+    mlvl_wrapper,
+    patch_config::{EditObjConfig, ScannableParametersConfig},
+    patcher::PatcherState,
     structs::SclyPropertyData,
 };
 
-pub fn patch_edit_objects(
+const SCAN_FRME: ResId<res_id::FRME> = ResId::new(0xDCEC3E77);
+
+pub fn patch_edit_objects<'r>(
     _ps: &mut PatcherState,
-    area: &mut mlvl_wrapper::MlvlArea,
+    area: &mut mlvl_wrapper::MlvlArea<'r, '_, '_, '_>,
     edit_objs: HashMap<u32, EditObjConfig>,
+    game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    edit_obj_scans: &HashMap<ScannableParametersConfig, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
 ) -> Result<(), String> {
     let mrea_id = area.mlvl_area.mrea.to_u32();
 
@@ -98,6 +106,8 @@ pub fn patch_edit_objects(
     }
 
     /* Edit Properties */
+
+    let mut scans_to_add: Vec<(ResId<res_id::SCAN>, ResId<res_id::STRG>)> = Vec::new();
 
     let scly = area.mrea().scly_section_mut();
 
@@ -222,6 +232,23 @@ pub fn patch_edit_objects(
                 set_health(obj, *value, Some(*index as usize));
             }
         }
+
+        if let Some(value) = &config.scannable_parameters {
+            let ids = edit_obj_scans.get(value).unwrap_or_else(|| {
+                panic!(
+                    "No scan was built for object 0x{:X} in room 0x{:X}",
+                    id, mrea_id
+                )
+            });
+
+            set_scannable_parameters(obj, ids.0);
+            scans_to_add.push(*ids);
+        }
+    }
+
+    for (scan_id, strg_id) in scans_to_add {
+        let deps: [Dependency; 3] = [scan_id.into(), strg_id.into(), SCAN_FRME.into()];
+        area.add_dependencies(game_resources, 0, deps.into_iter());
     }
 
     Ok(())
@@ -405,6 +432,23 @@ pub fn set_health(obj: &mut structs::SclyObject, value: f32, index: Option<usize
             obj.instance_id
         );
     }
+}
+
+pub fn set_scannable_parameters(obj: &mut structs::SclyObject, scan: ResId<res_id::SCAN>) {
+    if !obj.property_data.supports_scannable_parameters() {
+        panic!(
+            "object 0x{:X} does not support property \"scannableParameters\"",
+            obj.instance_id
+        );
+    }
+
+    let count = obj.property_data.get_scannable_parameters().len();
+    obj.property_data.set_scannable_parameters(vec![
+        structs::scly_structs::ScannableParameters {
+            scan
+        };
+        count
+    ]);
 }
 
 pub fn set_damage(obj: &mut structs::SclyObject, value: f32) {

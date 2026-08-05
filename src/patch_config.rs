@@ -17,8 +17,12 @@ use serde::{
 use structs::{res_id, MapaObjectVisibilityMode, ResId};
 
 use crate::{
-    custom_assets::custom_asset_ids, door_meta::DoorType, elevators::World,
-    pickup_meta::PickupType, room_lookup::ROOM_BY_INTERNAL_ID, starting_items::StartingItems,
+    custom_assets::custom_asset_ids,
+    door_meta::DoorType,
+    elevators::World,
+    pickup_meta::{self, PickupType},
+    room_lookup::ROOM_BY_INTERNAL_ID,
+    starting_items::StartingItems,
 };
 
 /*** Parsed Config (fn patch_iso) ***/
@@ -545,6 +549,30 @@ pub struct StreamedAudioConfig {
     pub is_music: bool,
 }
 
+#[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone, Default)]
+#[serde(deny_unknown_fields)]
+#[repr(u32)]
+pub enum LogbookCategory {
+    #[default]
+    None,
+    PirateData,
+    ChozoLore,
+    Creatures,
+    Research,
+    Artifacts,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScannableParametersConfig {
+    pub logbook_category: Option<LogbookCategory>,
+    pub title: Option<String>,
+    pub intro: Option<String>,
+    pub body: Option<String>,
+    pub critical: Option<bool>,
+    pub slow_scan: Option<bool>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EditObjConfig {
@@ -562,6 +590,7 @@ pub struct EditObjConfig {
     pub vulnerabilities: Option<HashMap<u32, String>>,
     pub health: Option<f32>,
     pub healths: Option<HashMap<u32, f32>>,
+    pub scannable_parameters: Option<ScannableParametersConfig>,
 }
 
 // None = 0,
@@ -2264,6 +2293,20 @@ impl PatchConfigPrivate {
                                     }
                                 }
 
+                                if let Some(other_scan) = &other_config.scannable_parameters {
+                                    match &self_config.scannable_parameters {
+                                        Some(self_scan) => {
+                                            if self_scan != other_scan {
+                                                panic!("Conflict in {}'s editObjs", room_name);
+                                            }
+                                        }
+                                        None => {
+                                            self_config.scannable_parameters =
+                                                Some(other_scan.clone());
+                                        }
+                                    }
+                                }
+
                                 if let Some(other_healths) = &other_config.healths {
                                     match self_config.healths.as_mut() {
                                         Some(self_healths) => {
@@ -2298,6 +2341,41 @@ impl PatchConfigPrivate {
                 }
             }
         }
+    }
+
+    fn validate_level_data(&self) -> Result<(), String> {
+        let mut rooms_by_world: HashMap<&str, HashSet<&str>> = HashMap::new();
+        for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
+            let world = World::from_pak(pak_name).unwrap();
+            rooms_by_world
+                .entry(world.to_json_key())
+                .or_default()
+                .extend(rooms.iter().map(|room| room.name().trim()));
+        }
+
+        for (world_key, level) in self.level_data.iter() {
+            let rooms = rooms_by_world.get(world_key.as_str()).ok_or_else(|| {
+                format!(
+                    "'{}' in levelData is not a world. Expected one of: {}",
+                    world_key,
+                    World::iter()
+                        .map(|world| world.to_json_key())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            })?;
+
+            for room_name in level.rooms.keys() {
+                if !rooms.contains(room_name.as_str()) {
+                    return Err(format!(
+                        "'{}' in levelData is not a room in {}",
+                        room_name, world_key
+                    ));
+                }
+            }
+        }
+
+        Ok(())
     }
 
     // parse and then handle configuration macros (e.g. a bool loading in several pages of JSON changes)
@@ -2386,6 +2464,8 @@ impl PatchConfigPrivate {
     }
 
     fn parse_inner(&self, version: Version) -> Result<PatchConfig, String> {
+        self.validate_level_data()?;
+
         let run_mode = {
             if self.run_mode.is_some() {
                 match self.run_mode.as_ref().unwrap().to_lowercase().trim() {

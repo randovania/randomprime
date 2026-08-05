@@ -54,13 +54,17 @@ pub struct PlayerActorParams {
     pub unknown5: Option<u8>,
 }
 
-use crate::{impl_active, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_active, impl_actor_scannable_parameters, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for PlayerActor<'_> {
     const OBJECT_TYPE: u8 = 0x4c;
     impl_active!();
     impl_position!();
     impl_rotation!();
     impl_scale!();
+
+    impl_actor_scannable_parameters!(actor_params);
 
     const SUPPORTS_VULNERABILITIES: bool = true;
 
