@@ -2322,10 +2322,10 @@ fn patch_gravity_suit_toggle(
         b    { get_case + 0x14 };
     }))?;
 
-    patch_gravity_suit_doll_label(dol_patcher, emitter, version, toggle)
+    patch_pause_screen_labels(dol_patcher, emitter, version, toggle)
 }
 
-fn patch_gravity_suit_doll_label(
+fn patch_pause_screen_labels(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
     version: Version,
@@ -2338,8 +2338,11 @@ fn patch_gravity_suit_doll_label(
     const GRAVITY_SUIT_CAPACITY_OFF: u32 = 0xd4;
     const LABEL_ON: &str = "Gravity\nSuit ON";
     const LABEL_OFF: &str = "Gravity\nSuit OFF";
+
+    const CATEGORY_LABEL: &str = "Visor / Suit";
     const LABEL_WORDS: usize = 12;
     const _: () = assert!(LABEL_ON.len() < LABEL_WORDS * 2 && LABEL_OFF.len() < LABEL_WORDS * 2);
+    const _: () = assert!(CATEGORY_LABEL.len() < LABEL_WORDS * 2);
 
     let inventory = symbol_addr!("VActivate__16CInventoryScreenFv", version);
     let options = symbol_addr!("VActivate__14COptionsScreenFv", version);
@@ -2369,12 +2372,19 @@ fn patch_gravity_suit_doll_label(
     };
     let blank = [0u32; LABEL_WORDS];
 
-    for (site, on, off) in [
-        (inventory, wide(LABEL_ON), wide(LABEL_OFF)),
-        (options, blank, blank),
-        (log_book, blank, blank),
+    for (site, on, off, category) in [
+        (inventory, wide(LABEL_ON), wide(LABEL_OFF), blank),
+        (options, blank, blank, wide(CATEGORY_LABEL)),
+        (log_book, blank, blank, blank),
     ] {
         let displaced = dol_patcher.read_u32(site)?;
+        let vanilla = emitter.emit_addressed(dol_patcher, |addr| {
+            ppcasm!(addr, {
+                .long displaced;
+                b     { site + 4 };
+            })
+            .encoded_bytes()
+        })?;
         emitter.emit_and_patch(dol_patcher, site, false, |addr| {
             ppcasm!(addr, {
                     stwu  r1, -0x50(r1);
@@ -2384,6 +2394,7 @@ fn patch_gravity_suit_doll_label(
                     stw   r30, 0x48(r1);
                     stw   r29, 0x44(r1);
                     stw   r3, 0x40(r1);
+                    bl    { vanilla };
                     lis   r30, {game_state}@h;
                     lwz   r30, {game_state}@l(r30);
                     cmpwi r30, 0;
@@ -2437,19 +2448,48 @@ fn patch_gravity_suit_doll_label(
                     addi  r3, r1, 0x10;
                     bl    { deref };
                 done:
+                    lis   r29, cat@h;
+                    addi  r29, r29, cat@l;
+                    lwz   r0, 0x0(r29);
+                    cmpwi r0, 0;
+                    beq   finish;
                     lwz   r3, 0x40(r1);
+                    lwz   r3, GUI_FRAME_OFF(r3);
+                    cmpwi r3, 0;
+                    beq   finish;
+                    lis   r4, cat_name@h;
+                    addi  r4, r4, cat_name@l;
+                    bl    { find_widget };
+                    cmpwi r3, 0;
+                    beq   finish;
+                    mr    r31, r3;
+                    addi  r3, r1, 0x10;
+                    mr    r4, r29;
+                    bl    { wstring_l };
+                    addi  r3, r31, TEXT_SUPPORT_OFF;
+                    addi  r4, r1, 0x10;
+                    li    r5, 0;
+                    bl    { set_text };
+                    addi  r3, r1, 0x10;
+                    bl    { deref };
+                finish:
                     lwz   r29, 0x44(r1);
                     lwz   r30, 0x48(r1);
                     lwz   r31, 0x4c(r1);
                     lwz   r0, 0x54(r1);
                     mtlr  r0;
                     addi  r1, r1, 0x50;
-                    .long displaced;
-                    b     { site + 4 };
+                    blr;
                 empty:
                     .long 0;
                 name:
                     .asciiz b"textpane_gsuit";
+                cat_name:
+                    .asciiz b"textpane_category0";
+                cat:
+                    .long category[0];  .long category[1];  .long category[2];  .long category[3];
+                    .long category[4];  .long category[5];  .long category[6];  .long category[7];
+                    .long category[8];  .long category[9];  .long category[10]; .long category[11];
                 msg_on:
                     .long on[0];  .long on[1];  .long on[2];  .long on[3];
                     .long on[4];  .long on[5];  .long on[6];  .long on[7];
