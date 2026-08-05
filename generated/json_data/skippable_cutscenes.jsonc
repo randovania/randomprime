@@ -7398,6 +7398,31 @@
                         }
                     ],
                     "addConnections": [
+                        // Cancel tentacle retract timers on extract
+                        {
+                            "senderId": 2424967, // [Relay] Extract Tentacles
+                            "state": "ZERO",
+                            "targetId": 2424908, // [Timer] Flaahgra Tentacle Retract 1
+                            "message": "STOP_AND_RESET"
+                        },
+                        {
+                            "senderId": 2424967, // [Relay] Extract Tentacles
+                            "state": "ZERO",
+                            "targetId": 2424928, // [Timer] Flaahgra Tentacle Retract 2
+                            "message": "STOP_AND_RESET"
+                        },
+                        {
+                            "senderId": 2424967, // [Relay] Extract Tentacles
+                            "state": "ZERO",
+                            "targetId": 2424913, // [Timer] Flaahgra Tentacle Retract 3
+                            "message": "STOP_AND_RESET"
+                        },
+                        {
+                            "senderId": 2424967, // [Relay] Extract Tentacles
+                            "state": "ZERO",
+                            "targetId": 2424915, // [Timer] Flaahgra Tentacle Retract 4
+                            "message": "STOP_AND_RESET"
+                        },
                         // Initial Slot Reveal Cutscene Elements
                         {
                             "senderId": 2425042, // [Counter] Counter
