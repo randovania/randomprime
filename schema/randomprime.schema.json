@@ -3738,7 +3738,8 @@
                                         },
                                         "title": {
                                             "description": "The title used in the logbook.",
-                                            "type": "string"
+                                            "type": "string",
+                                            "default": ""
                                         },
                                         "intro": {
                                             "description": "The first page of the scan / first paragraph of the logbook entry.",
@@ -3759,6 +3760,10 @@
                                             "default": false
                                         }
                                     },
+                                    "required": [
+                                        "intro",
+                                        "body"
+                                    ],
                                     "additionalProperties": false
                                 }
                             },

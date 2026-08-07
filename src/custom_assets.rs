@@ -74,21 +74,17 @@ impl ScanStrgAllocator<'_, '_> {
 }
 
 fn scan_strg_spec(config: &ScannableParametersConfig) -> ScanStrgSpec {
-    let mut strings = vec![config.intro.clone().unwrap_or_default() + "\0"];
-
-    if config.title.is_some() || config.body.is_some() {
-        strings.push(config.title.clone().unwrap_or_default() + "\0");
-    }
-
-    if let Some(body) = config.body.as_ref() {
-        strings.push(body.clone() + "\0");
-    }
+    let strings = vec![
+        config.intro.clone() + "\0",
+        config.title.clone() + "\0",
+        config.body.clone() + "\0",
+    ];
 
     ScanStrgSpec {
         strings,
-        is_important: config.critical.unwrap_or(false) as u8,
-        logbook_category: config.logbook_category.unwrap_or_default() as u32,
-        scan_speed: config.slow_scan.unwrap_or(false) as u32,
+        is_important: config.critical as u8,
+        logbook_category: config.logbook_category as u32,
+        scan_speed: config.slow_scan as u32,
     }
 }
 

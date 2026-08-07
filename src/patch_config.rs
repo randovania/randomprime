@@ -562,15 +562,19 @@ pub enum LogbookCategory {
     Artifacts,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ScannableParametersConfig {
-    pub logbook_category: Option<LogbookCategory>,
-    pub title: Option<String>,
-    pub intro: Option<String>,
-    pub body: Option<String>,
-    pub critical: Option<bool>,
-    pub slow_scan: Option<bool>,
+    #[serde(default)]
+    pub logbook_category: LogbookCategory,
+    #[serde(default)]
+    pub title: String,
+    pub intro: String,
+    pub body: String,
+    #[serde(default)]
+    pub critical: bool,
+    #[serde(default)]
+    pub slow_scan: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
