@@ -18,6 +18,16 @@ where
     data_start: Reader<'r>,
 }
 
+impl<'r, T> PartialEq for RoArray<'r, T>
+where
+    T: Readable<'r> + PartialEq,
+    T::Args: Clone,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.len() == other.len() && self.iter().eq(other.iter())
+    }
+}
+
 impl<'r, T> RoArray<'r, T>
 where
     T: Readable<'r>,

@@ -39,7 +39,9 @@ pub struct Pickup<'r> {
     pub part: ResId<PART>,
 }
 
-use crate::{impl_active, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_active, impl_actor_scannable_parameters, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for Pickup<'_> {
     const OBJECT_TYPE: u8 = 0x11;
 
@@ -47,4 +49,5 @@ impl SclyPropertyData for Pickup<'_> {
     impl_position!();
     impl_rotation!();
     impl_scale!();
+    impl_actor_scannable_parameters!(actor_parameters);
 }

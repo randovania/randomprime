@@ -53,7 +53,9 @@ pub struct ElitePirate<'r> {
     pub unknown18: u8,
 }
 
-use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_actor_scannable_parameters, impl_patterned_info, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for ElitePirate<'_> {
     const OBJECT_TYPE: u8 = 0x26;
 
@@ -61,6 +63,8 @@ impl SclyPropertyData for ElitePirate<'_> {
     impl_rotation!();
     impl_scale!();
     impl_patterned_info!();
+
+    impl_actor_scannable_parameters!(actor_params, actor_params2);
 
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 

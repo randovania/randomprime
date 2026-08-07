@@ -2,7 +2,8 @@ use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
 use crate::{
-    impl_active, impl_position, impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData,
+    impl_active, impl_actor_scannable_parameters, impl_position, impl_rotation, impl_scale,
+    scly_props::structs::*, SclyPropertyData,
 };
 
 #[auto_struct(Readable, Writable)]
@@ -33,4 +34,5 @@ impl SclyPropertyData for Debris<'_> {
     impl_position!();
     impl_rotation!();
     impl_scale!();
+    impl_actor_scannable_parameters!(actor_params);
 }

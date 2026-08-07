@@ -2,8 +2,8 @@ use auto_struct_macros::auto_struct;
 use reader_writer::{generic_array::GenericArray, typenum::*, CStr};
 
 use crate::{
-    impl_patterned_info_with_auxillary, impl_position, impl_rotation, impl_scale,
-    scly_props::structs::*, SclyPropertyData,
+    impl_actor_scannable_parameters, impl_patterned_info_with_auxillary, impl_position,
+    impl_rotation, impl_scale, scly_props::structs::*, SclyPropertyData,
 };
 
 #[auto_struct(Readable, Writable)]
@@ -35,4 +35,5 @@ impl SclyPropertyData for ThardusRockProjectile<'_> {
     impl_rotation!();
     impl_scale!();
     impl_patterned_info_with_auxillary!();
+    impl_actor_scannable_parameters!(actor_parameters);
 }

@@ -11,11 +11,82 @@ use crate::{
     door_meta::{BlastShieldType, DoorType},
     elevators::{SpawnRoomData, World},
     extern_assets::ExternPickupModel,
-    patch_config::{GenericTexture, PatchConfig, Version},
+    patch_config::{GenericTexture, PatchConfig, ScannableParametersConfig, Version},
     patches::WaterType,
     pickup_meta::{self, PickupModel, PickupType},
     GcDiscLookupExtensions, ResourceData,
 };
+
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+struct ScanStrgSpec {
+    strings: Vec<String>,
+    is_important: u8,
+    logbook_category: u32,
+    scan_speed: u32,
+}
+
+struct ScanStrgAllocator<'a, 'r> {
+    assets: &'a mut Vec<Resource<'r>>,
+    next_offset: &'a mut u32,
+    cache: HashMap<ScanStrgSpec, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
+    local_savw_scans_to_add: &'a mut [Vec<ResId<res_id::SCAN>>],
+    savw_scan_logbook_category: &'a mut HashMap<u32, u32>,
+    version: Version,
+}
+
+impl ScanStrgAllocator<'_, '_> {
+    fn get_or_create(
+        &mut self,
+        world: World,
+        spec: ScanStrgSpec,
+    ) -> (ResId<res_id::SCAN>, ResId<res_id::STRG>) {
+        if let Some(&(scan_id, strg_id)) = self.cache.get(&spec) {
+            let world_savw = &mut self.local_savw_scans_to_add[world as usize];
+            if !world_savw.contains(&scan_id) {
+                world_savw.push(scan_id);
+            }
+
+            return (scan_id, strg_id);
+        }
+
+        let scan_id = ResId::<res_id::SCAN>::new(
+            custom_asset_ids::EXTRA_IDS_START.to_u32() + *self.next_offset,
+        );
+        *self.next_offset += 1;
+        let strg_id = ResId::<res_id::STRG>::new(
+            custom_asset_ids::EXTRA_IDS_START.to_u32() + *self.next_offset,
+        );
+        *self.next_offset += 1;
+
+        self.assets.extend_from_slice(&create_item_scan_strg_pair_2(
+            scan_id,
+            strg_id,
+            &spec,
+            self.version,
+        ));
+        self.local_savw_scans_to_add[world as usize].push(scan_id);
+        self.savw_scan_logbook_category
+            .insert(scan_id.to_u32(), spec.logbook_category);
+        self.cache.insert(spec, (scan_id, strg_id));
+
+        (scan_id, strg_id)
+    }
+}
+
+fn scan_strg_spec(config: &ScannableParametersConfig) -> ScanStrgSpec {
+    let strings = vec![
+        config.intro.clone() + "\0",
+        config.title.clone() + "\0",
+        config.body.clone() + "\0",
+    ];
+
+    ScanStrgSpec {
+        strings,
+        is_important: config.critical as u8,
+        logbook_category: config.logbook_category as u32,
+        scan_speed: config.slow_scan as u32,
+    }
+}
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct PickupHashKey {
@@ -600,6 +671,10 @@ pub fn custom_assets<'r>(
     pickup_hudmemos: &mut HashMap<PickupHashKey, ResId<res_id::STRG>>,
     pickup_scans: &mut HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     extra_scans: &mut HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
+    edit_obj_scans: &mut HashMap<
+        ScannableParametersConfig,
+        (ResId<res_id::SCAN>, ResId<res_id::STRG>),
+    >,
     config: &PatchConfig,
 ) -> Result<
     (
@@ -631,12 +706,6 @@ pub fn custom_assets<'r>(
         Vec::new(),
         Vec::new(),
     ];
-
-    /* Mapping of strings and their corresponding scan_id. Use this to avoid
-       redundant usage of percious memory card space
-    */
-    let mut string_to_scan_strg: HashMap<String, (ResId<res_id::SCAN>, ResId<res_id::STRG>)> =
-        HashMap::new();
 
     /* Mapping of SCAN id to logbook category for easier SAVW entry creation */
     let mut savw_scan_logbook_category: HashMap<u32, u32> = HashMap::new();
@@ -721,26 +790,30 @@ pub fn custom_assets<'r>(
     assets.extend_from_slice(&create_item_scan_strg_pair_2(
         custom_asset_ids::CFLDG_POI_SCAN,
         custom_asset_ids::CFLDG_POI_STRG,
-        vec![
-            "Toaster's Champions: Awp82, DiggleWrath, Yeti2000, freak532486, AlphaRage, Csabi,\0".to_string(),
-            "\0".to_string(),
-            "BajaBlood, hammergoboom, Firemetroid, Lokir, MeriKatt, Cosmonawt, Haldadrin, RXM, Schwartz, Samuel, Miguel, chliu, JeffGainsNGames\0".to_string(),
-        ],
-        1,
-        0,
+        &ScanStrgSpec {
+            strings: vec![
+                "Toaster's Champions: Awp82, DiggleWrath, Yeti2000, freak532486, AlphaRage, Csabi,\0".to_string(),
+                "\0".to_string(),
+                "BajaBlood, hammergoboom, Firemetroid, Lokir, MeriKatt, Cosmonawt, Haldadrin, RXM, Schwartz, Samuel, Miguel, chliu, JeffGainsNGames\0".to_string(),
+            ],
+            is_important: 1,
+            ..Default::default()
+        },
         config.version,
     ));
     local_savw_scans_to_add[World::TallonOverworld as usize].push(custom_asset_ids::CFLDG_POI_SCAN);
     assets.extend_from_slice(&create_item_scan_strg_pair_2(
         custom_asset_ids::TOURNEY_WINNERS_SCAN,
         custom_asset_ids::TOURNEY_WINNERS_STRG,
-        vec![
-            "Chozo script translated.\0".to_string(),
-            "Racing\0".to_string(),
-            "As we have done for millennia, we Chozo work constantly on our speed. Our fastest are our sentinels; They are, and have always been, repositories for our most precious secrets and strongest powers.\n\n2025 - Samuel6710\n2024 (Mentor Tournament) - Belokuikuini\n2023 (CGC) - TheGingerChris + BajaBlood\n2023 - Cosmonawt\n2022 (CGC) - Cosmo + Cestrion\n2021 - Dinopony\n2020 - Interslice\n2019 - TheWeakestLink64\0".to_string(),
-        ],
-        1,
-        0,
+        &ScanStrgSpec {
+            strings: vec![
+                "Chozo script translated.\0".to_string(),
+                "Racing\0".to_string(),
+                "As we have done for millennia, we Chozo work constantly on our speed. Our fastest are our sentinels; They are, and have always been, repositories for our most precious secrets and strongest powers.\n\n2025 - Samuel6710\n2024 (Mentor Tournament) - Belokuikuini\n2023 (CGC) - TheGingerChris + BajaBlood\n2023 - Cosmonawt\n2022 (CGC) - Cosmo + Cestrion\n2021 - Dinopony\n2020 - Interslice\n2019 - TheWeakestLink64\0".to_string(),
+            ],
+            is_important: 1,
+            ..Default::default()
+        },
         config.version,
     ));
     local_savw_scans_to_add[World::TallonOverworld as usize]
@@ -762,9 +835,11 @@ pub fn custom_assets<'r>(
         assets.extend_from_slice(&create_item_scan_strg_pair_2(
             pt.scan(),
             pt.scan_strg(),
-            vec![format!("{}\0", name)],
-            1,
-            0,
+            &ScanStrgSpec {
+                strings: vec![format!("{}\0", name)],
+                is_important: 1,
+                ..Default::default()
+            },
             config.version,
         ));
         global_savw_scans_to_add.push(pt.scan());
@@ -780,92 +855,24 @@ pub fn custom_assets<'r>(
 
     // Create user-defined hudmemo and scan strings and map to locations //
     let mut custom_asset_offset = 0;
-    for (level_name, level) in config.level_data.iter() {
-        let world = World::from_json_key(level_name);
-        for (room_name, room) in level.rooms.iter() {
-            let mut pickup_idx = 0;
-            let mut extra_scans_idx = 0;
+    {
+        let mut scan_allocator = ScanStrgAllocator {
+            assets: &mut assets,
+            next_offset: &mut custom_asset_offset,
+            cache: HashMap::new(),
+            local_savw_scans_to_add: &mut local_savw_scans_to_add,
+            savw_scan_logbook_category: &mut savw_scan_logbook_category,
+            version: config.version,
+        };
 
-            if room.extra_scans.is_some() {
-                for custom_scan in room.extra_scans.as_ref().unwrap().iter() {
-                    let contents = &custom_scan.text;
+        for (level_name, level) in config.level_data.iter() {
+            let world = World::from_json_key(level_name);
+            for (room_name, room) in level.rooms.iter() {
+                let mut pickup_idx = 0;
+                let mut extra_scans_idx = 0;
 
-                    // Check if this string already has a scan_id //
-                    if string_to_scan_strg.contains_key(contents) {
-                        let (scan_id, strg_id) = string_to_scan_strg.get(contents).unwrap();
-
-                        // Add this scan_id as a dep of this world if it wasn't already //
-                        if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(*scan_id);
-                        }
-
-                        let key =
-                            PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (*scan_id, *strg_id));
-                        extra_scans_idx += 1;
-                        continue;
-                    }
-
-                    // Get next 2 IDs //
-                    let scan_id = ResId::<res_id::SCAN>::new(
-                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                    );
-                    custom_asset_offset += 1;
-                    let strg_id = ResId::<res_id::STRG>::new(
-                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                    );
-                    custom_asset_offset += 1;
-
-                    let is_red = {
-                        if *custom_scan.is_red.as_ref().unwrap_or(&false) {
-                            1
-                        } else {
-                            0
-                        }
-                    };
-
-                    let mut strings: Vec<String> = vec![];
-                    let mut contents = contents.to_string() + "\0";
-                    let mut content_len = contents.len();
-
-                    // "The &push;&main-color=#c300ff;Phazon Suit&pop; can be found in &push;&main-color=#89a1ff;Phazon Mines - Processing Center Access&pop;.",
-                    // TODO: the game will actually crash if we paginate the color wrong
-                    for x in contents.split('&') {
-                        let semicolon_index = x.find(';').unwrap_or(0);
-                        if semicolon_index != 0 {
-                            content_len -= semicolon_index + 2;
-                        }
-                    }
-
-                    let mut category = false;
-                    const PAGINATION_SIZE: usize = 123;
-                    while content_len > PAGINATION_SIZE {
-                        let mut i = PAGINATION_SIZE - 1;
-                        while contents.chars().nth(i).unwrap_or(' ') != ' ' {
-                            i -= 1;
-                        }
-
-                        i += 1;
-
-                        let page = (contents.clone().to_string())[..i].to_string();
-                        strings.push(page + "\0");
-
-                        contents = (contents.clone().to_string())[i..].to_string();
-                        content_len -= i;
-
-                        if !category {
-                            strings.push("\0".to_string()); // logbook category
-                            category = true;
-                        }
-                    }
-
-                    if content_len > 0 {
-                        strings.push(contents.clone() + "\0");
-                    }
-
-                    if !category {
-                        strings.push("\0".to_string()); // logbook category
-                    }
+                for custom_scan in room.extra_scans.iter().flatten() {
+                    let mut logbook_title = String::new();
 
                     if custom_scan.logbook_title.is_some() || custom_scan.logbook_category.is_some()
                     {
@@ -874,235 +881,103 @@ pub fn custom_assets<'r>(
                         {
                             panic!("Both logbook title and logbook category are required.");
                         }
-                        strings[1] = custom_scan.logbook_title.clone().unwrap() + "\0";
-                        savw_scan_logbook_category
-                            .insert(scan_id.to_u32(), custom_scan.logbook_category.unwrap());
+                        logbook_title = custom_scan.logbook_title.clone().unwrap();
                     }
 
-                    assets.extend_from_slice(&create_item_scan_strg_pair_2(
-                        scan_id,
-                        strg_id,
-                        strings,
-                        is_red,
-                        *custom_scan.logbook_category.as_ref().unwrap_or(&0),
-                        config.version,
-                    ));
+                    let spec = ScanStrgSpec {
+                        strings: vec![custom_scan.text.clone() + "\0", logbook_title + "\0"],
+                        is_important: custom_scan.is_red.unwrap_or(false) as u8,
+                        logbook_category: custom_scan.logbook_category.unwrap_or(0),
+                        ..Default::default()
+                    };
 
-                    // Map for easy lookup when patching //
                     let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                    extra_scans.insert(key, (scan_id, strg_id));
-                    local_savw_scans_to_add[world as usize].push(scan_id);
-
-                    // Cache this scan/strg pair for re-use //
-                    string_to_scan_strg.insert(contents, (scan_id, strg_id));
-
+                    extra_scans.insert(key, scan_allocator.get_or_create(world, spec));
                     extra_scans_idx += 1;
                 }
-            }
 
-            if room.doors.is_some() {
-                for (_, door) in room.doors.as_ref().unwrap().iter() {
-                    if door.destination.is_none() {
+                for door in room.doors.iter().flatten().map(|(_, door)| door) {
+                    let Some(destination) = door.destination.as_ref() else {
                         continue;
-                    }
+                    };
 
-                    let string = door.destination.as_ref().unwrap().room_name.clone() + "\0";
+                    let spec = ScanStrgSpec {
+                        strings: vec![destination.room_name.clone() + "\0"],
+                        ..Default::default()
+                    };
 
-                    // Check if this string already has a scan_id //
-                    if string_to_scan_strg.contains_key(&string.clone()) {
-                        let (scan_id, strg_id) = string_to_scan_strg.get(&string.clone()).unwrap();
+                    let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
+                    extra_scans.insert(key, scan_allocator.get_or_create(world, spec));
+                    extra_scans_idx += 1;
+                }
 
-                        // Add this scan_id as a dep of this world if it wasn't already //
-                        if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(*scan_id);
-                        }
+                for hudmemo_config in room.hudmemos.iter().flatten() {
+                    if let Some(text) = hudmemo_config.text.as_ref() {
+                        let spec = ScanStrgSpec {
+                            strings: vec![format!("{}\0", text)],
+                            ..Default::default()
+                        };
 
                         let key =
                             PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (*scan_id, *strg_id));
-                        extra_scans_idx += 1;
-
-                        continue;
+                        extra_scans.insert(key, scan_allocator.get_or_create(world, spec));
                     }
-
-                    // Get next 2 IDs //
-                    let scan_id = ResId::<res_id::SCAN>::new(
-                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                    );
-                    custom_asset_offset += 1;
-                    let strg_id = ResId::<res_id::STRG>::new(
-                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                    );
-                    custom_asset_offset += 1;
-
-                    // Create scan/strg pair for destination
-                    assets.extend_from_slice(&create_item_scan_strg_pair(
-                        scan_id,
-                        strg_id,
-                        string.clone(),
-                        config.version,
-                    ));
-                    local_savw_scans_to_add[world as usize].push(scan_id);
-
-                    // Map for easy lookup when patching //
-                    let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                    extra_scans.insert(key, (scan_id, strg_id));
-
-                    // Cache this scan/strg pair for re-use //
-                    string_to_scan_strg.insert(string.clone(), (scan_id, strg_id));
 
                     extra_scans_idx += 1;
                 }
-            }
 
-            if room.hudmemos.is_some() {
-                for hudmemo_config in room.hudmemos.as_ref().unwrap().iter() {
-                    if hudmemo_config.text.is_none() {
-                        extra_scans_idx += 1;
+                for edit_obj in room.edit_objs.iter().flatten().map(|(_, config)| config) {
+                    let Some(scannable_parameters) = edit_obj.scannable_parameters.as_ref() else {
                         continue;
-                    }
+                    };
 
-                    let string = format!("{}\0", hudmemo_config.text.as_ref().unwrap());
-
-                    // todo: subroutine
-
-                    // Check if this string already has a scan_id //
-                    if string_to_scan_strg.contains_key(&string.clone()) {
-                        let (scan_id, strg_id) = string_to_scan_strg.get(&string.clone()).unwrap();
-
-                        // Add this scan_id as a dep of this world if it wasn't already //
-                        if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(*scan_id);
-                        }
-
-                        let key =
-                            PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                        extra_scans.insert(key, (*scan_id, *strg_id));
-                        extra_scans_idx += 1;
-
-                        continue;
-                    }
-
-                    // Get next 2 IDs //
-                    let scan_id = ResId::<res_id::SCAN>::new(
-                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                    );
-                    custom_asset_offset += 1;
-                    let strg_id = ResId::<res_id::STRG>::new(
-                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                    );
-                    custom_asset_offset += 1;
-
-                    // Create scan/strg pair for destination
-                    assets.extend_from_slice(&create_item_scan_strg_pair(
-                        scan_id,
-                        strg_id,
-                        string.clone(),
-                        config.version,
-                    ));
-                    local_savw_scans_to_add[world as usize].push(scan_id);
-
-                    // Map for easy lookup when patching //
-                    let key = PickupHashKey::from_location(level_name, room_name, extra_scans_idx);
-                    extra_scans.insert(key, (scan_id, strg_id));
-
-                    // Cache this scan/strg pair for re-use //
-                    string_to_scan_strg.insert(string.clone(), (scan_id, strg_id));
-
-                    extra_scans_idx += 1;
-                }
-            }
-
-            if room.pickups.is_none() {
-                continue;
-            };
-            for pickup in room.pickups.as_ref().unwrap().iter() {
-                // custom hudmemo string
-                if pickup.hudmemo_text.is_some() {
-                    let hudmemo_text = pickup.hudmemo_text.as_ref().unwrap();
-
-                    // Get next ID //
-                    let strg_id = ResId::<res_id::STRG>::new(
-                        custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                    );
-                    custom_asset_offset += 1;
-
-                    // Build resource //
-                    let strg = structs::ResourceKind::Strg(structs::Strg {
-                        string_tables: vec![structs::StrgStringTable {
-                            lang: b"ENGL".into(),
-                            strings: vec![format!("&just=center;{}\u{0}", hudmemo_text).into()]
-                                .into(),
-                        }]
-                        .into(),
-                    });
-                    let resource = build_resource(strg_id, strg);
-                    assets.push(resource);
-
-                    // Map for easy lookup when patching //
-                    let key = PickupHashKey::from_location(level_name, room_name, pickup_idx);
-                    pickup_hudmemos.insert(key, strg_id);
+                    let ids =
+                        scan_allocator.get_or_create(world, scan_strg_spec(scannable_parameters));
+                    edit_obj_scans.insert(scannable_parameters.clone(), ids);
                 }
 
-                // Custom scan string
-                if pickup.scan_text.is_some() {
-                    let scan_text = pickup.scan_text.as_ref().unwrap();
-
-                    // Check if this string already has a scan_id //
-                    if string_to_scan_strg.contains_key(scan_text) {
-                        let (scan_id, strg_id) = string_to_scan_strg.get(scan_text).unwrap();
-
-                        // Add this scan_id as a dep of this world if it wasn't already //
-                        if !local_savw_scans_to_add[world as usize].contains(scan_id) {
-                            local_savw_scans_to_add[world as usize].push(*scan_id);
-                        }
-
-                        // Map for easy lookup when patching //
-                        let key = PickupHashKey::from_location(level_name, room_name, pickup_idx);
-                        pickup_scans.insert(key, (*scan_id, *strg_id));
-                    } else {
-                        // Get next 2 IDs //
-                        let scan_id = ResId::<res_id::SCAN>::new(
-                            custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
-                        );
-                        custom_asset_offset += 1;
+                for pickup in room.pickups.iter().flatten() {
+                    // custom hudmemo string
+                    if let Some(hudmemo_text) = pickup.hudmemo_text.as_ref() {
+                        // Get next ID //
                         let strg_id = ResId::<res_id::STRG>::new(
-                            custom_asset_ids::EXTRA_IDS_START.to_u32() + custom_asset_offset,
+                            custom_asset_ids::EXTRA_IDS_START.to_u32()
+                                + *scan_allocator.next_offset,
                         );
-                        custom_asset_offset += 1;
+                        *scan_allocator.next_offset += 1;
 
                         // Build resource //
-                        if room_name.trim().to_lowercase() == "research core"
-                        // make the research core scan red because it goes on the terminal
-                        {
-                            assets.extend_from_slice(&create_item_scan_strg_pair_2(
-                                scan_id,
-                                strg_id,
-                                vec![format!("{}\0", scan_text)],
-                                1,
-                                0,
-                                config.version,
-                            ));
-                        } else {
-                            assets.extend_from_slice(&create_item_scan_strg_pair(
-                                scan_id,
-                                strg_id,
-                                format!("{}\0", scan_text),
-                                config.version,
-                            ));
-                        }
+                        let strg = structs::ResourceKind::Strg(structs::Strg {
+                            string_tables: vec![structs::StrgStringTable {
+                                lang: b"ENGL".into(),
+                                strings: vec![format!("&just=center;{}\u{0}", hudmemo_text).into()]
+                                    .into(),
+                            }]
+                            .into(),
+                        });
+                        scan_allocator.assets.push(build_resource(strg_id, strg));
 
                         // Map for easy lookup when patching //
                         let key = PickupHashKey::from_location(level_name, room_name, pickup_idx);
-                        pickup_scans.insert(key, (scan_id, strg_id));
-                        local_savw_scans_to_add[world as usize].push(scan_id);
-
-                        // Cache this scan/strg pair for re-use //
-                        string_to_scan_strg.insert(scan_text.to_string(), (scan_id, strg_id));
+                        pickup_hudmemos.insert(key, strg_id);
                     }
-                }
 
-                pickup_idx += 1;
+                    // Custom scan string
+                    if let Some(scan_text) = pickup.scan_text.as_ref() {
+                        let spec = ScanStrgSpec {
+                            strings: vec![format!("{}\0", scan_text)],
+                            // the research core scan is red because it goes on the terminal
+                            is_important: (room_name.trim().to_lowercase() == "research core")
+                                as u8,
+                            ..Default::default()
+                        };
+
+                        let key = PickupHashKey::from_location(level_name, room_name, pickup_idx);
+                        pickup_scans.insert(key, scan_allocator.get_or_create(world, spec));
+                    }
+
+                    pickup_idx += 1;
+                }
             }
         }
     }
@@ -1168,9 +1043,11 @@ pub fn custom_assets<'r>(
                 assets.extend_from_slice(&create_item_scan_strg_pair_2(
                     door_type.scan(),
                     door_type.strg(),
-                    door_type.scan_text(),
-                    1,
-                    0,
+                    &ScanStrgSpec {
+                        strings: door_type.scan_text(),
+                        is_important: 1,
+                        ..Default::default()
+                    },
                     config.version,
                 ));
                 global_savw_scans_to_add.push(door_type.scan());
@@ -1200,9 +1077,11 @@ pub fn custom_assets<'r>(
                 assets.extend_from_slice(&create_item_scan_strg_pair_2(
                     blast_shield.scan(),
                     blast_shield.strg(),
-                    blast_shield.scan_text(),
-                    1,
-                    0,
+                    &ScanStrgSpec {
+                        strings: blast_shield.scan_text(),
+                        is_important: 1,
+                        ..Default::default()
+                    },
                     config.version,
                 ));
                 global_savw_scans_to_add.push(blast_shield.scan());
@@ -1256,6 +1135,7 @@ pub fn collect_game_resources<'r>(
         HashMap<PickupHashKey, ResId<res_id::STRG>>,
         HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
         HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
+        HashMap<ScannableParametersConfig, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
         Vec<ResId<res_id::SCAN>>,
         Vec<Vec<ResId<res_id::SCAN>>>,
         HashMap<u32, u32>,
@@ -1416,6 +1296,8 @@ pub fn collect_game_resources<'r>(
         HashMap::<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
     let mut extra_scans =
         HashMap::<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
+    let mut edit_obj_scans =
+        HashMap::<ScannableParametersConfig, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
 
     // Remove extra assets from dependency search since they won't appear     //
     // in any pak. Instead add them to the output resource pool. These assets //
@@ -1432,6 +1314,7 @@ pub fn collect_game_resources<'r>(
         &mut pickup_hudmemos,
         &mut pickup_scans,
         &mut extra_scans,
+        &mut edit_obj_scans,
         config,
     )?;
     for res in custom_assets.iter() {
@@ -1449,6 +1332,7 @@ pub fn collect_game_resources<'r>(
         pickup_hudmemos,
         pickup_scans,
         extra_scans,
+        edit_obj_scans,
         global_savw_scans_to_add,
         local_savw_scans_to_add,
         savw_scan_logbook_category,
@@ -1984,15 +1868,18 @@ fn create_item_scan_strg_pair<'r>(
     contents: String,
     version: Version,
 ) -> [structs::Resource<'r>; 2] {
-    create_item_scan_strg_pair_2(new_scan, new_strg, vec![contents], 0, 0, version)
+    let spec = ScanStrgSpec {
+        strings: vec![contents],
+        ..Default::default()
+    };
+
+    create_item_scan_strg_pair_2(new_scan, new_strg, &spec, version)
 }
 
 fn create_item_scan_strg_pair_2<'r>(
     new_scan: ResId<res_id::SCAN>,
     new_strg: ResId<res_id::STRG>,
-    contents: Vec<String>,
-    is_important: u8,
-    logbook_category: u32,
+    spec: &ScanStrgSpec,
     version: Version,
 ) -> [structs::Resource<'r>; 2] {
     let scan = build_resource(
@@ -2000,9 +1887,9 @@ fn create_item_scan_strg_pair_2<'r>(
         structs::ResourceKind::Scan(structs::Scan {
             frme: ResId::<res_id::FRME>::new(0xDCEC3E77),
             strg: new_strg,
-            scan_speed: 0,
-            category: logbook_category,
-            icon_flag: is_important,
+            scan_speed: spec.scan_speed,
+            category: spec.logbook_category,
+            icon_flag: spec.is_important,
             images: [
                 structs::ScanImage {
                     txtr: ResId::invalid(),
@@ -2047,6 +1934,7 @@ fn create_item_scan_strg_pair_2<'r>(
         }),
     );
 
+    let contents = spec.strings.clone();
     let kind = if version == Version::Pal {
         structs::ResourceKind::Strg(structs::Strg::from_strings_pal(contents))
     } else if version == Version::NtscJ {

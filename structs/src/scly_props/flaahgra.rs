@@ -39,7 +39,9 @@ pub struct Flaahgra<'r> {
     pub dont_care6: u32,
 }
 
-use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_actor_scannable_parameters, impl_patterned_info, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for Flaahgra<'_> {
     const OBJECT_TYPE: u8 = 0x4D;
 
@@ -47,6 +49,8 @@ impl SclyPropertyData for Flaahgra<'_> {
     impl_rotation!();
     impl_scale!();
     impl_patterned_info!();
+
+    impl_actor_scannable_parameters!(actor_params1, actor_params2);
 
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 

@@ -29,13 +29,17 @@ pub struct MetroidPrimeStage2<'r> {
     pub part2: ResId<PART>,
 }
 
-use crate::{impl_patterned_info, impl_position, impl_rotation, impl_scale};
+use crate::{
+    impl_actor_scannable_parameters, impl_patterned_info, impl_position, impl_rotation, impl_scale,
+};
 impl SclyPropertyData for MetroidPrimeStage2<'_> {
     const OBJECT_TYPE: u8 = 0x83;
     impl_position!();
     impl_rotation!();
     impl_scale!();
     impl_patterned_info!();
+
+    impl_actor_scannable_parameters!(actor_parameters);
 
     const SUPPORTS_DAMAGE_INFOS: bool = true;
 

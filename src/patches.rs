@@ -15016,7 +15016,7 @@ fn export_assets(gc_disc: &mut structs::GcDisc, config: &PatchConfig) -> Result<
         }
     }
 
-    let (_, _, _, _, _, _, _, _, custom_assets) = collect_game_resources(gc_disc, None, config)?;
+    let (_, _, _, _, _, _, _, _, _, custom_assets) = collect_game_resources(gc_disc, None, config)?;
 
     for resource in custom_assets {
         let mut bytes = vec![];
@@ -15223,6 +15223,7 @@ fn build_and_run_patches<'r>(
         pickup_hudmemos,
         pickup_scans,
         extra_scans,
+        edit_obj_scans,
         savw_scans_to_add,
         local_savw_scans_to_add,
         savw_scan_logbook_category,
@@ -15235,6 +15236,7 @@ fn build_and_run_patches<'r>(
     let pickup_hudmemos = &pickup_hudmemos;
     let pickup_scans = &pickup_scans;
     let extra_scans = &extra_scans;
+    let edit_obj_scans = &edit_obj_scans;
     let strgs = config.strg.clone();
     let strgs = &strgs;
 
@@ -17904,7 +17906,7 @@ fn build_and_run_patches<'r>(
 
         if let Some(edit_objs) = room_config.edit_objs.as_ref() {
             patcher.add_scly_patch(*room, move |ps, area| {
-                patch_edit_objects(ps, area, edit_objs.clone())
+                patch_edit_objects(ps, area, edit_objs.clone(), game_resources, edit_obj_scans)
             });
         }
 
