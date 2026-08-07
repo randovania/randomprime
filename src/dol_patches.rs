@@ -2012,29 +2012,24 @@ fn patch_meta(
         }))?;
     }
 
+    // patch_gravity_suit_toggle reuses the slot this frees for its own row.
     patch_remove_hint_option(dol_patcher, version)?;
 
     Ok(())
 }
 
+const SGAME_OPTION_SIZE: u32 = 0x18;
+const OPTION_TYPE_OFF: u32 = 0x14;
+const HINT_SYSTEM_OPTION: u32 = 3;
+const DOUBLE_ENUM_TYPE: u32 = 1;
+const RESTORE_DEFAULTS_TYPE: u32 = 3;
+
 fn patch_remove_hint_option(
     dol_patcher: &mut DolPatcher<'_>,
     version: Version,
 ) -> Result<(), String> {
-    const SGAME_OPTION_SIZE: u32 = 0x18;
-    const OPTION_TYPE_OFF: u32 = 0x14;
-    const HINT_SYSTEM_OPTION: u32 = 3;
-    const DOUBLE_ENUM_TYPE: u32 = 1;
-    const RESTORE_DEFAULTS_TYPE: u32 = 3;
-
-    let registry = match version {
-        Version::NtscU0_00 => 0x803E8720,
-        Version::NtscU0_01 => 0x803E8900,
-        Version::NtscU0_02 => 0x803E97E0,
-        Version::NtscK => 0x803E8820,
-        Version::Pal => 0x803D0F38,
-        Version::NtscJ => 0x803D1ED8,
-        _ => return Ok(()),
+    let Some(registry) = symbol_addr_opt!("GameOptionsRegistry", version) else {
+        return Ok(());
     };
 
     let count = dol_patcher.read_u32(registry)?;
@@ -2087,6 +2082,426 @@ fn patch_remove_hint_option(
         dol_patcher.patch(dst, entry.into())?;
     }
     dol_patcher.patch(registry, (count - 1).to_be_bytes().to_vec().into())?;
+
+    Ok(())
+}
+
+// Address of jumptable[index] for one of the above, read out of the lis/addi pair its prologue uses
+// to materialise the table. PAL and NTSC-J place that pair differently and have one option more.
+fn dispatch_case(
+    dol_patcher: &mut DolPatcher<'_>,
+    dispatch: u32,
+    index: u32,
+) -> Result<u32, String> {
+    for i in 0..12 {
+        let lis = dol_patcher.read_u32(dispatch + i * 4)?;
+        if lis >> 26 != 15 {
+            continue;
+        }
+        for j in 1..4 {
+            let addi = dol_patcher.read_u32(dispatch + (i + j) * 4)?;
+            if addi >> 26 == 14 && (addi >> 16) & 0x1f == (lis >> 21) & 0x1f {
+                let table = (((lis & 0xffff) << 16) as i32 + (addi & 0xffff) as i16 as i32) as u32;
+                return dol_patcher.read_u32(table + index * 4);
+            }
+        }
+    }
+    Err(format!("no dispatch table in {:#x}", dispatch))
+}
+
+fn patch_gravity_suit_toggle(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    if !config.qol_general {
+        return Ok(());
+    }
+
+    const KIT_GRAVITY_SUIT: u32 = 21;
+    const GRAVITY_SUIT_CAPACITY_OFF: u32 = 0xd4;
+    const PLAYER_STATE_OFF: u32 = 0x98; // CGameState::x98_playerState, an rc_ptr
+    const HINT_SYSTEM_CASE: u32 = 3;
+    const SET_OPTION_CASE_HEAD: u32 = 0x7c0400d0; // neg r0, r4
+    const GET_OPTION_CASE_BIT: u32 = 0x5403effe; // extrwi r3, r0, 1, 28
+
+    let game_state = symbol_addr!("gpGameState", version);
+    let registry = symbol_addr!("GameOptionsRegistry", version);
+    let visor_opts = dol_patcher.read_u32(registry + 4)?;
+    let count = dol_patcher.read_u32(registry)?;
+
+    // Append the toggle past the static count and tell only the pause screen about is
+    // (avoids "Gravity Suit" appearing in main menu options)
+    let update_right_table = symbol_addr!("UpdateRightTable__14COptionsScreenFv", version);
+    let right_table_count = symbol_addr!("GetRightTableCount__14COptionsScreenCFv", version);
+    let hint = (0..count)
+        .map(|i| visor_opts + i * SGAME_OPTION_SIZE)
+        .find(|e| dol_patcher.read_u32(*e) == Ok(HINT_SYSTEM_OPTION))
+        .ok_or(format!(
+            "no HintSystem row in Visor options at {:#x}",
+            visor_opts
+        ))?;
+    let string_id = dol_patcher.read_u32(hint + 4)?;
+    dol_patcher.patch(
+        visor_opts + (count - 1) * SGAME_OPTION_SIZE, // freed by patch_remove_hint_option
+        [
+            HINT_SYSTEM_OPTION.to_be_bytes(),
+            string_id.to_be_bytes(),
+            0.0f32.to_be_bytes(),
+            1.0f32.to_be_bytes(),
+            1.0f32.to_be_bytes(),
+            DOUBLE_ENUM_TYPE.to_be_bytes(),
+        ]
+        .concat()
+        .into(),
+    )?;
+
+    let count_head = dol_patcher.read_u32(right_table_count)?;
+    if count_head >> 16 != 0x8083 || dol_patcher.read_u32(update_right_table + 0x3c)? != 0x801d0000
+    {
+        return Err("unexpected COptionsScreen row-count reads".to_string());
+    }
+    let category_off = count_head & 0xffff;
+    // UpdateRightTable re-reads the count itself instead of calling GetRightTableCount, and keeps
+    // `this` in r26; every volatile is dead at the load it replaces.
+    emitter.emit_and_patch(dol_patcher, right_table_count, false, |addr| {
+        ppcasm!(addr, {
+                lwz   r4, {category_off}(r3);
+                lwz   r4, 0xc4(r4);
+                lis   r3, {registry}@h;
+                addi  r3, r3, {registry}@l;
+                slwi  r0, r4, 3;
+                lwzx  r3, r3, r0;
+                cmpwi r4, 0;
+                bne   out;
+                lis   r12, {game_state}@h;
+                lwz   r12, {game_state}@l(r12);
+                cmpwi r12, 0;
+                beq   out;
+                lwz   r12, PLAYER_STATE_OFF(r12);
+                cmpwi r12, 0;
+                beq   out;
+                lwz   r12, 0x0(r12);
+                cmpwi r12, 0;
+                beq   out;
+                lwz   r12, GRAVITY_SUIT_CAPACITY_OFF(r12);
+                cmpwi r12, 0;
+                beq   out;
+                addi  r3, r3, 1;
+            out:
+                blr;
+        })
+        .encoded_bytes()
+    })?;
+    emitter.emit_and_patch(dol_patcher, update_right_table + 0x3c, true, |addr| {
+        ppcasm!(addr, {
+                lwz   r4, {category_off}(r26);
+                lwz   r4, 0xc4(r4);
+                cmpwi r4, 0;
+                lwz   r4, 0x0(r29);
+                bne   out;
+                lis   r12, {game_state}@h;
+                lwz   r12, {game_state}@l(r12);
+                cmpwi r12, 0;
+                beq   out;
+                lwz   r12, PLAYER_STATE_OFF(r12);
+                cmpwi r12, 0;
+                beq   out;
+                lwz   r12, 0x0(r12);
+                cmpwi r12, 0;
+                beq   out;
+                lwz   r12, GRAVITY_SUIT_CAPACITY_OFF(r12);
+                cmpwi r12, 0;
+                beq   out;
+                addi  r4, r4, 1;
+            out:
+                mr    r0, r4;
+                blr;
+        })
+        .encoded_bytes()
+    })?;
+
+    // 1 = the suit behaves normally
+    let toggle = emitter.emit_addressed(dol_patcher, |_| 1u32.to_be_bytes().to_vec())?;
+    let applied = emitter.emit_addressed(dol_patcher, |_| u32::MAX.to_be_bytes().to_vec())?;
+    let player_state = emitter.emit_addressed(dol_patcher, |_| 0u32.to_be_bytes().to_vec())?;
+
+    // Make HasPowerUp(GravitySuit) return false while toggled off
+    let has_power_up = symbol_addr!(
+        "HasPowerUp__12CPlayerStateCFQ212CPlayerState9EItemType",
+        version
+    );
+    let initialize_power_up = symbol_addr!(
+        "InitializePowerUp__12CPlayerStateFQ212CPlayerState9EItemTypei",
+        version
+    );
+
+    let body = has_power_up + 0x8;
+    let displaced = dol_patcher.read_u32(body)?;
+    if displaced != 0x2c040028 {
+        return Err(format!("unexpected HasPowerUp body at {:#x}", body));
+    }
+    emitter.emit_and_patch(dol_patcher, body, false, |addr| {
+        ppcasm!(addr, {
+                cmpwi  r4, KIT_GRAVITY_SUIT;
+                bne    vanilla;
+                lis    r11, {player_state}@h;
+                stw    r3, {player_state}@l(r11);
+                lis    r12, {toggle}@h;
+                lwz    r0, GRAVITY_SUIT_CAPACITY_OFF(r3);
+                cmpwi  r0, 0;
+                bne    have_suit;
+                li     r0, 1;
+                stw    r0, {toggle}@l(r12);
+                li     r3, 0;
+                blr;
+            have_suit:
+                lwz    r0, {toggle}@l(r12);
+                lis    r12, {applied}@h;
+                lwz    r11, {applied}@l(r12);
+                cmpw   r11, r0;
+                beq    done;
+                stw    r0, {applied}@l(r12);
+                stwu   r1, -0x18(r1);
+                mflr   r11;
+                stw    r11, 0x1c(r1);
+                stw    r0, 0x14(r1);
+                li     r4, KIT_GRAVITY_SUIT;
+                li     r5, 0;
+                bl     { initialize_power_up };
+                lwz    r11, 0x1c(r1);
+                lwz    r0, 0x14(r1);
+                mtlr   r11;
+                addi   r1, r1, 0x18;
+            done:
+                mr     r3, r0;
+                blr;
+            vanilla:
+                .long displaced;
+                b      { body + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // Bind the recycled Hint System row to the toggle
+    let set_option = symbol_addr!("SetOption__12CGameOptionsF11EGameOptioni", version);
+    let get_option = symbol_addr!("GetOption__11CGameOptionF11EGameOption", version);
+    let set_case = dispatch_case(dol_patcher, set_option, HINT_SYSTEM_CASE)?;
+    let get_case = dispatch_case(dol_patcher, get_option, HINT_SYSTEM_CASE)?;
+    if dol_patcher.read_u32(set_case)? != SET_OPTION_CASE_HEAD
+        || dol_patcher.read_u32(get_case + 4)? != GET_OPTION_CASE_BIT
+    {
+        return Err(format!(
+            "unexpected HintSystem case bodies at {:#x} / {:#x}",
+            set_case, get_case
+        ));
+    }
+
+    emitter.emit_and_patch(dol_patcher, set_case, false, |addr| {
+        ppcasm!(addr, {
+                lis   r3, {toggle}@h;
+                addi  r3, r3, {toggle}@l;
+                stw   r4, 0x0(r3);
+                lis   r3, {player_state}@h;
+                lwz   r3, {player_state}@l(r3);
+                cmpwi r3, 0;
+                beq   done;
+                li    r4, KIT_GRAVITY_SUIT;
+                li    r5, 0;
+                bl    { initialize_power_up };  // CInventoryScreen reads the tier before it calls
+            done:
+                b     { set_case + 0x14 };
+        })
+        .encoded_bytes()
+    })?;
+    dol_patcher.ppcasm_patch(&ppcasm!(get_case, {
+        lis  r3, {toggle}@h;
+        addi r3, r3, {toggle}@l;
+        lwz  r3, 0x0(r3);
+        b    { get_case + 0x14 };
+    }))?;
+
+    patch_pause_screen_labels(dol_patcher, emitter, version, toggle)
+}
+
+fn patch_pause_screen_labels(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    toggle: u32,
+) -> Result<(), String> {
+    const GUI_FRAME_OFF: u32 = 0x8; // CPauseScreenBase::x8_frame
+    const TEXT_SUPPORT_OFF: u32 = 0xd4; // CGuiTextPane::xd4_textSupport
+    const PAUSE_TEXT_COLOR_OFF: u32 = 0x1bc; // CTweakGuiColors, the pause screen's text colour
+    const PLAYER_STATE_OFF: u32 = 0x98;
+    const GRAVITY_SUIT_CAPACITY_OFF: u32 = 0xd4;
+    const LABEL_ON: &str = "Gravity\nSuit ON";
+    const LABEL_OFF: &str = "Gravity\nSuit OFF";
+
+    const CATEGORY_LABEL: &str = "Visor / Suit";
+    const LABEL_WORDS: usize = 12;
+    const _: () = assert!(LABEL_ON.len() < LABEL_WORDS * 2 && LABEL_OFF.len() < LABEL_WORDS * 2);
+    const _: () = assert!(CATEGORY_LABEL.len() < LABEL_WORDS * 2);
+
+    let inventory = symbol_addr!("VActivate__16CInventoryScreenFv", version);
+    let options = symbol_addr!("VActivate__14COptionsScreenFv", version);
+    let log_book = symbol_addr!("VActivate__14CLogBookScreenFv", version);
+    let game_state = symbol_addr!("gpGameState", version);
+    let find_widget = symbol_addr!("FindWidget__9CGuiFrameCFPCc", version);
+    let wstring_l = symbol_addr!("wstring_l__4rstlFPCw", version);
+    let set_text = symbol_addr!(
+        "SetText__15CGuiTextSupportFRCQ24rstl66basic_string<w,Q24rstl14char_traits<w>,Q24rstl17rmemory_allocator>",
+        version
+    );
+    let deref = symbol_addr!(
+        "internal_dereference__Q24rstl66basic_string<w,Q24rstl14char_traits<w>,Q24rstl17rmemory_allocator>Fv",
+        version
+    );
+
+    // Adjust based on CTWK color
+    let tweak_colors = symbol_addr!("gpTweakGuiColors", version);
+    let set_font_color = symbol_addr!("SetFontColor__15CGuiTextSupportFRC6CColor", version);
+
+    let wide = |text: &str| {
+        let mut out = [0u32; LABEL_WORDS];
+        for (i, w) in text.encode_utf16().enumerate() {
+            out[i / 2] |= u32::from(w) << (16 * (1 - i % 2));
+        }
+        out
+    };
+    let blank = [0u32; LABEL_WORDS];
+
+    for (site, on, off, category) in [
+        (inventory, wide(LABEL_ON), wide(LABEL_OFF), blank),
+        (options, blank, blank, wide(CATEGORY_LABEL)),
+        (log_book, blank, blank, blank),
+    ] {
+        let displaced = dol_patcher.read_u32(site)?;
+        let vanilla = emitter.emit_addressed(dol_patcher, |addr| {
+            ppcasm!(addr, {
+                .long displaced;
+                b     { site + 4 };
+            })
+            .encoded_bytes()
+        })?;
+        emitter.emit_and_patch(dol_patcher, site, false, |addr| {
+            ppcasm!(addr, {
+                    stwu  r1, -0x50(r1);
+                    mflr  r0;
+                    stw   r0, 0x54(r1);
+                    stw   r31, 0x4c(r1);
+                    stw   r30, 0x48(r1);
+                    stw   r29, 0x44(r1);
+                    stw   r3, 0x40(r1);
+                    bl    { vanilla };
+                    lis   r30, {game_state}@h;
+                    lwz   r30, {game_state}@l(r30);
+                    cmpwi r30, 0;
+                    beq   no_player;
+                    lwz   r30, PLAYER_STATE_OFF(r30);
+                    cmpwi r30, 0;
+                    beq   no_player;
+                    lwz   r30, 0x0(r30);
+                no_player:
+                    lis   r29, empty@h;
+                    addi  r29, r29, empty@l;
+                    cmpwi r30, 0;
+                    beq   have_text;
+                    lwz   r0, GRAVITY_SUIT_CAPACITY_OFF(r30);
+                    cmpwi r0, 0;
+                    beq   have_text;
+                    lis   r29, msg_off@h;
+                    addi  r29, r29, msg_off@l;
+                    lis   r12, {toggle}@h;
+                    lwz   r12, {toggle}@l(r12);
+                    cmpwi r12, 0;
+                    beq   have_text;
+                    lis   r29, msg_on@h;
+                    addi  r29, r29, msg_on@l;
+                have_text:
+                    lwz   r3, 0x40(r1);
+                    lwz   r3, GUI_FRAME_OFF(r3);
+                    cmpwi r3, 0;
+                    beq   done;
+                    lis   r4, name@h;
+                    addi  r4, r4, name@l;
+                    bl    { find_widget };
+                    cmpwi r3, 0;
+                    beq   done;
+                    mr    r31, r3;
+                    lis   r4, {tweak_colors}@h;
+                    lwz   r4, {tweak_colors}@l(r4);
+                    cmpwi r4, 0;
+                    beq   no_color;
+                    addi  r4, r4, PAUSE_TEXT_COLOR_OFF;
+                    addi  r3, r31, TEXT_SUPPORT_OFF;
+                    bl    { set_font_color };
+                no_color:
+                    addi  r3, r1, 0x10;
+                    mr    r4, r29;
+                    bl    { wstring_l };
+                    addi  r3, r31, TEXT_SUPPORT_OFF;
+                    addi  r4, r1, 0x10;
+                    li    r5, 0;
+                    bl    { set_text };
+                    addi  r3, r1, 0x10;
+                    bl    { deref };
+                done:
+                    lis   r29, cat@h;
+                    addi  r29, r29, cat@l;
+                    lwz   r0, 0x0(r29);
+                    cmpwi r0, 0;
+                    beq   finish;
+                    lwz   r3, 0x40(r1);
+                    lwz   r3, GUI_FRAME_OFF(r3);
+                    cmpwi r3, 0;
+                    beq   finish;
+                    lis   r4, cat_name@h;
+                    addi  r4, r4, cat_name@l;
+                    bl    { find_widget };
+                    cmpwi r3, 0;
+                    beq   finish;
+                    mr    r31, r3;
+                    addi  r3, r1, 0x10;
+                    mr    r4, r29;
+                    bl    { wstring_l };
+                    addi  r3, r31, TEXT_SUPPORT_OFF;
+                    addi  r4, r1, 0x10;
+                    li    r5, 0;
+                    bl    { set_text };
+                    addi  r3, r1, 0x10;
+                    bl    { deref };
+                finish:
+                    lwz   r29, 0x44(r1);
+                    lwz   r30, 0x48(r1);
+                    lwz   r31, 0x4c(r1);
+                    lwz   r0, 0x54(r1);
+                    mtlr  r0;
+                    addi  r1, r1, 0x50;
+                    blr;
+                empty:
+                    .long 0;
+                name:
+                    .asciiz b"textpane_gsuit";
+                cat_name:
+                    .asciiz b"textpane_category0";
+                cat:
+                    .long category[0];  .long category[1];  .long category[2];  .long category[3];
+                    .long category[4];  .long category[5];  .long category[6];  .long category[7];
+                    .long category[8];  .long category[9];  .long category[10]; .long category[11];
+                msg_on:
+                    .long on[0];  .long on[1];  .long on[2];  .long on[3];
+                    .long on[4];  .long on[5];  .long on[6];  .long on[7];
+                    .long on[8];  .long on[9];  .long on[10]; .long on[11];
+                msg_off:
+                    .long off[0];  .long off[1];  .long off[2];  .long off[3];
+                    .long off[4];  .long off[5];  .long off[6];  .long off[7];
+                    .long off[8];  .long off[9];  .long off[10]; .long off[11];
+            })
+            .encoded_bytes()
+        })?;
+    }
 
     Ok(())
 }
@@ -4731,6 +5146,7 @@ pub fn patch_dol(
     if config.warp_to_start {
         patch_warp_to_start(&mut dol_patcher, &mut emitter, version)?;
     }
+    patch_gravity_suit_toggle(&mut dol_patcher, &mut emitter, version, config)?;
 
     // Overflow-safe trampolines; emitted after the must-fit emit_addressed reservations.
     patch_inventory_gates(&mut dol_patcher, &mut emitter, version)?;

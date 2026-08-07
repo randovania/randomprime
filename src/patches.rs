@@ -10580,6 +10580,86 @@ fn patch_start_button_strg(res: &mut structs::Resource, text: &str) -> Result<()
     Ok(())
 }
 
+fn patch_pause_screen_strg(res: &mut structs::Resource) -> Result<(), String> {
+    let strg = res.kind.as_strg_mut().unwrap();
+
+    let mut index = None;
+    for st in strg.string_tables.as_mut_vec().iter_mut() {
+        if let Some(i) = st
+            .strings
+            .as_mut_vec()
+            .iter()
+            .position(|s| *s == *"Hint System\u{0}")
+        {
+            index = Some(i);
+            break;
+        }
+    }
+    let index = index.ok_or("STRG_PauseScreen has no Hint System row to relabel")?;
+
+    for st in strg.string_tables.as_mut_vec().iter_mut() {
+        st.strings.as_mut_vec()[index] = "Gravity Suit\u{0}".to_string().into();
+    }
+
+    Ok(())
+}
+
+// Empty status line over the Samus doll, filled in by code to read back the
+// status of the gravity suit toggle. Shares textpane_body's font so no new
+// deps
+fn patch_pause_screen_gravity_suit_pane(res: &mut structs::Resource) -> Result<(), String> {
+    let frme = res.kind.as_frme_mut().unwrap();
+
+    let (jpn_font, jpn_point_scale) = if frme.version == 0 {
+        (None, None)
+    } else {
+        (Some(ResId::new(0xC29C51F1)), Some([237, 35].into()))
+    };
+    let body = frme
+        .widgets
+        .iter()
+        .find(|w| w.name.to_bytes() == b"textpane_body")
+        .ok_or("FRME_PauseScreen has no textpane_body")?;
+    let font = match &body.kind {
+        structs::FrmeWidgetKind::TextPane(tp) => tp.font,
+        _ => return Err("FRME_PauseScreen textpane_body is not a text pane".to_string()),
+    };
+
+    frme.widgets.as_mut_vec().push(structs::FrmeWidget {
+        name: b"textpane_gsuit\0".as_cstr(),
+        parent: b"basewidget_pivot\0".as_cstr(),
+        use_anim_controller: 0,
+        default_visible: 1,
+        default_active: 1,
+        cull_faces: 0,
+        color: [1.0, 1.0, 1.0, 1.0].into(),
+        model_draw_flags: 2,
+        kind: structs::FrmeWidgetKind::TextPane(structs::TextPaneWidget {
+            x_dim: 5.6025,
+            z_dim: 0.7475,
+            scale_center: [0.0, 0.0, 0.0].into(),
+            font,
+            word_wrap: 0,
+            horizontal: 1,
+            justification: 1,
+            vertical_justification: 0,
+            fill_color: [1.0, 1.0, 1.0, 1.0].into(),
+            outline_color: [0.0, 0.0, 0.0, 1.0].into(),
+            block_extent: [180.0, 24.0].into(),
+            jpn_font,
+            jpn_point_scale,
+        }),
+        worker_id: None,
+        origin: [-4.2566, 8.303523, (7.1434 + 0.12448)].into(),
+        basis: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0].into(),
+        rotation_center: [0.0, 0.0, 0.0].into(),
+        unknown0: 0,
+        unknown1: 0,
+    });
+
+    Ok(())
+}
+
 fn patch_arbitrary_strg(
     res: &mut structs::Resource,
     replacement_strings: Vec<String>,
@@ -12004,6 +12084,10 @@ fn patch_ctwk_gui_colors(
             // Visor/Beam menu
             {
                 continue;
+            }
+
+            if i == 0 {
+                continue; // Skip blur filter
             }
 
             let mut max_original = old_color[0];
@@ -17728,6 +17812,18 @@ fn build_and_run_patches<'r>(
                 move |res| patch_start_button_strg(res, text),
             );
         }
+    }
+
+    // Supply assets for Gravity Suit menu toggle
+    if config.qol_general {
+        patcher.add_resource_patch(
+            (&[b"NoARAM.pak"], 0x500EC6A0, FourCC::from_bytes(b"STRG")),
+            patch_pause_screen_strg,
+        );
+        patcher.add_resource_patch(
+            (&[b"GGuiSys.pak"], 0x6352720C, FourCC::from_bytes(b"FRME")),
+            patch_pause_screen_gravity_suit_pane,
+        );
     }
 
     if !config.force_vanilla_layout && !strgs.contains_key("1979224398") {

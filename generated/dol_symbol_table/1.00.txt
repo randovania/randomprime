@@ -16840,6 +16840,7 @@
 0x803e85e8 __vt__18CScriptContraption
 0x803e8670 __vt__20CScriptSpindleCamera
 0x803e86e8 __vt__18CScriptMemoryRelay
+0x803e8720 GameOptionsRegistry
 0x803e88a8 __vt__12CAtomicAlpha
 0x803e8c40 __vt__24CScriptCameraHintTrigger
 0x803e8cb0 __vt__10CAmbientAI

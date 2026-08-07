@@ -112,6 +112,28 @@ impl CodeCaveAllocator {
         Some(self.caves[idx].alloc(bytes))
     }
 
+    fn alloc_spillable(&mut self, bytes: u32) -> Option<u32> {
+        const MUST_FIT_RESERVE: u32 = 512;
+
+        let idx = self
+            .caves
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| c.remaining() >= bytes)
+            .filter(|(i, c)| {
+                let after = c.remaining() - bytes;
+                after >= MUST_FIT_RESERVE
+                    || self
+                        .caves
+                        .iter()
+                        .enumerate()
+                        .any(|(j, o)| j != *i && o.remaining() >= MUST_FIT_RESERVE)
+            })
+            .min_by_key(|(_, c)| c.remaining())
+            .map(|(i, _)| i)?;
+        Some(self.caves[idx].alloc(bytes))
+    }
+
     fn alloc_from_cave_start(&mut self, cave_start: u32, bytes: u32) -> u32 {
         let cave = self
             .caves
@@ -175,7 +197,7 @@ impl TextEmitter {
         let addr = self
             .cave_alloc
             .alloc(len)
-            .unwrap_or_else(|| panic!("CodeCaveAllocator: no cave fits {} bytes", len));
+            .unwrap_or_else(|| panic!("CodeCaveAllocator: no cave fits {} bytes.", len));
         let final_bytes = build(addr);
         debug_assert_eq!(
             final_bytes.len(),
@@ -202,7 +224,7 @@ impl TextEmitter {
         let probe = build(PROBE_ADDR);
         let len = probe.len() as u32;
 
-        if let Some(cave_addr) = self.cave_alloc.alloc(len) {
+        if let Some(cave_addr) = self.cave_alloc.alloc_spillable(len) {
             let final_bytes = build(cave_addr);
             debug_assert_eq!(
                 final_bytes.len(),
