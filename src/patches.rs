@@ -18619,7 +18619,7 @@ fn patch_elite_research_persistent_pickup(
 
     // Layer starts Inactive by Default
     let flags = &mut area.layer_flags.flags;
-    *flags &= !(1 << 6);
+    *flags &= !(1 << pickup_active_layer);
 
     let special_fn_id = area.new_object_id_from_layer_id(0);
     let pickup_timer_id = area.new_object_id_from_layer_name("Pickup Active");
