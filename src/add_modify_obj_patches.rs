@@ -11,9 +11,10 @@ use crate::{
         ActorKeyframeConfig, ActorRotateConfig, BallTriggerConfig, BlockConfig, BombSlotConfig,
         CameraConfig, CameraFilterKeyframeConfig, CameraHintTriggerConfig, CameraWaypointConfig,
         ControllerActionConfig, CounterConfig, DamageType, FilterShape, FilterType, FogConfig,
-        GenericTexture, HudmemoConfig, InitialSplinePosition, LockOnPoint, NewCameraHintConfig,
-        PathCameraConfig, PlatformConfig, PlatformType, PlayerActorConfig, PlayerHintConfig,
-        RelayConfig, SpawnPointConfig, SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig,
+        FogVolumeConfig, GenericTexture, HudmemoConfig, InitialSplinePosition, LockOnPoint,
+        NewCameraHintConfig, PathCameraConfig, PlatformConfig, PlatformType, PlayerActorConfig,
+        PlayerHintConfig, RelayConfig, RoomAcousticsConfig, SpawnPointConfig,
+        SpecialFunctionConfig, StreamedAudioConfig, SwitchConfig, ThermalHeatFaderConfig,
         TimerConfig, TriggerConfig, WaterConfig, WaypointConfig, WorldLightFaderConfig,
     },
     patcher::PatcherState,
@@ -1781,6 +1782,219 @@ pub fn patch_add_world_light_fader(
         new,
         update
     );
+}
+
+pub fn patch_add_thermal_heat_fader(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: ThermalHeatFaderConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::ThermalHeatFader {
+                name: resolve_name!(config.name, ThermalHeatFader),
+                active: config.active.unwrap_or(true) as u8,
+                faded_heat_level: config.faded_heat_level.unwrap_or(0.0),
+                fade_speed: config.fade_speed.unwrap_or(0.25),
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_thermal_heat_fader_mut().unwrap();
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(faded_heat_level) = config.faded_heat_level {
+                property_data.faded_heat_level = faded_heat_level
+            }
+            if let Some(fade_speed) = config.fade_speed {
+                property_data.fade_speed = fade_speed
+            }
+        };
+    }
+
+    add_edit_obj_helper!(
+        area,
+        Some(config.id),
+        config.layer,
+        ThermalHeatFader,
+        new,
+        update
+    );
+}
+
+pub fn patch_add_fog_volume(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: FogVolumeConfig,
+) -> Result<(), String> {
+    macro_rules! new {
+        () => {
+            structs::FogVolume {
+                name: resolve_name!(config.name, FogVolume),
+                position: config.position.into(),
+                scale: config.scale.into(),
+                flicker_speed: config.flicker_speed.unwrap_or(0.0),
+                unknown: 1.0,
+                color: config.color.unwrap_or([0.8, 0.8, 0.9, 1.0]).into(),
+                active: config.active.unwrap_or(true) as u8,
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            let property_data = $obj.property_data.as_fog_volume_mut().unwrap();
+
+            if let Some(name) = config.name {
+                property_data.name = string_to_cstr(name)
+            }
+            if let Some(active) = config.active {
+                property_data.active = active as u8
+            }
+            if let Some(color) = config.color {
+                property_data.color = color.into()
+            }
+            if let Some(flicker_speed) = config.flicker_speed {
+                property_data.flicker_speed = flicker_speed
+            }
+            property_data.position = config.position.into();
+            property_data.scale = config.scale.into();
+        };
+    }
+
+    add_edit_obj_helper!(area, Some(config.id), config.layer, FogVolume, new, update);
+}
+
+fn apply_room_acoustics(property_data: &mut structs::RoomAcoustics, config: &RoomAcousticsConfig) {
+    macro_rules! set {
+        ($field:ident, $source:ident) => {
+            if let Some(value) = config.$source {
+                property_data.$field = value;
+            }
+        };
+        ($field:ident, $source:ident, bool) => {
+            if let Some(value) = config.$source {
+                property_data.$field = value as u8;
+            }
+        };
+    }
+
+    if let Some(name) = config.name.as_ref() {
+        property_data.name = string_to_cstr(name.clone());
+    }
+
+    set!(active, active, bool);
+    set!(vol_scale, volume_scale);
+    set!(rev_hi, reverb_high, bool);
+    set!(rev_hi_dis, reverb_high_disabled, bool);
+    set!(rev_hi_coloration, reverb_high_coloration);
+    set!(rev_hi_mix, reverb_high_mix);
+    set!(rev_hi_time, reverb_high_time);
+    set!(rev_hi_damping, reverb_high_damping);
+    set!(rev_hi_pre_delay, reverb_high_pre_delay);
+    set!(rev_hi_crosstalk, reverb_high_crosstalk);
+    set!(chorus, chorus, bool);
+    set!(base_delay, chorus_base_delay);
+    set!(variation, chorus_variation);
+    set!(period, chorus_period);
+    set!(rev_std, reverb_standard, bool);
+    set!(rev_std_dis, reverb_standard_disabled, bool);
+    set!(rev_std_coloration, reverb_standard_coloration);
+    set!(rev_std_mix, reverb_standard_mix);
+    set!(rev_std_time, reverb_standard_time);
+    set!(rev_std_damping, reverb_standard_damping);
+    set!(rev_std_pre_delay, reverb_standard_pre_delay);
+    set!(delay, delay, bool);
+    set!(delay_l, delay_left);
+    set!(delay_r, delay_right);
+    set!(delay_s, delay_surround);
+    set!(feedback_l, feedback_left);
+    set!(feedback_r, feedback_right);
+    set!(feedback_s, feedback_surround);
+    set!(output_l, output_left);
+    set!(output_r, output_right);
+    set!(output_s, output_surround);
+}
+
+pub fn patch_add_room_acoustics(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea,
+    config: RoomAcousticsConfig,
+) -> Result<(), String> {
+    // 265 of 276 retail areas already ship with one, so an omitted id means "retune whatever is
+    // already in this room" rather than "add another". Layers are searched because Magma Pool
+    // keeps its acoustics on layer 1.
+    if config.id.is_none() {
+        let mut found = false;
+        for layer in area.mrea().scly_section_mut().layers.as_mut_vec() {
+            for obj in layer.objects.as_mut_vec() {
+                if !obj.property_data.is_room_acoustics() {
+                    continue;
+                }
+
+                apply_room_acoustics(obj.property_data.as_room_acoustics_mut().unwrap(), &config);
+                found = true;
+            }
+        }
+
+        if found {
+            return Ok(());
+        }
+    }
+
+    macro_rules! new {
+        () => {
+            structs::RoomAcoustics {
+                name: resolve_name!(config.name.clone(), RoomAcoustics),
+                active: config.active.unwrap_or(true) as u8,
+                vol_scale: config.volume_scale.unwrap_or(127),
+                rev_hi: config.reverb_high.unwrap_or(false) as u8,
+                rev_hi_dis: config.reverb_high_disabled.unwrap_or(false) as u8,
+                rev_hi_coloration: config.reverb_high_coloration.unwrap_or(0.0),
+                rev_hi_mix: config.reverb_high_mix.unwrap_or(0.0),
+                rev_hi_time: config.reverb_high_time.unwrap_or(0.0),
+                rev_hi_damping: config.reverb_high_damping.unwrap_or(0.0),
+                rev_hi_pre_delay: config.reverb_high_pre_delay.unwrap_or(0.0),
+                rev_hi_crosstalk: config.reverb_high_crosstalk.unwrap_or(0.0),
+                chorus: config.chorus.unwrap_or(false) as u8,
+                base_delay: config.chorus_base_delay.unwrap_or(0.0),
+                variation: config.chorus_variation.unwrap_or(0.0),
+                period: config.chorus_period.unwrap_or(0.0),
+                rev_std: config.reverb_standard.unwrap_or(false) as u8,
+                rev_std_dis: config.reverb_standard_disabled.unwrap_or(false) as u8,
+                rev_std_coloration: config.reverb_standard_coloration.unwrap_or(0.0),
+                rev_std_mix: config.reverb_standard_mix.unwrap_or(0.0),
+                rev_std_time: config.reverb_standard_time.unwrap_or(0.0),
+                rev_std_damping: config.reverb_standard_damping.unwrap_or(0.0),
+                rev_std_pre_delay: config.reverb_standard_pre_delay.unwrap_or(0.0),
+                delay: config.delay.unwrap_or(false) as u8,
+                delay_l: config.delay_left.unwrap_or(0),
+                delay_r: config.delay_right.unwrap_or(0),
+                delay_s: config.delay_surround.unwrap_or(0),
+                feedback_l: config.feedback_left.unwrap_or(0),
+                feedback_r: config.feedback_right.unwrap_or(0),
+                feedback_s: config.feedback_surround.unwrap_or(0),
+                output_l: config.output_left.unwrap_or(0),
+                output_r: config.output_right.unwrap_or(0),
+                output_s: config.output_surround.unwrap_or(0),
+            }
+        };
+    }
+
+    macro_rules! update {
+        ($obj:expr) => {
+            apply_room_acoustics($obj.property_data.as_room_acoustics_mut().unwrap(), &config);
+        };
+    }
+
+    add_edit_obj_helper!(area, config.id, config.layer, RoomAcoustics, new, update);
 }
 
 pub fn patch_add_controller_action(

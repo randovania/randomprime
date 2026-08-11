@@ -1211,6 +1211,17 @@ pub fn collect_game_resources<'r>(
     let orange_light: Vec<(u32, FourCC)> = vec![(0xB4A658C3, FourCC::from_bytes(b"PART"))];
     looking_for.extend(orange_light);
 
+    // Each skybox lives only in its own world's PAK, so a world that borrows one needs the
+    // model and its whole texture closure spliced in
+    for skybox in config
+        .level_data
+        .values()
+        .filter_map(|level| level.skybox)
+        .collect::<HashSet<_>>()
+    {
+        looking_for.extend(skybox.dependencies());
+    }
+
     let pickup_model_assets: Vec<(u32, FourCC)> = vec![
         (0x770939C0, FourCC::from_bytes(b"CMDL")),
         (0x663E4DEB, FourCC::from_bytes(b"CMDL")),

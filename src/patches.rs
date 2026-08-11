@@ -38,11 +38,11 @@ use crate::{
     generic_edit::patch_edit_objects,
     mlvl_wrapper,
     patch_config::{
-        ArtifactHintBehavior, BlockConfig, BombSlotCover, ConnectionConfig, ConnectionMsg,
-        ConnectionState, CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig, DoorOpenMode,
-        FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig, IsoFormat,
-        LevelConfig, PatchConfig, PickupConfig, PlatformConfig, PlatformType, RoomConfig, RunMode,
-        SpecialFunctionType, TimerConfig, Version,
+        AreaLightConfig, ArtifactHintBehavior, BlockConfig, BombSlotCover, ConnectionConfig,
+        ConnectionMsg, ConnectionState, CtwkConfig, CutsceneMode, DifficultyBehavior, DoorConfig,
+        DoorOpenMode, FogConfig, GameBanner, GenericTexture, HallOfTheEldersBombSlotCoversConfig,
+        IsoFormat, LevelConfig, PatchConfig, PickupConfig, PlatformConfig, PlatformType,
+        RoomConfig, RunMode, Skybox, SpecialFunctionType, TimerConfig, Version,
     },
     patcher::{PatcherState, PrimePatcher},
     pickup_meta::{
@@ -6359,6 +6359,214 @@ fn patch_visible_aether_boundaries<'r>(
             true,
             false,
         );
+    }
+
+    Ok(())
+}
+
+/// The per-area slice of `CScriptAreaAttributes`. `skybox` is assembled from both the level and
+/// room config scopes because the model is a world-wide default with a per-room opt-out; every
+/// other field is room-scoped directly.
+#[derive(Copy, Clone, Default)]
+struct AreaAttributesConfig {
+    skybox: Option<ResId<res_id::CMDL>>,
+    fx_type: Option<u32>,
+    env_fx_density: Option<f32>,
+    thermal_heat: Option<f32>,
+    xray_fog_distance: Option<f32>,
+    world_lighting_level: Option<f32>,
+    phazon_type: Option<u32>,
+}
+
+impl AreaAttributesConfig {
+    fn is_empty(&self) -> bool {
+        self.skybox.is_none()
+            && self.fx_type.is_none()
+            && self.env_fx_density.is_none()
+            && self.thermal_heat.is_none()
+            && self.xray_fog_distance.is_none()
+            && self.world_lighting_level.is_none()
+            && self.phazon_type.is_none()
+    }
+
+    fn apply(&self, attrs: &mut structs::AreaAttributes) {
+        // ScriptLoader discards the object entirely when this isn't 1, which would silently
+        // drop every setting below
+        attrs.load = 1;
+
+        if let Some(skybox) = self.skybox {
+            attrs.show_skybox = (skybox != ResId::invalid()) as u8;
+            attrs.skybox = skybox;
+        }
+        if let Some(fx_type) = self.fx_type {
+            attrs.fx_type = fx_type;
+        }
+        if let Some(env_fx_density) = self.env_fx_density {
+            attrs.env_fx_density = env_fx_density;
+        }
+        if let Some(thermal_heat) = self.thermal_heat {
+            attrs.thermal_heat = thermal_heat;
+        }
+        if let Some(xray_fog_distance) = self.xray_fog_distance {
+            attrs.xray_fog_distance = xray_fog_distance;
+        }
+        if let Some(world_lighting_level) = self.world_lighting_level {
+            attrs.world_lighting_level = world_lighting_level;
+        }
+        if let Some(phazon_type) = self.phazon_type {
+            attrs.phazon_type = phazon_type;
+        }
+    }
+}
+
+fn patch_area_attributes(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+    config: AreaAttributesConfig,
+) -> Result<(), String> {
+    let id = area.new_object_id_from_layer_id(0);
+
+    let layers = area.mrea().scly_section_mut().layers.as_mut_vec();
+
+    let mut found = false;
+    for layer in layers.iter_mut() {
+        for obj in layer.objects.as_mut_vec() {
+            if !obj.property_data.is_area_attributes() {
+                continue;
+            }
+
+            // Two retail rooms carry a second instance and the engine keeps whichever
+            // initializes last, so every instance has to agree
+            config.apply(obj.property_data.as_area_attributes_mut().unwrap());
+            found = true;
+        }
+    }
+
+    if found {
+        return Ok(());
+    }
+
+    // 55% of areas ship without one. The unset defaults reproduce the engine's behaviour when
+    // the pointer is null (CGameArea::GetXRayFogDistance, CGameArea::DoesAreaNeedSkyNow).
+    let mut attrs = structs::AreaAttributes {
+        name: b"\0".as_cstr(),
+        load: 1,
+        show_skybox: 0,
+        fx_type: 0,
+        env_fx_density: 0.0,
+        thermal_heat: 0.0,
+        xray_fog_distance: 1.0,
+        world_lighting_level: 1.0,
+        skybox: ResId::invalid(),
+        phazon_type: 0,
+    };
+    config.apply(&mut attrs);
+
+    layers[0].objects.as_mut_vec().push(structs::SclyObject {
+        instance_id: id,
+        property_data: attrs.into(),
+        connections: vec![].into(),
+    });
+
+    Ok(())
+}
+
+fn add_skybox_assets<'r>(
+    file: &mut structs::FstEntryFile<'r>,
+    game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
+    skybox: Skybox,
+) -> Result<(), String> {
+    let pak = match file {
+        structs::FstEntryFile::Pak(pak) => pak,
+        _ => return Ok(()),
+    };
+
+    // CPakFile::GetResInfo returns null for a PAK stashed in ARAM, so a skybox that only lives
+    // in another world's PAK is a null deref rather than a missing-model fallback
+    let missing: Vec<_> = skybox
+        .dependencies()
+        .into_iter()
+        .filter(|(id, fourcc)| {
+            !pak.resources
+                .iter()
+                .any(|res| res.file_id == *id && res.fourcc() == *fourcc)
+        })
+        .collect();
+
+    let mut cursor = pak.resources.cursor();
+    while cursor.cursor_advancer().peek().is_some() {}
+    for key in missing {
+        cursor.insert_after(iter::once(game_resources[&key].clone()));
+    }
+
+    Ok(())
+}
+
+fn patch_area_lights(
+    _ps: &mut PatcherState,
+    area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
+    configs: Vec<AreaLightConfig>,
+) -> Result<(), String> {
+    let mrea_id = area.mlvl_area.mrea.to_u32();
+    let lights_section = area.mrea().lights_section_mut();
+
+    for config in configs {
+        let layer_id = config.layer.unwrap_or(0);
+        let lights = match layer_id {
+            0 => lights_section.lights_a.as_mut_vec(),
+            1 => lights_section.lights_b.as_mut_vec(),
+            _ => panic!(
+                "Room 0x{:X} areaLights: layer must be 0 or 1, got {}",
+                mrea_id, layer_id
+            ),
+        };
+
+        let light = match config.index {
+            Some(index) => lights.get_mut(index as usize).unwrap_or_else(|| {
+                panic!(
+                    "Room 0x{:X} areaLights: no light at index {} in layer {}",
+                    mrea_id, index, layer_id
+                )
+            }),
+            None => {
+                lights.push(LightLayer {
+                    light_type: 0, // local ambient
+                    color: [1.0, 1.0, 1.0].into(),
+                    position: [0.0, 0.0, 0.0].into(),
+                    direction: [0.0, -1.0, 0.0].into(),
+                    brightness: 1.0,
+                    spot_cutoff: 0.0,
+                    unknown0: 0.0,
+                    unknown1: 0,
+                    unknown2: 0.0,
+                    falloff_type: 0, // constant
+                    unknown3: 0.0,
+                });
+                lights.last_mut().unwrap()
+            }
+        };
+
+        if let Some(light_type) = config.light_type {
+            light.light_type = light_type as u32;
+        }
+        if let Some(color) = config.color {
+            light.color = color.into();
+        }
+        if let Some(position) = config.position {
+            light.position = position.into();
+        }
+        if let Some(direction) = config.direction {
+            light.direction = direction.into();
+        }
+        if let Some(brightness) = config.brightness {
+            light.brightness = brightness;
+        }
+        if let Some(spot_cutoff) = config.spot_cutoff {
+            light.spot_cutoff = spot_cutoff;
+        }
+        if let Some(falloff_type) = config.falloff_type {
+            light.falloff_type = falloff_type as u32;
+        }
     }
 
     Ok(())
@@ -15050,13 +15258,7 @@ fn build_and_run_patches<'r>(
             let world = World::from_pak(pak_name).unwrap();
 
             if !level_data.contains_key(world.to_json_key()) {
-                level_data.insert(
-                    world.to_json_key().to_string(),
-                    LevelConfig {
-                        transports: HashMap::new(),
-                        rooms: HashMap::new(),
-                    },
-                );
+                level_data.insert(world.to_json_key().to_string(), LevelConfig::default());
             }
 
             let level = level_data.get_mut(world.to_json_key()).unwrap();
@@ -15659,9 +15861,48 @@ fn build_and_run_patches<'r>(
     let mut seed: u64 = 1;
     for (pak_name, rooms) in pickup_meta::ROOM_INFO.iter() {
         let world = World::from_pak(pak_name).unwrap();
+        let level = level_data.get(world.to_json_key());
+
+        if let Some(skybox) = level.and_then(|level| level.skybox) {
+            patcher.add_file_patch(pak_name.as_bytes(), move |file| {
+                add_skybox_assets(file, game_resources, skybox)
+            });
+        }
 
         for room_info in rooms.iter() {
             let room_idx: usize = room_info.index();
+
+            let area_attributes = {
+                let room = level.and_then(|level| level.rooms.get(room_info.name().trim()));
+                AreaAttributesConfig {
+                    // The level's skybox reaches every room in it; a room opting out forces the
+                    // invalid id, which also flips `show_skybox` off for just that room
+                    skybox: level.and_then(|level| level.skybox).map(|skybox| {
+                        match room.and_then(|room| room.skybox) {
+                            Some(false) => ResId::invalid(),
+                            _ => skybox.cmdl(),
+                        }
+                    }),
+
+                    fx_type: room
+                        .and_then(|room| room.environmental_effect)
+                        .map(|effect| effect as u32),
+                    env_fx_density: room.and_then(|room| room.environmental_effect_density),
+                    thermal_heat: room.and_then(|room| room.thermal_heat_level),
+                    xray_fog_distance: room.and_then(|room| room.xray_fog_distance),
+                    world_lighting_level: room.and_then(|room| room.world_lighting_level),
+                    phazon_type: room
+                        .and_then(|room| room.phazon_type)
+                        .map(|phazon_type| phazon_type as u32),
+                }
+            };
+
+            if !area_attributes.is_empty() {
+                patcher.add_scly_patch(
+                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                    move |ps, area| patch_area_attributes(ps, area, area_attributes),
+                );
+            }
 
             if remove_control_disabler {
                 patcher.add_scly_patch(
@@ -15967,6 +16208,44 @@ fn build_and_run_patches<'r>(
                                     },
                                 );
                             }
+                        }
+
+                        if let Some(thermal_heat_faders) = room.thermal_heat_faders.as_ref() {
+                            for config in thermal_heat_faders {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_thermal_heat_fader(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
+                        if let Some(fog_volumes) = room.fog_volumes.as_ref() {
+                            for config in fog_volumes {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| patch_add_fog_volume(ps, area, config.clone()),
+                                );
+                            }
+                        }
+
+                        if let Some(room_acoustics) = room.room_acoustics.as_ref() {
+                            for config in room_acoustics {
+                                patcher.add_scly_patch(
+                                    (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                    move |ps, area| {
+                                        patch_add_room_acoustics(ps, area, config.clone())
+                                    },
+                                );
+                            }
+                        }
+
+                        if let Some(area_lights) = room.area_lights.as_ref() {
+                            patcher.add_scly_patch(
+                                (pak_name.as_bytes(), room_info.room_id.to_u32()),
+                                move |ps, area| patch_area_lights(ps, area, area_lights.clone()),
+                            );
                         }
 
                         if let Some(controller_actions) = room.controller_actions.as_ref() {

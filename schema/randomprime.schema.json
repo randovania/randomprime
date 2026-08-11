@@ -1450,6 +1450,9 @@
                 "Frigate Orpheon": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "properties": {
@@ -1555,6 +1558,9 @@
                 "Tallon Overworld": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "properties": {
@@ -1723,6 +1729,9 @@
                 "Chozo Ruins": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "properties": {
@@ -1945,6 +1954,9 @@
                 "Magmoor Caverns": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "properties": {
@@ -2065,6 +2077,9 @@
                 "Phendrana Drifts": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "properties": {
@@ -2257,6 +2272,9 @@
                 "Phazon Mines": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "properties": {
@@ -2407,6 +2425,9 @@
                 "Impact Crater": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "properties": {
@@ -2467,6 +2488,9 @@
                 "End Cinema": {
                     "type": "object",
                     "properties": {
+                        "skybox": {
+                            "$ref": "#/$defs/skybox"
+                        },
                         "transports": {
                             "type": "object",
                             "additionalProperties": false
@@ -2496,6 +2520,29 @@
     "required": [],
     "additionalProperties": false,
     "$defs": {
+        "environmentalEffect": {
+            "description": "Weather effect for this room.",
+            "type": "string",
+            "enum": [
+                "None",
+                "Snow",
+                "Rain",
+                "Bubbles"
+            ]
+        },
+        "skybox": {
+            "description": "Replace this world's skybox with another world's, or set to \"None\" to hide it.",
+            "type": "string",
+            "enum": [
+                "None",
+                "Frigate Orpheon",
+                "Chozo Ruins",
+                "Phendrana Drifts",
+                "Tallon Overworld",
+                "Phazon Mines",
+                "Magmoor Caverns"
+            ]
+        },
         "addModifyId": {
             "description": "The instance ID to use for this object. If the provided ID matches an existing object, the existing object will be modified. Otherwise, a new object will be added.",
             "type": "integer",
@@ -3489,6 +3536,312 @@
                     "type": "number",
                     "exclusiveMinimum": 0.0,
                     "default": 1.0
+                },
+                "worldLightingLevel": {
+                    "description": "Scale the whole room's lighting, including the baked lighting on world geometry. Distinct from ambientLightingScale, which only raises unlit areas. 1.0 is unchanged.",
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0
+                },
+                "thermalHeatLevel": {
+                    "description": "Initial thermal heat level for this room. Only visible through the Thermal visor. Latched once when the area loads, so without a thermalHeatFader it stays fixed.",
+                    "type": "number"
+                },
+                "xrayFogDistance": {
+                    "description": "X-Ray visor view distance for this room where 0.0 is the nearest and 1.0 is the farthest. Only visible through the X-Ray visor.",
+                    "type": "number"
+                },
+                "skybox": {
+                    "description": "Whether this room adopts its world's \"skybox\". Setting it true in a world with no skybox is a config error.",
+                    "type": "boolean"
+                },
+                "phazonType": {
+                    "description": "Configures phazon contact damage in this room. Blue is blocked by the Phazon Suit, Orange is not.",
+                    "type": "string",
+                    "enum": [
+                        "None",
+                        "Blue",
+                        "Orange"
+                    ]
+                },
+                "environmentalEffect": {
+                    "$ref": "#/$defs/environmentalEffect"
+                },
+                "environmentalEffectDensity": {
+                    "description": "Density of this room's weather effect.",
+                    "type": "number",
+                    "minimum": 0.0
+                },
+                "areaLights": {
+                    "description": "Edit or add dynamic area lights.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "index": {
+                                "description": "Index of an existing light in the chosen layer to edit. Omit to append a new light.",
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "layer": {
+                                "description": "Light layer, 0 or 1. The engine falls back to layer 0 when layer 1 is empty, which is the case in all but three vanilla rooms.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "lightType": {
+                                "type": "string",
+                                "enum": [
+                                    "LocalAmbient",
+                                    "Directional",
+                                    "Custom",
+                                    "Spot",
+                                    "Spot2",
+                                    "LocalAmbient2"
+                                ]
+                            },
+                            "color": {
+                                "description": "RGB, 0.0 to 1.0 per channel.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "position": {
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "direction": {
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "brightness": {
+                                "type": "number"
+                            },
+                            "spotCutoff": {
+                                "type": "number"
+                            },
+                            "falloffType": {
+                                "type": "string",
+                                "enum": [
+                                    "Constant",
+                                    "Linear",
+                                    "Quadratic"
+                                ]
+                            }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                    }
+                },
+                "thermalHeatFaders": {
+                    "description": "Add thermalHeatFaders to this room. These fade the room's thermal heat level to the specified level when they receive the `ACTION` script message.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime ThermalHeatFader"
+                            },
+                            "active": {
+                                "description": "Default active state of the thermalHeatFader.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "fadedHeatLevel": {
+                                "description": "Thermal heat level to fade to.",
+                                "type": "number"
+                            },
+                            "fadeSpeed": {
+                                "description": "Rate at which to execute the fade (higher is faster).",
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            }
+                        },
+                        "required": [
+                            "id"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "fogVolumes": {
+                    "description": "Add box-shaped volumes of localized fog to this room.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string",
+                                "default": "randomprime FogVolume"
+                            },
+                            "active": {
+                                "description": "Default active state of the fogVolume.",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "position": {
+                                "description": "Center of the fog volume in world coordinates.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "scale": {
+                                "description": "Size of the fog volume box.",
+                                "$ref": "#/$defs/vector3"
+                            },
+                            "color": {
+                                "description": "RGBA, 0.0 to 1.0 per channel.",
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                },
+                                "minItems": 4,
+                                "maxItems": 4
+                            },
+                            "flickerSpeed": {
+                                "description": "Rate at which the fog flickers. 0.0 is steady.",
+                                "type": "number",
+                                "minimum": 0.0,
+                                "default": 0.0
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "position",
+                            "scale"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "roomAcoustics": {
+                    "description": "Edit the DSP reverb, chorus and delay applied to this room's audio. Omit \"id\" to retune the acoustics the room already has (265 of 276 rooms ship with one); supply it to target a specific instance or add another.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "$ref": "#/$defs/addModifyId"
+                            },
+                            "layer": {
+                                "$ref": "#/$defs/addModifyLayer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "active": {
+                                "description": "Default active state of the roomAcoustics.",
+                                "type": "boolean"
+                            },
+                            "volumeScale": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "reverbHigh": {
+                                "type": "boolean"
+                            },
+                            "reverbHighDisabled": {
+                                "type": "boolean"
+                            },
+                            "reverbHighColoration": {
+                                "type": "number"
+                            },
+                            "reverbHighMix": {
+                                "type": "number"
+                            },
+                            "reverbHighTime": {
+                                "type": "number"
+                            },
+                            "reverbHighDamping": {
+                                "type": "number"
+                            },
+                            "reverbHighPreDelay": {
+                                "type": "number"
+                            },
+                            "reverbHighCrosstalk": {
+                                "type": "number"
+                            },
+                            "chorus": {
+                                "type": "boolean"
+                            },
+                            "chorusBaseDelay": {
+                                "type": "number"
+                            },
+                            "chorusVariation": {
+                                "type": "number"
+                            },
+                            "chorusPeriod": {
+                                "type": "number"
+                            },
+                            "reverbStandard": {
+                                "type": "boolean"
+                            },
+                            "reverbStandardDisabled": {
+                                "type": "boolean"
+                            },
+                            "reverbStandardColoration": {
+                                "type": "number"
+                            },
+                            "reverbStandardMix": {
+                                "type": "number"
+                            },
+                            "reverbStandardTime": {
+                                "type": "number"
+                            },
+                            "reverbStandardDamping": {
+                                "type": "number"
+                            },
+                            "reverbStandardPreDelay": {
+                                "type": "number"
+                            },
+                            "delay": {
+                                "type": "boolean"
+                            },
+                            "delayLeft": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "delayRight": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "delaySurround": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "feedbackLeft": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "feedbackRight": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "feedbackSurround": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "outputLeft": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "outputRight": {
+                                "type": "integer",
+                                "minimum": 0
+                            },
+                            "outputSurround": {
+                                "type": "integer",
+                                "minimum": 0
+                            }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                    }
                 },
                 "escapeSequences": {
                     "description": "Adds a pair of triggers to start/stop an escape sequence timer. Note that the escape sequence timers can be modified to count up in `gameConfig`.",
