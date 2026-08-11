@@ -28,6 +28,7 @@ decl_res_id_kind! {
     CINF b"CINF",
     CMDL b"CMDL",
     CSKR b"CSKR",
+    CSNG b"CSNG",
     DCLN b"DCLN",
     DUMB b"DUMB",
     ELSC b"ELSC",
@@ -43,6 +44,7 @@ decl_res_id_kind! {
     SHWC b"SHWC",
     STRG b"STRG",
     TXTR b"TXTR",
+    WPSC b"WPSC",
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

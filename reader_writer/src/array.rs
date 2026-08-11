@@ -153,6 +153,16 @@ where
     }
 }
 
+impl<'r, T> PartialEq for LazyArray<'r, T>
+where
+    T: Readable<'r> + PartialEq,
+    T::Args: Clone,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.len() == other.len() && self.iter().zip(other.iter()).all(|(a, b)| *a == *b)
+    }
+}
+
 #[derive(Clone)]
 pub enum LazyArrayIter<'s, 'r, T>
 where
