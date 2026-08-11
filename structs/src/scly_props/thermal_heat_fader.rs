@@ -12,9 +12,6 @@ pub struct ThermalHeatFader<'r> {
     pub name: CStr<'r>,
     pub active: u8,
     pub faded_heat_level: f32,
-
-    // PWE calls this "Initial Heat Level", but the engine passes it as CScriptDistanceFog's
-    // thermal fade speed (ScriptLoader::LoadThermalHeatFader)
     pub fade_speed: f32,
 }
 

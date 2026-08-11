@@ -208,6 +208,12 @@ pub struct Scly<'r> {
 
     #[auto_struct(init = (layer_count as usize, ()))]
     pub layers: LazyArray<'r, SclyLayer<'r>>,
+
+    // Every MREA data section is 32-aligned in vanilla. The layers are individually aligned but
+    // the header ahead of them is not, so without this the rewritten section drifts every
+    // following section out of alignment.
+    #[auto_struct(pad_align = 32)]
+    _pad: (),
 }
 
 #[auto_struct(Readable, Writable)]
