@@ -6372,13 +6372,13 @@ fn patch_ambient_lighting(
     let any = area
         .mrea()
         .lights_section()
-        .light_layers
+        .lights_a
         .iter()
         .any(|light| light.light_type == 0x0);
 
     if any {
         let lights = area.mrea().lights_section_mut();
-        let lights = lights.light_layers.as_mut_vec();
+        let lights = lights.lights_a.as_mut_vec();
 
         for light in lights {
             if light.light_type != 0x0 {
@@ -6390,7 +6390,7 @@ fn patch_ambient_lighting(
         }
     } else {
         let lights = area.mrea().lights_section_mut();
-        let lights = lights.light_layers.as_mut_vec();
+        let lights = lights.lights_a.as_mut_vec();
 
         lights.push(LightLayer {
             light_type: 0, // local ambient

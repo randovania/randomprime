@@ -160,10 +160,17 @@ pub struct Lights<'r> {
     #[auto_struct(expect = 0xBABEDEAD)]
     magic: u32,
 
-    #[auto_struct(derive = light_layers.len() as u32)]
-    pub lights_count: u32,
-    #[auto_struct(init = (lights_count as usize, ()))]
-    pub light_layers: LazyArray<'r, LightLayer>,
+    #[auto_struct(derive = lights_a.len() as u32)]
+    lights_a_count: u32,
+    #[auto_struct(init = (lights_a_count as usize, ()))]
+    pub lights_a: LazyArray<'r, LightLayer>,
+
+    // The engine falls back to layer A when layer B is empty, so most areas store an
+    // empty second layer rather than omitting it (CGameArea::PostConstructed).
+    #[auto_struct(derive = lights_b.len() as u32)]
+    lights_b_count: u32,
+    #[auto_struct(init = (lights_b_count as usize, ()))]
+    pub lights_b: LazyArray<'r, LightLayer>,
 
     #[auto_struct(pad_align = 32)]
     _pad: (),
