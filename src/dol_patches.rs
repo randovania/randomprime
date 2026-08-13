@@ -3056,12 +3056,7 @@ fn patch_cosmetic(
     config: &PatchConfig,
 ) -> Result<(), String> {
     let remove_ball_color = config.ctwk_config.morph_ball_size.unwrap_or(1.0) < 0.999;
-    let rainbow_ball = config.rainbow_phazon_ball
-        && !remove_ball_color
-        && matches!(
-            version,
-            Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscU0_02
-        );
+    let rainbow_ball = config.rainbow_phazon_ball && !remove_ball_color;
 
     if remove_ball_color {
         let colors = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
