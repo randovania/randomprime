@@ -14,7 +14,7 @@ use crate::{
     patch_config::{GenericTexture, PatchConfig, ScannableParametersConfig, Version},
     patches::WaterType,
     pickup_meta::{self, PickupModel, PickupType},
-    GcDiscLookupExtensions, ResourceData,
+    sorted_by_key, GcDiscLookupExtensions, ResourceData,
 };
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
@@ -448,7 +448,7 @@ fn extern_assets_runtime<'r>(
         ExternPickupModel::parse(&extern_assets_dir.clone().unwrap())?;
 
     let mut resources = Vec::<Resource<'r>>::new();
-    for (id, asset) in extern_assets.iter() {
+    for (id, asset) in sorted_by_key(&extern_assets) {
         let resource = ResourceKind::External(asset.bytes.clone(), asset.fourcc);
         resources.push(build_resource_raw(*id, resource));
     }
@@ -865,9 +865,9 @@ pub fn custom_assets<'r>(
             version: config.version,
         };
 
-        for (level_name, level) in config.level_data.iter() {
+        for (level_name, level) in sorted_by_key(&config.level_data) {
             let world = World::from_json_key(level_name);
-            for (room_name, room) in level.rooms.iter() {
+            for (room_name, room) in sorted_by_key(&level.rooms) {
                 let mut pickup_idx = 0;
                 let mut extra_scans_idx = 0;
 
@@ -896,7 +896,7 @@ pub fn custom_assets<'r>(
                     extra_scans_idx += 1;
                 }
 
-                for door in room.doors.iter().flatten().map(|(_, door)| door) {
+                for (_, door) in sorted_by_key(room.doors.iter().flatten()) {
                     let Some(destination) = door.destination.as_ref() else {
                         continue;
                     };
@@ -926,7 +926,7 @@ pub fn custom_assets<'r>(
                     extra_scans_idx += 1;
                 }
 
-                for edit_obj in room.edit_objs.iter().flatten().map(|(_, config)| config) {
+                for (_, edit_obj) in sorted_by_key(room.edit_objs.iter().flatten()) {
                     let Some(scannable_parameters) = edit_obj.scannable_parameters.as_ref() else {
                         continue;
                     };

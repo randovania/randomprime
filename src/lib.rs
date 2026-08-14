@@ -29,6 +29,14 @@ pub mod room_lookup;
 pub mod starting_items;
 pub mod txtr_conversions;
 
+// Helper function to deterministically flatten a HashMap so it's items
+// are always processed in the same order
+pub fn sorted_by_key<K: Ord, V>(entries: impl IntoIterator<Item = (K, V)>) -> Vec<(K, V)> {
+    let mut entries: Vec<_> = entries.into_iter().collect();
+    entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+    entries
+}
+
 pub trait GcDiscLookupExtensions<'a> {
     fn find_file(&self, name: &str) -> Option<&structs::FstEntry<'a>>;
     fn find_file_mut(&mut self, name: &str) -> Option<&mut structs::FstEntry<'a>>;

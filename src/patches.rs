@@ -5,7 +5,7 @@ use std::{
     ffi::CString,
     fs::{self, File},
     hash::{Hash, Hasher},
-    io::{Read, Write},
+    io::Write,
     iter, mem,
     path::Path,
     time::Instant,
@@ -50,6 +50,7 @@ use crate::{
         PickupModel, PickupType, ScriptObjectLocation,
     },
     room_lookup::ROOM_BY_NAME,
+    sorted_by_key,
     starting_items::StartingItems,
     structs::LightLayer,
     txtr_conversions::{
@@ -169,8 +170,8 @@ where
 
     // Where are the artifacts?
     let mut artifact_locations = Vec::<(&str, PickupType)>::new();
-    for (_, level) in level_data.iter() {
-        for (room_name, room) in level.rooms.iter() {
+    for (_, level) in sorted_by_key(level_data) {
+        for (room_name, room) in sorted_by_key(&level.rooms) {
             if room.pickups.is_none() {
                 continue;
             };
@@ -4311,6 +4312,42 @@ fn repoint_cmdl_texture(
     Ok(())
 }
 
+// `patch` receives each mipmap still CMPR compressed, so callers that can source one ready-made
+// (see the rotation cache) are not forced through a decompress/recompress round trip.
+fn patch_txtr_mipmaps<F>(res: &mut structs::Resource, mut patch: F) -> Result<(), String>
+where
+    F: FnMut(&mut Vec<u8>, usize, usize) -> Result<(), String>,
+{
+    let res_data = match &res.kind {
+        structs::ResourceKind::Unknown(_, _) => crate::ResourceData::new(res),
+        structs::ResourceKind::External(_, _) => crate::ResourceData::new_external(res),
+        _ => return Err("Unsupported resource kind for TXTR patching".to_string()),
+    };
+    let txtr_bytes = res_data.decompress().into_owned();
+    let mut txtr = Reader::new(&txtr_bytes[..]).read::<structs::Txtr>(());
+
+    let mut w = txtr.width as usize;
+    let mut h = txtr.height as usize;
+    for mipmap in txtr.pixel_data.as_mut_vec() {
+        patch(mipmap.as_mut_vec(), w, h)?;
+        w /= 2;
+        h /= 2;
+    }
+
+    let mut new_bytes = vec![];
+    txtr.write_to(&mut new_bytes).unwrap();
+    res.kind = structs::ResourceKind::External(new_bytes, b"TXTR".into());
+    res.compressed = false;
+    Ok(())
+}
+
+fn recolor_mipmap(mipmap: &mut [u8], w: usize, h: usize, recolor: impl FnOnce(&mut [u8])) {
+    let mut pixels = vec![0u8; w * h * 4];
+    cmpr_decompress(mipmap, h, w, &mut pixels);
+    recolor(&mut pixels);
+    cmpr_compress(&pixels, w, h, mipmap);
+}
+
 fn add_pickups_to_mapa(
     res: &mut structs::Resource,
     show_icon: bool,
@@ -6735,7 +6772,7 @@ fn patch_add_load_trigger(
 
     let mut connections: Vec<structs::Connection> = Vec::new();
 
-    for (dock, instance_id) in docks {
+    for (dock, instance_id) in sorted_by_key(docks) {
         if dock == dock_num {
             connections.push(structs::Connection {
                 state: structs::ConnectionState::ENTERED,
@@ -8012,6 +8049,7 @@ fn patch_move_objects(
     layer_objs: HashMap<u32, u32>,
 ) -> Result<(), String> {
     let mrea_id = area.mlvl_area.mrea.to_u32();
+    let layer_objs = sorted_by_key(layer_objs);
 
     // Add layers
     for (_, layer_id) in layer_objs.iter() {
@@ -10505,8 +10543,8 @@ fn patch_credits(
         for pickup_type in PICKUPS_TO_PRINT {
             let room_name = {
                 let mut _room_name = String::new();
-                for (_, level) in level_data.iter() {
-                    for (room_name, room) in level.rooms.iter() {
+                for (_, level) in sorted_by_key(level_data) {
+                    for (room_name, room) in sorted_by_key(&level.rooms) {
                         if room.pickups.is_none() {
                             continue;
                         };
@@ -14848,7 +14886,9 @@ where
     println!("Created patches in {:?}", start_time.elapsed());
 
     {
-        let json_string = serde_json::to_string(&config)
+        let json_value = serde_json::to_value(&config)
+            .map_err(|e| format!("Failed to serialize patch config: {}", e))?;
+        let json_string = serde_json::to_string(&json_value)
             .map_err(|e| format!("Failed to serialize patch config: {}", e))?;
         writeln!(ct, "{}", json_string).unwrap();
         gc_disc.add_file(
@@ -18053,121 +18093,57 @@ fn build_and_run_patches<'r>(
                     continue;
                 }
                 patcher.add_resource_patch((*texture).into(), move |res| {
-                    let res_data;
-                    let data;
-                    let mut txtr: structs::Txtr = match &res.kind {
-                        structs::ResourceKind::Unknown(_, _) => {
-                            res_data = crate::ResourceData::new(res);
-                            data = res_data.decompress().into_owned();
-                            let mut reader = Reader::new(&data[..]);
-                            reader.read(())
-                        },
-                        structs::ResourceKind::External(_, _) => {
-                            res_data = crate::ResourceData::new_external(res);
-                            data = res_data.decompress().into_owned();
-                            let mut reader = Reader::new(&data[..]);
-                            reader.read(())
-                        },
-                        _ => panic!("Unsupported resource kind for recoloring."),
-                    };
-                    let mut w = txtr.width as usize;
-                    let mut h = txtr.height as usize;
-                    for mipmap in txtr.pixel_data.as_mut_vec() {
-                        let hash: u64 = calculate_hash(&mipmap.as_mut_vec().to_vec());
-                        // Read file contents to RAM
-                        let filename = format!("{}/{}/{}", config.cache_dir, angle, hash);
-                        let file_ok = File::open(&filename).is_ok();
-                        let file = File::open(&filename).ok();
-                        if file_ok && file.is_some() {
-                            let metadata = fs::metadata(&filename).expect("unable to read metadata");
-                            let mut bytes = vec![0; metadata.len() as usize];
-                            file.unwrap().read(&mut bytes)
-                                .map_err(|e| format!("Failed to read cache file: {}", e))?;
-                            *mipmap.as_mut_vec() = bytes;
+                    patch_txtr_mipmaps(res, |mipmap, w, h| {
+                        let filename = format!(
+                            "{}/{}/{}",
+                            config.cache_dir,
+                            angle,
+                            calculate_hash(&*mipmap)
+                        );
+                        if let Ok(cached) = fs::read(&filename) {
+                            *mipmap = cached;
+                            return Ok(());
                         }
-                        else
-                        {
-                            let mut decompressed_bytes = vec![0u8; w * h * 4];
-                            cmpr_decompress(&mipmap.as_mut_vec()[..], h, w, &mut decompressed_bytes[..]);
-                            huerotate_in_place(&mut decompressed_bytes[..], w, h, matrix);
-                            cmpr_compress(&(decompressed_bytes[..]), w, h, &mut mipmap.as_mut_vec()[..]);
-                            // cache.insert(hash, mipmap.as_mut_vec().to_vec());
-                            match File::create(filename) {
-                                Ok(mut file) => {
-                                    match file.write_all(&mipmap.as_mut_vec().to_vec()) {
-                                        Ok(()) => {},
-                                        Err(error) => {
-                                            if !complained {
-                                                println!("Failed to write cache file for optimal suit rotation: {}", error);
-                                                complained = true;
-                                            }
-                                        },
-                                    }
-                                },
-                                Err(error) => {
-                                    if !complained {
-                                        println!("Failed to create cache file for optimal suit rotation: {}", error);
-                                        complained = true;
-                                    }
-                                },
+                        recolor_mipmap(mipmap, w, h, |pixels| {
+                            huerotate_in_place(pixels, w, h, matrix)
+                        });
+                        if let Err(error) = fs::write(&filename, &*mipmap) {
+                            if !complained {
+                                println!(
+                                    "Failed to write cache file for optimal suit rotation: {}",
+                                    error
+                                );
+                                complained = true;
                             }
                         }
-                        w /= 2;
-                        h /= 2;
-                    }
-                    let mut bytes = vec![];
-                    txtr.write_to(&mut bytes).unwrap();
-                    res.kind = structs::ResourceKind::External(bytes, b"TXTR".into());
-                    res.compressed = false;
-                    Ok(())
+                        Ok(())
+                    })
                 })
             }
         }
     }
 
     if config.rainbow_phazon_ball {
+        const BRIGHTNESS_PERCENT: u16 = 95;
+        const SHELL_TXTR: ResourceInfo = resource_info!("8B105F2E.TXTR");
+        const SHELL_BRIGHTNESS_PERCENT: u16 = 5;
+
         for texture in PHAZON_SPIDER_BALL_TEXTURES
             .iter()
             .chain(FUSION_PHAZON_BALL_TEXTURES)
         {
-            let brightness_percent = if FUSION_PHAZON_BALL_TEXTURES.contains(texture) {
-                95
+            let brightness_percent = if *texture == SHELL_TXTR {
+                SHELL_BRIGHTNESS_PERCENT
             } else {
-                15
+                BRIGHTNESS_PERCENT
             };
             patcher.add_resource_patch((*texture).into(), move |res| {
-                let res_data;
-                let data;
-                let mut txtr: structs::Txtr = match &res.kind {
-                    structs::ResourceKind::Unknown(_, _) => {
-                        res_data = crate::ResourceData::new(res);
-                        data = res_data.decompress().into_owned();
-                        let mut reader = Reader::new(&data[..]);
-                        reader.read(())
-                    }
-                    structs::ResourceKind::External(_, _) => {
-                        res_data = crate::ResourceData::new_external(res);
-                        data = res_data.decompress().into_owned();
-                        let mut reader = Reader::new(&data[..]);
-                        reader.read(())
-                    }
-                    _ => panic!("Unsupported resource kind for blackening."),
-                };
-                let mut w = txtr.width as usize;
-                let mut h = txtr.height as usize;
-                for mipmap in txtr.pixel_data.as_mut_vec() {
-                    let mut decompressed_bytes = vec![0u8; w * h * 4];
-                    cmpr_decompress(&mipmap.as_mut_vec()[..], h, w, &mut decompressed_bytes[..]);
-                    whiten_in_place(&mut decompressed_bytes[..], brightness_percent);
-                    cmpr_compress(&decompressed_bytes[..], w, h, &mut mipmap.as_mut_vec()[..]);
-                    w /= 2;
-                    h /= 2;
-                }
-                let mut bytes = vec![];
-                txtr.write_to(&mut bytes).unwrap();
-                res.kind = structs::ResourceKind::External(bytes, b"TXTR".into());
-                res.compressed = false;
-                Ok(())
+                patch_txtr_mipmaps(res, |mipmap, w, h| {
+                    recolor_mipmap(mipmap, w, h, |pixels| {
+                        whiten_in_place(pixels, brightness_percent)
+                    });
+                    Ok(())
+                })
             });
         }
     }
