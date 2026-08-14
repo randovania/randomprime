@@ -3399,16 +3399,18 @@ fn patch_game_options(
     }
 
     // Patch to always allow cutscene skipping regardless of "seen" cutscenes
-    // return false if there is no active cinematic (teardown race condition)
     dol_patcher.ppcasm_patch(&ppcasm!(symbol_addr!("ShouldSkipCinematic__22CScriptSpecialFunctionFR13CStateManager", version), {
-        lwz  r3, 0x870(r4);  // r3 = mgr.CameraManager()
-        lwz  r0, 0x8(r3);    // r0 = cineCameras.count
-        cmpwi r0, 0x0;
-        li   r3, 0x0;
-        beq  no_active_cinematic;
-        li   r3, 0x1;
-    no_active_cinematic:
+        li r3, 0x1;
         blr;
+    }))?;
+
+    // Avoid skipping cutscenes if no camera is alive (prevents crash)
+    let special_skip_cinematic = symbol_addr!("SpecialSkipCinematic__13CStateManagerFv", version);
+    dol_patcher.ppcasm_patch(&ppcasm!(special_skip_cinematic + 0x4c, {
+        lwz   r3, 0x870(r29);  // r3 = mgr.CameraManager()
+        lwz   r0, 0x8(r3);     // r0 = cineCameras.count
+        cmpwi r0, 0x0;
+        bne   { special_skip_cinematic + 0x64 };
     }))?;
 
     Ok(())

@@ -50,6 +50,7 @@ use crate::{
         PickupModel, PickupType, ScriptObjectLocation,
     },
     room_lookup::ROOM_BY_NAME,
+    sorted_by_key,
     starting_items::StartingItems,
     structs::LightLayer,
     txtr_conversions::{
@@ -169,8 +170,8 @@ where
 
     // Where are the artifacts?
     let mut artifact_locations = Vec::<(&str, PickupType)>::new();
-    for (_, level) in level_data.iter() {
-        for (room_name, room) in level.rooms.iter() {
+    for (_, level) in sorted_by_key(level_data) {
+        for (room_name, room) in sorted_by_key(&level.rooms) {
             if room.pickups.is_none() {
                 continue;
             };
@@ -6771,7 +6772,7 @@ fn patch_add_load_trigger(
 
     let mut connections: Vec<structs::Connection> = Vec::new();
 
-    for (dock, instance_id) in docks {
+    for (dock, instance_id) in sorted_by_key(docks) {
         if dock == dock_num {
             connections.push(structs::Connection {
                 state: structs::ConnectionState::ENTERED,
@@ -8048,6 +8049,7 @@ fn patch_move_objects(
     layer_objs: HashMap<u32, u32>,
 ) -> Result<(), String> {
     let mrea_id = area.mlvl_area.mrea.to_u32();
+    let layer_objs = sorted_by_key(layer_objs);
 
     // Add layers
     for (_, layer_id) in layer_objs.iter() {
@@ -10541,8 +10543,8 @@ fn patch_credits(
         for pickup_type in PICKUPS_TO_PRINT {
             let room_name = {
                 let mut _room_name = String::new();
-                for (_, level) in level_data.iter() {
-                    for (room_name, room) in level.rooms.iter() {
+                for (_, level) in sorted_by_key(level_data) {
+                    for (room_name, room) in sorted_by_key(&level.rooms) {
                         if room.pickups.is_none() {
                             continue;
                         };
@@ -14884,7 +14886,9 @@ where
     println!("Created patches in {:?}", start_time.elapsed());
 
     {
-        let json_string = serde_json::to_string(&config)
+        let json_value = serde_json::to_value(&config)
+            .map_err(|e| format!("Failed to serialize patch config: {}", e))?;
+        let json_string = serde_json::to_string(&json_value)
             .map_err(|e| format!("Failed to serialize patch config: {}", e))?;
         writeln!(ct, "{}", json_string).unwrap();
         gc_disc.add_file(
