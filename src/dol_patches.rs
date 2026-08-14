@@ -2937,6 +2937,122 @@ fn patch_ball_glow_normalized(
     Ok(())
 }
 
+// Gives the phazon morph ball's models the color patch_phazon_ball_rainbow animates into
+// BallGlowColors. CModelFlags blend mode kT_One appends a TEV stage multiplying the model by
+// x4_color (CCubeMaterial::HandleTransparency), how vanilla implements the red damage flash.
+// `saturation` scales each channel's distance from white, out of 256.
+fn patch_phazon_ball_model_tint(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    struct FlagsSite {
+        base: u32,
+        hook: u32,
+        blend_mode: u32,
+        color: u32,
+        saturation: u32,
+        signature: &'static [(u32, u32)],
+    }
+
+    let (ball, glass) = match version {
+        Version::NtscU0_00 => (0x800f252c, 0x800f2a90),
+        Version::NtscU0_01 => (0x800f25a8, 0x800f2b0c),
+        Version::NtscU0_02 => (0x800f2ab0, 0x800f3014),
+        Version::NtscK => (0x800f25a0, 0x800f2b04),
+        Version::NtscJ => (0x800eb3cc, 0x800eb928),
+        Version::Pal => (0x800ea360, 0x800ea8bc),
+        _ => return Err("rainbowPhazonBall is not supported by this version".to_string()),
+    };
+
+    let phazon_color = symbol_addr!("BallGlowColors", version) + 0xc;
+    let sites = [
+        FlagsSite {
+            base: ball,
+            hook: 0x4,
+            blend_mode: 0xac,
+            color: 0xb0,
+            saturation: 100,
+            signature: &[
+                (0x00, 0x801d005c), // lwz r0, 0x5c(r29)
+                (0x04, 0xa06100ae), // lhz r3, 0xae(r1)
+                (0x18, 0x908100b0), // stw r4, 0xb0(r1)
+            ],
+        },
+        FlagsSite {
+            base: glass,
+            hook: 0x0,
+            blend_mode: 0x5c,
+            color: 0x60,
+            saturation: 256,
+            signature: &[
+                (0x00, 0x8881005c), // lbz r4, 0x5c(r1)
+                (0x08, 0xfc01b800), // fcmpu cr0, f1, f23
+                (0x1c, 0x900100a8), // stw r0, 0xa8(r1)
+            ],
+        },
+    ];
+
+    for site in sites {
+        for &(offset, expected) in site.signature {
+            let found = dol_patcher.read_u32(site.base + offset)?;
+            if found != expected {
+                return Err(format!(
+                    "Unexpected CMorphBall::Render layout at 0x{:08x}: 0x{:08x} != 0x{:08x}",
+                    site.base + offset,
+                    found,
+                    expected
+                ));
+            }
+        }
+
+        let hook = site.base + site.hook;
+        let ret = hook + 4;
+        let displaced = dol_patcher.read_u32(hook)?;
+        let tramp = emitter.emit_addressed(dol_patcher, |addr| {
+            ppcasm!(addr, {
+                    lwz     r3, 0x8(r29);       // x8_ballGlowColorIdx
+                    cmpwi   r3, 4;              // Phazon
+                    beq     tint;
+                    cmpwi   r3, 8;              // Fusion Phazon
+                    bne     done;
+                tint:
+                    lbz     r3, {site.blend_mode}(r1);
+                    cmpwi   r3, 0;
+                    bne     done;               // the damage flash owns the color
+                    lis     r3, {phazon_color}@h;
+                    addi    r3, r3, {phazon_color}@l;
+                    addi    r4, r1, {site.color};
+                    li      r5, 3;
+                channel:
+                    lbz     r6, 0x0(r3);
+                    xori    r6, r6, 0xff;       // 255 - c
+                    mulli   r6, r6, {site.saturation};
+                    srwi    r6, r6, 8;
+                    xori    r6, r6, 0xff;
+                    stb     r6, 0x0(r4);
+                    addi    r3, r3, 1;
+                    addi    r4, r4, 1;
+                    addi    r5, r5, -1;
+                    cmpwi   r5, 0;
+                    bne     channel;
+                    li      r5, 0xff;           // opaque konst alpha
+                    stb     r5, 0x0(r4);
+                    li      r5, 1;              // kT_One
+                    stb     r5, {site.blend_mode}(r1);
+                done:
+                    .long   displaced;
+                    b       {ret};
+            })
+            .encoded_bytes()
+        })?;
+        dol_patcher.ppcasm_patch(&ppcasm!(hook, {
+            b { tramp };
+        }))?;
+    }
+    Ok(())
+}
+
 fn patch_phazon_ball_rainbow(
     dol_patcher: &mut DolPatcher<'_>,
     emitter: &mut TextEmitter,
@@ -3091,6 +3207,7 @@ fn patch_cosmetic(
 
     if rainbow_ball {
         patch_phazon_ball_rainbow(dol_patcher, emitter, version)?;
+        patch_phazon_ball_model_tint(dol_patcher, emitter, version)?;
     }
 
     if config.qol_cosmetic {
