@@ -8,6 +8,7 @@ use crate::{
     mlvl_wrapper,
     patch_config::{EditObjConfig, ScannableParametersConfig},
     patcher::PatcherState,
+    sorted_by_key,
     structs::SclyPropertyData,
 };
 
@@ -21,6 +22,7 @@ pub fn patch_edit_objects<'r>(
     edit_obj_scans: &HashMap<ScannableParametersConfig, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
 ) -> Result<(), String> {
     let mrea_id = area.mlvl_area.mrea.to_u32();
+    let edit_objs = sorted_by_key(edit_objs);
 
     /* Add layers */
     for (_, config) in edit_objs.iter() {
