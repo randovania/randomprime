@@ -125,6 +125,61 @@
                         }
                     ]
                 },
+                "Hall of the Elders": {
+                    // Delete unused Glow Sound and it's connections
+                    "deleteIds": [
+                        3408196 // [Sound] Sound-Glowsound
+                    ],
+                    "removeConnections": [
+                        {
+                            "senderId": 3408191, // [Effect] Effect-Bluelight
+                            "targetId": 3408196, // [Sound] Sound-Glowsound
+                            "state": "ACTIVE",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 3408191, // [Effect] Effect-Bluelight
+                            "targetId": 3408196, // [Sound] Sound-Glowsound
+                            "state": "INACTIVE",
+                            "message": "STOP"
+                        },
+                    // Fix the Kill Ghost Ambience Memory Relay being activated by the 2nd Pass Ghost trigger instead of the 1st Pass one
+                        {
+                            "senderId": 3408399, // [Trigger] Trigger - Chozo Ghost No Kaishi
+                            "targetId": 3408750, // [MemoryRelay] Memory Relay - Kill Chozo Ghost Ambience
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        }
+                    ],
+                    "addConnections": [
+                        {
+                            "senderId": 3408130, // [Trigger] Trigger-Chozo Ghost
+                            "targetId": 3408750, // [MemoryRelay] Memory Relay - Kill Chozo Ghost Ambience
+                            "state": "ENTERED",
+                            "message": "ACTIVATE"
+                        },
+                        // Make Orb Glow Sound actually Play/Stop when Effect is (in)visible
+                        {
+                            "senderId": 3408191, // [Effect] Effect-Bluelight
+                            "targetId": 3408216, // [Sound] Sound - Hands Glow
+                            "state": "ACTIVE",
+                            "message": "PLAY"
+                        },
+                        {
+                            "senderId": 3408191, // [Effect] Effect-Bluelight
+                            "targetId": 3408216, // [Sound] Sound - Hands Glow
+                            "state": "INACTIVE",
+                            "message": "STOP"
+                        },
+                        // Fix vanilla oversight of Bowler hands becoming active after killing 2nd Pass Ghosts, even after using Plasma Slot
+                        {
+                            "senderId": 3407913, // [DamageableTrigger] DamageableTrigger Slot3
+                            "targetId": 3408466, // [Relay] Relay - turn on boling hands after defeating ghosts
+                            "state": "DEAD",
+                            "message": "DEACTIVATE"
+                        }
+                    ]
+                },
                 "Hive Totem": {
                     "deleteIds": [
                         2359420, // [CameraFilterKeyframe] Target hit sceen flash
