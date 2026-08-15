@@ -3697,12 +3697,6 @@
                             "message": "RESET_AND_START"
                         },
                         {
-                            "senderId": 3408273, // [Camera] Camera_WatchBridgeDefault
-                            "targetId": 3407925, // [CameraFilterKeyFrame] CameraFilterKeyFrame WideScreenFilter
-                            "state": "ACTIVE",
-                            "message": "INCREMENT"
-                        },
-                        {
                             "senderId": 3408280, // [Camera] Camera_WatchSlotReset
                             "targetId": 3407925, // [CameraFilterKeyFrame] CameraFilterKeyFrame WideScreenFilter
                             "state": "INACTIVE",
@@ -3852,19 +3846,7 @@
                             "message": "INCREMENT"
                         },
                         {
-                            "senderId": 3408895, // [Relay] Cinematic Started - Increment CinematicSkip
-                            "targetId": 3408897, // [Timer] Delay before Decrementing of CinematicSkip
-                            "state": "ZERO",
-                            "message": "STOP_AND_RESET"
-                        },
-                        {
                             "senderId": 3408896, // [Relay] Cinematic Complete - Decrement CinematicSkip
-                            "targetId": 3408897, // [Timer] Delay before Decrementing of CinematicSkip
-                            "state": "ZERO",
-                            "message": "START"
-                        },
-                        {
-                            "senderId": 3408897, // [Timer] Delay before Decrementing of CinematicSkip
                             "targetId": 3408882, // [SpecialFunction] Main Cinematic Skip Control
                             "state": "ZERO",
                             "message": "DECREMENT"
@@ -3955,9 +3937,9 @@
                         },
                         {
                             "senderId": 3408882, // [SpecialFunction] Main Cinematic Skip Control
-                            "targetId": 3408282, // [Trigger] Trigger Back up Land
+                            "targetId": 3408938, // [SpawnPoint] Reset Player from Down
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 3408882, // [SpecialFunction] Main Cinematic Skip Control
@@ -4398,6 +4380,55 @@
                             "state": "ZERO",
                             "message": "RESET_AND_START"
                         },
+// Prevent Other Cutscenes from Overlapping Ghost Outro
+                        {
+                            "senderId": 3408898, // [Relay] Master Slot Start
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 3408900, // [Relay] Wave Slot Start
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 3408917, // [Relay] Ice Slot Start
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 3408934, // [Relay] Plasma Slot Start
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 3408899, // [Relay] Master Slot End
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 3408901, // [Relay] Wave Slot End
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 3408918, // [Relay] Ice Slot End
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 3408935, // [Relay] Plasma Slot End
+                            "targetId": 3408893, // [Relay] Ghost Outro Start
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
 // Ghost Outro Cutscene
                         {
                             "senderId": 3408195, // [Timer] Delay before Ghost Outro
@@ -4407,21 +4438,9 @@
                         },
                         {
                             "senderId": 3408893, // [Relay] Ghost Outro Start
-                            "targetId": 3408888, // [Relay] Bowler Neutral Throw - Skip to COMPLETE
+                            "targetId": 3408937, // [SpecialFunction] Ghost Death Cinematic Skip
                             "state": "ZERO",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3408893, // [Relay] Ghost Outro Start
-                            "targetId": 3408883, // [Relay] Ghost Death - Skip to COMPLETE
-                            "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3408893, // [Relay] Ghost Outro Start
-                            "targetId": 3408895, // [Relay] Cinematic Started - Increment CinematicSkip
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
+                            "message": "INCREMENT"
                         },
                         {
                             "senderId": 3408893, // [Relay] Ghost Outro Start
@@ -4448,22 +4467,16 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
-                            "senderId": 3408883, // [Relay] Ghost Death - Skip to COMPLETE
+                            "senderId": 3408937, // [SpecialFunction] Ghost Death Cinematic Skip
                             "targetId": 3408894, // [Relay] Ghost Outro End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 3408894, // [Relay] Ghost Outro End
-                            "targetId": 3408888, // [Relay] Bowler Neutral Throw - Skip to COMPLETE
+                            "targetId": 3408937, // [SpecialFunction] Ghost Death Cinematic Skip
                             "state": "ZERO",
-                            "message": "ACTIVATE"
-                        },
-                        {
-                            "senderId": 3408894, // [Relay] Ghost Outro End
-                            "targetId": 3408883, // [Relay] Ghost Death - Skip to COMPLETE
-                            "state": "ZERO",
-                            "message": "DEACTIVATE"
+                            "message": "DECREMENT"
                         },
                         {
                             "senderId": 3408894, // [Relay] Ghost Outro End
@@ -4476,12 +4489,6 @@
                             "targetId": 3407925, // [CameraFilterKeyFrame] CameraFilterKeyFrame WideScreenFilter
                             "state": "ZERO",
                             "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 3408894, // [Relay] Ghost Outro End
-                            "targetId": 3408896, // [Relay] Cinematic Complete - Decrement CinematicSkip
-                            "state": "ZERO",
-                            "message": "SET_TO_ZERO"
                         },
 // Master Bomb Slot Cutscene
                         {
@@ -5317,6 +5324,12 @@
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
+                        {
+                            "senderId": 3408889, // [Relay] Bowler Wave Throw - Skip to COMPLETE
+                            "targetId": 3408939, // [WorldLightFader] Instant Brighten
+                            "state": "ZERO",
+                            "message": "ACTION"
+                        },
 // Ice Throw Cutscene
                         {
                             "senderId": 3407954, // [Trigger] Trigger_DownLand
@@ -5405,6 +5418,12 @@
                         },
                         {
                             "senderId": 3408913, // [Relay] Ice Return Start
+                            "targetId": 3408938, // [SpawnPoint] Reset Player from Down
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 3408913, // [Relay] Ice Return Start
                             "targetId": 3408274, // [ActorRotate] ActorRotate RightToDefault
                             "state": "ZERO",
                             "message": "DEACTIVATE"
@@ -5458,6 +5477,12 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
+                            "senderId": 3408914, // [Relay] Down Return End
+                            "targetId": 3408938, // [SpawnPoint] Reset Player from Down
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
                             "senderId": 3408282, // [Trigger] Trigger Back up Land
                             "targetId": 3408916, // [Switch] Has Player touched Back up Land?
                             "state": "ENTERED",
@@ -5465,27 +5490,9 @@
                         },
                         {
                             "senderId": 3408916, // [Switch] Has Player touched Back up Land?
-                            "targetId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
-                            "state": "CLOSED",
-                            "message": "DEACTIVATE" 
-                        },
-                        {
-                            "senderId": 3408916, // [Switch] Has Player touched Back up Land?
                             "targetId": 3407925, // [CameraFilterKeyframe] CameraFilterKeyFrame WideScreenFilter
                             "state": "CLOSED",
                             "message": "DECREMENT"
-                        },
-                        {
-                            "senderId": 3408916, // [Switch] Has Player touched Back up Land?
-                            "targetId": 3408896, // [Relay] Cinematic Complete - Decrement CinematicSkip
-                            "state": "CLOSED",
-                            "message": "DEACTIVATE"
-                        },
-                        {
-                            "senderId": 3408916, // [Switch] Has Player touched Back up Land?
-                            "targetId": 3408908, // [Relay] DownToDefault - Instant Turn
-                            "state": "CLOSED",
-                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
@@ -5501,15 +5508,33 @@
                         },
                         {
                             "senderId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
+                            "targetId": 3408046, // [Timer] Timer_GrindSound
+                            "state": "ZERO",
+                            "message": "STOP_AND_RESET"
+                        },
+                        {
+                            "senderId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
                             "targetId": 3408908, // [Relay] DownToDefault - Instant Turn
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
                         },
                         {
                             "senderId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
+                            "targetId": 3408916, // [Switch] Has Player touched Back up Land?
+                            "state": "ZERO",
+                            "message": "OPEN"
+                        },
+                        {
+                            "senderId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
                             "targetId": 3408914, // [Relay] Down Return End
                             "state": "ZERO",
                             "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
+                            "targetId": 3408282, // [Trigger] Trigger Back up Land
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
                         },
                         {
                             "senderId": 3408891, // [Relay] Ice Return - Skip to COMPLETE
@@ -5584,6 +5609,11 @@
                             "id": 3408882, // [SpecialFunction] Main Cinematic Skip Control
                             "name": "Main Cinematic Skip Control",
                             "type": "CinematicSkip"
+                        },
+                        {
+                            "id": 3408937, // [SpecialFunction] Ghost Death Cinematic Skip
+                            "name": "Ghost Death Cinematic Skip",
+                            "type": "CinematicSkip"
                         }
                     ],
                     "newCameraHints": [
@@ -5594,7 +5624,12 @@
                             "position": [791.059143, -165.107529, 73.322952],
                             "rotation": [-13.98084, 0.0, -105.731621],
                             "behaviour": "HintInitializePosition",
-                            "applyImmediately": true
+                            "chaseAllowed": true,
+                            "boostAllowed": true,
+                            "obscureAvoidance": true,
+                            "volumeCollider": true,
+                            "applyImmediately": true,
+                            "hintDistanceSelfPos": true
                         },
                         // Edit of Existing
                         {
@@ -5773,11 +5808,6 @@
                     ],
                     "timers": [
                         {
-                            "id": 3408897, // [Timer] Delay before Decrementing of CinematicSkip
-                            "name": "Delay before Decrementing of CinematicSkip",
-                            "time": 0.03
-                        },
-                        {
                             "id": 3408902, // [Timer] Bomb Slots Cinematic Skip - Second Delay
                             "name": "Bomb Slots Cinematic Skip - Second Delay",
                             "time": 1.0
@@ -5852,12 +5882,20 @@
                             "id": 3408930, // [SpawnPoint] Ice Throw Skip Final Position
                             "name": "Ice Throw Skip Final Position",
                             "position": [765.636597, -158.111176, 30.6461945],
+                            "rotation": [0.0, 0.0, 90.0],
                             "morphed": true
                         },
                         {
                             "id": 3408929, // [SpawnPoint] Ice Return Skip Final Position
                             "name": "Ice Return Skip Final Position",
                             "position": [781.035339, -184.525772, 48.5247116],
+                            "morphed": true
+                        },
+                        {
+                            "id": 3408938, // [SpawnPoint] Reset Player from Down
+                            "name": "Reset Player from Down",
+                            "position": [769.0, -155.0, 50.0],
+                            "active": false,
                             "morphed": true
                         }
                     ],
@@ -5889,6 +5927,14 @@
                             "id": 3407925, // [CameraFilterKeyframe] CameraFilterKeyFrame WideScreenFilter
                             "fadeInTime": 0.0,
                             "fadeOutTime": 0.0
+                        }
+                    ],
+                    "worldLightFaders": [
+                        {
+                            "id": 3408939, // [WorldLightFader] Instant Brighten
+                            "name": "Instant Brighten",
+                            "fadedLightLevel": 1.0,
+                            "fadeSpeed": 1.0
                         }
                     ]
                 },

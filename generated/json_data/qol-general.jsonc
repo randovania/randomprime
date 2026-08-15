@@ -170,6 +170,13 @@
                             "targetId": 3408216, // [Sound] Sound - Hands Glow
                             "state": "INACTIVE",
                             "message": "STOP"
+                        },
+                        // Fix vanilla oversight of Bowler hands becoming active after killing 2nd Pass Ghosts, even after using Plasma Slot
+                        {
+                            "senderId": 3407913, // [DamageableTrigger] DamageableTrigger Slot3
+                            "targetId": 3408466, // [Relay] Relay - turn on boling hands after defeating ghosts
+                            "state": "DEAD",
+                            "message": "DEACTIVATE"
                         }
                     ]
                 },
