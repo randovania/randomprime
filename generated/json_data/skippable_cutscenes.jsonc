@@ -7401,27 +7401,71 @@
                         // Cancel tentacle retract timers on extract
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424908, // [Timer] Flaahgra Tentacle Retract 1
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424928, // [Timer] Flaahgra Tentacle Retract 2
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424913, // [Timer] Flaahgra Tentacle Retract 3
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424915, // [Timer] Flaahgra Tentacle Retract 4
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
+                        },
+                        // Unload Rooms upon entering
+                        {
+                            "senderId": 2437129, // [SpecialFunction] SpecialFunction PlayerInAreaRelay
+                            "targetId": 2424833, // [Dock] Dock - To 0W Connect
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2437129, // [SpecialFunction] SpecialFunction PlayerInAreaRelay
+                            "targetId": 2424834, // [Dock] Dock - To 0L Connect
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2435087, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
+                            "targetId": 2425063, // [Trigger] Trigger - To 0W Connect
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2435087, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
+                            "targetId": 2425064, // [Trigger] Trigger - To 0L Connect
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2425485, // [Timer] Unload Rooms Immediately
+                            "targetId": 2435087, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        // Enable Room Loading Post Fight
+                        {
+                            "senderId": 2435088, // [Relay] Relay Disable Lock (To Trigger_Unlock&Key With Decrement)
+                            "targetId": 2425064, // [Trigger] Trigger - To 0L Connect
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2435088, // [Relay] Relay Disable Lock (To Trigger_Unlock&Key With Decrement)
+                            "targetId": 2425063, // [Trigger] Trigger - To 0W Connect
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         },
                         // Initial Slot Reveal Cutscene Elements
                         {
@@ -8853,6 +8897,7 @@
                         }
                     ],
                     "triggers": [
+                        // Edits of existing
                         {
                             "id": 2436939, // [Trigger] Reset Faint Time Trigger
                             "name": "Reset Faint Time Trigger",
@@ -9082,6 +9127,12 @@
                             "name": "Deactivate Flaahgra Switch",
                             "time": 0.1,
                             "layer": 1
+                        },
+                        {
+                            "id": 2425485, // [Timer] Unload Rooms Immediately
+                            "time": 0.001,
+                            "layer": 1,
+                            "startImmediately": true
                         }
                     ],
                     "cameraFilterKeyframes": [
