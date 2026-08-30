@@ -7352,6 +7352,28 @@
                         }
                     ]
                 },
+                "Sunchamber Access": {
+                    "deleteIds": [
+                        // Delete Debris Extended to save memory
+                        2031696,
+                        2031695,
+                        2031694,
+                        2031693,
+                        2031692,
+                        2031691,
+                        2031690,
+                        2031689,
+                        2031688,
+                        2031678,
+                        2031679,
+                        2031680,
+                        2031681,
+                        2031682,
+                        2031683,
+                        2031684,
+                        2031685
+                    ]
+                },
                 "Sunchamber": {
                     "removeConnections": [
                         {
@@ -7401,27 +7423,71 @@
                         // Cancel tentacle retract timers on extract
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424908, // [Timer] Flaahgra Tentacle Retract 1
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424928, // [Timer] Flaahgra Tentacle Retract 2
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424913, // [Timer] Flaahgra Tentacle Retract 3
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
                         },
                         {
                             "senderId": 2424967, // [Relay] Extract Tentacles
-                            "state": "ZERO",
                             "targetId": 2424915, // [Timer] Flaahgra Tentacle Retract 4
+                            "state": "ZERO",
                             "message": "STOP_AND_RESET"
+                        },
+                        // Unload Rooms upon entering
+                        {
+                            "senderId": 2437129, // [SpecialFunction] SpecialFunction PlayerInAreaRelay
+                            "targetId": 2424833, // [Dock] Dock - To 0W Connect
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2437129, // [SpecialFunction] SpecialFunction PlayerInAreaRelay
+                            "targetId": 2424834, // [Dock] Dock - To 0L Connect
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        {
+                            "senderId": 2435087, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
+                            "targetId": 2425063, // [Trigger] Trigger - To 0W Connect
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2435087, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
+                            "targetId": 2425064, // [Trigger] Trigger - To 0L Connect
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        },
+                        {
+                            "senderId": 2425485, // [Timer] Unload Rooms Immediately
+                            "targetId": 2435087, // [Relay] Relay Enable Lock (To Trigger_Unlock&Key With Increment)
+                            "state": "ZERO",
+                            "message": "SET_TO_ZERO"
+                        },
+                        // Enable Room Loading Post Fight
+                        {
+                            "senderId": 2435088, // [Relay] Relay Disable Lock (To Trigger_Unlock&Key With Decrement)
+                            "targetId": 2425064, // [Trigger] Trigger - To 0L Connect
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
+                        },
+                        {
+                            "senderId": 2435088, // [Relay] Relay Disable Lock (To Trigger_Unlock&Key With Decrement)
+                            "targetId": 2425063, // [Trigger] Trigger - To 0W Connect
+                            "state": "ZERO",
+                            "message": "ACTIVATE"
                         },
                         // Initial Slot Reveal Cutscene Elements
                         {
@@ -8853,6 +8919,7 @@
                         }
                     ],
                     "triggers": [
+                        // Edits of existing
                         {
                             "id": 2436939, // [Trigger] Reset Faint Time Trigger
                             "name": "Reset Faint Time Trigger",
@@ -9082,6 +9149,12 @@
                             "name": "Deactivate Flaahgra Switch",
                             "time": 0.1,
                             "layer": 1
+                        },
+                        {
+                            "id": 2425485, // [Timer] Unload Rooms Immediately
+                            "time": 0.001,
+                            "layer": 1,
+                            "startImmediately": true
                         }
                     ],
                     "cameraFilterKeyframes": [
@@ -9094,6 +9167,28 @@
                             "filterIndex": 2,
                             "fadeOutTime": 0.5
                         }
+                    ]
+                },
+                "Sun Tower Access": {
+                    "deleteIds": [
+                        // Delete Debris Extended to save memory
+                        2293909,
+                        2293910,
+                        2293914,
+                        2293918,
+                        2293919,
+                        2293920,
+                        2293921,
+                        2293922,
+                        2293923,
+                        2293924,
+                        2293925,
+                        2293926,
+                        2293913,
+                        2293912,
+                        2293911,
+                        2293915,
+                        2293916
                     ]
                 },
                 "Tower of Light": {
