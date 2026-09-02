@@ -90,6 +90,13 @@ pub struct GameBanner {
     pub description: Option<String>,
 }
 
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ConditionalHudmemoConfig {
+    pub required_item: String,
+    pub missing_text: String,
+}
+
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PickupConfig {
@@ -101,6 +108,7 @@ pub struct PickupConfig {
     pub model: Option<String>,
     pub scan_text: Option<String>,
     pub hudmemo_text: Option<String>,
+    pub conditional_hudmemo: Option<ConditionalHudmemoConfig>,
     pub respawn: Option<bool>,
     pub position: Option<[f32; 3]>,
     pub modal_hudmemo: Option<bool>,
