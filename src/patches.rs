@@ -2592,7 +2592,7 @@ fn patch_add_item<'r>(
     _pickup_idx: usize,
     pickup_config: &PickupConfig,
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
-    pickup_hudmemos: &HashMap<PickupHashKey, ResId<res_id::STRG>>,
+    pickup_hudmemos: &HashMap<PickupHashKey, crate::custom_assets::PickupHudmemoIds>,
     pickup_scans: &HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     pickup_hash_key: PickupHashKey,
     skip_hudmemos: bool,
@@ -2669,7 +2669,7 @@ fn patch_add_item<'r>(
     // Add hudmemo string as dependency to room //
     let hudmemo_strg: ResId<res_id::STRG> = {
         if pickup_config.hudmemo_text.is_some() {
-            *pickup_hudmemos.get(&pickup_hash_key).unwrap()
+            pickup_hudmemos.get(&pickup_hash_key).unwrap().normal
         } else {
             pickup_type.hudmemo_strg()
         }
@@ -2677,6 +2677,17 @@ fn patch_add_item<'r>(
 
     let hudmemo_dep: Dependency = hudmemo_strg.into();
     area.add_dependencies(game_resources, new_layer_idx, iter::once(hudmemo_dep));
+
+    if let Some(hudmemo_ids) = pickup_hudmemos.get(&pickup_hash_key) {
+        if let Some(missing_required_item) = hudmemo_ids.missing_required_item {
+            let locked_hudmemo_dep: Dependency = missing_required_item.into();
+            area.add_dependencies(
+                game_resources,
+                new_layer_idx,
+                iter::once(locked_hudmemo_dep),
+            );
+        }
+    }
 
     /* Add Model Dependencies */
     // Dependencies are defined externally
@@ -2882,15 +2893,109 @@ fn patch_add_item<'r>(
         })),
     };
 
-    // Display hudmemo when item is picked up
-    pickup_obj
-        .connections
-        .as_mut_vec()
-        .push(structs::Connection {
-            state: structs::ConnectionState::ARRIVED,
-            message: structs::ConnectionMsg::SET_TO_ZERO,
-            target_object_id: hudmemo.instance_id,
-        });
+    // Display HUD memo when item is picked up. Conditional HUD memos
+    // route through an InventoryActivator and a fallback Relay so the
+    // displayed text can depend on whether another pickup is already owned.
+    let conditional_hudmemo_objects =
+        if let Some(conditional) = pickup_config.conditional_hudmemo.as_ref() {
+            let hudmemo_ids = pickup_hudmemos
+                .get(&pickup_hash_key)
+                .ok_or_else(|| "Conditional HUD memo requires hudmemoText".to_string())?;
+            let locked_hudmemo_strg = hudmemo_ids
+                .missing_required_item
+                .ok_or_else(|| "Conditional HUD memo is missing its fallback STRG".to_string())?;
+
+            let inventory_activator_id = area.new_object_id_from_layer_id(new_layer_idx);
+            let fallback_relay_id = area.new_object_id_from_layer_id(new_layer_idx);
+            let locked_hudmemo_id = area.new_object_id_from_layer_id(new_layer_idx);
+
+            let inventory_activator = structs::SclyObject {
+                instance_id: inventory_activator_id,
+                connections: vec![
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::DEACTIVATE,
+                        target_object_id: fallback_relay_id,
+                    },
+                    structs::Connection {
+                        state: structs::ConnectionState::ZERO,
+                        message: structs::ConnectionMsg::SET_TO_ZERO,
+                        target_object_id: hudmemo.instance_id,
+                    },
+                ]
+                .into(),
+                property_data: SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
+                    name: b"conditional-hudmemo-check\0".as_cstr(),
+                    position: [0., 0., 0.].into(),
+                    rotation: [0., 0., 0.].into(),
+                    type_: 5, // InventoryActivator
+                    string_param: b"\0".as_cstr(),
+                    value_param: 0.,
+                    value_param2: 0.,
+                    value_param3: 0.,
+                    layer_change_room_id: 0,
+                    layer_change_layer_id: 0,
+                    item_id: PickupType::from_str(&conditional.required_item) as u32,
+                    active: 1,
+                    value_param4: 0.,
+                    sound1: 0xFFFFFFFF,
+                    sound2: 0xFFFFFFFF,
+                    sound3: 0xFFFFFFFF,
+                })),
+            };
+
+            let fallback_relay = structs::SclyObject {
+                instance_id: fallback_relay_id,
+                connections: vec![structs::Connection {
+                    state: structs::ConnectionState::ZERO,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: locked_hudmemo_id,
+                }]
+                .into(),
+                property_data: SclyProperty::Relay(Box::new(structs::Relay {
+                    name: b"conditional-hudmemo-fallback\0".as_cstr(),
+                    active: 1,
+                })),
+            };
+
+            let mut locked_hudmemo = hudmemo.clone();
+            locked_hudmemo.instance_id = locked_hudmemo_id;
+            locked_hudmemo.connections = vec![].into();
+            locked_hudmemo.property_data.as_hud_memo_mut().unwrap().strg = locked_hudmemo_strg;
+
+            // Ordering matters. InventoryActivator must run first so it can
+            // disable the fallback Relay before the pickup sends to it.
+            pickup_obj
+                .connections
+                .as_mut_vec()
+                .push(structs::Connection {
+                    state: structs::ConnectionState::ARRIVED,
+                    message: structs::ConnectionMsg::ACTION,
+                    target_object_id: inventory_activator_id,
+                });
+
+            pickup_obj
+                .connections
+                .as_mut_vec()
+                .push(structs::Connection {
+                    state: structs::ConnectionState::ARRIVED,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: fallback_relay_id,
+                });
+
+            Some((inventory_activator, fallback_relay, locked_hudmemo))
+        } else {
+            pickup_obj
+                .connections
+                .as_mut_vec()
+                .push(structs::Connection {
+                    state: structs::ConnectionState::ARRIVED,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: hudmemo.instance_id,
+                });
+
+            None
+        };
 
     // create attainment audio
     let attainment_audio = structs::SclyObject {
@@ -3154,6 +3259,22 @@ fn patch_add_item<'r>(
     }
 
     layers[new_layer_idx].objects.as_mut_vec().push(hudmemo);
+
+    if let Some((inventory_activator, fallback_relay, locked_hudmemo)) = conditional_hudmemo_objects
+    {
+        layers[new_layer_idx]
+            .objects
+            .as_mut_vec()
+            .push(inventory_activator);
+        layers[new_layer_idx]
+            .objects
+            .as_mut_vec()
+            .push(fallback_relay);
+        layers[new_layer_idx]
+            .objects
+            .as_mut_vec()
+            .push(locked_hudmemo);
+    }
     layers[new_layer_idx]
         .objects
         .as_mut_vec()
@@ -4370,7 +4491,7 @@ fn modify_pickups_in_mrea<'r>(
     pickup_config: &PickupConfig,
     pickup_location: pickup_meta::PickupLocation,
     game_resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
-    pickup_hudmemos: &HashMap<PickupHashKey, ResId<res_id::STRG>>,
+    pickup_hudmemos: &HashMap<PickupHashKey, crate::custom_assets::PickupHudmemoIds>,
     pickup_scans: &HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     pickup_hash_key: PickupHashKey,
     skip_hudmemos: bool,
@@ -4502,7 +4623,7 @@ fn modify_pickups_in_mrea<'r>(
     // Add hudmemo string as dependency to room //
     let hudmemo_strg: ResId<res_id::STRG> = {
         if pickup_config.hudmemo_text.is_some() {
-            *pickup_hudmemos.get(&pickup_hash_key).unwrap()
+            pickup_hudmemos.get(&pickup_hash_key).unwrap().normal
         } else {
             pickup_type.hudmemo_strg()
         }
@@ -4510,6 +4631,18 @@ fn modify_pickups_in_mrea<'r>(
 
     let hudmemo_dep: Dependency = hudmemo_strg.into();
     area.add_dependencies(game_resources, 0, iter::once(hudmemo_dep));
+
+    if pickup_config.conditional_hudmemo.is_some() {
+        let hudmemo_ids = pickup_hudmemos
+            .get(&pickup_hash_key)
+            .ok_or_else(|| "Conditional HUD memo requires hudmemoText".to_string())?;
+        let missing_required_item = hudmemo_ids
+            .missing_required_item
+            .ok_or_else(|| "Conditional HUD memo is missing its fallback STRG".to_string())?;
+
+        let locked_hudmemo_dep: Dependency = missing_required_item.into();
+        area.add_dependencies(game_resources, 0, iter::once(locked_hudmemo_dep));
+    }
 
     /* Add Model Dependencies */
     // Dependencies are defined externally
@@ -4594,6 +4727,14 @@ fn modify_pickups_in_mrea<'r>(
         area.new_object_id_from_layer_id(0),
         area.new_object_id_from_layer_id(0),
     ];
+
+    let conditional_hudmemo_ids = pickup_config.conditional_hudmemo.as_ref().map(|_| {
+        (
+            area.new_object_id_from_layer_id(0),
+            area.new_object_id_from_layer_id(0),
+            area.new_object_id_from_layer_id(0),
+        )
+    });
 
     let scly = area.mrea().scly_section_mut();
     let layers = scly.layers.as_mut_vec();
@@ -4936,6 +5077,54 @@ fn modify_pickups_in_mrea<'r>(
             additional_connections.extend_from_slice(&world_teleporter_connections);
         }
 
+        if let Some((inventory_activator_id, fallback_relay_id, _)) = conditional_hudmemo_ids {
+            let mut rewired_hudmemo_connections = 0;
+
+            for layer in layers.iter_mut() {
+                for object in layer.objects.as_mut_vec().iter_mut() {
+                    let connections = object.connections.as_mut_vec();
+
+                    let mut connection_idx = 0;
+                    while connection_idx < connections.len() {
+                        if connections[connection_idx].message
+                            == structs::ConnectionMsg::SET_TO_ZERO
+                            && connections[connection_idx].target_object_id
+                                == pickup_location.hudmemo.instance_id
+                        {
+                            let state = connections[connection_idx].state;
+
+                            // Preserve the vanilla trigger state/timing.
+                            // Test ownership first, then queue the fallback.
+                            connections[connection_idx].message = structs::ConnectionMsg::ACTION;
+                            connections[connection_idx].target_object_id = inventory_activator_id;
+
+                            connections.insert(
+                                connection_idx + 1,
+                                structs::Connection {
+                                    state,
+                                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                                    target_object_id: fallback_relay_id,
+                                },
+                            );
+
+                            rewired_hudmemo_connections += 1;
+                            connection_idx += 2;
+                        } else {
+                            connection_idx += 1;
+                        }
+                    }
+                }
+            }
+
+            if rewired_hudmemo_connections == 0 {
+                return Err(format!(
+                    "Could not find vanilla HudMemo trigger for conditional pickup {:#010X} in MREA {:#010X}",
+                    pickup_location.location.instance_id,
+                    mrea_id
+                ));
+            }
+        }
+
         let pickup_obj = layers[pickup_location.location.layer as usize]
             .objects
             .iter_mut()
@@ -5027,16 +5216,92 @@ fn modify_pickups_in_mrea<'r>(
         }
     }
 
-    let hudmemo = layers[pickup_location.hudmemo.layer as usize]
-        .objects
-        .iter_mut()
-        .find(|obj| obj.instance_id == pickup_location.hudmemo.instance_id)
-        .unwrap();
-    // The items in Watery Hall (Charge beam), Research Core (Thermal Visor), and Artifact Temple
-    // (Artifact of Truth) should ys have modal hudmenus because a cutscene plays immediately
-    // after each item is acquired, and the nonmodal hudmenu wouldn't properly appear.
+    let locked_hudmemo = {
+        let hudmemo = layers[pickup_location.hudmemo.layer as usize]
+            .objects
+            .iter_mut()
+            .find(|obj| obj.instance_id == pickup_location.hudmemo.instance_id)
+            .unwrap();
 
-    update_hudmemo(hudmemo, hudmemo_strg, skip_hudmemos, hudmemo_delay);
+        // The items in Watery Hall (Charge beam), Research Core (Thermal Visor), and Artifact Temple
+        // (Artifact of Truth) should have modal hudmenus because a cutscene plays immediately
+        // after each item is acquired, and the nonmodal hudmenu wouldn't properly appear.
+        update_hudmemo(hudmemo, hudmemo_strg, skip_hudmemos, hudmemo_delay);
+
+        if let Some((_, _, locked_hudmemo_id)) = conditional_hudmemo_ids {
+            let locked_hudmemo_strg = pickup_hudmemos
+                .get(&pickup_hash_key)
+                .and_then(|ids| ids.missing_required_item)
+                .ok_or_else(|| "Conditional HUD memo is missing its fallback STRG".to_string())?;
+
+            let mut locked_hudmemo = hudmemo.clone();
+            locked_hudmemo.instance_id = locked_hudmemo_id;
+            locked_hudmemo.connections = vec![].into();
+            locked_hudmemo.property_data.as_hud_memo_mut().unwrap().strg = locked_hudmemo_strg;
+
+            Some(locked_hudmemo)
+        } else {
+            None
+        }
+    };
+
+    if let Some((inventory_activator_id, fallback_relay_id, _)) = conditional_hudmemo_ids {
+        let conditional = pickup_config.conditional_hudmemo.as_ref().unwrap();
+        let locked_hudmemo = locked_hudmemo.unwrap();
+
+        let inventory_activator = structs::SclyObject {
+            instance_id: inventory_activator_id,
+            connections: vec![
+                structs::Connection {
+                    state: structs::ConnectionState::ZERO,
+                    message: structs::ConnectionMsg::DEACTIVATE,
+                    target_object_id: fallback_relay_id,
+                },
+                structs::Connection {
+                    state: structs::ConnectionState::ZERO,
+                    message: structs::ConnectionMsg::SET_TO_ZERO,
+                    target_object_id: pickup_location.hudmemo.instance_id,
+                },
+            ]
+            .into(),
+            property_data: SclyProperty::SpecialFunction(Box::new(structs::SpecialFunction {
+                name: b"conditional-hudmemo-check\0".as_cstr(),
+                position: [0., 0., 0.].into(),
+                rotation: [0., 0., 0.].into(),
+                type_: 5, // InventoryActivator
+                string_param: b"\0".as_cstr(),
+                value_param: 0.,
+                value_param2: 0.,
+                value_param3: 0.,
+                layer_change_room_id: 0,
+                layer_change_layer_id: 0,
+                item_id: PickupType::from_str(&conditional.required_item) as u32,
+                active: 1,
+                value_param4: 0.,
+                sound1: 0xFFFFFFFF,
+                sound2: 0xFFFFFFFF,
+                sound3: 0xFFFFFFFF,
+            })),
+        };
+
+        let fallback_relay = structs::SclyObject {
+            instance_id: fallback_relay_id,
+            connections: vec![structs::Connection {
+                state: structs::ConnectionState::ZERO,
+                message: structs::ConnectionMsg::SET_TO_ZERO,
+                target_object_id: locked_hudmemo.instance_id,
+            }]
+            .into(),
+            property_data: SclyProperty::Relay(Box::new(structs::Relay {
+                name: b"conditional-hudmemo-fallback\0".as_cstr(),
+                active: 1,
+            })),
+        };
+
+        layers[0].objects.as_mut_vec().push(inventory_activator);
+        layers[0].objects.as_mut_vec().push(fallback_relay);
+        layers[0].objects.as_mut_vec().push(locked_hudmemo);
+    }
 
     let location = pickup_location.attainment_audio;
     let attainment_audio = layers[location.layer as usize]
@@ -15195,6 +15460,7 @@ fn build_and_run_patches<'r>(
                         model: None,
                         scan_text: None,
                         hudmemo_text: None,
+                        conditional_hudmemo: None,
                         respawn: None,
                         position: None,
                         modal_hudmemo: None,
@@ -16374,6 +16640,7 @@ fn build_and_run_patches<'r>(
                             max_increase: Some(0),
                             position: None,
                             hudmemo_text: None,
+                            conditional_hudmemo: None,
                             scan_text: None,
                             model: None,
                             respawn: None,
