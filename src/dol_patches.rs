@@ -2827,6 +2827,55 @@ fn patch_gameplay_tweaks(
     Ok(())
 }
 
+// Fix race condition where audio tracks fail to play if a track transition
+// occurs and the next track finished loading before the previous one is free.
+fn patch_streamed_audio_slot_release(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+    config: &PatchConfig,
+) -> Result<(), String> {
+    if !config.qol_general {
+        return Ok(());
+    }
+    let (Some(silence_stream), Some(stop_stream)) = (
+        symbol_addr_opt!("SilenceStream__10CDSPStreamFv", version),
+        symbol_addr_opt!("StopStream__10CDSPStreamFv", version),
+    ) else {
+        return Ok(());
+    };
+
+    // SilenceStream+0x4c is `stw r0, 0xe8(r31)`, last before the epilogue.
+    let silenced_store = silence_stream + 0x4c;
+    let silenced_store_orig = dol_patcher.read_u32(silenced_store)?;
+    emitter.emit_and_patch(dol_patcher, silenced_store, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            .long silenced_store_orig;
+            mr    r3, r31;
+            bl    { stop_stream };
+            b     { silenced_store + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    // Guards a queued musyx callback from double-closing the DVD handles.
+    let stop_prologue = dol_patcher.read_u32(stop_stream)?;
+    emitter.emit_and_patch(dol_patcher, stop_stream, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lbz    r0, 0x0(r3);             // x0_state
+            cmplwi r0, 0x0;
+            bne    live;
+            blr;
+        live:
+            .long stop_prologue;
+            b      { stop_stream + 4 };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
 fn patch_ball_glow_normalized(
     dol_patcher: &mut DolPatcher<'_>,
     version: Version,
@@ -4202,9 +4251,6 @@ const SAVE_FRONT_DATA_MEMBER_OFF: i32 = 0x4;
 const SAVE_SCHEMA_SIZE: i32 = 76; // magic + version + uuid + save_name
 const SAVE_SCHEMA_OFFSET: i32 = 0; // == buffer offset; front starts at 0
 
-#[allow(dead_code)]
-const SAVE_FRONT_UNUSED: i32 = SAVE_FRONT_SIZE - (SAVE_SCHEMA_OFFSET + SAVE_SCHEMA_SIZE); // 52
-
 const SAVE_SCHEMA_MAGIC: u32 = 0x5250_5356; // "RPSV"
 const SAVE_SCHEMA_VERSION: u32 = 3;
 
@@ -4216,6 +4262,9 @@ const SAVE_F_NAME: usize = 24;
 // Outside the stamped identity block (>= SAVE_SCHEMA_SIZE) so re-saves don't clobber them.
 const SAVE_F_COMPLETION: usize = 76;
 const SAVE_F_COMPLETION_MAX: usize = 80;
+
+#[allow(dead_code)]
+const SAVE_FRONT_UNUSED: i32 = SAVE_FRONT_SIZE - (SAVE_F_COMPLETION_MAX as i32 + 4); // 44
 
 // Absolute buffer offsets (block start + field), used by the trampolines.
 const SAVE_OFF_MAGIC: i32 = SAVE_SCHEMA_OFFSET + SAVE_F_MAGIC as i32;
@@ -4246,7 +4295,7 @@ const MNUMWRITES_OFF: i32 = 0x10; // COutputStream::mNumWrites (bytes flushed)
 
 const _: () = assert!(
     SAVE_FRONT_UNUSED >= 0,
-    "save schema block overflows CGameState's dead front region"
+    "save schema fields overflow CGameState's dead front region"
 );
 const _: () = assert!(
     SAVE_F_NAME + SAVE_NAME_WORDS * 4 <= SAVE_SCHEMA_SIZE as usize,
@@ -4263,10 +4312,6 @@ const _: () = assert!(
 const _: () = assert!(
     SAVE_F_COMPLETION + 4 <= SAVE_F_COMPLETION_MAX,
     "completion counter overlaps completion_max"
-);
-const _: () = assert!(
-    SAVE_F_COMPLETION_MAX + 4 <= SAVE_FRONT_SIZE as usize,
-    "completion fields overflow CGameState's dead front region"
 );
 const _: () = assert!((SAVE_NAME_MAX_CHARS + 1) <= SAVE_NAME_WORDS * 2);
 const _: () =
@@ -5264,6 +5309,7 @@ pub fn patch_dol(
 
     // Overflow-safe trampolines; emitted after the must-fit emit_addressed reservations.
     patch_inventory_gates(&mut dol_patcher, &mut emitter, version)?;
+    patch_streamed_audio_slot_release(&mut dol_patcher, &mut emitter, version, config)?;
 
     // Emitted last for readability; these emit_and_patch stubs are overflow-safe (see make_pic).
     patch_save_uuid_stamp(&mut dol_patcher, &mut emitter, version, &save_uuid_data)?;

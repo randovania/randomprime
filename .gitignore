@@ -16,3 +16,4 @@ assets/
 .vscode/
 .claude/
 cache/
+prime2_models/
