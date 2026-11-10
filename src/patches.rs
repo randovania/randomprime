@@ -9449,6 +9449,134 @@ fn patch_purge_debris_extended(
 //     false
 // }
 
+/* AGSC, STRG/SCAN, and FRME are excluded because they may be shared with non-pickup room objects. */
+fn is_prunable_model_asset(fourcc: FourCC) -> bool {
+    matches!(
+        fourcc.as_bytes(),
+        b"TXTR" | b"CMDL" | b"ANCS" | b"PART" | b"CSKR" | b"CINF" | b"ANIM" | b"EVNT"
+    )
+}
+
+fn is_opaque_asset(fourcc: FourCC) -> bool {
+    matches!(
+        fourcc.as_bytes(),
+        b"TXTR"
+            | b"AGSC"
+            | b"STRG"
+            | b"MREA"
+            | b"MLVL"
+            | b"SAVW"
+            | b"MAPA"
+            | b"MAPW"
+            | b"CSNG"
+            | b"DUMB"
+    )
+}
+
+fn to_decompressed_bytes(res: &structs::Resource) -> Result<Vec<u8>, String> {
+    match &res.kind {
+        structs::ResourceKind::Unknown(_, _) => {
+            Ok(crate::ResourceData::new(res).decompress().into_owned())
+        }
+        structs::ResourceKind::External(_, _) => Ok(crate::ResourceData::new_external(res)
+            .decompress()
+            .into_owned()),
+        _ => {
+            let mut bytes = Vec::new();
+            res.write_to(&mut bytes).map_err(|e| {
+                format!(
+                    "Failed to serialize {} 0x{:08X}: {}",
+                    res.fourcc(),
+                    res.file_id,
+                    e
+                )
+            })?;
+            Ok(bytes)
+        }
+    }
+}
+
+fn calc_referenced_asset_ids(bytes: &[u8], asset_types: &HashMap<u32, FourCC>) -> Vec<u32> {
+    bytes
+        .windows(4)
+        .map(|window| u32::from_be_bytes(window.try_into().unwrap()))
+        .filter(|value| asset_types.contains_key(value))
+        .collect()
+}
+
+/* The ids of assets in `pak` that MREA `mrea_id` reaches, directly or through a chain of non-opaque assets. Over-approximates: any u32 naming an asset counts as a reference. */
+fn build_reachable_asset_ids(pak: &structs::Pak, mrea_id: u32) -> Result<HashSet<u32>, String> {
+    let mut asset_types = HashMap::new();
+    let mut traversable_assets = HashMap::new();
+    let mut mrea_bytes = None;
+    for res in pak.resources.iter() {
+        let fourcc = res.fourcc();
+        asset_types.insert(res.file_id, fourcc);
+        if fourcc == b"MREA".into() && res.file_id == mrea_id {
+            mrea_bytes = Some(to_decompressed_bytes(&res)?);
+        } else if !is_opaque_asset(fourcc) {
+            traversable_assets.insert(res.file_id, res.into_owned());
+        }
+    }
+    let mrea_bytes = mrea_bytes.ok_or_else(|| format!("MREA 0x{mrea_id:08X} is not in its pak"))?;
+
+    let mut reachable = HashSet::new();
+    let mut frontier = calc_referenced_asset_ids(&mrea_bytes, &asset_types);
+    while let Some(asset_id) = frontier.pop() {
+        if !reachable.insert(asset_id) {
+            continue;
+        }
+        if let Some(res) = traversable_assets.get(&asset_id) {
+            let bytes = to_decompressed_bytes(res)?;
+            frontier.extend(calc_referenced_asset_ids(&bytes, &asset_types));
+        }
+    }
+    Ok(reachable)
+}
+
+/// Removes from `mrea_id`'s dependency table every prunable asset a `PickupModel` or extern model
+/// lists that the room's MREA does not reach. Run it after every other patch on `pak`, so the walk
+/// sees the final MREA and every asset imported at patch time.
+fn patch_prune_unreachable_pickup_model_deps(
+    pak: &mut structs::Pak,
+    mrea_id: u32,
+    extern_models: &HashMap<String, ExternPickupModel>,
+) -> Result<(), String> {
+    let pickup_model_assets: HashSet<(u32, FourCC)> = PickupModel::iter()
+        .flat_map(|model| model.dependencies().iter().copied())
+        .chain(
+            extern_models
+                .values()
+                .flat_map(|model| model.dependencies.iter().copied()),
+        )
+        .filter(|(_, fourcc)| is_prunable_model_asset(*fourcc))
+        .collect();
+    let reachable = build_reachable_asset_ids(pak, mrea_id)?;
+    let is_dead = |dep: &Dependency| {
+        pickup_model_assets.contains(&(dep.asset_id, dep.asset_type))
+            && !reachable.contains(&dep.asset_id)
+    };
+
+    let mut cursor = pak.resources.cursor();
+    while cursor.peek().is_some() {
+        let mut cursor = cursor.cursor_advancer();
+        if cursor.peek().unwrap().fourcc() != b"MLVL".into() {
+            continue;
+        }
+        let mlvl = cursor.value().unwrap().kind.as_mlvl_mut().unwrap();
+        let area = mlvl
+            .areas
+            .iter_mut()
+            .find(|area| area.mrea == mrea_id)
+            .ok_or_else(|| format!("MLVL has no area for MREA 0x{mrea_id:08X}"))?;
+        for layer in area.dependencies.deps.as_mut_vec().iter_mut() {
+            layer.as_mut_vec().retain(|dep| !is_dead(dep));
+        }
+        return Ok(());
+    }
+    Err(format!("No MLVL in the pak holding MREA 0x{mrea_id:08X}"))
+}
+
 fn patch_optimize_memory(
     _ps: &mut PatcherState,
     area: &mut mlvl_wrapper::MlvlArea<'_, '_, '_, '_>,
@@ -9580,86 +9708,6 @@ fn patch_optimize_memory(
     //             .retain(|conn| !dead_connections.contains(&(obj_id, conn.clone())));
     //     }
     // }
-
-    /* Prune dead pickup model dependencies */
-    let _dead_dep_len = {
-        /* AGSC (audio groups), STRG/SCAN (scan text), and FRME (UI frames) are excluded
-         * because they may be shared with non-pickup room objects. */
-        let pickup_dep_filter = |fourcc: &FourCC| {
-            matches!(
-                fourcc.as_bytes(),
-                b"TXTR" | b"CMDL" | b"ANCS" | b"PART" | b"CSKR" | b"CINF" | b"ANIM" | b"EVNT"
-            )
-        };
-
-        let all_pickup_deps: HashSet<(u32, FourCC)> = pickup_meta::PickupModel::iter()
-            .flat_map(|model| model.dependencies().iter().copied())
-            .filter(|(_, fourcc)| pickup_dep_filter(fourcc))
-            .collect();
-
-        let live_pickup_deps: HashSet<(u32, FourCC)> = {
-            let scly = area.mrea().scly_section();
-            let mut set = HashSet::new();
-            for layer in scly.layers.iter() {
-                for obj in layer.objects.iter() {
-                    if let Some(pickup) = obj.property_data.as_pickup() {
-                        if let Some(model) = pickup_meta::pickup_model_for_pickup(&pickup) {
-                            set.extend(
-                                model
-                                    .dependencies()
-                                    .iter()
-                                    .copied()
-                                    .filter(|(_, fourcc)| pickup_dep_filter(fourcc)),
-                            );
-                        }
-                        let cmdl_id = pickup.cmdl.to_u32();
-                        if cmdl_id != u32::MAX && cmdl_id != 0 {
-                            set.insert((cmdl_id, FourCC::from_bytes(b"CMDL")));
-                        }
-                        let ancs_id = pickup.animation_parameters.file_id.to_u32();
-                        if ancs_id != u32::MAX && ancs_id != 0 {
-                            set.insert((ancs_id, FourCC::from_bytes(b"ANCS")));
-                        }
-                        let part_id = pickup.part.to_u32();
-                        if part_id != u32::MAX && part_id != 0 {
-                            set.insert((part_id, FourCC::from_bytes(b"PART")));
-                        }
-                    }
-                }
-            }
-            set
-        };
-
-        let dead_pickup_deps: Vec<Dependency> = area
-            .mlvl_area
-            .dependencies
-            .deps
-            .iter()
-            .flat_map(|layer| layer.iter().map(|d| d.into_owned()).collect::<Vec<_>>())
-            .filter(|dep| {
-                let key = (dep.asset_id, dep.asset_type);
-                all_pickup_deps.contains(&key) && !live_pickup_deps.contains(&key)
-            })
-            .collect();
-
-        let dead_dep_len = dead_pickup_deps.len();
-
-        if !dead_pickup_deps.is_empty() {
-            // println!(
-            //     "[room 0x{:X}] pruning {} dead pickup deps: {}",
-            //     mrea_id,
-            //     dead_pickup_deps.len(),
-            //     dead_pickup_deps
-            //         .iter()
-            //         .map(|d| format!("0x{:X}({})", d.asset_id, d.asset_type))
-            //         .collect::<Vec<_>>()
-            //         .join(", ")
-            // );
-            area.remove_dependencies(dead_pickup_deps);
-        }
-
-        dead_dep_len
-    };
 
     // let _dead_memory_relay_conn_len = {
     //     let mut all_ids: HashSet<u32> = HashSet::new();
@@ -18233,8 +18281,8 @@ fn build_and_run_patches<'r>(
     }
 
     if config.qol_game_breaking {
-        /* Optimize rooms that are likely to crash */
-        let rooms = [
+        /// Rooms that crash on heap exhaustion often enough to shrink their memory footprint.
+        const MEMORY_OPTIMIZED_ROOMS: [(World, &str); 6] = [
             (World::ChozoRuins, "Main Plaza"),
             (World::ChozoRuins, "Ruined Fountain Access"),
             (World::ChozoRuins, "Ruins Entrance"),
@@ -18243,15 +18291,18 @@ fn build_and_run_patches<'r>(
             (World::ChozoRuins, "Plaza Access"),
         ];
 
-        for (world, room_name) in rooms {
+        for (world, room_name) in MEMORY_OPTIMIZED_ROOMS {
             let pak_name = world.to_pak_str().as_bytes();
-            let world_name = World::ChozoRuins.to_json_key();
+            let world_name = world.to_json_key();
             let mrea_id = ROOM_BY_NAME
                 .get(&(world_name.to_string(), room_name.to_string()))
                 .unwrap_or_else(|| panic!("'{} - {}' is not a real room", world_name, room_name))
                 .mrea_id;
             patcher.add_scly_patch((pak_name, mrea_id), move |ps, area| {
                 patch_optimize_memory(ps, area)
+            });
+            patcher.add_late_pak_patch(pak_name, move |pak| {
+                patch_prune_unreachable_pickup_model_deps(pak, mrea_id, extern_models)
             });
         }
 

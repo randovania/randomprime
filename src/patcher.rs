@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use reader_writer::FourCC;
-use structs::{FstEntryFile, GcDisc, Resource, ResourceKind};
+use structs::{FstEntryFile, GcDisc, Pak, Resource, ResourceKind};
 
 use crate::mlvl_wrapper::{MlvlArea, MlvlEditor};
 
@@ -21,6 +21,8 @@ struct MreaKey<'r> {
 type SclyPatch<'r, 's> =
     dyn FnMut(&mut PatcherState, &mut MlvlArea<'r, '_, '_, '_>) -> Result<(), String> + 's;
 
+type LatePakPatch<'r, 's> = dyn FnMut(&mut Pak<'r>) -> Result<(), String> + 's;
+
 #[allow(clippy::type_complexity)]
 #[derive(Default)]
 pub struct PrimePatcher<'r, 's> {
@@ -32,6 +34,7 @@ pub struct PrimePatcher<'r, 's> {
         Box<dyn FnMut(&mut Resource<'r>) -> Result<(), String> + 's>,
     )>,
     scly_patches: Vec<(MreaKey<'s>, Vec<Box<SclyPatch<'r, 's>>>)>,
+    late_pak_patches: Vec<(&'s [u8], Box<LatePakPatch<'r, 's>>)>,
 }
 
 #[derive(Default)]
@@ -48,7 +51,17 @@ impl<'r, 's> PrimePatcher<'r, 's> {
             file_patches: HashMap::new(),
             resource_patches: Vec::new(),
             scly_patches: Vec::new(),
+            late_pak_patches: Vec::new(),
         }
+    }
+
+    /// Registers `f` to run on the pak named `pak_name` after every resource and SCLY patch for
+    /// that pak, when its MREAs, MLVL, and inserted assets are final.
+    pub fn add_late_pak_patch<F>(&mut self, pak_name: &'s [u8], f: F)
+    where
+        F: FnMut(&mut Pak<'r>) -> Result<(), String> + 's,
+    {
+        self.late_pak_patches.push((pak_name, Box::new(f)));
     }
 
     pub fn add_file_patch<F>(&mut self, name: &'s [u8], f: F)
@@ -94,12 +107,18 @@ impl<'r, 's> PrimePatcher<'r, 's> {
     pub fn run(&mut self, gc_disc: &mut GcDisc<'r>) -> Result<(), String> {
         let mut patcher_state = PatcherState::default();
 
+        let paks_to_patch = self
+            .resource_patches
+            .iter()
+            .map(|p| p.0.pak_name)
+            .chain(self.scly_patches.iter().map(|p| p.0.pak_name))
+            .chain(self.late_pak_patches.iter().map(|p| p.0))
+            .collect::<HashSet<_>>();
         let files_to_patch = self
             .file_patches
             .keys()
             .copied()
-            .chain(self.scly_patches.iter().map(|p| p.0.pak_name))
-            .chain(self.resource_patches.iter().map(|p| p.0.pak_name))
+            .chain(paks_to_patch.iter().copied())
             .collect::<HashSet<_>>();
         let files = gc_disc
             .file_system_root
@@ -114,13 +133,7 @@ impl<'r, 's> PrimePatcher<'r, 's> {
                 }
             }
 
-            let pak_patch_exists = self
-                .resource_patches
-                .iter()
-                .map(|p| p.0.pak_name)
-                .chain(self.scly_patches.iter().map(|p| p.0.pak_name))
-                .any(|n| n == &name[..]);
-            if !pak_patch_exists {
+            if !paks_to_patch.contains(&name[..]) {
                 continue;
             }
 
@@ -186,6 +199,11 @@ impl<'r, 's> PrimePatcher<'r, 's> {
                 if cursor.peek().unwrap().fourcc() == b"MLVL".into() && mlvl_editor.is_some() {
                     let mlvl = mlvl_editor.take().unwrap().mlvl;
                     cursor.value().unwrap().kind = ResourceKind::Mlvl(mlvl);
+                }
+            }
+            for (pak_name, patch) in self.late_pak_patches.iter_mut() {
+                if *pak_name == &name[..] {
+                    patch(pak)?;
                 }
             }
         }
