@@ -11482,6 +11482,42 @@
                         },
                         {
                             "senderId": 2687001, // [SpecialFunction] Eyon Reveal Cinematic Skip
+                            "targetId": 2687137, // [Eyeball] EyeBall-component Right
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687001, // [SpecialFunction] Eyon Reveal Cinematic Skip
+                            "targetId": 2687138, // [Eyeball] EyeBall-component Right
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687001, // [SpecialFunction] Eyon Reveal Cinematic Skip
+                            "targetId": 2687139, // [Eyeball] EyeBall-component Right
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687001, // [SpecialFunction] Eyon Reveal Cinematic Skip
+                            "targetId": 2687140, // [Eyeball] EyeBall-component Left
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687001, // [SpecialFunction] Eyon Reveal Cinematic Skip
+                            "targetId": 2687141, // [Eyeball] EyeBall-component Left
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687001, // [SpecialFunction] Eyon Reveal Cinematic Skip
+                            "targetId": 2687142, // [Eyeball] EyeBall-component Left
+                            "state": "ZERO",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687001, // [SpecialFunction] Eyon Reveal Cinematic Skip
                             "targetId": 2697226, // [Timer] Timer Eyeball Open
                             "state": "ZERO",
                             "message": "STOP_AND_RESET"

@@ -71,6 +71,42 @@
                             "message": "SET_TO_ZERO"
                         },
                         {
+                            "senderId": 2687109, // [Pickup] Pickup
+                            "targetId": 2687137, // [Eyeball] EyeBall-component Right
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687109, // [Pickup] Pickup
+                            "targetId": 2687138, // [Eyeball] EyeBall-component Right
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687109, // [Pickup] Pickup
+                            "targetId": 2687139, // [Eyeball] EyeBall-component Right
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687109, // [Pickup] Pickup
+                            "targetId": 2687140, // [Eyeball] EyeBall-component Left
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687109, // [Pickup] Pickup
+                            "targetId": 2687141, // [Eyeball] EyeBall-component Left
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
+                            "senderId": 2687109, // [Pickup] Pickup
+                            "targetId": 2687142, // [Eyeball] EyeBall-component Left
+                            "state": "ARRIVED",
+                            "message": "NEXT"
+                        },
+                        {
                             "senderId": 2697094, // [Relay] Relay Trigger EyeBalls
                             "targetId": 2697803, // [Sound] Sound - Blink
                             "state": "ZERO",

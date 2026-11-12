@@ -1688,6 +1688,91 @@ fn patch_actor_rotate_next(
     Ok(())
 }
 
+// Patch CEyeBall to treat NEXT as a fast-forward to the end of mAttackStartTime
+// resulting in the laser coming out immediately
+fn patch_eyeball_next(
+    dol_patcher: &mut DolPatcher<'_>,
+    emitter: &mut TextEmitter,
+    version: Version,
+) -> Result<(), String> {
+    const MSG_NEXT: i16 = 8;
+    const MSG_REGISTERED: i16 = 33;
+    const ALERT_BIT: u16 = 0x20;
+    const ARM_NOW_BIT: u16 = 0x04;
+
+    let (bitfield, state_time) = match version {
+        Version::NtscU0_00 | Version::NtscU0_01 | Version::NtscK => (0x60c, 0x338),
+        Version::NtscU0_02 | Version::NtscJ | Version::Pal => (0x61c, 0x348),
+        _ => return Ok(()),
+    };
+
+    let accept_script_msg = symbol_addr!(
+        "AcceptScriptMsg__8CEyeBallF20EScriptObjectMessage9TUniqueIdR13CStateManager",
+        version
+    );
+    let active = symbol_addr!("Active__8CEyeBallFR13CStateManager9EStateMsgf", version);
+
+    let msg_site = accept_script_msg + 0x14;
+    let msg_resume = msg_site + 4;
+    let attack_start_site = active + 0x70;
+    let attack_start_resume = attack_start_site + 4;
+    let set_can_attack = active + 0x80;
+
+    let expected = [
+        (msg_site, 0x381cffeb),                       // addi r0, r28, -0x15
+        (attack_start_site, 0xc05e0000 | state_time), // lfs f2, state_time(r30)
+        (set_can_attack, 0x881e0000 | bitfield),      // lbz r0, bitfield(r30)
+    ];
+    for (addr, word) in expected {
+        let found = dol_patcher.read_u32(addr)?;
+        if found != word {
+            return Err(format!(
+                "patch_eyeball_next: {addr:#010x} = {found:#010x}, expected {word:#010x}"
+            ));
+        }
+    }
+
+    // r3 = this, r28 = msg
+    emitter.emit_and_patch(dol_patcher, msg_site, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            cmpwi   r28, { MSG_REGISTERED };
+            bne     check_next;
+            lbz     r0, { bitfield }(r3);
+            rlwinm  r0, r0, 0, 30, 28; // clear ARM_NOW_BIT
+            stb     r0, { bitfield }(r3);
+            b       resume;
+        check_next:
+            cmpwi   r28, { MSG_NEXT };
+            bne     resume;
+            lbz     r0, { bitfield }(r3);
+            ori     r0, r0, { ALERT_BIT | ARM_NOW_BIT };
+            stb     r0, { bitfield }(r3);
+        resume:
+            addi    r0, r28, -0x15;
+            b       { msg_resume };
+        })
+        .encoded_bytes()
+    })?;
+
+    // r30 = this; r3 is scratch
+    emitter.emit_and_patch(dol_patcher, attack_start_site, false, |cave_addr| {
+        ppcasm!(cave_addr, {
+            lbz     r0, { bitfield }(r30);
+            andi    r0, r3, { ARM_NOW_BIT }; // r3 = r0 & bit (ppcasm order)
+            beq     wait;
+            rlwinm  r0, r0, 0, 30, 28; // clear ARM_NOW_BIT
+            stb     r0, { bitfield }(r30);
+            b       { set_can_attack };
+        wait:
+            lfs     f2, { state_time }(r30);
+            b       { attack_start_resume };
+        })
+        .encoded_bytes()
+    })?;
+
+    Ok(())
+}
+
 // Teach beetles to respect reset on all versions and expand
 // reset functionality to clear velocity and and attack timers
 fn patch_beetle_reset(
@@ -1916,6 +2001,7 @@ fn patch_meta(
     ) {
         patch_beetle_reset(dol_patcher, emitter, version)?;
         patch_actor_rotate_next(dol_patcher, emitter, version)?;
+        patch_eyeball_next(dol_patcher, emitter, version)?;
     }
 
     {
