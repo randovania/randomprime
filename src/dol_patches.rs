@@ -2845,9 +2845,15 @@ fn patch_streamed_audio_slot_release(
         return Ok(());
     };
 
-    // SilenceStream+0x4c is `stw r0, 0xe8(r31)`, last before the epilogue.
+    // Last store before the epilogue: `stw r0, 0xe8(r31)` (xe8_silenced).
     let silenced_store = silence_stream + 0x4c;
     let silenced_store_orig = dol_patcher.read_u32(silenced_store)?;
+    if silenced_store_orig != 0x901f00e8 {
+        return Err(format!(
+            "unexpected CDSPStream::SilenceStream store at {:#x}",
+            silenced_store
+        ));
+    }
     emitter.emit_and_patch(dol_patcher, silenced_store, false, |cave_addr| {
         ppcasm!(cave_addr, {
             .long silenced_store_orig;
@@ -2860,6 +2866,12 @@ fn patch_streamed_audio_slot_release(
 
     // Guards a queued musyx callback from double-closing the DVD handles.
     let stop_prologue = dol_patcher.read_u32(stop_stream)?;
+    if stop_prologue != 0x9421fff0 {
+        return Err(format!(
+            "unexpected CDSPStream::StopStream prologue at {:#x}",
+            stop_stream
+        ));
+    }
     emitter.emit_and_patch(dol_patcher, stop_stream, false, |cave_addr| {
         ppcasm!(cave_addr, {
             lbz    r0, 0x0(r3);             // x0_state
