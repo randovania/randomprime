@@ -3627,29 +3627,50 @@ fn patch_inventory_gates(
         .encoded_bytes()
     })?;
 
-    // Morph forces a transition to combat visor; redirect to the best owned real visor
-    // (combat > thermal > xray, else fake combat). Scan is never picked, so a
-    // scan-only/visorless player unmorphs into the fake combat visor.
-    let enter_morph_visor_callsite =
-        symbol_addr!("EnterMorphBallState__7CPlayerFR13CStateManager", version)
-            + if pal_like { 0xb8 } else { 0x110 };
-    emitter.emit_and_patch(dol_patcher, enter_morph_visor_callsite, true, |addr| {
+    // Morph forces combat visor, and the fake combat visor must stay while morphed: code
+    // that read the current visor assume retail's combat-only morph ball (Thardus hides
+    // his particles, including the storm lightning, in thermal). When unmorphing without
+    // Combat Visor, start the transition to the best owned real visor (thermal > xray) so
+    // it completes behind the ball camera. Scan is never picked, so a scan-only/visorless
+    // player unmorphs into the fake combat visor.
+    let transition_from_morph = symbol_addr!(
+        "TransitionFromMorphBallState__7CPlayerFR13CStateManager",
+        version
+    );
+    let orig = dol_patcher.read_u32(transition_from_morph)?;
+    emitter.emit_and_patch(dol_patcher, transition_from_morph, false, |addr| {
         ppcasm!(addr, {
-                // r3 = CPlayerState*, r4 = kPV_Combat (0)
-                lwz     r11, 0xb4(r3);      // combat visor item capacity
-                cmplwi  r11, 0;
-                bne     do_transition;
-                lwz     r11, 0x74(r3);      // thermal visor item capacity
-                cmplwi  r11, 0;
-                li      r4, 3;              // thermal
-                bne     do_transition;
-                lwz     r11, 0x94(r3);      // xray visor item capacity
-                cmplwi  r11, 0;
-                li      r4, 1;              // xray
-                bne     do_transition;
-                li      r4, 0;              // fake combat visor
-            do_transition:
-                b       { start_transition_to_visor };
+                // r3 = CPlayer*, r4 = CStateManager&
+                lwz     r11, 0x8b8(r4);
+                lwz     r11, 0x0(r11);      // CPlayerState*
+                lwz     r12, 0xb4(r11);     // combat visor item capacity
+                cmplwi  r12, 0;
+                bne     run_function;       // retail: stay in combat visor
+                lwz     r12, 0x74(r11);     // thermal visor item capacity
+                cmplwi  r12, 0;
+                li      r5, 3;              // thermal
+                bne     transition;
+                lwz     r12, 0x94(r11);     // xray visor item capacity
+                cmplwi  r12, 0;
+                li      r5, 1;              // xray
+                beq     run_function;       // no real visor owned: stay in fake combat visor
+            transition:
+                stwu    r1, -0x20(r1);
+                mflr    r0;
+                stw     r0, 0x24(r1);
+                stw     r3, 0x8(r1);
+                stw     r4, 0xc(r1);
+                mr      r3, r11;
+                mr      r4, r5;
+                bl      { start_transition_to_visor };
+                lwz     r3, 0x8(r1);
+                lwz     r4, 0xc(r1);
+                lwz     r0, 0x24(r1);
+                mtlr    r0;
+                addi    r1, r1, 0x20;
+            run_function:
+                .long orig;                 // displaced first instruction
+                b       { transition_from_morph + 4 };
         })
         .encoded_bytes()
     })?;
