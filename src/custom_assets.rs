@@ -664,11 +664,17 @@ fn extern_assets_compile_time<'r>() -> Vec<Resource<'r>> {
 }
 
 // Assets not found in the base game
+#[derive(Debug, Copy, Clone)]
+pub struct PickupHudmemoIds {
+    pub normal: ResId<res_id::STRG>,
+    pub missing_required_item: Option<ResId<res_id::STRG>>,
+}
+
 #[allow(clippy::type_complexity)]
 pub fn custom_assets<'r>(
     resources: &HashMap<(u32, FourCC), structs::Resource<'r>>,
     starting_memo: Option<&str>,
-    pickup_hudmemos: &mut HashMap<PickupHashKey, ResId<res_id::STRG>>,
+    pickup_hudmemos: &mut HashMap<PickupHashKey, PickupHudmemoIds>,
     pickup_scans: &mut HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     extra_scans: &mut HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
     edit_obj_scans: &mut HashMap<
@@ -937,29 +943,43 @@ pub fn custom_assets<'r>(
                 }
 
                 for pickup in room.pickups.iter().flatten() {
-                    // custom hudmemo string
+                    // Custom HUD memo strings.
                     if let Some(hudmemo_text) = pickup.hudmemo_text.as_ref() {
-                        // Get next ID //
-                        let strg_id = ResId::<res_id::STRG>::new(
-                            custom_asset_ids::EXTRA_IDS_START.to_u32()
-                                + *scan_allocator.next_offset,
-                        );
-                        *scan_allocator.next_offset += 1;
+                        let mut create_hudmemo_strg = |text: &str| {
+                            let strg_id = ResId::<res_id::STRG>::new(
+                                custom_asset_ids::EXTRA_IDS_START.to_u32()
+                                    + *scan_allocator.next_offset,
+                            );
+                            *scan_allocator.next_offset += 1;
 
-                        // Build resource //
-                        let strg = structs::ResourceKind::Strg(structs::Strg {
-                            string_tables: vec![structs::StrgStringTable {
-                                lang: b"ENGL".into(),
-                                strings: vec![format!("&just=center;{}\u{0}", hudmemo_text).into()]
-                                    .into(),
-                            }]
-                            .into(),
-                        });
-                        scan_allocator.assets.push(build_resource(strg_id, strg));
+                            let strg = structs::ResourceKind::Strg(structs::Strg {
+                                string_tables: vec![structs::StrgStringTable {
+                                    lang: b"ENGL".into(),
+                                    strings: vec![format!("&just=center;{}\u{0}", text).into()]
+                                        .into(),
+                                }]
+                                .into(),
+                            });
+                            scan_allocator.assets.push(build_resource(strg_id, strg));
 
-                        // Map for easy lookup when patching //
+                            strg_id
+                        };
+
+                        let normal = create_hudmemo_strg(hudmemo_text);
+                        let missing_required_item = pickup
+                            .conditional_hudmemo
+                            .as_ref()
+                            .map(|conditional| create_hudmemo_strg(&conditional.missing_text));
+
+                        // Map for easy lookup when patching.
                         let key = PickupHashKey::from_location(level_name, room_name, pickup_idx);
-                        pickup_hudmemos.insert(key, strg_id);
+                        pickup_hudmemos.insert(
+                            key,
+                            PickupHudmemoIds {
+                                normal,
+                                missing_required_item,
+                            },
+                        );
                     }
 
                     // Custom scan string
@@ -1132,7 +1152,7 @@ pub fn collect_game_resources<'r>(
 ) -> Result<
     (
         HashMap<(u32, FourCC), structs::Resource<'r>>,
-        HashMap<PickupHashKey, ResId<res_id::STRG>>,
+        HashMap<PickupHashKey, PickupHudmemoIds>,
         HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
         HashMap<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
         HashMap<ScannableParametersConfig, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>,
@@ -1291,7 +1311,7 @@ pub fn collect_game_resources<'r>(
     }
 
     // Maps pickup location to STRG to use
-    let mut pickup_hudmemos = HashMap::<PickupHashKey, ResId<res_id::STRG>>::new();
+    let mut pickup_hudmemos = HashMap::<PickupHashKey, PickupHudmemoIds>::new();
     let mut pickup_scans =
         HashMap::<PickupHashKey, (ResId<res_id::SCAN>, ResId<res_id::STRG>)>::new();
     let mut extra_scans =
