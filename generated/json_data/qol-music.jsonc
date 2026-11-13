@@ -761,48 +761,48 @@
                 "Exterior Docking Hangar": {
                     "addConnections": [
                         {
-                            "senderId": 10094, // [SpecialFunction] Music Player For Area
-                            "targetId": 100177, // [StreamedAudio] StreamedAudio - Intro Space SW
+                            "senderId": 507, // [SpecialFunction] Music Player For Area
+                            "targetId": 508, // [StreamedAudio] StreamedAudio - Intro Space SW
                             "state": "ENTERED",
                             "message": "STOP"
                         },
                         {
-                            "senderId": 10094, // [SpecialFunction] Music Player For Area
-                            "targetId": 1094, // [StreamedAudio] StreamedAudio - Intro Escape SW
+                            "senderId": 507, // [SpecialFunction] Music Player For Area
+                            "targetId": 509, // [StreamedAudio] StreamedAudio - Intro Escape SW
                             "state": "ENTERED",
                             "message": "PLAY"
                         },
                         {
                             "senderId": 1093, // [Trigger] Trigger - Play Music 1
-                            "targetId": 1094, // [StreamedAudio] StreamedAudio - Intro Escape SW
+                            "targetId": 509, // [StreamedAudio] StreamedAudio - Intro Escape SW
                             "state": "ENTERED",
                             "message": "STOP"
                         },
                         {
                             "senderId": 1092, // [Trigger] Trigger - Play Music 2
-                            "targetId": 1094, // [StreamedAudio] StreamedAudio - Intro Escape SW
+                            "targetId": 509, // [StreamedAudio] StreamedAudio - Intro Escape SW
                             "state": "ENTERED",
                             "message": "PLAY"
                         }
                     ],
                     "specialFunctions": [
                         {
-                            "id": 10094, // [SpecialFunction] Music Player For Area
+                            "id": 507, // [SpecialFunction] Music Player For Area
                             "name": "Music Player For Area",
                             "type": "PlayerInAreaRelay"
                         }
                     ],
                     "streamedAudios": [
                         {
-                            "id": 100177, // [StreamedAudio] StreamedAudio - Intro Space SW
+                            "id": 508, // [StreamedAudio] StreamedAudio - Intro Space SW
                             "name": "StreamedAudio - Intro Space SW",
-                            "audioFileName": "/audio/int_spaceL.dsp|audio/int_spaceR.dsp",
+                            "audioFileName": "audio/int_spaceL.dsp|audio/int_spaceR.dsp",
                             "volume": 70,
                             "isMusic": true,
                             "layer": 1 // Intro Opening
                         },
                         {
-                            "id": 1094, // [StreamedAudio] StreamedAudio - Intro Escape SW
+                            "id": 509, // [StreamedAudio] StreamedAudio - Intro Escape SW
                             "name": "StreamedAudio - Intro Escape SW",
                             "audioFileName": "/audio/int_escapeL.dsp|audio/int_escapeR.dsp",
                             "volume": 105,

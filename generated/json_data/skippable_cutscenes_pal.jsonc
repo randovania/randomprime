@@ -101,8 +101,14 @@
                     ]
                 },
                 "Hall of the Elders": {
-                    "deleteIds": [
-                        3408777
+                    // PAL Exclusive Blocker
+                    "addConnections": [
+                        {
+                            "senderId": 3408927, // [SpawnPoint] Wave Throw Skip Final Position
+                            "targetId": 3408777, // [Actor] Actor Right Blocker
+                            "state": "ZERO",
+                            "message": "DEACTIVATE"
+                        }
                     ]
                 }
             }
